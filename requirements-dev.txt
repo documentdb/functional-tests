@@ -1,0 +1,11 @@
+# Development dependencies
+-r requirements.txt
+
+# Code quality
+black>=23.7.0  # Code formatting
+flake8>=6.1.0  # Linting
+mypy>=1.5.0  # Type checking
+isort>=5.12.0  # Import sorting
+
+# Testing
+pytest-cov>=4.1.0  # Coverage reporting
