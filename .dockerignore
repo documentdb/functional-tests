@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Test results
+.test-results/
+test-results/
+*.log
+
+# Development files
+requirements-dev.txt
+.flake8
+.mypy.ini
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+
+# OS
+.DS_Store
+Thumbs.db

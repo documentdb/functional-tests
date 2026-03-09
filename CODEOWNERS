@@ -1,0 +1,4 @@
+# Code owners for DocumentDB Functional Tests
+# These owners will be automatically requested for review when PRs are opened
+
+* @documentdb/functional-tests-maintainers
