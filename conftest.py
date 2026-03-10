@@ -7,10 +7,8 @@ This module provides fixtures for:
 - Test isolation
 """
 
-
-import hashlib
 import pytest
-from pymongo import MongoClient
+from framework import fixtures
 
 
 def pytest_addoption(parser):
@@ -70,18 +68,7 @@ def engine_client(request):
     connection_string = request.config.connection_string
     engine_name = request.config.engine_name
 
-    client = MongoClient(connection_string)
-
-    # Verify connection
-    try:
-        client.admin.command("ping")
-    except Exception as e:
-        # Close the client before raising
-        client.close()
-        # Raise ConnectionError so analyzer categorizes as INFRA_ERROR
-        raise ConnectionError(
-            f"Cannot connect to {engine_name} at {connection_string}: {e}"
-        ) from e
+    client = fixtures.create_engine_client(connection_string, engine_name)
 
     yield client
 
@@ -106,29 +93,16 @@ def database_client(engine_client, request, worker_id):
     Yields:
         Database: MongoDB database object
     """
-    # Get full test identifier (includes file path and test name)
+    # Generate unique database name using framework utility
     full_test_id = request.node.nodeid
-    
-    # Create a short hash for uniqueness (first 8 chars of SHA256)
-    name_hash = hashlib.sha256(full_test_id.encode()).hexdigest()[:8]
-    
-    # Get abbreviated test name for readability (sanitize and truncate)
-    test_name = request.node.name.replace("[", "_").replace("]", "_")
-    abbreviated = test_name[:20]
-    
-    # Combine: test_{worker}_{hash}_{abbreviated}
-    # Example: test_gw0_a1b2c3d4_find_all_documents
-    db_name = f"test_{worker_id}_{name_hash}_{abbreviated}"[:63]  # MongoDB limit
+    db_name = fixtures.generate_database_name(full_test_id, worker_id)
 
     db = engine_client[db_name]
 
     yield db
 
     # Cleanup: drop test database
-    try:
-        engine_client.drop_database(db_name)
-    except Exception:
-        pass  # Best effort cleanup
+    fixtures.cleanup_database(engine_client, db_name)
 
 
 @pytest.fixture(scope="function")
@@ -147,26 +121,13 @@ def collection(database_client, request, worker_id):
     Yields:
         Collection: Empty MongoDB collection object
     """
-    # Get full test identifier
+    # Generate unique collection name using framework utility
     full_test_id = request.node.nodeid
-    
-    # Create a short hash for uniqueness (first 8 chars of SHA256)
-    name_hash = hashlib.sha256(full_test_id.encode()).hexdigest()[:8]
-    
-    # Get abbreviated test name for readability (sanitize and truncate)
-    test_name = request.node.name.replace("[", "_").replace("]", "_")
-    abbreviated = test_name[:25]
-    
-    # Combine: coll_{worker}_{hash}_{abbreviated}
-    # Example: coll_gw0_a1b2c3d4_find_all_documents
-    collection_name = f"coll_{worker_id}_{name_hash}_{abbreviated}"[:100]  # Collection name limit
+    collection_name = fixtures.generate_collection_name(full_test_id, worker_id)
     
     coll = database_client[collection_name]
 
     yield coll
 
     # Cleanup: drop collection
-    try:
-        coll.drop()
-    except Exception:
-        pass  # Best effort cleanup
+    fixtures.cleanup_collection(database_client, collection_name)

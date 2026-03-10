@@ -7,7 +7,7 @@ This package provides test utilities and common assertions for testing
 DocumentDB functionality.
 """
 
-from tests.common.assertions import (
+from framework.assertions import (
     assert_count,
     assert_document_match,
     assert_documents_match,
