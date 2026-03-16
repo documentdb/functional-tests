@@ -6,123 +6,89 @@ Tests for the $group stage in aggregation pipelines.
 
 import pytest
 
+from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.assertions import assertSuccess
+
 
 @pytest.mark.aggregate
 @pytest.mark.smoke
 def test_group_with_count(collection):
     """Test $group stage with count aggregation."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "department": "Engineering", "salary": 100000},
-        {"name": "Bob", "department": "Engineering", "salary": 90000},
-        {"name": "Charlie", "department": "Sales", "salary": 80000},
-        {"name": "David", "department": "Sales", "salary": 75000},
+        {"a": "A", "b": 100},
+        {"a": "A", "b": 90},
+        {"a": "B", "b": 80},
+        {"a": "B", "b": 75},
     ])
-
-    # Act - Execute aggregation to count documents by department
-    pipeline = [{"$group": {"_id": "$department", "count": {"$sum": 1}}}]
-    result = list(collection.aggregate(pipeline))
-
-    # Assert - Verify results
-    assert len(result) == 2, "Expected 2 departments"
-
-    # Convert to dict for easier verification
-    dept_counts = {doc["_id"]: doc["count"] for doc in result}
-    assert dept_counts["Engineering"] == 2, "Expected 2 employees in Engineering"
-    assert dept_counts["Sales"] == 2, "Expected 2 employees in Sales"
+    result = execute_command(collection, {"aggregate": collection.name, "pipeline": [{"$group": {"_id": "$a", "count": {"$sum": 1}}}], "cursor": {}})
+    
+    expected = [
+        {"_id": "A", "count": 2},
+        {"_id": "B", "count": 2}
+    ]
+    assertSuccess(result, expected, "Should group and count by department", ignore_order=True)
 
 
 @pytest.mark.aggregate
 def test_group_with_sum(collection):
     """Test $group stage with sum aggregation."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "department": "Engineering", "salary": 100000},
-        {"name": "Bob", "department": "Engineering", "salary": 90000},
-        {"name": "Charlie", "department": "Sales", "salary": 80000},
+        {"a": "A", "b": 100},
+        {"a": "A", "b": 90},
+        {"a": "B", "b": 80},
     ])
-
-    # Act - Execute aggregation to sum salaries by department
-    pipeline = [{"$group": {"_id": "$department", "totalSalary": {"$sum": "$salary"}}}]
-    result = list(collection.aggregate(pipeline))
-
-    # Assert - Verify results
-    assert len(result) == 2, "Expected 2 departments"
-
-    # Convert to dict for easier verification
-    dept_salaries = {doc["_id"]: doc["totalSalary"] for doc in result}
-    assert dept_salaries["Engineering"] == 190000, "Expected total Engineering salary of 190000"
-    assert dept_salaries["Sales"] == 80000, "Expected total Sales salary of 80000"
+    result = execute_command(collection, {"aggregate": collection.name, "pipeline": [{"$group": {"_id": "$a", "total": {"$sum": "$b"}}}], "cursor": {}})
+    
+    expected = [
+        {"_id": "A", "total": 190},
+        {"_id": "B", "total": 80}
+    ]
+    assertSuccess(result, expected, "Should sum by group", ignore_order=True)
 
 
 @pytest.mark.aggregate
 def test_group_with_avg(collection):
     """Test $group stage with average aggregation."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "department": "Engineering", "salary": 100000},
-        {"name": "Bob", "department": "Engineering", "salary": 90000},
-        {"name": "Charlie", "department": "Sales", "salary": 80000},
+        {"a": "A", "b": 100},
+        {"a": "A", "b": 90},
+        {"a": "B", "b": 80},
     ])
-
-    # Act - Execute aggregation to calculate average salary by department
-    pipeline = [{"$group": {"_id": "$department", "avgSalary": {"$avg": "$salary"}}}]
-    result = list(collection.aggregate(pipeline))
-
-    # Assert - Verify results
-    assert len(result) == 2, "Expected 2 departments"
-
-    # Convert to dict for easier verification
-    dept_avg = {doc["_id"]: doc["avgSalary"] for doc in result}
-    assert dept_avg["Engineering"] == 95000, "Expected average Engineering salary of 95000"
-    assert dept_avg["Sales"] == 80000, "Expected average Sales salary of 80000"
+    result = execute_command(collection, {"aggregate": collection.name, "pipeline": [{"$group": {"_id": "$a", "avg": {"$avg": "$b"}}}], "cursor": {}})
+    
+    expected = [
+        {"_id": "A", "avg": 95.0},
+        {"_id": "B", "avg": 80.0}
+    ]
+    assertSuccess(result, expected, "Should calculate average by group", ignore_order=True)
 
 
 @pytest.mark.aggregate
 def test_group_with_min_max(collection):
     """Test $group stage with min and max aggregations."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "department": "Engineering", "salary": 100000},
-        {"name": "Bob", "department": "Engineering", "salary": 90000},
-        {"name": "Charlie", "department": "Sales", "salary": 80000},
+        {"a": "A", "b": 100},
+        {"a": "A", "b": 90},
+        {"a": "B", "b": 80},
     ])
-
-    # Act - Execute aggregation to find min and max salary by department
-    pipeline = [
-        {
-            "$group": {
-                "_id": "$department",
-                "minSalary": {"$min": "$salary"},
-                "maxSalary": {"$max": "$salary"},
-            }
-        }
+    result = execute_command(collection, {"aggregate": collection.name, "pipeline": [{"$group": {"_id": "$a", "min": {"$min": "$b"}, "max": {"$max": "$b"}}}], "cursor": {}})
+    
+    expected = [
+        {"_id": "A", "min": 90, "max": 100},
+        {"_id": "B", "min": 80, "max": 80}
     ]
-    result = list(collection.aggregate(pipeline))
-
-    # Assert - Verify results
-    assert len(result) == 2, "Expected 2 departments"
-
-    # Verify Engineering department
-    eng_dept = next(doc for doc in result if doc["_id"] == "Engineering")
-    assert eng_dept["minSalary"] == 90000, "Expected min Engineering salary of 90000"
-    assert eng_dept["maxSalary"] == 100000, "Expected max Engineering salary of 100000"
+    assertSuccess(result, expected, "Should find min and max by group", ignore_order=True)
 
 
 @pytest.mark.aggregate
 def test_group_all_documents(collection):
     """Test $group stage grouping all documents (using null as _id)."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"item": "A", "quantity": 5},
-        {"item": "B", "quantity": 10},
-        {"item": "A", "quantity": 3},
+        {"a": "A", "b": 5},
+        {"a": "B", "b": 10},
+        {"a": "A", "b": 3},
     ])
-
-    # Act - Execute aggregation to sum quantities across all documents
-    pipeline = [{"$group": {"_id": None, "totalQuantity": {"$sum": "$quantity"}}}]
-    result = list(collection.aggregate(pipeline))
-
-    # Assert - Verify results
-    assert len(result) == 1, "Expected single result grouping all documents"
-    assert result[0]["totalQuantity"] == 18, "Expected total quantity of 18"
+    result = execute_command(collection, {"aggregate": collection.name, "pipeline": [{"$group": {"_id": None, "total": {"$sum": "$b"}}}], "cursor": {}})
+    
+    expected = [{"_id": None, "total": 18}]
+    assertSuccess(result, expected, "Should sum across all documents")
