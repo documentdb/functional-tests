@@ -8,7 +8,7 @@ This module provides fixtures for:
 """
 
 import pytest
-from framework import fixtures
+from documentdb_tests.framework import fixtures
 
 
 def pytest_addoption(parser):

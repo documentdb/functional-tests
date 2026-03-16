@@ -6,7 +6,7 @@ Tests for fundamental find() and findOne() operations.
 
 import pytest
 
-from framework.assertions import assert_document_match
+from documentdb_tests.framework.assertions import assert_document_match
 
 
 @pytest.mark.find
