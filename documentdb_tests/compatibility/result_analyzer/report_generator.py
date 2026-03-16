@@ -99,11 +99,22 @@ def generate_text_report(analysis: Dict[str, Any], output_path: str):
         lines.append("-" * 80)
         for test in failed_tests:
             lines.append(f"\n{test['name']}")
+            failure_type = test.get("failure_type", "UNKNOWN")
+            lines.append(f"  Type: {failure_type}")
             lines.append(f"  Tags: {', '.join(test['tags'])}")
             lines.append(f"  Duration: {test['duration']:.2f}s")
             if "error" in test:
                 error_preview = test["error"][:200]
                 lines.append(f"  Error: {error_preview}...")
+
+    # Skipped tests
+    skipped_tests = [t for t in analysis["tests"] if t["outcome"] == "SKIPPED"]
+    if skipped_tests:
+        lines.append("")
+        lines.append("SKIPPED TESTS")
+        lines.append("-" * 80)
+        for test in skipped_tests:
+            lines.append(f"  {test['name']}")
 
     lines.append("")
     lines.append("=" * 80)
@@ -128,4 +139,40 @@ def print_summary(analysis: Dict[str, Any]):
     print(f"Passed:  {summary['passed']} ({summary['pass_rate']}%)")
     print(f"Failed:  {summary['failed']}")
     print(f"Skipped: {summary['skipped']}")
+    print("=" * 60)
+
+    # By tag
+    by_tag = analysis.get("by_tag", {})
+    if by_tag:
+        print("\nResults by Tag:")
+        print("-" * 60)
+        sorted_tags = sorted(by_tag.items(), key=lambda x: x[1]["pass_rate"])
+        for tag, stats in sorted_tags:
+            print(f"  {tag:<30s} | {stats['passed']:>3}/{stats['total']:>3} passed ({stats['pass_rate']:>5.1f}%)")
+
+    # Failed tests
+    failed_tests = [t for t in analysis["tests"] if t["outcome"] == "FAIL"]
+    if failed_tests:
+        # Count by failure_type
+        from collections import Counter
+        type_counts = Counter(t.get("failure_type", "UNKNOWN") for t in failed_tests)
+
+        print(f"\nFailed Tests ({len(failed_tests)}):")
+        print("-" * 60)
+        for ft, count in sorted(type_counts.items()):
+            print(f"\n  {ft} ({count}):")
+            for test in failed_tests:
+                if test.get("failure_type", "UNKNOWN") == ft:
+                    name = test["name"].split("::")[-1]
+                    print(f"    {name}")
+
+    # Skipped tests
+    skipped_tests = [t for t in analysis["tests"] if t["outcome"] == "SKIPPED"]
+    if skipped_tests:
+        print(f"\nSkipped Tests ({len(skipped_tests)}):")
+        print("-" * 60)
+        for test in skipped_tests:
+            name = test["name"].split("::")[-1]
+            print(f"  {name}")
+
     print("=" * 60 + "\n")

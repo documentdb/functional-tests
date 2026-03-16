@@ -12,25 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 # Module-level constants
-INFRA_EXCEPTIONS = {
-    # Python built-in connection errors
-    "ConnectionError",
-    "ConnectionRefusedError",
-    "ConnectionResetError",
-    "ConnectionAbortedError",
-    # Python timeout errors
-    "TimeoutError",
-    "socket.timeout",
-    "socket.error",
-    # PyMongo connection errors
-    "pymongo.errors.ConnectionFailure",
-    "pymongo.errors.ServerSelectionTimeoutError",
-    "pymongo.errors.NetworkTimeout",
-    "pymongo.errors.AutoReconnect",
-    "pymongo.errors.ExecutionTimeout",
-    # Generic network/OS errors
-    "OSError",
-}
+from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_NAMES as INFRA_EXCEPTIONS
 
 
 # Mapping from TestOutcome to counter key names
@@ -92,6 +74,30 @@ def extract_exception_type(crash_message: str) -> str:
     if match:
         return match.group(1)
 
+    return ""
+
+
+def extract_failure_tag(test_result: Dict[str, Any]) -> str:
+    """
+    Extract failure tag (e.g. RESULT_MISMATCH) from assertion message.
+
+    The framework assertions prefix errors with tags like:
+    [RESULT_MISMATCH], [UNEXPECTED_ERROR], [UNEXPECTED_SUCCESS],
+    [ERROR_MISMATCH], [TEST_EXCEPTION]
+
+    Args:
+        test_result: Full test result dict from pytest JSON
+
+    Returns:
+        Tag string without brackets, or empty string if not found
+    """
+    call_info = test_result.get("call", {})
+    crash_info = call_info.get("crash", {})
+    crash_message = crash_info.get("message", "")
+
+    match = re.search(r'\[([A-Z_]+)\]', crash_message)
+    if match:
+        return match.group(1)
     return ""
 
 
@@ -330,11 +336,14 @@ class ResultAnalyzer:
                 "tags": tags,
             }
 
-            # Add error information and infra error flag for failed tests
+            # Add error information for failed tests
             if test_outcome == TestOutcome.FAIL:
                 call_info = test.get("call", {})
                 test_detail["error"] = call_info.get("longrepr", "")
-                test_detail["is_infra_error"] = is_infrastructure_error(test)
+                if is_infrastructure_error(test):
+                    test_detail["failure_type"] = "INFRA_ERROR"
+                else:
+                    test_detail["failure_type"] = extract_failure_tag(test) or "UNKNOWN"
 
             tests_details.append(test_detail)
 

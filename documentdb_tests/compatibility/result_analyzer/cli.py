@@ -95,18 +95,6 @@ Examples:
             if not args.quiet:
                 print(f"\nReport saved to: {args.output}")
 
-        # If no output file and quiet mode, print to stdout
-        elif not args.quiet:
-            print("\nResults by Tag:")
-            print("-" * 60)
-            for tag, stats in sorted(
-                analysis["by_tag"].items(), key=lambda x: x[1]["pass_rate"], reverse=True
-            ):
-                passed = stats["passed"]
-                total = stats["total"]
-                rate = stats["pass_rate"]
-                print(f"{tag:30s} | {passed:3d}/{total:3d} passed ({rate:5.1f}%)")
-
         # Return exit code based on test results
         if analysis["summary"]["failed"] > 0:
             return 1
