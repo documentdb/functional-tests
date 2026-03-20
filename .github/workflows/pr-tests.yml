@@ -1,0 +1,143 @@
+name: PR Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-mongodb:
+    name: Tests (MongoDB)
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:8.2
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create results directory
+        run: mkdir -p .test-results
+
+      - name: Run tests against MongoDB
+        run: |
+          pytest documentdb_tests/ \
+            --connection-string "mongodb://localhost:27017" \
+            --engine-name mongodb \
+            -n auto \
+            -v \
+            --json-report --json-report-file=.test-results/mongodb-report.json \
+            --junitxml=.test-results/mongodb-results.xml
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          if [ -f .test-results/mongodb-report.json ]; then
+            python -m documentdb_tests.compatibility.result_analyzer -i .test-results/mongodb-report.json -o .test-results/mongodb-analysis.txt -f text || true
+            echo "## MongoDB Test Results" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat .test-results/mongodb-analysis.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-mongodb
+          path: .test-results/
+          if-no-files-found: warn
+
+  test-documentdb:
+    name: Tests (DocumentDB)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start DocumentDB
+        run: |
+          docker pull ghcr.io/documentdb/documentdb/documentdb-local:latest
+          docker run -dt -p 10260:10260 \
+            --name documentdb \
+            ghcr.io/documentdb/documentdb/documentdb-local:latest \
+            --username testuser --password testpass
+
+      - name: Wait for DocumentDB to be ready
+        run: |
+          echo "Waiting for DocumentDB..."
+          for i in $(seq 1 40); do
+            if python3 -c "
+          import pymongo
+          client = pymongo.MongoClient(
+              'mongodb://testuser:testpass@localhost:10260/?tls=true&tlsAllowInvalidCertificates=true',
+              serverSelectionTimeoutMS=3000
+          )
+          client.admin.command('ping')
+          print('DocumentDB is ready!')
+          " 2>/dev/null; then
+              exit 0
+            fi
+            echo "  Attempt $i/40 - waiting 5s..."
+            sleep 5
+          done
+          echo "DocumentDB failed to start"
+          docker logs documentdb
+          exit 1
+
+      - name: Create results directory
+        run: mkdir -p .test-results
+
+      - name: Run tests against DocumentDB
+        run: |
+          pytest documentdb_tests/ \
+            --connection-string "mongodb://testuser:testpass@localhost:10260/?tls=true&tlsAllowInvalidCertificates=true" \
+            --engine-name documentdb \
+            -n auto \
+            -v \
+            --json-report --json-report-file=.test-results/documentdb-report.json \
+            --junitxml=.test-results/documentdb-results.xml
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          if [ -f .test-results/documentdb-report.json ]; then
+            python -m documentdb_tests.compatibility.result_analyzer -i .test-results/documentdb-report.json -o .test-results/documentdb-analysis.txt -f text || true
+            echo "## DocumentDB Test Results" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat .test-results/documentdb-analysis.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-documentdb
+          path: .test-results/
+          if-no-files-found: warn
+
+      - name: Stop DocumentDB
+        if: always()
+        run: docker stop documentdb && docker rm documentdb
