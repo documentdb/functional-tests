@@ -36,7 +36,7 @@ setup(
     install_requires=parse_requirements("requirements.txt"),
     entry_points={
         "console_scripts": [
-            "docdb-analyze=result_analyzer.cli:main",
+            "docdb-analyze=documentdb_tests.compatibility.result_analyzer.cli:main",
         ],
     },
 )

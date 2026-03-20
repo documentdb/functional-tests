@@ -24,10 +24,7 @@ WORKDIR /app
 COPY --from=builder /root/.local /home/testrunner/.local
 
 # Copy application code
-COPY tests/ tests/
-COPY result_analyzer/ result_analyzer/
-COPY conftest.py .
-COPY pytest.ini .
+COPY documentdb_tests/ documentdb_tests/
 COPY setup.py .
 
 # Create directory for test results and set ownership
@@ -45,5 +42,5 @@ ENV PYTHONUNBUFFERED=1
 
 # Default command: run all tests
 # Users can override with command line arguments
-ENTRYPOINT ["pytest"]
+ENTRYPOINT ["pytest", "--rootdir", "documentdb_tests"]
 CMD ["--help"]

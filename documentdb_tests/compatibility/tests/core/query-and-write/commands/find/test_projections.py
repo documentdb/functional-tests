@@ -6,7 +6,7 @@ Tests for field inclusion, exclusion, and projection operators.
 
 import pytest
 
-from framework.assertions import assert_field_exists, assert_field_not_exists
+from documentdb_tests.framework.assertions import assert_field_exists, assert_field_not_exists
 
 
 @pytest.mark.find

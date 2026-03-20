@@ -8,7 +8,7 @@ import pytest
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 
-from framework.assertions import assert_count
+from documentdb_tests.framework.assertions import assert_count
 
 
 @pytest.mark.insert
