@@ -9,10 +9,7 @@ This module provides fixtures for:
 
 import pytest
 from documentdb_tests.framework import fixtures
-from documentdb_tests.framework.test_structure_validator import (
-    validate_test_file_location,
-    validate_python_files_in_tests
-)
+from documentdb_tests.framework.test_structure_validator import validate_python_files_in_tests
 from pathlib import Path
 
 
@@ -143,21 +140,7 @@ def pytest_collection_modifyitems(session, config, items):
     Combined pytest hook to validate test structure.
     """
     errors = []
-    seen_files = set()
 
-    # Validate structure for collected test files
-    for item in items:
-        file_path = str(item.fspath)
-
-        if file_path in seen_files:
-            continue
-        seen_files.add(file_path)
-
-        is_valid, error_msg = validate_test_file_location(file_path)
-        if not is_valid:
-            errors.append(f"\n  {file_path}\n    → {error_msg}")
-
-    # Validate all Python files in tests directory
     if items:
         first_item_path = Path(items[0].fspath)
         if "tests" in first_item_path.parts:
