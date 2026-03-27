@@ -6,154 +6,137 @@ Tests for comparison operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin
 
 import pytest
 
+from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.assertions import assertSuccess
+
 
 @pytest.mark.find
 def test_find_gt_operator(collection):
     """Test find with $gt (greater than) operator."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "age": 30},
-        {"name": "Bob", "age": 25},
-        {"name": "Charlie", "age": 35},
+        {"_id": 0, "a": "A", "b": 30},
+        {"_id": 1, "a": "B", "b": 25},
+        {"_id": 2, "a": "C", "b": 35},
     ])
-
-    # Act - Find documents where age > 25
-    result = list(collection.find({"age": {"$gt": 25}}))
-
-    # Assert - Verify results
-    assert len(result) == 2, "Expected 2 documents with age > 25"
-    names = {doc["name"] for doc in result}
-    assert names == {"Alice", "Charlie"}, "Expected Alice and Charlie"
+    result = execute_command(collection, {"find": collection.name, "filter": {"b": {"$gt": 25}}})
+    
+    expected = [
+        {"_id": 0, "a": "A", "b": 30},
+        {"_id": 2, "a": "C", "b": 35}
+    ]
+    assertSuccess(result, expected, "Should match documents with b > 25")
 
 
 @pytest.mark.find
 def test_find_gte_operator(collection):
     """Test find with $gte (greater than or equal) operator."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "age": 30},
-        {"name": "Bob", "age": 25},
-        {"name": "Charlie", "age": 35},
+        {"_id": 0, "a": "A", "b": 30},
+        {"_id": 1, "a": "B", "b": 25},
+        {"_id": 2, "a": "C", "b": 35},
     ])
-
-    # Act - Find documents where age >= 30
-    result = list(collection.find({"age": {"$gte": 30}}))
-
-    # Assert - Verify results
-    assert len(result) == 2, "Expected 2 documents with age >= 30"
-    names = {doc["name"] for doc in result}
-    assert names == {"Alice", "Charlie"}, "Expected Alice and Charlie"
+    result = execute_command(collection, {"find": collection.name, "filter": {"b": {"$gte": 30}}})
+    
+    expected = [
+        {"_id": 0, "a": "A", "b": 30},
+        {"_id": 2, "a": "C", "b": 35}
+    ]
+    assertSuccess(result, expected, "Should match documents with b >= 30")
 
 
 @pytest.mark.find
 def test_find_lt_operator(collection):
     """Test find with $lt (less than) operator."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "age": 30},
-        {"name": "Bob", "age": 25},
-        {"name": "Charlie", "age": 35},
+        {"_id": 0, "a": "A", "b": 30},
+        {"_id": 1, "a": "B", "b": 25},
+        {"_id": 2, "a": "C", "b": 35},
     ])
-
-    # Act - Find documents where age < 30
-    result = list(collection.find({"age": {"$lt": 30}}))
-
-    # Assert - Verify results
-    assert len(result) == 1, "Expected 1 document with age < 30"
-    assert result[0]["name"] == "Bob", "Expected Bob"
+    result = execute_command(collection, {"find": collection.name, "filter": {"b": {"$lt": 30}}})
+    
+    expected = [{"_id": 1, "a": "B", "b": 25}]
+    assertSuccess(result, expected, "Should match documents with b < 30")
 
 
 @pytest.mark.find
 def test_find_lte_operator(collection):
     """Test find with $lte (less than or equal) operator."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "age": 30},
-        {"name": "Bob", "age": 25},
-        {"name": "Charlie", "age": 35},
+        {"_id": 0, "a": "A", "b": 30},
+        {"_id": 1, "a": "B", "b": 25},
+        {"_id": 2, "a": "C", "b": 35},
     ])
-
-    # Act - Find documents where age <= 30
-    result = list(collection.find({"age": {"$lte": 30}}))
-
-    # Assert - Verify results
-    assert len(result) == 2, "Expected 2 documents with age <= 30"
-    names = {doc["name"] for doc in result}
-    assert names == {"Alice", "Bob"}, "Expected Alice and Bob"
+    result = execute_command(collection, {"find": collection.name, "filter": {"b": {"$lte": 30}}})
+    
+    expected = [
+        {"_id": 0, "a": "A", "b": 30},
+        {"_id": 1, "a": "B", "b": 25}
+    ]
+    assertSuccess(result, expected, "Should match documents with b <= 30")
 
 
 @pytest.mark.find
 def test_find_ne_operator(collection):
     """Test find with $ne (not equal) operator."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "age": 30},
-        {"name": "Bob", "age": 25},
-        {"name": "Charlie", "age": 35},
+        {"_id": 0, "a": "A", "b": 30},
+        {"_id": 1, "a": "B", "b": 25},
+        {"_id": 2, "a": "C", "b": 35},
     ])
-
-    # Act - Find documents where age != 30
-    result = list(collection.find({"age": {"$ne": 30}}))
-
-    # Assert - Verify results
-    assert len(result) == 2, "Expected 2 documents with age != 30"
-    names = {doc["name"] for doc in result}
-    assert names == {"Bob", "Charlie"}, "Expected Bob and Charlie"
+    result = execute_command(collection, {"find": collection.name, "filter": {"b": {"$ne": 30}}})
+    
+    expected = [
+        {"_id": 1, "a": "B", "b": 25},
+        {"_id": 2, "a": "C", "b": 35}
+    ]
+    assertSuccess(result, expected, "Should match documents with b != 30")
 
 
 @pytest.mark.find
 def test_find_in_operator(collection):
     """Test find with $in operator."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "status": "active"},
-        {"name": "Bob", "status": "inactive"},
-        {"name": "Charlie", "status": "pending"},
-        {"name": "David", "status": "active"},
+        {"_id": 0, "a": "A", "b": "active"},
+        {"_id": 1, "a": "B", "b": "inactive"},
+        {"_id": 2, "a": "C", "b": "pending"},
+        {"_id": 3, "a": "D", "b": "active"},
     ])
-
-    # Act - Find documents where status is in ["active", "pending"]
-    result = list(collection.find({"status": {"$in": ["active", "pending"]}}))
-
-    # Assert - Verify results
-    assert len(result) == 3, "Expected 3 documents with status in [active, pending]"
-    names = {doc["name"] for doc in result}
-    assert names == {"Alice", "Charlie", "David"}, "Expected Alice, Charlie, and David"
+    result = execute_command(collection, {"find": collection.name, "filter": {"b": {"$in": ["active", "pending"]}}})
+    
+    expected = [
+        {"_id": 0, "a": "A", "b": "active"},
+        {"_id": 2, "a": "C", "b": "pending"},
+        {"_id": 3, "a": "D", "b": "active"}
+    ]
+    assertSuccess(result, expected, "Should match documents with b in [active, pending]")
 
 
 @pytest.mark.find
 def test_find_nin_operator(collection):
     """Test find with $nin (not in) operator."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "status": "active"},
-        {"name": "Bob", "status": "inactive"},
-        {"name": "Charlie", "status": "pending"},
+        {"_id": 0, "a": "A", "b": "active"},
+        {"_id": 1, "a": "B", "b": "inactive"},
+        {"_id": 2, "a": "C", "b": "pending"},
     ])
-
-    # Act - Find documents where status is not in ["active", "pending"]
-    result = list(collection.find({"status": {"$nin": ["active", "pending"]}}))
-
-    # Assert - Verify results
-    assert len(result) == 1, "Expected 1 document with status not in [active, pending]"
-    assert result[0]["name"] == "Bob", "Expected Bob"
+    result = execute_command(collection, {"find": collection.name, "filter": {"b": {"$nin": ["active", "pending"]}}})
+    
+    expected = [{"_id": 1, "a": "B", "b": "inactive"}]
+    assertSuccess(result, expected, "Should match documents with b not in [active, pending]")
 
 
 @pytest.mark.find
-@pytest.mark.smoke
 def test_find_range_query(collection):
     """Test find with range query (combining $gte and $lte)."""
-    # Arrange - Insert test data
     collection.insert_many([
-        {"name": "Alice", "age": 30},
-        {"name": "Bob", "age": 25},
-        {"name": "Charlie", "age": 35},
+        {"_id": 0, "a": "A", "b": 30},
+        {"_id": 1, "a": "B", "b": 25},
+        {"_id": 2, "a": "C", "b": 35},
     ])
-
-    # Act - Find documents where 25 <= age <= 30
-    result = list(collection.find({"age": {"$gte": 25, "$lte": 30}}))
-
-    # Assert - Verify results
-    assert len(result) == 2, "Expected 2 documents with age between 25 and 30"
-    names = {doc["name"] for doc in result}
-    assert names == {"Alice", "Bob"}, "Expected Alice and Bob"
+    result = execute_command(collection, {"find": collection.name, "filter": {"b": {"$gte": 25, "$lte": 30}}})
+    
+    expected = [
+        {"_id": 0, "a": "A", "b": 30},
+        {"_id": 1, "a": "B", "b": 25}
+    ]
+    assertSuccess(result, expected, "Should match documents with 25 <= b <= 30")

@@ -8,6 +8,10 @@ This module provides fixtures for:
 """
 
 import pytest
+
+# Enable assertion rewriting BEFORE importing framework modules
+pytest.register_assert_rewrite("documentdb_tests.framework.assertions")
+
 from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.test_structure_validator import validate_python_files_in_tests
 from pathlib import Path
