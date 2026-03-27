@@ -26,7 +26,7 @@ def test_group_with_count(collection):
         {"_id": "A", "count": 2},
         {"_id": "B", "count": 2}
     ]
-    assertSuccess(result, expected, "Should group and count by department", ignore_order=True)
+    assertSuccess(result, expected, "Should group and count by a", ignore_order=True)
 
 
 @pytest.mark.aggregate
