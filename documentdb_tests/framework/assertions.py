@@ -22,7 +22,7 @@ def _format_exception_error(result: Exception) -> str:
     return f"[UNEXPECTED_ERROR] Expected success but got exception:\n{pprint.pformat({'code': code, 'msg': msg}, width=100)}\n"
 
 
-def assertSuccess(result: Union[Any, Exception], expected: Any, msg: str = None, raw_res: bool = False, transform: Optional[Callable] = None, ignore_order: bool = False):
+def assertSuccess(result: Union[Any, Exception], expected: Any, msg: str = None, raw_res: bool = False, transform: Optional[Callable] = None, ignore_doc_order: bool = False):
     """
     Assert command succeeded and optionally check result.
 
@@ -32,7 +32,7 @@ def assertSuccess(result: Union[Any, Exception], expected: Any, msg: str = None,
         msg: Custom assertion message (optional)
         raw_res: If asserting raw result. False by default, only compare content of ["cursor"]["firstBatch"]
         transform: Optional callback to transform result before comparison
-        ignore_order: If True, compare lists as sets (order-independent)
+        ignore_doc_order: If True, compare lists as sets (order-independent)
     """
     if isinstance(result, Exception):
         if isinstance(result, _INFRA_TYPES):
@@ -51,7 +51,7 @@ def assertSuccess(result: Union[Any, Exception], expected: Any, msg: str = None,
     error_text += f"\n\nExpected:\n{pprint.pformat(expected, width=100)}"
     error_text += f"\n\nActual:\n{pprint.pformat(result, width=100)}\n"
 
-    if ignore_order and isinstance(result, list) and isinstance(expected, list):
+    if ignore_doc_order and isinstance(result, list) and isinstance(expected, list):
         assert sorted(result, key=lambda x: str(x)) == sorted(expected, key=lambda x: str(x)), error_text
     else:
         assert result == expected, error_text

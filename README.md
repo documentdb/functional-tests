@@ -277,7 +277,7 @@ from tests.common.assertions import (
 assert_document_match(actual, expected, ignore_id=True)
 
 # Compare lists of documents
-assert_documents_match(actual_list, expected_list, ignore_order=True)
+assert_documents_match(actual_list, expected_list, ignore_doc_order=True)
 
 # Check field existence
 assert_field_exists(document, "user.name")

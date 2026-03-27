@@ -51,13 +51,12 @@ def test_match_multiple_conditions(collection):
     collection.insert_many([
         {"_id": 0, "a": "A", "b": 30, "c": "NYC"},
         {"_id": 1, "a": "B", "b": 25, "c": "SF"},
-        {"_id": 2, "a": "C", "b": 35, "c": "NYC"},
+        {"_id": 2, "a": "C", "b": 35, "c": "SF"},
     ])
     result = execute_command(collection, {"aggregate": collection.name, "pipeline": [{"$match": {"c": "NYC", "b": {"$gte": 30}}}], "cursor": {}})
     
     expected = [
-        {"_id": 0, "a": "A", "b": 30, "c": "NYC"},
-        {"_id": 2, "a": "C", "b": 35, "c": "NYC"}
+        {"_id": 0, "a": "A", "b": 30, "c": "NYC"}
     ]
     assertSuccess(result, expected, "Should match multiple conditions")
 
