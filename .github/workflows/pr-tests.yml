@@ -1,0 +1,61 @@
+name: PR Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-mongodb:
+    name: Tests (MongoDB)
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:8.2
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests against MongoDB
+        run: |
+          pytest documentdb_tests/ \
+            --connection-string "mongodb://localhost:27017" \
+            --engine-name mongodb \
+            -n auto \
+            -v \
+            --json-report --json-report-file=${{ github.workspace }}/.test-results/mongodb-report.json \
+            --junitxml=${{ github.workspace }}/.test-results/mongodb-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-mongodb
+          include-hidden-files: true
+          path: ${{ github.workspace }}/.test-results/
+          if-no-files-found: warn
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          if [ -f ${{ github.workspace }}/.test-results/mongodb-report.json ]; then
+            python -m documentdb_tests.compatibility.result_analyzer -i ${{ github.workspace }}/.test-results/mongodb-report.json -o ${{ github.workspace }}/.test-results/mongodb-analysis.txt -f text || true
+            echo "## MongoDB Test Results" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat ${{ github.workspace }}/.test-results/mongodb-analysis.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
