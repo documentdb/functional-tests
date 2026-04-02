@@ -1,6 +1,7 @@
 """
 Test structure validator to enforce folder organization rules.
 """
+
 from pathlib import Path
 
 
@@ -32,8 +33,11 @@ def validate_python_files_in_tests(tests_dir: Path) -> list[str]:
         if not py_file.stem.startswith(f"test_{parent_folder}"):
             rel_path = py_file.relative_to(tests_dir.parent)
             errors.append(
-                f"\n  {rel_path}\n    → Expected pattern: test_{parent_folder}_*.py, got: {py_file.name}. "
-                f"Test file in /{parent_folder}/ should include feature name in filename. Non-test utilities should be moved to a utils/ or fixtures/ folder."
+                f"\n  {rel_path}\n    → Expected pattern:"
+                f" test_{parent_folder}_*.py, got: {py_file.name}."
+                f" Test file in /{parent_folder}/ should include"
+                f" feature name in filename. Non-test utilities"
+                f" should be moved to a utils/ or fixtures/ folder."
             )
 
     return errors

@@ -4,11 +4,7 @@ from setuptools import find_packages, setup
 def parse_requirements(filename):
     """Load requirements from a pip requirements file."""
     with open(filename, "r", encoding="utf-8") as f:
-        return [
-            line.strip()
-            for line in f
-            if line.strip() and not line.startswith("#")
-        ]
+        return [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
 
 with open("README.md", "r", encoding="utf-8") as fh:

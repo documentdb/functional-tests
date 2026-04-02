@@ -12,9 +12,12 @@ import pytest
 # Enable assertion rewriting BEFORE importing framework modules
 pytest.register_assert_rewrite("documentdb_tests.framework.assertions")
 
-from documentdb_tests.framework import fixtures
-from documentdb_tests.framework.test_structure_validator import validate_python_files_in_tests
-from pathlib import Path
+from pathlib import Path  # noqa: E402
+
+from documentdb_tests.framework import fixtures  # noqa: E402
+from documentdb_tests.framework.test_structure_validator import (  # noqa: E402
+    validate_python_files_in_tests,
+)
 
 
 def pytest_addoption(parser):
@@ -30,8 +33,7 @@ def pytest_addoption(parser):
         "--engine-name",
         action="store",
         default="default",
-        help="Optional engine identifier for metadata. "
-        "Example: --engine-name documentdb",
+        help="Optional engine identifier for metadata. " "Example: --engine-name documentdb",
     )
 
 
@@ -54,11 +56,11 @@ def pytest_configure(config):
 def engine_client(request):
     """
     Create a MongoDB client for the configured engine.
-    
+
     Session-scoped for performance - MongoClient is thread-safe and maintains
     an internal connection pool. This significantly improves test execution speed
     by eliminating redundant connection overhead.
-    
+
     Per-test isolation is maintained through database_client and collection fixtures
     which create unique databases/collections for each test.
 
@@ -67,7 +69,7 @@ def engine_client(request):
 
     Yields:
         MongoClient: Connected MongoDB client (shared across session)
-        
+
     Raises:
         ConnectionError: If unable to connect to the database
     """
@@ -130,7 +132,7 @@ def collection(database_client, request, worker_id):
     # Generate unique collection name using framework utility
     full_test_id = request.node.nodeid
     collection_name = fixtures.generate_collection_name(full_test_id, worker_id)
-    
+
     coll = database_client[collection_name]
 
     yield coll
@@ -149,7 +151,7 @@ def pytest_collection_modifyitems(session, config, items):
         first_item_path = Path(items[0].fspath)
         if "tests" in first_item_path.parts:
             tests_idx = first_item_path.parts.index("tests")
-            tests_dir = Path(*first_item_path.parts[:tests_idx + 1])
+            tests_dir = Path(*first_item_path.parts[: tests_idx + 1])
             errors.extend(validate_python_files_in_tests(tests_dir))
 
     if errors:

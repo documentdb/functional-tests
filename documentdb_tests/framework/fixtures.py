@@ -6,6 +6,7 @@ names, and managing test isolation.
 """
 
 import hashlib
+
 from pymongo import MongoClient
 
 
@@ -32,9 +33,7 @@ def create_engine_client(connection_string: str, engine_name: str = "default"):
         # Close the client before raising
         client.close()
         # Raise ConnectionError so analyzer categorizes as INFRA_ERROR
-        raise ConnectionError(
-            f"Cannot connect to {engine_name} at {connection_string}: {e}"
-        ) from e
+        raise ConnectionError(f"Cannot connect to {engine_name} at {connection_string}: {e}") from e
 
     return client
 

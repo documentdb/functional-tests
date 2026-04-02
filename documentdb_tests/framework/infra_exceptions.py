@@ -24,6 +24,7 @@ INFRA_EXCEPTION_NAMES = {
 def _resolve_types():
     """Resolve exception names to actual types for isinstance() checks."""
     import builtins
+
     types = []
     for name in INFRA_EXCEPTION_NAMES:
         if hasattr(builtins, name):
