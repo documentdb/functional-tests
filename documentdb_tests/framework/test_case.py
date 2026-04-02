@@ -1,5 +1,8 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Optional
+
+import pytest
 
 
 @dataclass(frozen=True)
@@ -23,5 +26,10 @@ class BaseTestCase:
     def __post_init__(self):
         if self.msg is None:
             raise ValueError(
-                f"BaseTestCase '{self.id}' must have a msg describing expected behavior"
+                f"BaseTestCase '{self.id}' must have a msg" " describing expected behavior"
             )
+
+
+def pytest_params(tests: Sequence[BaseTestCase]):
+    """Build pytest parameters from a sequence of test cases, using each case's id."""
+    return [pytest.param(test_case, id=test_case.id) for test_case in tests]
