@@ -15,11 +15,15 @@ pytest.register_assert_rewrite("documentdb_tests.framework.assertions")
 from pathlib import Path  # noqa: E402
 
 from documentdb_tests.framework import fixtures  # noqa: E402
+from documentdb_tests.framework.error_codes_validator import (  # noqa: E402
+    validate_error_codes_sorted,
+)
+from documentdb_tests.framework.test_format_validator import (  # noqa: E402
+    validate_test_format,
+)
 from documentdb_tests.framework.test_structure_validator import (  # noqa: E402
     validate_python_files_in_tests,
 )
-from documentdb_tests.framework.test_format_validator import validate_test_format
-from documentdb_tests.framework.error_codes_validator import validate_error_codes_sorted
 
 
 def pytest_addoption(parser):
@@ -35,8 +39,7 @@ def pytest_addoption(parser):
         "--engine-name",
         action="store",
         default="default",
-        help="Optional engine identifier for metadata. "
-        "Example: --engine-name documentdb",
+        help="Optional engine identifier for metadata. " "Example: --engine-name documentdb",
     )
 
 
@@ -156,7 +159,7 @@ def pytest_collection_modifyitems(session, config, items):
         first_item_path = Path(items[0].fspath)
         if "tests" in first_item_path.parts:
             tests_idx = first_item_path.parts.index("tests")
-            tests_dir = Path(*first_item_path.parts[:tests_idx + 1])
+            tests_dir = Path(*first_item_path.parts[: tests_idx + 1])
             structure_errors.extend(validate_python_files_in_tests(tests_dir))
 
     # Validate test format for collected test files

@@ -1,6 +1,6 @@
 """
-    Error Codes expected from the server.
-    Keep sorted by error code number. No duplicates.
+Error Codes expected from the server.
+Keep sorted by error code number. No duplicates.
 """
 
 DIVIDE_BY_ZERO_ERROR = 2

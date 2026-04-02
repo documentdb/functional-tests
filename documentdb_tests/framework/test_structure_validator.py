@@ -30,10 +30,12 @@ def validate_python_files_in_tests(tests_dir: Path) -> list[str]:
             )
             continue
 
-        if not py_file.stem.startswith(f"test_"):
+        if not py_file.stem.startswith("test_"):
             rel_path = py_file.relative_to(tests_dir.parent)
             errors.append(
-                f"\n  {rel_path}\n    → Test file in /{parent_folder}/ should start with 'test_' in filename to be picked up by pytest. Non-test utilities should be moved to a utils/ or fixtures/ folder."
+                f"\n  {rel_path}\n    → Test file in /{parent_folder}/ should start with 'test_'"
+                f" in filename to be picked up by pytest. Non-test utilities should be moved"
+                f" to a utils/ or fixtures/ folder."
             )
 
         if f"{parent_folder}" not in py_file.stem:

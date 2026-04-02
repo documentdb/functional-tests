@@ -4,25 +4,25 @@ Utility functions for functional tests.
 Provides helper functions for building and executing MongoDB aggregation
 expressions and operators in test scenarios.
 """
+
 from documentdb_tests.framework.executor import execute_command
-from documentdb_tests.framework.test_case import BaseTestCase
 
 
 def build_nested_expr(value, operator, depth):
     """
     Build nested operator expression.
-    
+
     Creates a nested structure where an operator is applied multiple times.
     For example, with operator="abs" and depth=2, creates: {$abs: {$abs: value}}
-    
+
     Args:
         value: The innermost value to wrap
         operator: The operator name (without $ prefix)
         depth: Number of times to nest the operator
-        
+
     Returns:
         dict: Nested operator expression
-        
+
     Example:
         >>> build_nested_expr(5, "abs", 2)
         {'$abs': {'$abs': 5}}
@@ -99,18 +99,18 @@ def execute_project_with_insert(collection, document, project):
 def execute_expression(collection, expression):
     """
     Execute an aggregation expression using $documents stage.
-    
+
     Evaluates an expression against an empty document using the $documents
     stage. Useful for testing expressions with literal values.
-    
+
     Args:
         collection: MongoDB collection object
         expression: The expression to evaluate (e.g., {"$add": [1, 2]})
-        
+
     Returns:
         Result from execute_command with structure:
         {"cursor": {"firstBatch": [{"result": <value>}]}}
-        
+
     Example:
         >>> execute_expression(collection, {"$add": [1, 2]})
         # Returns result with {"result": 3} in firstBatch
