@@ -6,6 +6,7 @@ analyzed test results.
 """
 
 import json
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -157,8 +158,6 @@ def print_summary(analysis: Dict[str, Any]):
     failed_tests = [t for t in analysis["tests"] if t["outcome"] == "FAIL"]
     if failed_tests:
         # Count by failure_type
-        from collections import Counter
-
         type_counts = Counter(t.get("failure_type", "UNKNOWN") for t in failed_tests)
 
         print(f"\nFailed Tests ({len(failed_tests)}):")
