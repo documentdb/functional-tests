@@ -14,7 +14,6 @@ from typing import Any, Dict, List
 # Module-level constants
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_NAMES as INFRA_EXCEPTIONS
 
-
 # Mapping from TestOutcome to counter key names
 OUTCOME_TO_KEY = {
     "PASS": "passed",
@@ -95,7 +94,7 @@ def extract_failure_tag(test_result: Dict[str, Any]) -> str:
     crash_info = call_info.get("crash", {})
     crash_message = crash_info.get("message", "")
 
-    match = re.search(r'\[([A-Z_]+)\]', crash_message)
+    match = re.search(r"\[([A-Z_]+)\]", crash_message)
     if match:
         return match.group(1)
     return ""

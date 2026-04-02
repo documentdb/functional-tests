@@ -148,13 +148,17 @@ def print_summary(analysis: Dict[str, Any]):
         print("-" * 60)
         sorted_tags = sorted(by_tag.items(), key=lambda x: x[1]["pass_rate"])
         for tag, stats in sorted_tags:
-            print(f"  {tag:<30s} | {stats['passed']:>3}/{stats['total']:>3} passed ({stats['pass_rate']:>5.1f}%)")
+            passed = stats["passed"]
+            total = stats["total"]
+            rate = stats["pass_rate"]
+            print(f"  {tag:<30s} | {passed:>3}/{total:>3} passed ({rate:>5.1f}%)")
 
     # Failed tests
     failed_tests = [t for t in analysis["tests"] if t["outcome"] == "FAIL"]
     if failed_tests:
         # Count by failure_type
         from collections import Counter
+
         type_counts = Counter(t.get("failure_type", "UNKNOWN") for t in failed_tests)
 
         print(f"\nFailed Tests ({len(failed_tests)}):")
