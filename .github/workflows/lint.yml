@@ -1,0 +1,29 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Code Style
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install lint tools
+        run: pip install flake8 black isort
+
+      - name: Run flake8
+        run: flake8
+
+      - name: Check black formatting
+        run: black --check .
+
+      - name: Check import sorting
+        run: isort --check-only .
