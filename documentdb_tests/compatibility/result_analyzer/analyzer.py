@@ -194,12 +194,14 @@ class ResultAnalyzer:
         results = analyzer.analyze_results("report.json")
     """
 
-    def __init__(self, pytest_ini_path: str = "pytest.ini"):
+    _DEFAULT_PYTEST_INI = str(Path(__file__).resolve().parent.parent.parent / "pytest.ini")
+
+    def __init__(self, pytest_ini_path: str = _DEFAULT_PYTEST_INI):
         """
         Initialize the result analyzer.
 
         Args:
-            pytest_ini_path: Path to pytest.ini file (default: "pytest.ini")
+            pytest_ini_path: Path to pytest.ini file (default: documentdb_tests/pytest.ini)
         """
         self.pytest_ini_path = pytest_ini_path
         self._markers_cache: set = None
