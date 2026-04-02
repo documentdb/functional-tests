@@ -1,4 +1,4 @@
-name: Lint
+name: Lint & Unit Tests
 
 on:
   pull_request:
@@ -27,3 +27,20 @@ jobs:
 
       - name: Check import sorting
         run: isort --check-only .
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: pytest documentdb_tests/compatibility/result_analyzer/test_analyzer.py -v
