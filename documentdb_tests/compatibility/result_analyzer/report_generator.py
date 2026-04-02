@@ -6,7 +6,6 @@ analyzed test results.
 """
 
 import json
-from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -47,9 +46,39 @@ def generate_json_report(analysis: Dict[str, Any], output_path: str):
         json.dump(report, f, indent=2)
 
 
+def _format_by_tag(analysis: Dict[str, Any]) -> list:
+    """Format by-tag results as lines. Shared by both report functions."""
+    lines = []
+    by_tag = analysis.get("by_tag", {})
+    if by_tag:
+        sorted_tags = sorted(by_tag.items(), key=lambda x: x[1]["pass_rate"])
+        for tag, stats in sorted_tags:
+            lines.append(
+                {
+                    "tag": tag,
+                    "passed": stats["passed"],
+                    "total": stats["total"],
+                    "failed": stats["failed"],
+                    "skipped": stats["skipped"],
+                    "pass_rate": stats["pass_rate"],
+                }
+            )
+    return lines
+
+
+def _categorize_failures(analysis: Dict[str, Any]) -> Dict[str, list]:
+    """Group failed tests by failure_type. Shared by both report functions."""
+    failed_tests = [t for t in analysis["tests"] if t["outcome"] == "FAIL"]
+    grouped = {}
+    for test in failed_tests:
+        ft = test.get("failure_type", "UNKNOWN")
+        grouped.setdefault(ft, []).append(test)
+    return grouped
+
+
 def generate_text_report(analysis: Dict[str, Any], output_path: str):
     """
-    Generate a human-readable text report.
+    Generate a detailed human-readable text report to file.
 
     Args:
         analysis: Analysis results from analyze_results()
@@ -77,36 +106,31 @@ def generate_text_report(analysis: Dict[str, Any], output_path: str):
     # Results by tag
     lines.append("RESULTS BY TAG")
     lines.append("-" * 80)
-
-    if analysis["by_tag"]:
-        # Sort tags by pass rate (ascending) to highlight problematic areas
-        sorted_tags = sorted(analysis["by_tag"].items(), key=lambda x: x[1]["pass_rate"])
-
-        for tag, stats in sorted_tags:
-            lines.append(f"\n{tag}:")
-            lines.append(f"  Total:   {stats['total']}")
-            lines.append(f"  Passed:  {stats['passed']} ({stats['pass_rate']}%)")
-            lines.append(f"  Failed:  {stats['failed']}")
-            lines.append(f"  Skipped: {stats['skipped']}")
+    tag_data = _format_by_tag(analysis)
+    if tag_data:
+        for t in tag_data:
+            lines.append(f"\n{t['tag']}:")
+            lines.append(f"  Total:   {t['total']}")
+            lines.append(f"  Passed:  {t['passed']} ({t['pass_rate']}%)")
+            lines.append(f"  Failed:  {t['failed']}")
+            lines.append(f"  Skipped: {t['skipped']}")
     else:
         lines.append("No tags found in test results.")
-
     lines.append("")
 
     # Failed tests details
-    failed_tests = [t for t in analysis["tests"] if t["outcome"] == "FAIL"]
-    if failed_tests:
+    grouped = _categorize_failures(analysis)
+    if grouped:
         lines.append("FAILED TESTS")
         lines.append("-" * 80)
-        for test in failed_tests:
-            lines.append(f"\n{test['name']}")
-            failure_type = test.get("failure_type", "UNKNOWN")
-            lines.append(f"  Type: {failure_type}")
-            lines.append(f"  Tags: {', '.join(test['tags'])}")
-            lines.append(f"  Duration: {test['duration']:.2f}s")
-            if "error" in test:
-                error_preview = test["error"][:200]
-                lines.append(f"  Error: {error_preview}...")
+        for ft in sorted(grouped):
+            lines.append(f"\n  {ft} ({len(grouped[ft])}):")
+            for test in grouped[ft]:
+                lines.append(f"\n    {test['name']}")
+                lines.append(f"      Tags: {', '.join(test['tags'])}")
+                lines.append(f"      Duration: {test['duration']:.2f}s")
+                if "error" in test:
+                    lines.append(f"      Error: {test['error'][:200]}...")
 
     # Skipped tests
     skipped_tests = [t for t in analysis["tests"] if t["outcome"] == "SKIPPED"]
@@ -120,7 +144,6 @@ def generate_text_report(analysis: Dict[str, Any], output_path: str):
     lines.append("")
     lines.append("=" * 80)
 
-    # Write report
     with open(output_path, "w") as f:
         f.write("\n".join(lines))
 
@@ -142,40 +165,13 @@ def print_summary(analysis: Dict[str, Any]):
     print(f"Skipped: {summary['skipped']}")
     print("=" * 60)
 
-    # By tag
-    by_tag = analysis.get("by_tag", {})
-    if by_tag:
-        print("\nResults by Tag:")
+    # Failed test counts by type
+    grouped = _categorize_failures(analysis)
+    if grouped:
+        total = sum(len(v) for v in grouped.values())
+        print(f"\nFailed Tests ({total}):")
         print("-" * 60)
-        sorted_tags = sorted(by_tag.items(), key=lambda x: x[1]["pass_rate"])
-        for tag, stats in sorted_tags:
-            passed = stats["passed"]
-            total = stats["total"]
-            rate = stats["pass_rate"]
-            print(f"  {tag:<30s} | {passed:>3}/{total:>3} passed ({rate:>5.1f}%)")
-
-    # Failed tests
-    failed_tests = [t for t in analysis["tests"] if t["outcome"] == "FAIL"]
-    if failed_tests:
-        # Count by failure_type
-        type_counts = Counter(t.get("failure_type", "UNKNOWN") for t in failed_tests)
-
-        print(f"\nFailed Tests ({len(failed_tests)}):")
-        print("-" * 60)
-        for ft, count in sorted(type_counts.items()):
-            print(f"\n  {ft} ({count}):")
-            for test in failed_tests:
-                if test.get("failure_type", "UNKNOWN") == ft:
-                    name = test["name"].split("::")[-1]
-                    print(f"    {name}")
-
-    # Skipped tests
-    skipped_tests = [t for t in analysis["tests"] if t["outcome"] == "SKIPPED"]
-    if skipped_tests:
-        print(f"\nSkipped Tests ({len(skipped_tests)}):")
-        print("-" * 60)
-        for test in skipped_tests:
-            name = test["name"].split("::")[-1]
-            print(f"  {name}")
+        for ft in sorted(grouped):
+            print(f"  {ft}: {len(grouped[ft])}")
 
     print("=" * 60 + "\n")
