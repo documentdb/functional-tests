@@ -5,6 +5,9 @@
 Every API test follows: Setup → Execute → Assert.
 
 ```python
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.executor import execute_command
+
 def test_descriptive_name(collection):
     """Clear description of what this test validates."""
     # Setup (insert documents if needed)
@@ -89,7 +92,7 @@ Minimize helper scope — one helper should do one thing. If a helper has many i
 
 ## Parametrized Tests
 
-Use `@pytest.mark.parametrize` with dataclasses for operators with many test cases:
+Use `@pytest.mark.parametrize` with dataclasses for operators with many test cases. Dataclasses give named fields instead of anonymous tuples, so `test.dividend` is readable where `test[0]` is not. They also provide automatic `__repr__` for clear test IDs in output, and `frozen=True` prevents accidental mutation between test runs:
 
 ```python
 @dataclass(frozen=True)

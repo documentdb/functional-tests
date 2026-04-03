@@ -76,7 +76,6 @@ Note: Distinguish between fractional doubles (2.5) and whole-number doubles (3.0
   - -Infinity + (-Infinity) → -Infinity
 - **Overflow**: `INT32_MAX` + 1 → long, `INT64_MAX` + 1 → double
 - **Underflow**: `INT32_MIN` - 1 → long, `INT64_MIN` - 1 → double
-- **Boundary adjacency**: `INT32_MIN_PLUS_1`, `INT64_MIN_PLUS_1` (verify no off-by-one errors)
 - **Sign handling**: positive, negative, zero
 - **Negative zero**: `DOUBLE_NEGATIVE_ZERO` → verify behavior (some operators normalize to `0.0`, others preserve `-0.0`); `DECIMAL128_NEGATIVE_ZERO` → verify; `NumberDecimal("-0E+N")` and `NumberDecimal("-0E-N")` → verify exponent preservation
 - **Special values**: MinKey, MaxKey combinations
@@ -86,7 +85,7 @@ Note: Distinguish between fractional doubles (2.5) and whole-number doubles (3.0
 ---
 
 ### 3. Expression Type Coverage
-**Rule**: Expression types and field paths must be tested at two levels: thorough framework-level tests (under `expressions/`), and per-operator smoke tests (under each operator's folder).
+**Rule**: Expression types and field paths must be tested at two levels: thorough expression engine tests (under `expressions/`) that cover shared behavior like field path resolution and nesting, and per-operator smoke tests (under each operator's folder) that confirm each operator accepts each expression type.
 
 **Expression Types**:
 - **Literal**: `1`, `"hello"`, `true`
@@ -96,8 +95,10 @@ Note: Distinguish between fractional doubles (2.5) and whole-number doubles (3.0
 - **Array expression**: `["$x", "$y"]`, `[{$abs: -1}]`
 - **Object expression**: `{a: "$x"}`, `{a: {$abs: -1}}`
 
-#### Framework-Level Tests (under `expressions/`)
-Tests the expression parser/evaluator mechanics. Run once with a representative operator.
+#### Expression Engine Tests (under `expressions/`)
+Tests the expression parser/evaluator mechanics (field path resolution, nesting, system variables). These are shared behavior across all operators — run once with a representative operator.
+
+Example path: `documentdb_tests/compatibility/tests/core/operator/expressions/test_field_paths.py`
 
 **Embedding/Nesting (thorough)**:
 - Expression in object: `{a: {$abs: -1}}`
@@ -111,6 +112,7 @@ Tests the expression parser/evaluator mechanics. Run once with a representative 
 - Nested object: `"$a.b"` on `{a: {b: 1}}`
 - Composite array: `"$a.b"` on `{a: [{b: 1}, {b: 2}]}`
 - Array index: `"$a.0.b"` on `{a: [{b: 1}, {b: 2}]}`
+- Nested arrays: `"$a.b"` on `{a: [[{b: 1}], [{b: 2}]]}`
 - Deep nested: `"$a.b.c.d"` on `{a: {b: [{c: [{d: 1}]}]}}`
 - Non-existent: `"$missing"` → null
 - Non-existent nested: `"$x.y.0"` on `{}`
@@ -123,9 +125,11 @@ Tests the expression parser/evaluator mechanics. Run once with a representative 
 - `$let` with complex variable definitions
 
 #### Per-Operator Tests (under each operator's folder)
-Each operator must test these because behavior differs per operator and per input:
+Each operator must test these because behavior differs per operator and per input.
 
-**Expression type smoke (one test per type)**: verify the operator accepts literal, field, expression operator, array expression input, object expression input, and composite array input:
+Example path: `documentdb_tests/compatibility/tests/core/operator/expressions/arithmetic/divide/test_divide.py`
+
+**Per-operator expression type tests (one test per type)**: Each operator must verify it handles each expression type correctly, as behavior may differ per operator:
 - With array expression input: `{$add: [["$x", "$y"]]}` — array containing field references
 - With object expression input: `{$add: {a: "$x"}}` — object with field reference values
 - With composite array input: doc `{a: [{b: 1}, {b: 2}]}`, expression `{$add: "$a.b"}` — field path resolving to array from array-of-objects
@@ -146,7 +150,6 @@ Each operator must test these because behavior differs per operator and per inpu
 - **Single argument**: `{$add: [1]}` and `{$add: 1}`
 - **Two arguments**: `{$add: [1, 2]}`
 - **Multiple arguments**: `{$add: [1, 2, 3, 4]}`
-- **Argument of array type**: `{$add: [[1, 2, 3]]}`
 
 **Rule 2**: Each input position must be tested independently against all applicable rules. Different input positions may accept different types.
 
@@ -180,9 +183,7 @@ Each operator must test these because behavior differs per operator and per inpu
 
 **Date Test Cases**:
 - **Date + numeric types**: ISODate + int/long/double/decimal128
-- **Rounding behavior**: 
-  - Date + 0.5 (rounds down)
-  - Date + 0.6 (rounds up)
+- **Rounding behavior**: Date + fractional values: `0.1`, `0.49`, `0.5`, `0.51`, `0.6`, `1.5`, `-0.5`, `-0.51`
 - **Invalid combinations**:
   - Date + Date (should fail)
   - Date + Infinity (should fail)
@@ -194,14 +195,6 @@ Each operator must test these because behavior differs per operator and per inpu
 
 ### 6. Error Code Validation
 **Rule**: Invalid operations must return correct error codes. Only assert on error codes, not error messages — messages are not part of the spec and may change between versions.
-
-**Common Error Codes**:
-- **14**: Type mismatch
-- **16554**: Type mismatch (pre-8.0)
-- **15**: Invalid date arithmetic
-- **16612**: Multiple dates in operation
-- **16555**: Division by zero
-- **28714**: Overflow in conversion
 
 **Error Test Pattern**:
 ```
@@ -232,32 +225,7 @@ For each invalid_type in [string, object, array, ...]:
 
 ---
 
-### 9. Type Conversion Coverage
-**Rule**: Test implicit type conversions and precedence.
-
-**Type Conversion Matrix**:
-```
-int + int → int
-int + long → long
-int + double → double
-int + decimal128 → decimal128
-long + long → long
-long + double → double
-long + decimal128 → decimal128
-double + double → double
-double + decimal128 → decimal128
-decimal128 + decimal128 → decimal128
-```
-
-**Conversion Rules**:
-- Decimal128 has highest precedence
-- Double has second highest precedence
-- Long has third highest precedence
-- Int has lowest precedence
-
----
-
-### 10. Numeric Equivalence in Grouping/Comparison
+### 9. Numeric Equivalence in Grouping/Comparison
 **Rule**: Test that numerically equivalent values across types are treated as identical for grouping, matching, and deduplication.
 
 **Equivalence Groups**:
@@ -269,7 +237,7 @@ decimal128 + decimal128 → decimal128
 
 ---
 
-### 11. BSON Type Distinction
+### 10. BSON Type Distinction
 **Rule**: Test that values of different BSON types are treated as distinct even when they appear equivalent in some languages.
 
 **Key Distinctions**:
@@ -282,7 +250,7 @@ decimal128 + decimal128 → decimal128
 
 ---
 
-### 12. Expression Operator in Pipeline Contexts
+### 11. Expression Operator in Pipeline Contexts
 **Rule**: Each expression operator must have one test case in each pipeline context. When generating tests for an operator (e.g., `$add`), create one test case per context in the corresponding stage/feature folder.
 
 **Pipeline Contexts** (one test case per operator per context):
@@ -311,7 +279,7 @@ For any DocumentDB feature, ensure coverage of:
 
 - [ ] **Argument handling**: empty, single, multiple arguments; per-input-position coverage of types, expressions, and applicable rules
 - [ ] **Input correlation**: meaningful cross-input combinations where inputs interact; skip redundant invalid-type cross-products
-- [ ] **Expression types (smoke)**: one test per type — literal, field, expression operator, array expression input (`[["$x", "$y"]]`), object expression input (`{a: "$x"}`)
+- [ ] **Expression types (per-operator)**: one test per type — literal, field, expression operator, array expression input (`[["$x", "$y"]]`), object expression input (`{a: "$x"}`)
 - [ ] **`$missing` field behavior**: per operator, per input position
 - [ ] **Array index paths**: `$a.0.b` in expression context — verify validity outside filter queries
 - [ ] **Null/$missing propagation**: per operator, per input position — short-circuit vs propagate vs ignore
