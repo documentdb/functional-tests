@@ -9,7 +9,7 @@ import json
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Module-level constants
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_NAMES as INFRA_EXCEPTIONS
@@ -204,7 +204,7 @@ class ResultAnalyzer:
             pytest_ini_path: Path to pytest.ini file (default: documentdb_tests/pytest.ini)
         """
         self.pytest_ini_path = pytest_ini_path
-        self._markers_cache: set = None
+        self._markers_cache: Optional[set] = None
 
     def _get_registered_markers(self) -> set:
         """

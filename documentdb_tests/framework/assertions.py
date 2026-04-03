@@ -29,7 +29,7 @@ def _format_exception_error(result: Exception) -> str:
 def assertSuccess(
     result: Union[Any, Exception],
     expected: Any,
-    msg: str = None,
+    msg: Optional[str] = None,
     raw_res: bool = False,
     transform: Optional[Callable] = None,
     ignore_doc_order: bool = False,
@@ -71,7 +71,9 @@ def assertSuccess(
         assert result == expected, error_text
 
 
-def assertSuccessPartial(result: Union[Any, Exception], expected: Dict[str, Any], msg: str = None):
+def assertSuccessPartial(
+    result: Union[Any, Exception], expected: Dict[str, Any], msg: Optional[str] = None
+):
     """Assert command succeeded and check only specified fields."""
     assertSuccess(result, expected, msg, raw_res=True, transform=partial_match(expected))
 
@@ -84,7 +86,7 @@ def partial_match(expected: Dict[str, Any]):
 def assertFailure(
     result: Union[Any, Exception],
     expected: Dict[str, Any],
-    msg: str = None,
+    msg: Optional[str] = None,
     transform: Optional[Callable] = None,
 ):
     """
@@ -138,14 +140,17 @@ def assertFailure(
     assert actual == expected, error_text
 
 
-def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: str = None):
+def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Optional[str] = None):
     """Assert command failed and check only the code field."""
     expected = {"code": expected_code}
     assertFailure(result, expected, msg, transform=partial_match(expected))
 
 
 def assertResult(
-    result: Union[Any, Exception], expected: Any = None, error_code: int = None, msg: str = None
+    result: Union[Any, Exception],
+    expected: Any = None,
+    error_code: Optional[int] = None,
+    msg: Optional[str] = None,
 ):
     """
     Universal assertion that handles success and error cases.

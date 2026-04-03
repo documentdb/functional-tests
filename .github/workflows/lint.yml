@@ -17,7 +17,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install lint tools
-        run: pip install flake8 black isort
+        run: pip install flake8 black isort mypy
 
       - name: Run flake8
         run: flake8
@@ -27,6 +27,9 @@ jobs:
 
       - name: Check import sorting
         run: isort --check-only .
+
+      - name: Run type checking
+        run: mypy documentdb_tests/ --no-site-packages
 
   unit-tests:
     name: Unit Tests

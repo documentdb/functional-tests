@@ -69,7 +69,7 @@ def _format_by_tag(analysis: Dict[str, Any]) -> list:
 def _categorize_failures(analysis: Dict[str, Any]) -> Dict[str, list]:
     """Group failed tests by failure_type. Shared by both report functions."""
     failed_tests = [t for t in analysis["tests"] if t["outcome"] == "FAIL"]
-    grouped = {}
+    grouped: Dict[str, list] = {}
     for test in failed_tests:
         ft = test.get("failure_type", "UNKNOWN")
         grouped.setdefault(ft, []).append(test)
