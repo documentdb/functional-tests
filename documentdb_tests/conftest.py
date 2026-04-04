@@ -162,13 +162,15 @@ def pytest_collection_modifyitems(session, config, items):
             tests_dir = Path(*first_item_path.parts[: tests_idx + 1])
             structure_errors.extend(validate_python_files_in_tests(tests_dir))
 
-    # Validate test format for collected test files
+    # Validate test format for collected test files (only compatibility tests under tests/)
     seen_files = set()
     for item in items:
         file_path = str(item.fspath)
         if file_path in seen_files:
             continue
         seen_files.add(file_path)
+        if "tests" not in Path(file_path).parts:
+            continue
         file_errors = validate_test_format(file_path)
         if file_errors:
             format_errors[file_path] = file_errors

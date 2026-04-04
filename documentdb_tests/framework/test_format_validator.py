@@ -14,7 +14,7 @@ def validate_test_format(file_path: str) -> list[str]:
     Returns:
         List of error messages for violations
     """
-    errors = []
+    errors: list[str] = []
 
     try:
         with open(file_path, "r") as f:
