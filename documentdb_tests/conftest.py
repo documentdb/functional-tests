@@ -15,6 +15,12 @@ pytest.register_assert_rewrite("documentdb_tests.framework.assertions")
 from pathlib import Path  # noqa: E402
 
 from documentdb_tests.framework import fixtures  # noqa: E402
+from documentdb_tests.framework.error_codes_validator import (  # noqa: E402
+    validate_error_codes_sorted,
+)
+from documentdb_tests.framework.test_format_validator import (  # noqa: E402
+    validate_test_format,
+)
 from documentdb_tests.framework.test_structure_validator import (  # noqa: E402
     validate_python_files_in_tests,
 )
@@ -143,22 +149,48 @@ def collection(database_client, request, worker_id):
 
 def pytest_collection_modifyitems(session, config, items):
     """
-    Combined pytest hook to validate test structure.
+    Combined pytest hook to validate test structure, format, and framework invariants.
     """
-    errors = []
+    structure_errors = []
+    format_errors = {}
 
+    # Validate file structure for all files under "tests" folder
     if items:
         first_item_path = Path(items[0].fspath)
         if "tests" in first_item_path.parts:
             tests_idx = first_item_path.parts.index("tests")
             tests_dir = Path(*first_item_path.parts[: tests_idx + 1])
-            errors.extend(validate_python_files_in_tests(tests_dir))
+            structure_errors.extend(validate_python_files_in_tests(tests_dir))
 
-    if errors:
+    # Validate test format for collected test files (only compatibility tests under tests/)
+    seen_files = set()
+    for item in items:
+        file_path = str(item.fspath)
+        if file_path in seen_files:
+            continue
+        seen_files.add(file_path)
+        if "tests" not in Path(file_path).parts:
+            continue
+        file_errors = validate_test_format(file_path)
+        if file_errors:
+            format_errors[file_path] = file_errors
+
+    # Validate framework error code invariants
+    structure_errors.extend(validate_error_codes_sorted())
+
+    if structure_errors or format_errors:
         import sys
 
-        print("\n\n❌ Folder Structure Violations:", file=sys.stderr)
-        print("".join(errors), file=sys.stderr)
-        print("\nSee docs/testing/FOLDER_STRUCTURE.md for rules.\n", file=sys.stderr)
+        if structure_errors:
+            print("\n\n❌ Folder Structure Violations:", file=sys.stderr)
+            print("".join(structure_errors), file=sys.stderr)
+            print("\nSee docs/testing/FOLDER_STRUCTURE.md for rules.\n", file=sys.stderr)
+
+        if format_errors:
+            print("\n❌ Test Format Violations:", file=sys.stderr)
+            for file_path, file_errors in format_errors.items():
+                print(f"\n{file_path}:", file=sys.stderr)
+                print("\n".join(file_errors), file=sys.stderr)
+            print("\nSee docs/testing/TEST_FORMAT.md for rules.\n", file=sys.stderr)
 
         pytest.exit("Test validation failed", returncode=1)

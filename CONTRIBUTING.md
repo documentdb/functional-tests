@@ -31,11 +31,19 @@ Thank you for your interest in contributing to the DocumentDB Functional Tests! 
 
 ## Writing Tests
 
+For comprehensive testing guidance, see our detailed documentation:
+
+- **[Quick Reference](docs/testing/QUICK_REFERENCE.md)** - Fast lookup for all testing rules
+- **[Test Format Guide](docs/testing/TEST_FORMAT.md)** - Test structure, naming, assertions, and tags
+- **[Test Coverage Guide](docs/testing/TEST_COVERAGE.md)** - Coverage strategies and edge case testing
+- **[Folder Structure Guide](docs/testing/FOLDER_STRUCTURE.md)** - Where to put tests with decision tree
+
 ### Test File Organization
 
 - Place tests in the appropriate directory based on the operation being tested
 - Use descriptive file names: `test_<feature>.py`
 - Group related tests in the same file
+- See [Folder Structure Guide](docs/testing/FOLDER_STRUCTURE.md) for detailed organization rules
 
 ### Test Structure
 
@@ -57,14 +65,22 @@ def test_descriptive_name(collection):
     - Any special conditions or edge cases
     """
     # Arrange - Insert test data
-    collection.insert_one({"name": "Alice", "age": 30})
+    collection.insert_one({"a": 1, "b": 2})
     
-    # Act - Execute the operation being tested
-    result = collection.find({"name": "Alice"})
+    # Execute the operation being tested, use runCommand format
+    execute_command(collection, {"find": collection.name, filter: {"a": 1}})
     
-    # Assert - Verify expected behavior
-    assert len(list(result)) == 1
+    # Assert expected behavior, don't use plain assert for consistent failure log format
+    # Assert whole output when possible, to catch all unexpected regression
+    expected = [{"_id": 0, "a": 1, "b": 2}]
+    assertSuccess(result, expected)
 ```
+
+### Test Case Guidelines
+
+- Each test function defines one test case
+- One assertion per test function
+- Use execute_command for all MongoDB operations
 
 ### Naming Conventions
 
@@ -131,10 +147,10 @@ The framework provides three main fixtures:
        collection.insert_one({"name": "Alice"})
        
        # Act - Execute operation
-       result = collection.find_one({"name": "Alice"})
+       result = execute_command(collection, {"find": collection.name, filter: {"name": "Alice"}})
        
        # Assert - Verify results
-       assert result["name"] == "Alice"
+       assertSuccess(result, {"name": "Alice"})
        # Collection automatically dropped after test
    ```
 
