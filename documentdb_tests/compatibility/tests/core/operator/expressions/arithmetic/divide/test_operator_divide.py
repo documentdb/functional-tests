@@ -13,8 +13,9 @@ from bson import Decimal128, Int64
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import BaseTestCase, pytest_params
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import assertExprResult
+from documentdb_tests.framework.test_case import BaseTestCase
+from documentdb_tests.framework.parametrize import pytest_params
 
 
 @dataclass(frozen=True)
@@ -226,7 +227,7 @@ def test_divide(collection, test):
         {"$divide": ["$dividend", "$divisor"]},
         {"dividend": test.dividend, "divisor": test.divisor},
     )
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assertExprResult(result, test.error_code or test.expected, msg=test.msg)
 
 
 @pytest.mark.parametrize("test", pytest_params(TYPE_TESTS))
@@ -237,4 +238,4 @@ def test_divide_return_type(collection, test):
         {"$type": {"$divide": ["$dividend", "$divisor"]}},
         {"dividend": test.dividend, "divisor": test.divisor},
     )
-    assertResult(result, expected=test.expected_type, msg=test.msg)
+    assertExprResult(result, test.expected_type, msg=test.msg)

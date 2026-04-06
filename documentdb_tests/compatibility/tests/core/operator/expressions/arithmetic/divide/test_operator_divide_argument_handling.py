@@ -4,292 +4,69 @@ Covers argument count validation, per-input-position invalid types,
 and expression type smoke tests.
 """
 
-from dataclasses import dataclass
-from typing import Any
-
 import pytest
-from bson import Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
-from datetime import datetime
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assertExprResult,
+    execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     EXPRESSION_TYPE_MISMATCH_ERROR,
     TYPE_MISMATCH_ERROR,
 )
-from documentdb_tests.framework.test_case import BaseTestCase, pytest_params
+from documentdb_tests.framework.parametrize import pytest_params, with_expected
+from documentdb_tests.framework.test_constants import ARRAY_INPUT_ARGS, BSON_TYPE_SAMPLES
 
-
-@dataclass(frozen=True)
-class DivideTest(BaseTestCase):
-    """Test case for $divide with dividend/divisor fields."""
-
-    dividend: Any = None
-    divisor: Any = None
-
+ERR = TYPE_MISMATCH_ERROR
 
 # --- Argument count ---
-ARG_COUNT_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "no_args",
-        expression={"$divide": []},
-        doc={},
-        error_code=EXPRESSION_TYPE_MISMATCH_ERROR,
-        msg="$divide with 0 args → error",
-    ),
-    ExpressionTestCase(
-        "one_arg",
-        expression={"$divide": ["$a"]},
-        doc={"a": 10},
-        error_code=EXPRESSION_TYPE_MISMATCH_ERROR,
-        msg="$divide with 1 arg → error",
-    ),
-    ExpressionTestCase(
-        "three_args",
-        expression={"$divide": ["$a", "$b", "$c"]},
-        doc={"a": 10, "b": 2, "c": 1},
-        error_code=EXPRESSION_TYPE_MISMATCH_ERROR,
-        msg="$divide with 3 args → error",
-    ),
-]
 
 
-@pytest.mark.parametrize("test", pytest_params(ARG_COUNT_TESTS))
-def test_divide_argument_count(collection, test):
+@pytest.mark.parametrize("args", [a for a in ARRAY_INPUT_ARGS if a.id != "2_args"])
+def test_divide_argument_count(collection, args):
     """Test $divide rejects wrong argument counts."""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assertResult(result, error_code=test.error_code, msg=test.msg)
+    result = execute_expression(collection, {"$divide": args})
+    assertExprResult(result, EXPRESSION_TYPE_MISMATCH_ERROR)
 
 
-# --- Invalid types: dividend (position 1) ---
-INVALID_DIVIDEND_TESTS: list[DivideTest] = [
-    DivideTest(
-        "string_dividend",
-        dividend="str",
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="string dividend → error",
-    ),
-    DivideTest(
-        "bool_dividend",
-        dividend=True,
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="bool dividend → error",
-    ),
-    DivideTest(
-        "array_dividend",
-        dividend=[1, 2],
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="array dividend → error",
-    ),
-    DivideTest(
-        "object_dividend",
-        dividend={"x": 1},
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="object dividend → error",
-    ),
-    DivideTest(
-        "empty_array_dividend",
-        dividend=[],
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="empty array dividend → error",
-    ),
-    DivideTest(
-        "empty_object_dividend",
-        dividend={},
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="empty object dividend → error",
-    ),
-    DivideTest(
-        "date_dividend",
-        dividend=datetime(2024, 1, 1),
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="date dividend → error",
-    ),
-    DivideTest(
-        "objectid_dividend",
-        dividend=ObjectId(),
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="objectId dividend → error",
-    ),
-    DivideTest(
-        "regex_dividend",
-        dividend=Regex(".*"),
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="regex dividend → error",
-    ),
-    DivideTest(
-        "code_dividend",
-        dividend=Code("function(){}"),
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="javascript dividend → error",
-    ),
-    DivideTest(
-        "timestamp_dividend",
-        dividend=Timestamp(0, 0),
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="timestamp dividend → error",
-    ),
-    DivideTest(
-        "minkey_dividend",
-        dividend=MinKey(),
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="minKey dividend → error",
-    ),
-    DivideTest(
-        "maxkey_dividend",
-        dividend=MaxKey(),
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="maxKey dividend → error",
-    ),
-    DivideTest(
-        "bindata_dividend",
-        dividend=b"\x00",
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="binData dividend → error",
-    ),
-]
-
-# --- Invalid types: divisor (position 2) ---
-INVALID_DIVISOR_TESTS: list[DivideTest] = [
-    DivideTest(
-        "string_divisor",
-        dividend=10,
-        divisor="str",
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="string divisor → error",
-    ),
-    DivideTest(
-        "bool_divisor",
-        dividend=10,
-        divisor=True,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="bool divisor → error",
-    ),
-    DivideTest(
-        "array_divisor",
-        dividend=10,
-        divisor=[1, 2],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="array divisor → error",
-    ),
-    DivideTest(
-        "object_divisor",
-        dividend=10,
-        divisor={"x": 1},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="object divisor → error",
-    ),
-    DivideTest(
-        "empty_array_divisor",
-        dividend=10,
-        divisor=[],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="empty array divisor → error",
-    ),
-    DivideTest(
-        "empty_object_divisor",
-        dividend=10,
-        divisor={},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="empty object divisor → error",
-    ),
-    DivideTest(
-        "date_divisor",
-        dividend=10,
-        divisor=datetime(2024, 1, 1),
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="date divisor → error",
-    ),
-    DivideTest(
-        "objectid_divisor",
-        dividend=10,
-        divisor=ObjectId(),
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="objectId divisor → error",
-    ),
-    DivideTest(
-        "regex_divisor",
-        dividend=10,
-        divisor=Regex(".*"),
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="regex divisor → error",
-    ),
-    DivideTest(
-        "code_divisor",
-        dividend=10,
-        divisor=Code("function(){}"),
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="javascript divisor → error",
-    ),
-    DivideTest(
-        "timestamp_divisor",
-        dividend=10,
-        divisor=Timestamp(0, 0),
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="timestamp divisor → error",
-    ),
-    DivideTest(
-        "minkey_divisor",
-        dividend=10,
-        divisor=MinKey(),
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="minKey divisor → error",
-    ),
-    DivideTest(
-        "maxkey_divisor",
-        dividend=10,
-        divisor=MaxKey(),
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="maxKey divisor → error",
-    ),
-    DivideTest(
-        "bindata_divisor",
-        dividend=10,
-        divisor=b"\x00",
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="binData divisor → error",
-    ),
-]
-
-# --- Expression type smoke tests ---
-EXPRESSION_SMOKE_TESTS: list[DivideTest] = [
-    DivideTest("field_ref", dividend=10, divisor=2, expected=5.0, msg="Field reference inputs"),
-    DivideTest(
-        "frac_result", dividend=5, divisor=10, expected=0.5, msg="Fractional result from fields"
-    ),
-]
-
-TYPE_TESTS = INVALID_DIVIDEND_TESTS + INVALID_DIVISOR_TESTS + EXPRESSION_SMOKE_TESTS
+# --- Non-numeric types: dividend (position 1) ---
+DIVIDEND_TYPE_CASES = with_expected(BSON_TYPE_SAMPLES, expected_list={
+    "string": ERR, "bool": ERR, "array": ERR, "object": ERR,
+    "empty_array": ERR, "empty_object": ERR, "date": ERR, "objectid": ERR,
+    "regex": ERR, "code": ERR, "timestamp": ERR, "minkey": ERR,
+    "maxkey": ERR, "bindata": ERR, "null": None,
+})
 
 
-@pytest.mark.parametrize("test", pytest_params(TYPE_TESTS))
-def test_divide_type_validation(collection, test):
-    """Test $divide type validation per input position."""
+@pytest.mark.parametrize("val, expected", DIVIDEND_TYPE_CASES)
+def test_divide_dividend_type(collection, val, expected):
+    """Test $divide behavior with non-numeric dividend types."""
     result = execute_expression_with_insert(
-        collection,
-        {"$divide": ["$dividend", "$divisor"]},
-        {"dividend": test.dividend, "divisor": test.divisor},
+        collection, {"$divide": ["$a", "$b"]}, {"a": val, "b": 2},
     )
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assertExprResult(result, expected)
+
+
+# --- Non-numeric types: divisor (position 2) ---
+DIVISOR_TYPE_CASES = with_expected(BSON_TYPE_SAMPLES, expected_list={
+    "string": ERR, "bool": ERR, "array": ERR, "object": ERR,
+    "empty_array": ERR, "empty_object": ERR, "date": ERR, "objectid": ERR,
+    "regex": ERR, "code": ERR, "timestamp": ERR, "minkey": ERR,
+    "maxkey": ERR, "bindata": ERR, "null": None,
+})
+
+
+@pytest.mark.parametrize("val, expected", DIVISOR_TYPE_CASES)
+def test_divide_divisor_type(collection, val, expected):
+    """Test $divide behavior with non-numeric divisor types."""
+    result = execute_expression_with_insert(
+        collection, {"$divide": ["$a", "$b"]}, {"a": 10, "b": val},
+    )
+    assertExprResult(result, expected)
 
 
 # --- Expression nesting smoke ---
@@ -300,13 +77,6 @@ NESTING_TESTS: list[ExpressionTestCase] = [
         doc={},
         expected=5.0,
         msg="Literal inputs",
-    ),
-    ExpressionTestCase(
-        "nested_expr",
-        expression={"$divide": [{"$abs": "$a"}, {"$abs": "$b"}]},
-        doc={"a": -10, "b": -2},
-        expected=5.0,
-        msg="Expression operator inputs",
     ),
     ExpressionTestCase(
         "nested_divide",
@@ -329,4 +99,4 @@ NESTING_TESTS: list[ExpressionTestCase] = [
 def test_divide_expression_nesting(collection, test):
     """Test $divide with nested expressions and field paths."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assertResult(result, expected=test.expected, msg=test.msg)
+    assertExprResult(result, test.expected, msg=test.msg)

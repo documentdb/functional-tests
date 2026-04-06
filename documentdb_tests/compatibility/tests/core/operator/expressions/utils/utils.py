@@ -5,7 +5,16 @@ Provides helper functions for building and executing MongoDB aggregation
 expressions and operators in test scenarios.
 """
 
+from documentdb_tests.framework.assertions import assertExpected
+from documentdb_tests.framework.error_codes import ErrorCode
 from documentdb_tests.framework.executor import execute_command
+
+
+def assertExprResult(result, expected, msg=None):
+    """Assert expression result. Wraps success values in [{"result": val}] format."""
+    if not isinstance(expected, ErrorCode):
+        expected = [{"result": expected}]
+    assertExpected(result, expected, msg)
 
 
 def build_nested_expr(value, operator, depth):

@@ -1,4 +1,7 @@
-from bson import Decimal128, Int64
+from datetime import datetime
+
+import pytest
+from bson import Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 # Int32 boundary values
 INT32_UNDERFLOW = -2147483649
@@ -141,3 +144,39 @@ NUMERIC = NUMERIC_DECIMAL128 + NUMERIC_FLOAT + NUMERIC_INT32 + NUMERIC_INT64 + N
 
 # NaN values
 NOT_A_NUMBER = [FLOAT_NAN, DECIMAL128_NAN]
+
+# Representative value for each non-numeric BSON type, for type-validation parametrization.
+# Operators pair these with their own expected outcomes via with_expected().
+BSON_TYPE_SAMPLES = [
+    pytest.param("str", id="string"),
+    pytest.param(True, id="bool"),
+    pytest.param([1, 2], id="array"),
+    pytest.param({"x": 1}, id="object"),
+    pytest.param([], id="empty_array"),
+    pytest.param({}, id="empty_object"),
+    pytest.param(datetime(2024, 1, 1), id="date"),
+    pytest.param(ObjectId(), id="objectid"),
+    pytest.param(Regex(".*"), id="regex"),
+    pytest.param(Code("function(){}"), id="code"),
+    pytest.param(Timestamp(0, 0), id="timestamp"),
+    pytest.param(MinKey(), id="minkey"),
+    pytest.param(MaxKey(), id="maxkey"),
+    pytest.param(b"\x00", id="bindata"),
+    pytest.param(None, id="null"),
+]
+
+# Argument lists of length 0–5 for testing array-input operators.
+# Uses field refs to missing fields (type-neutral) so arg-count validation
+# triggers before any type check, regardless of operator input type.
+ARRAY_INPUT_ARGS = [pytest.param(["$a", "$b", "$c", "$d", "$e"][:n], id=f"{n}_args") for n in range(6)]
+
+# Invalid argument types for object-input operators (e.g. $filter, $map, $trim).
+# Every object-input operator rejects all of these with a consistent error code.
+OBJECT_INPUT_INVALID_ARGS = [
+    pytest.param([], id="empty_list"),
+    pytest.param(["$a", "$b"], id="list_of_args"),
+    pytest.param("$a", id="string"),
+    pytest.param(42, id="number"),
+    pytest.param(True, id="bool"),
+    pytest.param(None, id="null"),
+]

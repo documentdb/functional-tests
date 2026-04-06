@@ -17,9 +17,10 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import assertExprResult
 from documentdb_tests.framework.error_codes import DIVIDE_BY_ZERO_ERROR
-from documentdb_tests.framework.test_case import BaseTestCase, pytest_params
+from documentdb_tests.framework.test_case import BaseTestCase
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_HALF,
     DECIMAL128_INFINITY,
@@ -463,7 +464,7 @@ def test_divide_edge_cases(collection, test):
         {"$divide": ["$dividend", "$divisor"]},
         {"dividend": test.dividend, "divisor": test.divisor},
     )
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assertExprResult(result, test.error_code or test.expected, msg=test.msg)
 
 
 # --- $missing field behavior (separate — no dividend/divisor fields) ---
@@ -498,4 +499,4 @@ MISSING_TESTS: list[ExpressionTestCase] = [
 def test_divide_missing_field(collection, test):
     """Test $divide with missing fields."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assertResult(result, expected=test.expected, msg=test.msg)
+    assertExprResult(result, test.expected, msg=test.msg)
