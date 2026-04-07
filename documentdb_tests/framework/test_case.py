@@ -23,5 +23,5 @@ class BaseTestCase:
     def __post_init__(self):
         if self.msg is None:
             raise ValueError(
-                f"BaseTestCase '{self.id}' must have a msg describing expected behavior"
+                f"BaseTestCase '{self.id}' must have a msg" " describing expected behavior"
             )

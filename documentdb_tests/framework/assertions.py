@@ -7,6 +7,7 @@ Provides convenient assertion methods for common test scenarios.
 import pprint
 from typing import Any, Callable, Dict, Optional, Union
 
+from documentdb_tests.framework.error_codes import ErrorCode
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
 
 
@@ -146,28 +147,26 @@ def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Op
     assertFailure(result, expected, msg, transform=partial_match(expected))
 
 
-def assertResult(
+def assertExpected(
     result: Union[Any, Exception],
-    expected: Any = None,
-    error_code: Optional[int] = None,
+    expected: Any,
     msg: Optional[str] = None,
 ):
     """
-    Universal assertion that handles success and error cases.
+    Universal assertion: pass an ErrorCode for error cases, any other value for success.
 
     Args:
         result: Result from execute_command
-        expected: Expected result value.
-        error_code: Expected error code (mutually exclusive with expected)
+        expected: Expected value. If an ErrorCode, asserts the command failed with that code.
+            Otherwise, asserts the command succeeded with this as the firstBatch content.
         msg: Custom assertion message (optional)
 
     Usage:
-        assertResult(result, expected=5)  # Success case
-        assertResult(result, error_code=16555)  # Error case
+        assertExpected(result, [{"result": 5.0}])             # Success
+        assertExpected(result, [{"result": None}])             # Success with null
+        assertExpected(result, TYPE_MISMATCH_ERROR)            # Error (ErrorCode)
     """
-    if error_code is not None:
-        # Error case
-        assertFailureCode(result, error_code, msg)
+    if isinstance(expected, ErrorCode):
+        assertFailureCode(result, expected, msg)
     else:
-        # Success case
-        assertSuccess(result, [{"result": expected}], msg)
+        assertSuccess(result, expected, msg)

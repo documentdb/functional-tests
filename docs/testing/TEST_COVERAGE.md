@@ -143,19 +143,14 @@ Example path: `documentdb_tests/compatibility/tests/core/operator/expressions/ar
 ---
 
 ### 4. Argument Handling
-**Rule 1**: Test various argument counts and formats.
-
-**Argument Count Variations**:
-- **No arguments**: `{$add: []}`
-- **Single argument**: `{$add: [1]}` and `{$add: 1}`
-- **Two arguments**: `{$add: [1, 2]}`
-- **Multiple arguments**: `{$add: [1, 2, 3, 4]}`
+**Rule 1**: Test various argument counts and formats. Use `ARRAY_INPUT_ARGS` from `test_constants.py` for array-input operators (covers 0–5 args and non-array input), `OBJECT_INPUT_INVALID_ARGS` for object-input operators. Each operator excludes its valid case(s) and asserts the rest fail.
 
 **Rule 2**: Each input position must be tested independently against all applicable rules. Different input positions may accept different types.
 
 **Per-Input-Position Coverage**:
-- **Data types**: test every valid and invalid data type per position
-- **Expression types**: literal, field, expression operator, array expression, object expression per position
+- **Data types**: test every valid and invalid data type per position → use `BSON_TYPE_SAMPLES` with `with_expected()` from `parametrize.py`
+- **Field expressions**: missing field, nested field, composite array, array index paths, array/object expressions per position → use `field_expression_cases()` from `test_constants.py`
+- **Nested operator**: self-nested operator per position (operator-specific, manual `ExpressionTestCase`)
 - **All other applicable rules** from this document (edge cases, special values, etc.)
 
 **Examples**:
