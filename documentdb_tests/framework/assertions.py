@@ -8,7 +8,13 @@ import math
 import pprint
 from typing import Any, Callable, Dict, Optional, Union
 
+from bson import Decimal128, Int64
+
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
+
+# BSON numeric types that must match exactly during comparison. Python's == operator
+# treats some of these as equal (e.g. int and Int64) but they are distinct BSON types.
+_NUMERIC_BSON_TYPES = (int, float, Int64, Decimal128)
 
 
 def _strict_equal(a: Any, b: Any) -> bool:
@@ -19,6 +25,10 @@ def _strict_equal(a: Any, b: Any) -> bool:
     A sign mismatch would cause downstream behavior differences that
     these tests exist to detect, so we compare the sign bit explicitly
     when both values are zero floats.
+
+    Python's == also considers int and Int64 equal, but they are distinct
+    BSON types. We reject cross-type numeric comparisons so that test
+    expectations must specify the exact BSON type returned by the server.
     """
     # Recurse into containers.
     if isinstance(a, dict) and isinstance(b, dict):
@@ -29,6 +39,12 @@ def _strict_equal(a: Any, b: Any) -> bool:
         if len(a) != len(b):
             return False
         return all(_strict_equal(x, y) for x, y in zip(a, b))
+
+    # Reject cross-type numeric comparisons.
+    if type(a) is not type(b):
+        if isinstance(a, _NUMERIC_BSON_TYPES) and isinstance(b, _NUMERIC_BSON_TYPES):
+            return False
+        return a == b
 
     # Distinguish -0.0 from 0.0.
     if isinstance(a, float) and a == 0.0 and a == b:

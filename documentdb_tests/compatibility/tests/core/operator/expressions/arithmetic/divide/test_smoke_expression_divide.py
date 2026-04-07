@@ -25,5 +25,5 @@ def test_smoke_expression_divide(collection):
         },
     )
 
-    expected = [{"_id": 1, "quotient": 5}, {"_id": 2, "quotient": 6}]
+    expected = [{"_id": 1, "quotient": 5.0}, {"_id": 2, "quotient": 6.0}]
     assertSuccess(result, expected, "Should support $divide expression")
