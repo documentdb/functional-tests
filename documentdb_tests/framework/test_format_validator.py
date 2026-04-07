@@ -28,10 +28,7 @@ def validate_test_format(file_path: str) -> list[str]:
     # Add known helper functions from documentdb_tests.framework.utils that call execute_command
     helper_functions_with_execute.update(
         [
-            "execute_project",
-            "execute_project_with_insert",
             "execute_expression",
-            "execute_expression_with_insert",
         ]
     )
 

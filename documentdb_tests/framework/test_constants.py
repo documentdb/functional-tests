@@ -65,10 +65,7 @@ DECIMAL128_NEGATIVE_ONE_AND_HALF = Decimal128("-1.5")
 DECIMAL128_JUST_BELOW_HALF = Decimal128("0.4999999999999999999999999999999999")
 DECIMAL128_JUST_ABOVE_HALF = Decimal128("0.5000000000000000000000000000000001")
 
-# Other constant values
-MISSING = "$missing"
-
-# Int32 lists
+# Numeric value lists by type
 NUMERIC_INT32_NEGATIVE = [INT32_UNDERFLOW, INT32_MIN]
 NUMERIC_INT32_ZERO = [INT32_ZERO]
 NUMERIC_INT32_POSITIVE = [INT32_OVERFLOW, INT32_MAX]
@@ -168,7 +165,11 @@ BSON_TYPE_SAMPLES = [
 # Argument lists of length 0–5 for testing array-input operators.
 # Uses field refs to missing fields (type-neutral) so arg-count validation
 # triggers before any type check, regardless of operator input type.
-ARRAY_INPUT_ARGS = [pytest.param(["$a", "$b", "$c", "$d", "$e"][:n], id=f"{n}_args") for n in range(6)]
+ARRAY_INPUT_ARGS = [
+    pytest.param(["$a", "$b", "$c", "$d", "$e"][:n], id=f"{n}_args") for n in range(6)
+] + [
+    pytest.param("$a", id="non_array"),
+]
 
 # Invalid argument types for object-input operators (e.g. $filter, $map, $trim).
 # Every object-input operator rejects all of these with a consistent error code.
@@ -180,3 +181,38 @@ OBJECT_INPUT_INVALID_ARGS = [
     pytest.param(True, id="bool"),
     pytest.param(None, id="null"),
 ]
+
+# Field expression case definitions — how a value reaches an operator via
+# different field path shapes. Covers missing fields, nested paths,
+# composite arrays, array index paths, and array/object expressions.
+# Excludes plain field refs (tested everywhere) and nested operators
+# (operator-specific — each operator adds its own self-nested case).
+_FIELD_EXPRESSION_DEFS = [
+    ("missing_field", "$val_missing", lambda v: {}),
+    ("nested_field", "$val.nested", lambda v: {"val": {"nested": v}}),
+    ("composite_array", "$val.nested", lambda v: {"val": [{"nested": v}, {"nested": v}]}),
+    ("index_object_key", "$val.0.nested", lambda v: {"val": {"0": {"nested": v}}}),
+    ("index_array", "$val.0.nested", lambda v: {"val": [{"nested": v}, {"nested": v}]}),
+    ("array_expr", ["$val", "$val"], lambda v: {"val": v}),
+    ("object_expr", {"k": "$val"}, lambda v: {"val": v}),
+]
+
+
+def field_expression_cases(value, expected):
+    """Build field expression test params for how a value is delivered to an operator.
+
+    Tests field path resolution variants: missing fields, nested paths,
+    composite arrays, array index paths, and array/object expressions.
+    Caller inserts the doc and uses the expr in the operator under test.
+
+    Args:
+        value: Value to fill into doc templates.
+        expected: Dict mapping case id → expected result.
+
+    Returns:
+        List of pytest.param(expr, doc, expected, id=case_id).
+    """
+    return [
+        pytest.param(expr, doc_fn(value), expected[case_id], id=case_id)
+        for case_id, expr, doc_fn in _FIELD_EXPRESSION_DEFS
+    ]

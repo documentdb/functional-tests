@@ -11,11 +11,11 @@ import pytest
 from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
-    execute_expression_with_insert,
+    assertExprResult,
+    execute_expression,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import assertExprResult
-from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_case import BaseTestCase
 
 
 @dataclass(frozen=True)
@@ -222,20 +222,14 @@ TYPE_TESTS = [t for t in ALL_TESTS if t.expected_type is not None]
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_divide(collection, test):
     """Test $divide operator core behavior."""
-    result = execute_expression_with_insert(
-        collection,
-        {"$divide": ["$dividend", "$divisor"]},
-        {"dividend": test.dividend, "divisor": test.divisor},
-    )
+    collection.insert_one({"dividend": test.dividend, "divisor": test.divisor})
+    result = execute_expression(collection, {"$divide": ["$dividend", "$divisor"]})
     assertExprResult(result, test.error_code or test.expected, msg=test.msg)
 
 
 @pytest.mark.parametrize("test", pytest_params(TYPE_TESTS))
 def test_divide_return_type(collection, test):
     """Test $divide returns correct BSON type."""
-    result = execute_expression_with_insert(
-        collection,
-        {"$type": {"$divide": ["$dividend", "$divisor"]}},
-        {"dividend": test.dividend, "divisor": test.divisor},
-    )
+    collection.insert_one({"dividend": test.dividend, "divisor": test.divisor})
+    result = execute_expression(collection, {"$type": {"$divide": ["$dividend", "$divisor"]}})
     assertExprResult(result, test.expected_type, msg=test.msg)

@@ -6,6 +6,7 @@ Keep sorted by error code number. No duplicates.
 
 class ErrorCode(int):
     """Distinct type for error codes, so expected values can distinguish errors from results."""
+
     pass
 
 

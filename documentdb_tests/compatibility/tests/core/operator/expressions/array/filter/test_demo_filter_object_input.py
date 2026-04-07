@@ -16,5 +16,6 @@ FILTER_OBJECT_REQUIRED_ERROR = ErrorCode(28646)
 @pytest.mark.parametrize("arg", OBJECT_INPUT_INVALID_ARGS)
 def test_filter_rejects_non_object_arg(collection, arg):
     """Test $filter rejects non-object arguments."""
+    collection.insert_one({"_placeholder": 1})
     result = execute_expression(collection, {"$filter": arg})
     assertExprResult(result, FILTER_OBJECT_REQUIRED_ERROR)
