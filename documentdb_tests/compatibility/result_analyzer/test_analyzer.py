@@ -1,5 +1,7 @@
 """Tests for failure extraction and categorization in the analyzer."""
 
+import pytest
+
 from documentdb_tests.compatibility.result_analyzer.analyzer import (
     extract_exception_type,
     extract_failure_tag,
@@ -15,6 +17,7 @@ def _make_test_result(crash_message: str) -> dict:
 # --- extract_failure_tag ---
 
 
+@pytest.mark.unit
 class TestExtractFailureTag:
     def test_result_mismatch(self):
         result = _make_test_result("[RESULT_MISMATCH] Expected [1,2,3] but got [1,2]")
@@ -51,6 +54,7 @@ class TestExtractFailureTag:
 # --- extract_exception_type ---
 
 
+@pytest.mark.unit
 class TestExtractExceptionType:
     def test_simple_exception(self):
         assert extract_exception_type("ConnectionError: refused") == "ConnectionError"
@@ -71,6 +75,7 @@ class TestExtractExceptionType:
 # --- is_infrastructure_error ---
 
 
+@pytest.mark.unit
 class TestIsInfrastructureError:
     def test_connection_error(self):
         result = _make_test_result("ConnectionError: Cannot connect")
