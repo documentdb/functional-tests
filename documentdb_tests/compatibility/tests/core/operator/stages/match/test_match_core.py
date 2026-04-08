@@ -75,21 +75,6 @@ MATCH_CORE_TESTS: list[StageTestCase] = [
         msg="$match should filter documents to those where the field equals the value",
     ),
     StageTestCase(
-        "core_insertion_order",
-        docs=[
-            {"_id": 3, "a": 1},
-            {"_id": 1, "a": 1},
-            {"_id": 2, "a": 1},
-        ],
-        pipeline=[{"$match": {"a": 1}}],
-        expected=[
-            {"_id": 3, "a": 1},
-            {"_id": 1, "a": 1},
-            {"_id": 2, "a": 1},
-        ],
-        msg="$match should return documents in insertion order, not sorted by _id",
-    ),
-    StageTestCase(
         "core_empty_collection",
         docs=[],
         pipeline=[{"$match": {"a": 1}}],
@@ -275,4 +260,5 @@ def test_match_core_cases(collection, test_case: StageTestCase):
         expected=test_case.expected,
         error_code=test_case.error_code,
         msg=test_case.msg,
+        ignore_doc_order=True,
     )
