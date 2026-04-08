@@ -163,6 +163,43 @@ MATCH_PREDICATE_TESTS: list[StageTestCase] = [
         expected=[{"_id": 1, "a": {"b": 10}}],
         msg="$match should support dot notation to match nested fields",
     ),
+    StageTestCase(
+        "predicate_dot_notation_array_index",
+        docs=[
+            {"_id": 1, "a": [{"b": 10}, {"b": 20}]},
+            {"_id": 2, "a": [{"b": 30}, {"b": 40}]},
+            {"_id": 3, "a": {"0": {"b": 99}}},
+        ],
+        pipeline=[{"$match": {"a.0.b": 10}}],
+        expected=[{"_id": 1, "a": [{"b": 10}, {"b": 20}]}],
+        msg="$match with numeric dot path should resolve as array index",
+    ),
+    StageTestCase(
+        "predicate_dot_notation_object_key",
+        docs=[
+            {"_id": 1, "a": [{"b": 10}, {"b": 20}]},
+            {"_id": 2, "a": [{"b": 30}, {"b": 40}]},
+            {"_id": 3, "a": {"0": {"b": 99}}},
+        ],
+        pipeline=[{"$match": {"a.0.b": 99}}],
+        expected=[{"_id": 3, "a": {"0": {"b": 99}}}],
+        msg="$match with numeric dot path should also match object keys",
+    ),
+    StageTestCase(
+        "predicate_dot_notation_array_index_and_object_key",
+        docs=[
+            {"_id": 1, "a": [{"b": 10}, {"b": 20}]},
+            {"_id": 2, "a": [{"b": 10}, {"b": 40}]},
+            {"_id": 3, "a": {"0": {"b": 10}}},
+        ],
+        pipeline=[{"$match": {"a.0.b": 10}}],
+        expected=[
+            {"_id": 1, "a": [{"b": 10}, {"b": 20}]},
+            {"_id": 2, "a": [{"b": 10}, {"b": 40}]},
+            {"_id": 3, "a": {"0": {"b": 10}}},
+        ],
+        msg="$match with numeric dot path should match both array index and object key",
+    ),
 ]
 
 # Property [Empty Predicate]: {$match: {}} returns all documents, and an
