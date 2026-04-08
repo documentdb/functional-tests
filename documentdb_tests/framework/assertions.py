@@ -157,17 +157,15 @@ def assertResult(
 
     Args:
         result: Result from execute_command
-        expected: Expected result value.
-        error_code: Expected error code (mutually exclusive with expected)
+        expected: Expected result documents (for success cases)
+        error_code: Expected error code (for error cases)
         msg: Custom assertion message (optional)
 
     Usage:
-        assertResult(result, expected=5)  # Success case
+        assertResult(result, expected=[{"_id": 1}])  # Success case
         assertResult(result, error_code=16555)  # Error case
     """
     if error_code is not None:
-        # Error case
         assertFailureCode(result, error_code, msg)
     else:
-        # Success case
-        assertSuccess(result, [{"result": expected}], msg)
+        assertSuccess(result, expected, msg)
