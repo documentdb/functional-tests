@@ -17,6 +17,11 @@ from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as
 _NUMERIC_BSON_TYPES = (int, float, Int64, Decimal128)
 
 
+def _sort_if_list(value: Any) -> Any:
+    """Return a sorted copy if value is a list, otherwise return it unchanged."""
+    return sorted(value, key=lambda x: str(x)) if isinstance(value, list) else value
+
+
 def _strict_equal(a: Any, b: Any) -> bool:
     """Equality with stricter semantics for BSON numeric types.
 
@@ -86,7 +91,7 @@ def assertSuccess(
         raw_res: If asserting raw result. False by default,
             only compare content of ["cursor"]["firstBatch"]
         transform: Optional callback to transform result before comparison
-        ignore_doc_order: If True, compare lists as sets (order-independent)
+        ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
     """
     if isinstance(result, Exception):
         if isinstance(result, _INFRA_TYPES):
@@ -105,13 +110,11 @@ def assertSuccess(
     error_text += f"\n\nExpected:\n{pprint.pformat(expected, width=100)}"
     error_text += f"\n\nActual:\n{pprint.pformat(result, width=100)}\n"
 
-    if ignore_doc_order and isinstance(result, list) and isinstance(expected, list):
-        assert _strict_equal(
-            sorted(result, key=lambda x: str(x)),
-            sorted(expected, key=lambda x: str(x)),
-        ), error_text
-    else:
-        assert _strict_equal(result, expected), error_text
+    if ignore_doc_order:
+        result = _sort_if_list(result)
+        expected = _sort_if_list(expected)
+
+    assert _strict_equal(result, expected), error_text
 
 
 def assertSuccessPartial(
@@ -194,23 +197,23 @@ def assertResult(
     expected: Any = None,
     error_code: Optional[int] = None,
     msg: Optional[str] = None,
+    ignore_doc_order: bool = False,
 ):
     """
     Universal assertion that handles success and error cases.
 
     Args:
         result: Result from execute_command
-        expected: Expected result value.
-        error_code: Expected error code (mutually exclusive with expected)
+        expected: Expected result documents (for success cases)
+        error_code: Expected error code (for error cases)
         msg: Custom assertion message (optional)
+        ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
 
     Usage:
-        assertResult(result, expected=5)  # Success case
+        assertResult(result, expected=[{"_id": 1}])  # Success case
         assertResult(result, error_code=16555)  # Error case
     """
     if error_code is not None:
-        # Error case
         assertFailureCode(result, error_code, msg)
     else:
-        # Success case
-        assertSuccess(result, [{"result": expected}], msg)
+        assertSuccess(result, expected, msg, ignore_doc_order=ignore_doc_order)
