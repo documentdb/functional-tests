@@ -1,4 +1,4 @@
-"""Tests for $match pipeline position behavior."""
+"""Tests for $match composing with other stages at different pipeline positions."""
 
 from __future__ import annotations
 
@@ -11,21 +11,9 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# Property [Pipeline Position]: $match filters correctly regardless of its
-# position in the pipeline and composes with preceding stages that reshape
-# documents.
+# Property [Pipeline Position]: $match filters correctly when composed with
+# preceding stages that reshape documents.
 MATCH_PIPELINE_POSITION_TESTS: list[StageTestCase] = [
-    StageTestCase(
-        "pipeline_first_stage",
-        docs=[
-            {"_id": 1, "a": 10},
-            {"_id": 2, "a": 20},
-            {"_id": 3, "a": 10},
-        ],
-        pipeline=[{"$match": {"a": 10}}],
-        expected=[{"_id": 1, "a": 10}, {"_id": 3, "a": 10}],
-        msg="$match should work as the first stage of a pipeline",
-    ),
     StageTestCase(
         "pipeline_middle_stage",
         docs=[
@@ -54,20 +42,6 @@ MATCH_PIPELINE_POSITION_TESTS: list[StageTestCase] = [
         ],
         expected=[{"_id": 1, "a": 10}, {"_id": 3, "a": 10}],
         msg="$match should work as the last stage of a pipeline",
-    ),
-    StageTestCase(
-        "pipeline_consecutive_match",
-        docs=[
-            {"_id": 1, "a": 10, "b": 1},
-            {"_id": 2, "a": 20, "b": 2},
-            {"_id": 3, "a": 10, "b": 3},
-        ],
-        pipeline=[
-            {"$match": {"a": 10}},
-            {"$match": {"b": 3}},
-        ],
-        expected=[{"_id": 3, "a": 10, "b": 3}],
-        msg="$match consecutive stages should compose like $and of all predicates",
     ),
     StageTestCase(
         "pipeline_after_reshape_dropped_field",
@@ -137,31 +111,11 @@ MATCH_PIPELINE_POSITION_TESTS: list[StageTestCase] = [
     ),
 ]
 
-# Property [$text First-Stage Behavior]: $text search works inside $match when
-# $match is the first stage of the pipeline.
-MATCH_TEXT_FIRST_STAGE_TESTS: list[StageTestCase] = [
-    StageTestCase(
-        "text_first_stage",
-        docs=[
-            {"_id": 1, "content": "hello world"},
-            {"_id": 2, "content": "goodbye world"},
-        ],
-        setup=lambda collection: collection.create_index([("content", "text")]),
-        pipeline=[{"$match": {"$text": {"$search": "goodbye"}}}],
-        expected=[{"_id": 2, "content": "goodbye world"}],
-        msg="$match with $text should work when it is the first pipeline stage",
-    ),
-]
-
-MATCH_STAGE_POSITION_TESTS_ALL = MATCH_PIPELINE_POSITION_TESTS + MATCH_TEXT_FIRST_STAGE_TESTS
-
 
 @pytest.mark.aggregate
-@pytest.mark.parametrize("test_case", pytest_params(MATCH_STAGE_POSITION_TESTS_ALL))
-def test_match_stage_position_cases(collection, test_case: StageTestCase):
-    """Test $match pipeline position behavior."""
-    if test_case.setup:
-        test_case.setup(collection)
+@pytest.mark.parametrize("test_case", pytest_params(MATCH_PIPELINE_POSITION_TESTS))
+def test_stage_position_match_cases(collection, test_case: StageTestCase):
+    """Test $match composing with other stages at different pipeline positions."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(
