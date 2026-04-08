@@ -64,19 +64,13 @@ def validate_test_format(file_path: str) -> list[str]:
                     )
 
             # Check for multiple assertion helper calls
+            # Matches any function call starting with "assert" by convention.
             call_count = sum(
                 1
                 for n in ast.walk(node)
                 if isinstance(n, ast.Call)
                 and isinstance(n.func, ast.Name)
-                and n.func.id
-                in (
-                    "assertSuccess",
-                    "assertFailure",
-                    "assertResult",
-                    "assertFailureCode",
-                    "assertNaN",
-                )
+                and n.func.id.startswith("assert")
             )
 
             if call_count > 1:

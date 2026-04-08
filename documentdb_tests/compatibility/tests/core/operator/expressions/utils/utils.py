@@ -5,6 +5,7 @@ Provides helper functions for building and executing MongoDB aggregation
 expressions and operators in test scenarios.
 """
 
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 
 
@@ -154,4 +155,25 @@ def execute_expression_with_insert(collection, expression, document):
             ],
             "cursor": {},
         },
+    )
+
+
+def assert_expression_result(result, expected=None, error_code=None, msg=None):
+    """
+    Assert the result of an execute_expression* call.
+
+    Wraps assertResult to handle the {"result": value} projection shape
+    produced by execute_expression and execute_expression_with_insert.
+
+    Args:
+        result: Result from execute_expression or execute_expression_with_insert
+        expected: Expected scalar value (wrapped into [{"result": expected}])
+        error_code: Expected error code (for error cases)
+        msg: Custom assertion message (optional)
+    """
+    assertResult(
+        result,
+        expected=[{"result": expected}] if error_code is None else None,
+        error_code=error_code,
+        msg=msg,
     )
