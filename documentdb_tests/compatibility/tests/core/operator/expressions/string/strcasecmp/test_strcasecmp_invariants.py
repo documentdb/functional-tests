@@ -5,12 +5,16 @@ from typing import Any
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_project,
+)
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.test_case import BaseTestCase, pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strcasecmp.utils.strcasecmp_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_case import BaseTestCase
+
+from .utils.strcasecmp_common import (
     StrcasecmpTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_project
 
 # Property [Return Type]: the result is always an int equal to -1, 0, or 1.
 STRCASECMP_RETURN_TYPE_TESTS: list[StrcasecmpTest] = [

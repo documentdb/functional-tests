@@ -3,14 +3,17 @@ from __future__ import annotations
 import pytest
 from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import BSON_TO_STRING_CONVERSION_ERROR
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strcasecmp.utils.strcasecmp_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.strcasecmp_common import (
     StrcasecmpTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Strictness]: boolean, array, object, Binary, MaxKey, MinKey,
 # ObjectId, Regex, and Code with scope values in either position produce an error,
@@ -187,6 +190,6 @@ STRCASECMP_TYPE_ERROR_TESTS: list[StrcasecmpTest] = [
 def test_strcasecmp_type_errors_cases(collection, test_case: StrcasecmpTest):
     """Test $strcasecmp type strictness cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )
