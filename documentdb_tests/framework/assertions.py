@@ -44,12 +44,12 @@ def _strict_equal(a: Any, b: Any) -> bool:
     if type(a) is not type(b):
         if isinstance(a, _NUMERIC_BSON_TYPES) and isinstance(b, _NUMERIC_BSON_TYPES):
             return False
-        return a == b
+        return bool(a == b)
 
     # Distinguish -0.0 from 0.0.
     if isinstance(a, float) and a == 0.0 and a == b:
         return math.copysign(1.0, a) == math.copysign(1.0, b)
-    return a == b
+    return bool(a == b)
 
 
 class TestSetupError(AssertionError):
