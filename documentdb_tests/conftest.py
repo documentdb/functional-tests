@@ -102,6 +102,18 @@ def engine_client(request):
     client.close()
 
 
+@pytest.fixture(scope="session")
+def worker_id(request):
+    """
+    Provide worker_id for test isolation, with fallback when xdist is not active.
+
+    Returns xdist's worker_id if available, otherwise 'master'.
+    """
+    if hasattr(request.config, "workerinput"):
+        return request.config.workerinput["workerid"]
+    return "master"
+
+
 @pytest.fixture(scope="function")
 def database_client(engine_client, request, worker_id):
     """
@@ -162,7 +174,26 @@ def collection(database_client, request, worker_id):
 def pytest_collection_modifyitems(session, config, items):
     """
     Combined pytest hook to validate test structure, format, and framework invariants.
+
+    When running with xdist (-n), automatically deselects tests marked with
+    'no_parallel' to prevent interference. Run these separately with:
+        pytest -m no_parallel -p no:xdist
+    Or run them manually with: pytest -m no_parallel -p no:xdist
     """
+    # Deselect no_parallel tests when running under xdist
+    is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")
+    if is_xdist:
+        parallel_items = []
+        deselected = []
+        for item in items:
+            if item.get_closest_marker("no_parallel"):
+                deselected.append(item)
+            else:
+                parallel_items.append(item)
+        if deselected:
+            config.hook.pytest_deselected(items=deselected)
+            items[:] = parallel_items
+
     structure_errors = []
     format_errors = {}
 
@@ -206,3 +237,153 @@ def pytest_collection_modifyitems(session, config, items):
             print("\nSee docs/testing/TEST_FORMAT.md for rules.\n", file=sys.stderr)
 
         pytest.exit("Test validation failed", returncode=1)
+
+
+def _merge_json_reports(phase1_path, phase2_path):
+    """Merge Phase 2 JSON report into Phase 1 report."""
+    import json
+
+    with open(phase1_path) as f:
+        p1 = json.load(f)
+    with open(phase2_path) as f:
+        p2 = json.load(f)
+
+    p1.setdefault("tests", []).extend(p2.get("tests", []))
+    p1["duration"] = p1.get("duration", 0) + p2.get("duration", 0)
+    p1_summary = p1.setdefault("summary", {})
+    p2_summary = p2.get("summary", {})
+    for key in ("passed", "failed", "error", "skipped", "total"):
+        if key in p2_summary:
+            p1_summary[key] = p1_summary.get(key, 0) + p2_summary[key]
+    # Phase 2 runs without xdist, so its collected reflects the true count
+    # before any deselection. Phase 1 under xdist may have a reduced count
+    # due to no_parallel deselection in pytest_collection_modifyitems.
+    p2_collected = p2_summary.get("collected", 0)
+    if p2_collected > 0:
+        p1_summary["collected"] = p2_collected
+    p1_summary.pop("deselected", None)
+
+    with open(phase1_path, "w") as f:
+        json.dump(p1, f, indent=2)
+
+
+def _merge_junit_xml(phase1_path, phase2_path):
+    """Merge Phase 2 JUnit XML into Phase 1 XML."""
+    import xml.etree.ElementTree as ET
+
+    p1_tree = ET.parse(phase1_path)
+    p2_tree = ET.parse(phase2_path)
+    p1_suite = p1_tree.find(".//testsuite")
+    p2_suite = p2_tree.find(".//testsuite")
+    if p1_suite is None or p2_suite is None:
+        return
+
+    for testcase in p2_suite.findall("testcase"):
+        p1_suite.append(testcase)
+
+    for attr in ("tests", "errors", "failures", "skipped"):
+        v1 = int(p1_suite.get(attr, 0))
+        v2 = int(p2_suite.get(attr, 0))
+        p1_suite.set(attr, str(v1 + v2))
+
+    t1 = float(p1_suite.get("time", 0))
+    t2 = float(p2_suite.get("time", 0))
+    p1_suite.set("time", f"{t1 + t2:.3f}")
+
+    p1_tree.write(phase1_path, xml_declaration=True, encoding="utf-8")
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """
+    After parallel phase completes, automatically run no_parallel tests sequentially.
+
+    Only triggers on the xdist controller node (not workers, not non-xdist runs).
+    Phase 2 results are merged into Phase 1 report files (JSON and JUnit XML).
+    """
+    config = session.config
+    is_xdist_controller = bool(getattr(config.option, "numprocesses", None)) and not hasattr(
+        config, "workerinput"
+    )
+    if not is_xdist_controller:
+        return
+
+    import os
+    import subprocess
+    import sys
+    import tempfile
+
+    print(
+        f"\n{'='*60}\n" f"Phase 2: Running no_parallel tests sequentially\n" f"{'='*60}\n",
+        flush=True,
+    )
+
+    cmd = [sys.executable, "-m", "pytest", "-p", "no:xdist", "-v"]
+
+    # Combine user's marker expression with no_parallel
+    user_marker = getattr(config.option, "markexpr", "")
+    if user_marker:
+        cmd.extend(["-m", f"no_parallel and ({user_marker})"])
+    else:
+        cmd.extend(["-m", "no_parallel"])
+    cmd.extend(["--connection-string", config.connection_string])
+    cmd.extend(["--engine-name", config.engine_name])
+
+    # Detect Phase 1 report paths and set up Phase 2 temp report files
+    phase1_json = getattr(config.option, "json_report_file", None)
+    phase1_junit = getattr(config.option, "xmlpath", None)
+    phase2_json = None
+    phase2_junit = None
+
+    if phase1_json and os.path.exists(phase1_json):
+        f = tempfile.NamedTemporaryFile(delete=False, suffix=".json", prefix="phase2_")
+        phase2_json = f.name
+        f.close()
+        cmd.extend(["--json-report", f"--json-report-file={phase2_json}"])
+    if phase1_junit and os.path.exists(phase1_junit):
+        f = tempfile.NamedTemporaryFile(delete=False, suffix=".xml", prefix="phase2_")
+        phase2_junit = f.name
+        f.close()
+        cmd.extend([f"--junitxml={phase2_junit}"])
+
+    if config.args:
+        cmd.extend(config.args)
+
+    result = subprocess.call(cmd)
+
+    if result == 5:
+        print("\nℹ️  No no_parallel tests found — Phase 2 skipped")
+    elif result != 0:
+        print(f"\n❌ Phase 2 failed (exit code {result})")
+        session.exitstatus = 1
+    else:
+        print("\n✅ Phase 2 complete — all no_parallel tests passed")
+
+    # Merge Phase 2 reports into Phase 1 reports
+    if phase2_json and os.path.exists(phase2_json):
+        try:
+            _merge_json_reports(phase1_json, phase2_json)
+            print(f"📊 Merged Phase 2 results into {phase1_json}")
+        except Exception as e:
+            print(f"⚠️  Failed to merge JSON reports: {e}", file=sys.stderr)
+        finally:
+            os.unlink(phase2_json)
+
+    if phase2_junit and os.path.exists(phase2_junit):
+        try:
+            _merge_junit_xml(phase1_junit, phase2_junit)
+            print(f"📊 Merged Phase 2 results into {phase1_junit}")
+        except Exception as e:
+            print(f"⚠️  Failed to merge JUnit XML reports: {e}", file=sys.stderr)
+        finally:
+            os.unlink(phase2_junit)
+
+    # Pytest prints its own Phase 1 summary after this hook returns;
+    # add a note so it's not confused with Phase 2 results.
+    print(
+        '\nℹ️  The summary line below ("=== N passed in Xs ===") is Phase 1 (parallel) only. '
+        "See merged report files for combined results.",
+        flush=True,
+    )
+
+    if exitstatus != 0:
+        session.exitstatus = exitstatus

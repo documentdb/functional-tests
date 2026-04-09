@@ -77,6 +77,13 @@ pytest -n auto
 pytest -n auto -m smoke --connection-string mongodb://localhost:27017 --engine-name documentdb
 ```
 
+**Two-Phase Execution:**
+Some tests (e.g., `killAllSessions`, `setParameter`, `fsync`) modify global server state and cannot safely run in parallel. These are marked with `no_parallel`. When you use `-n`, the framework automatically:
+1. **Phase 1**: Runs all parallel-safe tests with multiple workers
+2. **Phase 2**: Runs `no_parallel` tests sequentially after Phase 1 completes
+
+This is handled transparently — no extra flags needed.
+
 **Performance Benefits:**
 - Significantly faster test execution with multiple workers
 - Scales with number of available CPU cores
@@ -86,7 +93,7 @@ pytest -n auto -m smoke --connection-string mongodb://localhost:27017 --engine-n
 - Use `-n auto` to automatically detect optimal worker count
 - Parallel execution works best with 4+ workers
 - Each worker runs tests in isolation (separate database/collection)
-- Safe for tests with automatic cleanup (all framework tests are safe)
+- Mark tests with `@pytest.mark.no_parallel` if they modify global server state (kill sessions/ops, change server parameters, drop all users/roles, etc.)
 
 **When to Use:**
 - Large test suites
@@ -229,6 +236,7 @@ tests/
 ### Special Tags
 - `smoke`: Quick smoke tests for feature detection
 - `slow`: Tests that take longer to execute
+- `no_parallel`: Tests that must run sequentially (e.g., tests that kill sessions/ops, modify server config, or drop all users/roles). Automatically deferred to Phase 2 when using `-n`.
 
 ## Writing Tests
 
