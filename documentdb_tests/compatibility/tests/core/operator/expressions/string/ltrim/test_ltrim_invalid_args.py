@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     FAILED_TO_PARSE_ERROR,
@@ -13,13 +16,13 @@ from documentdb_tests.framework.error_codes import (
     TRIM_UNKNOWN_FIELD_ERROR,
     TRIM_WRONG_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.ltrim.utils.ltrim_common import (
+
+from .utils.ltrim_common import (
     LtrimTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Syntax Validation]: invalid $ltrim object shapes produce errors.
 LTRIM_SYNTAX_ERROR_TESTS: list[LtrimTest] = [

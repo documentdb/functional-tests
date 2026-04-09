@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.ltrim.utils.ltrim_common import (
-    _OMIT,
-    LtrimTest,
-    _expr,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_project,
+)
+from documentdb_tests.framework.assertions import assertResult, assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.ltrim_common import (
+    _OMIT,
+    LtrimTest,
+    _expr,
 )
 
 # Property [Identity]: empty string chars is the identity element. The result equals input

@@ -5,15 +5,18 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import TRIM_CHARS_TYPE_ERROR, TRIM_INPUT_TYPE_ERROR
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF, MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.rtrim.utils.rtrim_common import (
+
+from .utils.rtrim_common import (
     RtrimTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Strictness - input]: non-string, non-null input produces TRIM_INPUT_TYPE_ERROR.
 RTRIM_INPUT_TYPE_ERROR_TESTS: list[RtrimTest] = [

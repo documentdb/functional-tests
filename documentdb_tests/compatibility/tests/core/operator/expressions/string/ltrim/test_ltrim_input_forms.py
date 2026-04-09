@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.ltrim.utils.ltrim_common import (
-    LtrimTest,
-    _expr,
-)
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import ExpressionTestCase
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_expression_with_insert,
+)
+from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.parametrize import pytest_params
+
+from ...utils.expression_test_case import ExpressionTestCase
+from .utils.ltrim_common import (
+    LtrimTest,
+    _expr,
 )
 
 # Property [Expression Arguments]: input and chars accept any expression that resolves to a

@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.rtrim.utils.rtrim_common import (
+
+from .utils.rtrim_common import (
     _OMIT,
     RtrimTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Argument shapes for null/missing tests. _PLACEHOLDER is replaced with None or MISSING.
 _PLACEHOLDER = object()

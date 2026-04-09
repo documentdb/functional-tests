@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.trim.utils.trim_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.trim_common import (
     TrimTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Custom Chars]: when chars is provided, only those characters are trimmed from both
 # ends. Each character in chars is treated individually (not as a substring), and the order of
