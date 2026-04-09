@@ -3,7 +3,7 @@ Error Codes expected from the server.
 Keep sorted by error code number. No duplicates.
 """
 
-DIVIDE_BY_ZERO_ERROR = 2
+BAD_VALUE_ERROR = 2
 TYPE_MISMATCH_ERROR = 14
 EXPRESSION_TYPE_MISMATCH_ERROR = 16020
 MODULO_ZERO_REMAINDER_ERROR = 16610
