@@ -26,7 +26,7 @@ Thank you for your interest in contributing to the DocumentDB Functional Tests! 
 
 4. Install pre-commit hooks:
    ```bash
-   pre-commit install
+   pre-commit install -t pre-commit -t prepare-commit-msg -t pre-push
    ```
 
 5. Create a branch for your changes:
