@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     FAILED_TO_PARSE_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
@@ -15,12 +18,12 @@ from documentdb_tests.framework.error_codes import (
     REGEX_OPTIONS_NULL_BYTE_ERROR,
     REGEX_UNKNOWN_FIELD_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.regexFindAll.utils.regexFindAll_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.regexFindAll_common import (
     RegexFindAllTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Syntax Validation]: missing required fields or unknown fields produce errors.
 REGEXFINDALL_SYNTAX_ERROR_TESTS: list[RegexFindAllTest] = [
@@ -244,6 +247,6 @@ REGEXFINDALL_INVALID_ARGS_ALL_TESTS = (
 def test_regexfindall_invalid_args(collection, test_case: RegexFindAllTest):
     """Test $regexFindAll syntax validation and invalid argument errors."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

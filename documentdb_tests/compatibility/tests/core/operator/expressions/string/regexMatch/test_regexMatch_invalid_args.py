@@ -3,7 +3,10 @@ from __future__ import annotations
 import pytest
 from bson import Regex
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     FAILED_TO_PARSE_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
@@ -17,12 +20,12 @@ from documentdb_tests.framework.error_codes import (
     REGEX_OPTIONS_NULL_BYTE_ERROR,
     REGEX_UNKNOWN_FIELD_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.regexMatch.utils.regexMatch_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.regexMatch_common import (
     RegexMatchTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Syntax Validation]: missing required fields or unknown fields produce errors.
 REGEXMATCH_SYNTAX_ERROR_TESTS: list[RegexMatchTest] = [
@@ -273,6 +276,6 @@ REGEXMATCH_INVALID_ARGS_ALL_TESTS = (
 def test_regexmatch_cases(collection, test_case: RegexMatchTest):
     """Test $regexMatch invalid argument cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

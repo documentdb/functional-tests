@@ -5,15 +5,17 @@ from typing import Any
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.test_case import BaseTestCase, pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.regexFindAll.utils.regexFindAll_common import (
-    RegexFindAllTest,
-    _expr,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_project,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_case import BaseTestCase
+
+from .utils.regexFindAll_common import (
+    RegexFindAllTest,
+    _expr,
 )
 
 # Property [Return Type - array]: result is always an array, even for no-match and null-propagation

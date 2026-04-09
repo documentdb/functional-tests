@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.regexFindAll.utils.regexFindAll_common import (
-    RegexFindAllTest,
-    _expr,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_project_with_insert,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.regexFindAll_common import (
+    RegexFindAllTest,
+    _expr,
 )
 
 # Property [Expression Arguments]: input, regex, and options accept expressions that resolve to the
@@ -69,7 +71,7 @@ REGEXFINDALL_USAGE_ALL_TESTS = REGEXFINDALL_EXPR_TESTS + REGEXFINDALL_LITERAL_IN
 def test_regexfindall_usage(collection, test_case: RegexFindAllTest):
     """Test $regexFindAll expression arguments and field reference behavior."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )
 
