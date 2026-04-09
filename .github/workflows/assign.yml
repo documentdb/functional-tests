@@ -1,0 +1,30 @@
+name: Issue Assignment
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  assign:
+    if: >
+      !github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/take')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Assign issue to commenter
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          LOGIN: ${{ github.event.comment.user.login }}
+          ALREADY_ASSIGNED: ${{ github.event.issue.assignees[0] != null }}
+        run: |
+          if [ "$ALREADY_ASSIGNED" = "true" ]; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+              --body "This issue is already assigned."
+          else
+            gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --add-assignee "$LOGIN"
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+              --body "Assigned to @${LOGIN}!"
+          fi
