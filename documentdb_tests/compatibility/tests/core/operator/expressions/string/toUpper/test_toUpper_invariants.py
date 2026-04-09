@@ -3,14 +3,15 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128
 
-from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.toUpper.utils.toUpper_common import (
-    ToUpperTest,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_project,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.toUpper_common import (
+    ToUpperTest,
 )
 
 # Property [Idempotency]: applying $toUpper to an already-uppercased result produces the same

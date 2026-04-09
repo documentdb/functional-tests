@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.toLower.utils.toLower_common import (
-    ToLowerTest,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_project,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
+
+from .utils.toLower_common import (
+    ToLowerTest,
 )
 
 # Property [Idempotency]: applying $toLower to an already-lowercased result produces the same

@@ -2,21 +2,23 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+    execute_project_with_insert,
+)
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.error_codes import (
     BSON_TO_STRING_CONVERSION_ERROR,
     EXPRESSION_TYPE_MISMATCH_ERROR,
     FAILED_TO_PARSE_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
 )
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.toUpper.utils.toUpper_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.toUpper_common import (
     ToUpperTest,
     _expr,
-)
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
-    execute_expression,
-    execute_project_with_insert,
 )
 
 # Property [Expression Arguments]: the operator accepts expressions, $literal, and operator
@@ -115,7 +117,7 @@ TOUPPER_ARGUMENT_TESTS = (
 def test_toupper_arguments(collection, test_case: ToUpperTest):
     """Test $toUpper argument handling."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,
