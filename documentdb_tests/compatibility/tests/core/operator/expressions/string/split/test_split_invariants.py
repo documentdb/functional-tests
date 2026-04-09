@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_project,
+)
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.split.utils.split_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.split_common import (
     SplitTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_project
 
 # Property [Return Type]: the result is always an array when the expression
 # succeeds.

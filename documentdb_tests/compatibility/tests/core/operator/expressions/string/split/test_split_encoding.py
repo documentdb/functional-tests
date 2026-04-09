@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.split.utils.split_common import (
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.split_common import (
     SplitTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Encoding and Character Handling]: the delimiter is matched as a
 # literal string, with correct handling of multi-byte UTF-8, special
@@ -268,6 +271,6 @@ SPLIT_ENCODING_ALL_TESTS = SPLIT_ENCODING_TESTS + SPLIT_CASE_SENSITIVITY_TESTS
 def test_split_encoding_cases(collection, test_case: SplitTest):
     """Test $split encoding, character handling, and case sensitivity cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

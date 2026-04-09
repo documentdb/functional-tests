@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.split.utils.split_common import (
-    SplitTest,
-    _expr,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_project_with_insert,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.split_common import (
+    SplitTest,
+    _expr,
 )
 
 # Property [Core Splitting]: splitting produces an array of substrings between
@@ -129,7 +131,7 @@ SPLIT_CORE_ALL_TESTS = SPLIT_CORE_TESTS + SPLIT_EXPR_TESTS
 def test_split_core_cases(collection, test_case: SplitTest):
     """Test $split core splitting and expression argument cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )
 
