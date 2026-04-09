@@ -5,19 +5,22 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     REGEX_INPUT_TYPE_ERROR,
     REGEX_OPTIONS_TYPE_ERROR,
     REGEX_REGEX_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.regexMatch.utils.regexMatch_common import (
+
+from .utils.regexMatch_common import (
     RegexMatchTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Strictness - input]: non-string, non-null input produces an error.
 REGEXMATCH_INPUT_TYPE_TESTS: list[RegexMatchTest] = [
@@ -385,6 +388,6 @@ REGEXMATCH_TYPE_ERROR_ALL_TESTS = (
 def test_regexmatch_cases(collection, test_case: RegexMatchTest):
     """Test $regexMatch type strictness cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

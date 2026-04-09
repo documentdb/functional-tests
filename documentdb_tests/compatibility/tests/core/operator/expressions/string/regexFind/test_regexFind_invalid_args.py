@@ -3,7 +3,10 @@ from __future__ import annotations
 import pytest
 from bson import Regex
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     FAILED_TO_PARSE_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
@@ -17,12 +20,12 @@ from documentdb_tests.framework.error_codes import (
     REGEX_OPTIONS_NULL_BYTE_ERROR,
     REGEX_UNKNOWN_FIELD_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.regexFind.utils.regexFind_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.regexFind_common import (
     RegexFindTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Syntax Validation]: missing required fields or unknown fields produce errors.
 REGEXFIND_SYNTAX_ERROR_TESTS: list[RegexFindTest] = [
@@ -268,6 +271,6 @@ REGEXFIND_INVALID_ARGS_ALL_TESTS = (
 def test_regexfind_cases(collection, test_case: RegexFindTest):
     """Test $regexFind invalid argument cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

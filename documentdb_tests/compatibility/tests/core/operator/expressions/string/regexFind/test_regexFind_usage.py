@@ -5,16 +5,19 @@ from typing import Any
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.test_case import BaseTestCase, pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.regexFind.utils.regexFind_common import (
-    RegexFindTest,
-    _expr,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_project,
     execute_project_with_insert,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_case import BaseTestCase
+
+from .utils.regexFind_common import (
+    RegexFindTest,
+    _expr,
 )
 
 
@@ -145,6 +148,6 @@ REGEXFIND_USAGE_PARAM_TESTS = REGEXFIND_EXPR_TESTS + REGEXFIND_LITERAL_INPUT_TES
 def test_regexfind_cases(collection, test_case: RegexFindTest):
     """Test $regexFind usage cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

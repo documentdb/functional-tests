@@ -3,7 +3,10 @@ from __future__ import annotations
 import pytest
 from bson import Regex
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     REGEX_BAD_OPTION_ERROR,
     REGEX_BAD_PATTERN_ERROR,
@@ -12,13 +15,13 @@ from documentdb_tests.framework.error_codes import (
     REGEX_OPTIONS_TYPE_ERROR,
     REGEX_REGEX_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.regexFind.utils.regexFind_common import (
+
+from .utils.regexFind_common import (
     RegexFindTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Error Precedence]: options type errors take precedence over null propagation.
 # When both input and regex have wrong types, regex error wins. Wrong-type arguments error even
@@ -121,6 +124,6 @@ REGEXFIND_PRECEDENCE_ERROR_TESTS: list[RegexFindTest] = [
 def test_regexfind_cases(collection, test_case: RegexFindTest):
     """Test $regexFind error precedence cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

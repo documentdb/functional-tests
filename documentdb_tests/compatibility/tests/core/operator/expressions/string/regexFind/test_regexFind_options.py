@@ -3,13 +3,16 @@ from __future__ import annotations
 import pytest
 from bson import Regex
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.regexFind.utils.regexFind_common import (
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.regexFind_common import (
     RegexFindTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Regex Options]: options field accepts i, m, s, x as a string or BSON Regex flags.
 # Empty string, duplicates, and "u" (PCRE UTF-8 flag) are valid. Invalid BSON Regex flags are
@@ -162,6 +165,6 @@ REGEXFIND_OPTIONS_TESTS: list[RegexFindTest] = [
 def test_regexfind_cases(collection, test_case: RegexFindTest):
     """Test $regexFind options cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )
