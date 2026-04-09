@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.replaceOne.utils.replaceOne_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.replaceOne_common import (
     ReplaceOneTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Core Replacement]: only the first occurrence of find is replaced;
 # subsequent occurrences are left unchanged. If no match exists, the input is

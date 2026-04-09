@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     FAILED_TO_PARSE_ERROR,
@@ -18,13 +21,13 @@ from documentdb_tests.framework.error_codes import (
     REPLACE_REPLACEMENT_TYPE_ERROR,
     REPLACE_UNKNOWN_FIELD_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF, MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.replaceOne.utils.replaceOne_common import (
+
+from .utils.replaceOne_common import (
     ReplaceOneTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Error Precedence]: type errors take precedence over null
 # propagation. When multiple arguments have type errors, input is validated

@@ -4,14 +4,17 @@ from typing import Any
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.replaceAll.utils.replaceAll_common import (
+
+from .utils.replaceAll_common import (
     ReplaceAllTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Null Propagation]: if any argument is null or missing, the result is null, uniformly
 # across all three argument positions.

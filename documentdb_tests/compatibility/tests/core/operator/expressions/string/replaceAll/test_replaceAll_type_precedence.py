@@ -2,18 +2,21 @@ from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     REPLACE_FIND_TYPE_ERROR,
     REPLACE_INPUT_TYPE_ERROR,
     REPLACE_REPLACEMENT_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.replaceAll.utils.replaceAll_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.replaceAll_common import (
     ReplaceAllTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Error Precedence]: type errors take precedence over null propagation. When
 # multiple arguments have type errors, input is validated first, then find, then replacement.

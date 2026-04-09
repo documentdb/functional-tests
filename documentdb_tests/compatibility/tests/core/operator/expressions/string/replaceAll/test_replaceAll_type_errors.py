@@ -5,19 +5,22 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     REPLACE_FIND_TYPE_ERROR,
     REPLACE_INPUT_TYPE_ERROR,
     REPLACE_REPLACEMENT_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.replaceAll.utils.replaceAll_common import (
+
+from .utils.replaceAll_common import (
     ReplaceAllTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Strictness]: all three parameters must resolve to a string or null. Any other
 # type produces an error specific to the argument position.

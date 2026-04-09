@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.replaceAll.utils.replaceAll_common import (
-    ReplaceAllTest,
-    _expr,
-)
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import ExpressionTestCase
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_expression_with_insert,
+)
+from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.parametrize import pytest_params
+
+from ...utils.expression_test_case import (
+    ExpressionTestCase,
+)
+from .utils.replaceAll_common import (
+    ReplaceAllTest,
+    _expr,
 )
 
 # Property [Core Replacement]: all occurrences of find are replaced. Matching is left-to-right

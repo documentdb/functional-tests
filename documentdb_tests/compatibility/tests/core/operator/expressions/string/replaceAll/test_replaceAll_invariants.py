@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.replaceAll.utils.replaceAll_common import (
-    ReplaceAllTest,
-    _expr,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_project,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.replaceAll_common import (
+    ReplaceAllTest,
+    _expr,
 )
 
 # Property [Length Invariant]: result length equals input length minus N * find length plus
