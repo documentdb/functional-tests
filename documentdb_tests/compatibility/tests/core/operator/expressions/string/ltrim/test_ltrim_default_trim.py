@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.ltrim.utils.ltrim_common import (
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.ltrim_common import (
     LtrimTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Default Trimming]: when chars is omitted, leading whitespace is trimmed. The default
 # set includes ASCII whitespace (space, tab, newline, carriage return, form feed, vertical tab),
@@ -293,6 +296,6 @@ LTRIM_DEFAULT_TRIM_ALL_TESTS = (
 def test_ltrim_default_trim(collection, test_case: LtrimTest):
     """Test $ltrim default trimming and edge cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

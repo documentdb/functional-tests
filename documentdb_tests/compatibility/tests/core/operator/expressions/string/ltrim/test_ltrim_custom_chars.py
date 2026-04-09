@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.ltrim.utils.ltrim_common import (
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.ltrim_common import (
     LtrimTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Custom Chars]: when chars is provided, only those characters are trimmed from the
 # leading edge. Each character in chars is treated individually (not as a substring), and the
@@ -172,6 +175,6 @@ LTRIM_CUSTOM_CHARS_ALL_TESTS = (
 def test_ltrim_custom_chars(collection, test_case: LtrimTest):
     """Test $ltrim custom chars and directionality cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

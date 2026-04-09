@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.ltrim.utils.ltrim_common import (
+
+from .utils.ltrim_common import (
     _OMIT,
     LtrimTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Argument shapes for null/missing tests. _PLACEHOLDER is replaced with None or MISSING.
 _PLACEHOLDER = object()
@@ -69,6 +72,6 @@ LTRIM_NULL_ALL_TESTS = LTRIM_NULL_TESTS + LTRIM_MISSING_TESTS + LTRIM_MIXED_NULL
 def test_ltrim_null(collection, test_case: LtrimTest):
     """Test $ltrim null propagation cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

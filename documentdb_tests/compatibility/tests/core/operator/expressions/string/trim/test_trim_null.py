@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.trim.utils.trim_common import (
+
+from .utils.trim_common import (
     _OMIT,
     TrimTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Argument shapes for null/missing tests. _PLACEHOLDER is replaced with None or MISSING.
 _PLACEHOLDER = object()
@@ -69,6 +72,6 @@ TRIM_NULL_ALL_TESTS = TRIM_NULL_TESTS + TRIM_MISSING_TESTS + TRIM_MIXED_NULL_TES
 def test_trim_null(collection, test_case: TrimTest):
     """Test $trim null propagation."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

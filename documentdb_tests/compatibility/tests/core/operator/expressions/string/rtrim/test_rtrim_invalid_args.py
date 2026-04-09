@@ -5,7 +5,10 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     FAILED_TO_PARSE_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
@@ -13,13 +16,13 @@ from documentdb_tests.framework.error_codes import (
     TRIM_UNKNOWN_FIELD_ERROR,
     TRIM_WRONG_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.rtrim.utils.rtrim_common import (
+
+from .utils.rtrim_common import (
     RtrimTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Syntax Validation]: invalid $rtrim object shapes produce errors.
 RTRIM_SYNTAX_ERROR_TESTS: list[RtrimTest] = [
@@ -200,6 +203,6 @@ RTRIM_INVALID_ARGS_ALL_TESTS = RTRIM_SYNTAX_ERROR_TESTS + RTRIM_DOLLAR_SIGN_ERRO
 def test_rtrim_invalid_args(collection, test_case: RtrimTest):
     """Test $rtrim syntax validation and dollar sign errors."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

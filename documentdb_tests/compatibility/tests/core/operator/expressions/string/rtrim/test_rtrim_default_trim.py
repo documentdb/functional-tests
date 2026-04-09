@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.rtrim.utils.rtrim_common import (
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.rtrim_common import (
     RtrimTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Default Trimming]: when chars is omitted, trailing whitespace is trimmed. The default
 # set includes ASCII whitespace (space, tab, newline, carriage return, form feed, vertical tab),
@@ -293,6 +296,6 @@ RTRIM_DEFAULT_TRIM_ALL_TESTS = (
 def test_rtrim_default_trim(collection, test_case: RtrimTest):
     """Test $rtrim default trimming, exclusions, and edge cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )
