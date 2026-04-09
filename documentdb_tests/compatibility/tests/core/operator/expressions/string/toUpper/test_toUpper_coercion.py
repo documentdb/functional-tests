@@ -5,8 +5,11 @@ from datetime import datetime, timezone
 import pytest
 from bson import Code, Decimal128, Int64, Timestamp
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_LARGE_EXPONENT,
@@ -26,11 +29,11 @@ from documentdb_tests.framework.test_constants import (
     INT64_MAX,
     INT64_MIN,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.toUpper.utils.toUpper_common import (
+
+from .utils.toUpper_common import (
     ToUpperTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Coercion]: numeric, datetime, timestamp, Code, and Symbol values are coerced to
 # their string representation before uppercasing.
@@ -299,7 +302,7 @@ TOUPPER_COERCION_TESTS: list[ToUpperTest] = [
 def test_toupper_coercion(collection, test_case: ToUpperTest):
     """Test $toUpper type coercion behavior."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

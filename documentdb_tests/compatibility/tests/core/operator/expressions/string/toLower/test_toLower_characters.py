@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.toLower.utils.toLower_common import (
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.toLower_common import (
     ToLowerTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Core Conversion Behavior]: only ASCII uppercase letters A-Z are converted to lowercase;
 # all other characters are unchanged.
@@ -269,7 +272,7 @@ TOLOWER_CHARACTER_TESTS = TOLOWER_CORE_TESTS + TOLOWER_COMBINING_TESTS + TOLOWER
 def test_tolower_characters(collection, test_case: ToLowerTest):
     """Test $toLower character conversion behavior."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,
