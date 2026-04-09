@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 
@@ -19,6 +19,7 @@ class BaseTestCase:
     expected: Any = None
     error_code: Optional[int] = None
     msg: Optional[str] = None
+    marks: tuple = field(default=())
 
     def __post_init__(self):
         if self.msg is None:
