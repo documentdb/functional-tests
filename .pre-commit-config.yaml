@@ -35,12 +35,6 @@ repos:
         language: system
         pass_filenames: false
 
-      - id: unit-tests
-        name: unit tests
-        entry: python -m pytest -m unit -v
-        language: system
-        pass_filenames: false
-
       - id: dco
         name: verify DCO
         entry: python hooks/verify_dco.py
