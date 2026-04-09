@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertResult
-from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.concat.utils.concat_common import (
-    ConcatTest,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_project_with_insert,
+)
+from documentdb_tests.framework.assertions import assertFailureCode
+from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
+
+from .utils.concat_common import (
+    ConcatTest,
 )
 
 # Property [String Size Limit - Success]: a result just under the size limit succeeds, and null
@@ -112,7 +114,7 @@ CONCAT_SIZE_LIMIT_TESTS = CONCAT_SIZE_LIMIT_SUCCESS_TESTS + STRING_SIZE_LIMIT_ER
 def test_concat_size_limit_cases(collection, test_case: ConcatTest):
     """Test $concat size limit cases."""
     result = execute_expression(collection, {"$concat": test_case.args})
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )
 

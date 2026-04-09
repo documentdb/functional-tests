@@ -6,7 +6,10 @@ import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.code import Code
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     EXPRESSION_TYPE_MISMATCH_ERROR,
     FAILED_TO_PARSE_ERROR,
@@ -14,12 +17,12 @@ from documentdb_tests.framework.error_codes import (
     SPLIT_EMPTY_SEPARATOR_ERROR,
     SPLIT_STRING_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.split.utils.split_common import (
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.split_common import (
     SplitTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Empty Delimiter Error]: an empty string delimiter produces
 # SPLIT_EMPTY_SEPARATOR_ERROR.
@@ -219,6 +222,6 @@ SPLIT_INVALID_ARGS_TESTS = (
 def test_split_invalid_args_cases(collection, test_case: SplitTest):
     """Test $split empty delimiter, syntax validation, and arity error cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

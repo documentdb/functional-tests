@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.concat.utils.concat_common import (
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.concat_common import (
     ConcatTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Arity]: $concat works with varying argument counts.
 CONCAT_ARITY_TESTS: list[ConcatTest] = [
@@ -143,6 +146,6 @@ CONCAT_INPUT_FORMS_TESTS = (
 def test_concat_input_forms_cases(collection, test_case: ConcatTest):
     """Test $concat input form cases."""
     result = execute_expression(collection, {"$concat": test_case.args})
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )
