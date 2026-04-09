@@ -4,14 +4,16 @@ from dataclasses import dataclass
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.test_case import BaseTestCase, pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.concat.utils.concat_common import (
-    ConcatTest,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_project,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_case import BaseTestCase
+
+from .utils.concat_common import (
+    ConcatTest,
 )
 
 # Property [Length Additivity]: len(result) == sum(len(arg) for arg in args), for both codepoints

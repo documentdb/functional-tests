@@ -6,15 +6,21 @@ import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.code import Code
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import SPLIT_DELIMITER_TYPE_ERROR, SPLIT_STRING_TYPE_ERROR
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.error_codes import (
+    SPLIT_DELIMITER_TYPE_ERROR,
+    SPLIT_STRING_TYPE_ERROR,
+)
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import FLOAT_NAN
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.split.utils.split_common import (
+
+from .utils.split_common import (
     SplitTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Strictness - String Argument]: any non-string, non-null first
 # argument produces SPLIT_STRING_TYPE_ERROR.

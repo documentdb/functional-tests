@@ -6,14 +6,17 @@ import pytest
 from bson import Binary, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.code import Code
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import CONCAT_TYPE_ERROR
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.concat.utils.concat_common import (
+
+from .utils.concat_common import (
     ConcatTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Strictness]: any non-string, non-null argument produces CONCAT_TYPE_ERROR.
 CONCAT_TYPE_ERROR_TESTS: list[ConcatTest] = [

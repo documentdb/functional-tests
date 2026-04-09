@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_project_with_insert,
 )
+from documentdb_tests.framework.assertions import assertSuccess
 
 
 # Property [Document Field References]: $concat works with field references from inserted documents.
