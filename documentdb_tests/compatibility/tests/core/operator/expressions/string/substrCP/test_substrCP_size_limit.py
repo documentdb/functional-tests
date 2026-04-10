@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 from .utils.substrCP_common import SubstrCPTest, _expr
 
@@ -63,7 +65,7 @@ SUBSTRCP_SIZE_LIMIT_ALL_TESTS = SUBSTRCP_SIZE_LIMIT_SUCCESS_TESTS + SUBSTRCP_SIZ
 def test_substrcp_size_limit(collection, test_case: SubstrCPTest):
     """Test $substrCP size limit cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

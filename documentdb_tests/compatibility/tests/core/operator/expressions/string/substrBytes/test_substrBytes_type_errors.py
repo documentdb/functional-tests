@@ -3,20 +3,23 @@ from __future__ import annotations
 import pytest
 from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     BSON_TO_STRING_CONVERSION_ERROR,
     SUBSTR_LENGTH_TYPE_ERROR,
     SUBSTR_START_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.substrBytes.utils.substrBytes_common import (
+
+from .utils.substrBytes_common import (
     OPERATORS,
     SubstrBytesTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [String Parameter Type Strictness]: non-coercible types for the string parameter produce
 # an error, including arrays, objects, and expressions evaluating to rejected types.
@@ -481,7 +484,7 @@ SUBSTRBYTES_TYPE_ERROR_ALL_TESTS = (
 def test_substrbytes_type_errors(collection, op, test_case: SubstrBytesTest):
     """Test $substrBytes cases."""
     result = execute_expression(collection, _expr(test_case, op))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

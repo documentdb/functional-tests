@@ -3,8 +3,11 @@ from __future__ import annotations
 import pytest
 from bson import Code, Decimal128, Int64, Timestamp
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_MAX_NEGATIVE,
@@ -19,12 +22,12 @@ from documentdb_tests.framework.test_constants import (
     INT64_MAX,
     INT64_MIN,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.substrBytes.utils.substrBytes_common import (
+
+from .utils.substrBytes_common import (
     OPERATORS,
     SubstrBytesTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [String Parameter Coercion]: non-string types for the string parameter are coerced to
 # their string representation before extraction.
@@ -298,7 +301,7 @@ SUBSTRBYTES_COERCION_TESTS: list[SubstrBytesTest] = [
 def test_substrbytes_string_coercion(collection, op, test_case: SubstrBytesTest):
     """Test $substrBytes string coercion cases."""
     result = execute_expression(collection, _expr(test_case, op))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

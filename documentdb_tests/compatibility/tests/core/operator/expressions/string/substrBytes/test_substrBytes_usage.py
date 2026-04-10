@@ -2,20 +2,22 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+    execute_project_with_insert,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_TRAILING_ZERO,
     MISSING,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.substrBytes.utils.substrBytes_common import (
+
+from .utils.substrBytes_common import (
     OPERATORS,
     SubstrBytesTest,
     _expr,
-)
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
-    execute_expression,
-    execute_project_with_insert,
 )
 
 # Property [Expression Arguments]: all three parameters accept expressions that resolve to valid
@@ -61,7 +63,7 @@ SUBSTRBYTES_EXPRESSION_TESTS: list[SubstrBytesTest] = [
 def test_substrbytes_usage(collection, op, test_case: SubstrBytesTest):
     """Test $substrBytes cases."""
     result = execute_expression(collection, _expr(test_case, op))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

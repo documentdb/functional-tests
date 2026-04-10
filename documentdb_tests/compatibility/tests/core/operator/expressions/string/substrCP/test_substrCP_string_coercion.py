@@ -6,8 +6,11 @@ import pytest
 from bson import Decimal128, Int64, Timestamp
 from bson.code import Code
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_LARGE_EXPONENT,
@@ -18,7 +21,6 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 from .utils.substrCP_common import SubstrCPTest, _expr
 
@@ -218,7 +220,7 @@ SUBSTRCP_TYPE_COERCION_TESTS: list[SubstrCPTest] = [
 def test_substrcp_string_coercion(collection, test_case: SubstrCPTest):
     """Test $substrCP string coercion cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

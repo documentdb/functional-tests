@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import INT32_MAX
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 from .utils.substrCP_common import SubstrCPTest, _expr
 
@@ -131,7 +133,7 @@ SUBSTRCP_CORE_ALL_TESTS = SUBSTRCP_CORE_TESTS + SUBSTRCP_BOUNDARY_TESTS
 def test_substrcp_core(collection, test_case: SubstrCPTest):
     """Test $substrCP core substring and boundary cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

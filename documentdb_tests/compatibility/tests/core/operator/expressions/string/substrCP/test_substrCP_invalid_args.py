@@ -3,7 +3,10 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128, Int64
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     BSON_TO_STRING_CONVERSION_ERROR,
     EXPRESSION_TYPE_MISMATCH_ERROR,
@@ -17,7 +20,7 @@ from documentdb_tests.framework.error_codes import (
     SUBSTRCP_INDEX_NON_INT_ERROR,
     SUBSTRCP_INDEX_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NEGATIVE_INFINITY,
@@ -30,7 +33,6 @@ from documentdb_tests.framework.test_constants import (
     INT64_MAX,
     INT64_MIN,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 from .utils.substrCP_common import SubstrCPTest, _expr
 
@@ -520,7 +522,7 @@ SUBSTRCP_INVALID_ARGS_ALL_TESTS = (
 def test_substrcp_invalid_args(collection, test_case: SubstrCPTest):
     """Test $substrCP invalid argument cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

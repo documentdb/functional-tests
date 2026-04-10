@@ -3,10 +3,12 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128, Int64
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_NEGATIVE_ZERO, DOUBLE_NEGATIVE_ZERO
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 from .utils.substrCP_common import SubstrCPTest, _expr
 
@@ -245,7 +247,7 @@ SUBSTRCP_NUMERIC_TYPE_TESTS: list[SubstrCPTest] = [
 def test_substrcp_numeric_coercion(collection, test_case: SubstrCPTest):
     """Test $substrCP numeric type acceptance cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

@@ -6,7 +6,8 @@ from typing import Any
 import pytest
 
 from documentdb_tests.framework.test_case import BaseTestCase
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.substr.test_operator_substr import (
+
+from ...substr.test_operator_substr import (
     SUBSTR_OPERATOR,
 )
 
