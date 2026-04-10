@@ -3,20 +3,23 @@ from __future__ import annotations
 import pytest
 from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     BSON_TO_STRING_CONVERSION_ERROR,
     SUBSTR_LENGTH_TYPE_ERROR,
     SUBSTR_START_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.substrBytes.utils.substrBytes_common import (
+
+from .utils.substrBytes_common import (
     OPERATORS,
     SubstrBytesTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [String Parameter Type Strictness]: non-coercible types for the string parameter produce
 # an error, including arrays, objects, and expressions evaluating to rejected types.

@@ -2,20 +2,21 @@ from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+    execute_project_with_insert,
+)
 from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_TRAILING_ZERO,
     MISSING,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.substrBytes.utils.substrBytes_common import (
+
+from .utils.substrBytes_common import (
     OPERATORS,
     SubstrBytesTest,
     _expr,
-)
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
-    execute_expression,
-    execute_project_with_insert,
 )
 
 # Property [Expression Arguments]: all three parameters accept expressions that resolve to valid

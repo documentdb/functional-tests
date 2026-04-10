@@ -6,8 +6,11 @@ import pytest
 from bson import Decimal128, Int64, Timestamp
 from bson.code import Code
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_LARGE_EXPONENT,
@@ -18,7 +21,6 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 from .utils.substrCP_common import SubstrCPTest, _expr
 

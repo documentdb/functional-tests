@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.substrBytes.utils.substrBytes_common import (
+
+from .utils.substrBytes_common import (
     OPERATORS,
     SubstrBytesTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Null and Missing in String Position]: when the string parameter is null, missing, or
 # undefined, the result is an empty string "".

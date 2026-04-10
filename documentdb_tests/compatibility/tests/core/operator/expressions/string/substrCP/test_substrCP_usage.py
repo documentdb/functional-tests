@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.framework.test_constants import MISSING
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_project_with_insert,
 )
+from documentdb_tests.framework.assertions import assertResult, assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import MISSING
 
 from .utils.substrCP_common import SubstrCPTest, _expr
 

@@ -6,6 +6,9 @@ from bson import (
     Int64,
 )
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     BSON_TO_STRING_CONVERSION_ERROR,
@@ -20,7 +23,7 @@ from documentdb_tests.framework.error_codes import (
     SUBSTR_NEGATIVE_START_ERROR,
     SUBSTR_START_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_LARGE_EXPONENT,
@@ -31,12 +34,12 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NEGATIVE_INFINITY,
     INT64_MIN,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.substrBytes.utils.substrBytes_common import (
+
+from .utils.substrBytes_common import (
     OPERATORS,
     SubstrBytesTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Fractional Negative Boundary for Index - Error]: fractional values that round or
 # truncate to -1 or below produce a negative start error. These are separated from

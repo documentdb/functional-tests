@@ -6,15 +6,17 @@ import pytest
 from bson import Binary, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.code import Code
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     BSON_TO_STRING_CONVERSION_ERROR,
     SUBSTRCP_COUNT_TYPE_ERROR,
     SUBSTRCP_INDEX_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 from .utils.substrCP_common import SubstrCPTest, _expr
 

@@ -3,8 +3,11 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128, Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_HALF,
     DECIMAL128_INFINITY,
@@ -20,12 +23,12 @@ from documentdb_tests.framework.test_constants import (
     DOUBLE_MIN_SUBNORMAL,
     DOUBLE_NEGATIVE_ZERO,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.substrBytes.utils.substrBytes_common import (
+
+from .utils.substrBytes_common import (
     OPERATORS,
     SubstrBytesTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Numeric Coercion for Index and Count]: int32, int64, double, and Decimal128 are all
 # accepted for byte_index and byte_count, with fractional doubles truncated toward zero and
