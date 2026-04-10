@@ -34,6 +34,12 @@ LAST_CORE_TESTS: list[LastTest] = [
         msg="$last should return the last top-level element without flattening",
     ),
     LastTest(
+        "core_nested_last",
+        value={"$last": {"$literal": [[1, 2], [3, 4]]}},
+        expected=4,
+        msg="nested $last should unwrap one layer per call",
+    ),
+    LastTest(
         "core_large_array",
         value={"$literal": list(range(10_000))},
         expected=9_999,

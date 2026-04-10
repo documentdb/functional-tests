@@ -34,6 +34,12 @@ FIRST_CORE_TESTS: list[FirstTest] = [
         msg="$first should return the first top-level element without flattening",
     ),
     FirstTest(
+        "core_nested_first",
+        value={"$first": {"$literal": [[1, 2], [3, 4]]}},
+        expected=1,
+        msg="nested $first should unwrap one layer per call",
+    ),
+    FirstTest(
         "core_large_array",
         value={"$literal": list(range(10_000))},
         expected=0,
