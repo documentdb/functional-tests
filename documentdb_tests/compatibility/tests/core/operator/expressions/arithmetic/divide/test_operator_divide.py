@@ -6,10 +6,10 @@ import pytest
 from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import DIVIDE_BY_ZERO_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
@@ -707,7 +707,9 @@ DIVIDE_TESTS: list[DivideTest] = [
 def test_divide_literal(collection, test):
     """Test $divide from literals"""
     result = execute_expression(collection, {"$divide": [test.dividend, test.divisor]})
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
 
 
 @pytest.mark.parametrize(
@@ -722,7 +724,9 @@ def test_divide_insert(collection, test):
         {"$divide": ["$dividend", "$divisor"]},
         {"dividend": test.dividend, "divisor": test.divisor},
     )
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
 
 
 @pytest.mark.parametrize(
@@ -733,4 +737,6 @@ def test_divide_mixed(collection, test):
     result = execute_expression_with_insert(
         collection, {"$divide": ["$dividend", test.divisor]}, {"dividend": test.dividend}
     )
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
