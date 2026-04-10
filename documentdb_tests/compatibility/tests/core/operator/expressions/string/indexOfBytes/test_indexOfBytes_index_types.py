@@ -3,9 +3,15 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128, Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import INDEXOF_INDEX_TYPE_ERROR, INDEXOF_NEGATIVE_INDEX_ERROR
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.error_codes import (
+    INDEXOF_INDEX_TYPE_ERROR,
+    INDEXOF_NEGATIVE_INDEX_ERROR,
+)
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NEGATIVE_INFINITY,
@@ -20,10 +26,10 @@ from documentdb_tests.framework.test_constants import (
     INT32_UNDERFLOW,
     INT64_ZERO,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.indexOfBytes.utils.indexOfBytes_common import (
+
+from .utils.indexOfBytes_common import (
     IndexOfBytesTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Index Type Acceptance]: integral Decimal128, Int64, and whole-number floats are accepted
 # for start and end.

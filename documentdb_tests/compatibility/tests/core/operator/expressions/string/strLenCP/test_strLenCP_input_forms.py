@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strLenCP.utils.strLenCP_common import (
-    StrLenCPTest,
-    _expr,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
     execute_expression_with_insert,
     execute_project_with_insert,
+)
+from documentdb_tests.framework.assertions import assertResult, assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.strLenCP_common import (
+    StrLenCPTest,
+    _expr,
 )
 
 # Property [Expression Arguments]: the argument accepts any expression that resolves to a string.

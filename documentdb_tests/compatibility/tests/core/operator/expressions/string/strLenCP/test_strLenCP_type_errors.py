@@ -5,9 +5,12 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import STRLENCP_TYPE_ERROR
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
@@ -17,12 +20,10 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strLenCP.utils.strLenCP_common import (
+
+from .utils.strLenCP_common import (
     StrLenCPTest,
     _expr,
-)
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
-    execute_expression,
 )
 
 # Property [Type Strictness]: any non-string argument produces an error.

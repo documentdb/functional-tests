@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strLenBytes.utils.strLenBytes_common import (
-    StrLenBytesTest,
-    _expr,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression,
+)
+from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.strLenBytes_common import (
+    StrLenBytesTest,
+    _expr,
 )
 
 # Property [Core Behavior]: returns the number of UTF-8 encoded bytes in the input string.

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     EXPRESSION_TYPE_MISMATCH_ERROR,
@@ -9,13 +12,13 @@ from documentdb_tests.framework.error_codes import (
     INVALID_DOLLAR_FIELD_PATH,
     STRLENBYTES_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strLenBytes.utils.strLenBytes_common import (
+
+from .utils.strLenBytes_common import (
     StrLenBytesTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Null and Missing Errors]: null or missing arguments produce an error.
 STRLENBYTES_NULL_ERROR_TESTS: list[StrLenBytesTest] = [

@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strLenBytes.utils.strLenBytes_common import (
+
+from .utils.strLenBytes_common import (
     StrLenBytesTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [String Size Limit - Success]: inputs just under the size limit succeed.
 STRLENBYTES_SIZE_LIMIT_SUCCESS_TESTS: list[StrLenBytesTest] = [

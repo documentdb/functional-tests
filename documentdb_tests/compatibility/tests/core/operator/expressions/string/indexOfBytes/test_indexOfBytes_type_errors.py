@@ -6,18 +6,21 @@ import pytest
 from bson import Binary, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.code import Code
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     INDEXOF_INDEX_TYPE_ERROR,
     INDEXOFBYTES_STRING_TYPE_ERROR,
     INDEXOFBYTES_SUBSTRING_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF, MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.indexOfBytes.utils.indexOfBytes_common import (
+
+from .utils.indexOfBytes_common import (
     IndexOfBytesTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Strictness]: arguments of incorrect type produce an error.
 INDEXOFBYTES_TYPE_ERROR_TESTS: list[IndexOfBytesTest] = [
