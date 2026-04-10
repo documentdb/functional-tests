@@ -64,6 +64,18 @@ AVG_INTEGER_BOUNDARY_TESTS: list[AvgTest] = [
         expected=float(INT32_MIN_PLUS_1),
         msg="$avg of one above the int32 lower boundary should return the correct double",
     ),
+    AvgTest(
+        "intbound_int32_max_pair",
+        args=[INT32_MAX, INT32_MAX],
+        expected=float(INT32_MAX),
+        msg="$avg of two INT32_MAX values should return INT32_MAX as double",
+    ),
+    AvgTest(
+        "intbound_int32_max_adjacent",
+        args=[INT32_MAX, INT32_MAX_MINUS_1],
+        expected=2_147_483_646.5,
+        msg="$avg of INT32_MAX and INT32_MAX_MINUS_1 should return the correct midpoint",
+    ),
     # Individual int64 boundary values lose precision when converted to double.
     AvgTest(
         "intbound_int64_max",
@@ -91,6 +103,18 @@ AVG_INTEGER_BOUNDARY_TESTS: list[AvgTest] = [
         args=INT64_MIN_PLUS_1,
         expected=-DOUBLE_FROM_INT64_MAX,
         msg="$avg of one above the int64 lower boundary should map to the same double",
+    ),
+    AvgTest(
+        "intbound_int64_max_identical",
+        args=[INT64_MAX, INT64_MAX],
+        expected=DOUBLE_FROM_INT64_MAX,
+        msg="$avg of two INT64_MAX values should return INT64_MAX as double",
+    ),
+    AvgTest(
+        "intbound_int64_min_adjacent",
+        args=[INT64_MIN, INT64_MIN_PLUS_1],
+        expected=-DOUBLE_FROM_INT64_MAX,
+        msg="$avg of INT64_MIN and INT64_MIN_PLUS_1 should return double with precision loss",
     ),
     # Averaging the int32 upper and lower boundaries yields -0.5 (they differ by 1).
     AvgTest(

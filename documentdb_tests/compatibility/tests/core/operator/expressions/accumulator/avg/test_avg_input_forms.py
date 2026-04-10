@@ -58,6 +58,12 @@ AVG_ARRAY_TRAVERSAL_TESTS: list[AvgTest] = [
         msg="$avg should return null when all traversed elements are non-numeric",
     ),
     AvgTest(
+        "traversal_all_null",
+        args={"$literal": [None, None]},
+        expected=None,
+        msg="$avg should return null when all traversed elements are null",
+    ),
+    AvgTest(
         "traversal_decimal128_return_type",
         args={"$literal": [1, Decimal128("2")]},
         expected=DECIMAL128_ONE_AND_HALF,

@@ -11,6 +11,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import FLOAT_NAN, MISSING
 
 # Property [Return Type]: the result is always double unless at least one
 # numeric operand is Decimal128, in which case the result is Decimal128.
@@ -111,10 +112,52 @@ AVG_RETURN_TYPE_TESTS: list[AvgTest] = [
         expected="decimal",
         msg="$avg should return Decimal128 during array traversal with Decimal128",
     ),
+    AvgTest(
+        "return_type_non_numeric_with_decimal",
+        args=["string", Decimal128("5")],
+        expected="decimal",
+        msg="$avg should return Decimal128 when non-numeric is mixed with Decimal128",
+    ),
+    AvgTest(
+        "return_type_nan",
+        args=FLOAT_NAN,
+        expected="double",
+        msg="$avg of NaN should return double",
+    ),
 ]
 
+# Property [Null Return Type]: when $avg returns null the BSON type is null.
+AVG_RETURN_TYPE_NULL_TESTS: list[AvgTest] = [
+    AvgTest(
+        "return_type_null_scalar",
+        args=None,
+        expected="null",
+        msg="$avg of null should have BSON type null",
+    ),
+    AvgTest(
+        "return_type_empty_list",
+        args=[],
+        expected="null",
+        msg="$avg of empty list should have BSON type null",
+    ),
+    AvgTest(
+        "return_type_missing",
+        args=MISSING,
+        expected="null",
+        msg="$avg of a missing field should have BSON type null",
+    ),
+    AvgTest(
+        "return_type_non_numeric",
+        args=["string"],
+        expected="null",
+        msg="$avg of all non-numeric values should have BSON type null",
+    ),
+]
 
-@pytest.mark.parametrize("test_case", pytest_params(AVG_RETURN_TYPE_TESTS))
+AVG_RETURN_TYPE_ALL_TESTS = AVG_RETURN_TYPE_TESTS + AVG_RETURN_TYPE_NULL_TESTS
+
+
+@pytest.mark.parametrize("test_case", pytest_params(AVG_RETURN_TYPE_ALL_TESTS))
 def test_avg_return_type(collection, test_case: AvgTest):
     """Test $avg return type."""
     result = execute_expression(collection, {"$type": {"$avg": test_case.args}})

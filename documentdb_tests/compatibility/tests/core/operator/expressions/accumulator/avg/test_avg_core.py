@@ -79,6 +79,18 @@ AVG_CORE_TESTS: list[AvgTest] = [
         msg="$avg of negative values should return the correct negative mean",
     ),
     AvgTest(
+        "core_zero",
+        args=0,
+        expected=DOUBLE_ZERO,
+        msg="$avg of zero should return 0.0",
+    ),
+    AvgTest(
+        "core_zero_pair",
+        args=[0, 0],
+        expected=DOUBLE_ZERO,
+        msg="$avg of two zeros should return 0.0",
+    ),
+    AvgTest(
         "core_neg_zero_double",
         args=DOUBLE_NEGATIVE_ZERO,
         expected=DOUBLE_ZERO,
@@ -91,6 +103,12 @@ AVG_CORE_TESTS: list[AvgTest] = [
         msg="$avg should normalize double negative zero to positive zero in a list",
     ),
     AvgTest(
+        "core_neg_zero_pos_zero_cancel",
+        args=[DOUBLE_NEGATIVE_ZERO, DOUBLE_ZERO],
+        expected=DOUBLE_ZERO,
+        msg="$avg of -0.0 and 0.0 should return positive zero",
+    ),
+    AvgTest(
         "core_neg_zero_decimal",
         args=DECIMAL128_NEGATIVE_ZERO,
         expected=DECIMAL128_ZERO,
@@ -101,6 +119,12 @@ AVG_CORE_TESTS: list[AvgTest] = [
         args=[DECIMAL128_NEGATIVE_ZERO, DECIMAL128_NEGATIVE_ZERO],
         expected=DECIMAL128_ZERO,
         msg="$avg should normalize Decimal128 negative zero to positive zero in a list",
+    ),
+    AvgTest(
+        "core_neg_zero_pos_zero_decimal_cancel",
+        args=[DECIMAL128_NEGATIVE_ZERO, DECIMAL128_ZERO],
+        expected=DECIMAL128_ZERO,
+        msg="$avg of Decimal128 -0 and 0 should return positive Decimal128 zero",
     ),
 ]
 
@@ -116,10 +140,22 @@ AVG_NAN_INFINITY_TESTS: list[AvgTest] = [
         msg="$avg should return NaN for a NaN scalar operand",
     ),
     AvgTest(
+        "nan_pair",
+        args=[FLOAT_NAN, FLOAT_NAN],
+        expected=pytest.approx(math.nan, nan_ok=True),
+        msg="$avg of two NaN values should return NaN",
+    ),
+    AvgTest(
         "inf_scalar",
         args=FLOAT_INFINITY,
         expected=FLOAT_INFINITY,
         msg="$avg should return Infinity for an Infinity scalar operand",
+    ),
+    AvgTest(
+        "inf_pair",
+        args=[FLOAT_INFINITY, FLOAT_INFINITY],
+        expected=FLOAT_INFINITY,
+        msg="$avg of two Infinity values should return Infinity",
     ),
     AvgTest(
         "neg_inf_scalar",
@@ -128,10 +164,22 @@ AVG_NAN_INFINITY_TESTS: list[AvgTest] = [
         msg="$avg should return -Infinity for a -Infinity scalar operand",
     ),
     AvgTest(
+        "neg_inf_pair",
+        args=[FLOAT_NEGATIVE_INFINITY, FLOAT_NEGATIVE_INFINITY],
+        expected=FLOAT_NEGATIVE_INFINITY,
+        msg="$avg of two -Infinity values should return -Infinity",
+    ),
+    AvgTest(
         "decimal_nan_scalar",
         args=DECIMAL128_NAN,
         expected=DECIMAL128_NAN,
         msg="$avg should return Decimal128 NaN for a Decimal128 NaN scalar operand",
+    ),
+    AvgTest(
+        "decimal_nan_pair",
+        args=[DECIMAL128_NAN, DECIMAL128_NAN],
+        expected=DECIMAL128_NAN,
+        msg="$avg of two Decimal128 NaN values should return Decimal128 NaN",
     ),
     AvgTest(
         "decimal_inf_scalar",
@@ -140,10 +188,22 @@ AVG_NAN_INFINITY_TESTS: list[AvgTest] = [
         msg="$avg should return Decimal128 Infinity for a Decimal128 Infinity scalar operand",
     ),
     AvgTest(
+        "decimal_inf_pair",
+        args=[DECIMAL128_INFINITY, DECIMAL128_INFINITY],
+        expected=DECIMAL128_INFINITY,
+        msg="$avg of two Decimal128 Infinity values should return Decimal128 Infinity",
+    ),
+    AvgTest(
         "decimal_neg_inf_scalar",
         args=DECIMAL128_NEGATIVE_INFINITY,
         expected=DECIMAL128_NEGATIVE_INFINITY,
         msg="$avg should return Decimal128 -Infinity for a Decimal128 -Infinity scalar operand",
+    ),
+    AvgTest(
+        "decimal_neg_inf_pair",
+        args=[DECIMAL128_NEGATIVE_INFINITY, DECIMAL128_NEGATIVE_INFINITY],
+        expected=DECIMAL128_NEGATIVE_INFINITY,
+        msg="$avg of two Decimal128 -Infinity values should return Decimal128 -Infinity",
     ),
     AvgTest(
         "nan_with_numeric",
