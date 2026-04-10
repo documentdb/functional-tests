@@ -6,7 +6,10 @@ import pytest
 from bson import Binary, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.code import Code
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     EXPRESSION_ARITY_ERROR,
     FAILED_TO_PARSE_ERROR,
@@ -15,12 +18,12 @@ from documentdb_tests.framework.error_codes import (
     INDEXOFBYTES_SUBSTRING_TYPE_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.indexOfBytes.utils.indexOfBytes_common import (
+
+from .utils.indexOfBytes_common import (
     IndexOfBytesTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Arity]: fewer than 2 or more than 4 arguments produces an error.
 INDEXOFBYTES_ARITY_TESTS: list[IndexOfBytesTest] = [
@@ -203,6 +206,6 @@ INDEXOFBYTES_INVALID_ARGS_TESTS = (
 def test_indexofbytes_cases(collection, test_case: IndexOfBytesTest):
     """Test $indexOfBytes cases."""
     result = execute_expression(collection, {"$indexOfBytes": test_case.args})
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

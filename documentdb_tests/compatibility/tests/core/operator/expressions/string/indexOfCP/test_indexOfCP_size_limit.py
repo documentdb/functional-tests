@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.indexOfCP.utils.indexOfCP_common import (
+
+from .utils.indexOfCP_common import (
     IndexOfCPTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [String Size Limit - Success]: string and substring arguments just under the size limit
 # are accepted.
@@ -81,6 +84,6 @@ INDEXOFCP_SIZE_LIMIT_TESTS = INDEXOFCP_SIZE_LIMIT_SUCCESS_TESTS + INDEXOFCP_SIZE
 def test_indexofcp_size_limit(collection, test_case: IndexOfCPTest):
     """Test $indexOfCP size limit behavior."""
     result = execute_expression(collection, {"$indexOfCP": test_case.args})
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

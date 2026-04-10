@@ -6,21 +6,24 @@ import pytest
 from bson import Binary, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.code import Code
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     INDEXOF_INDEX_TYPE_ERROR,
     INDEXOFCP_STRING_TYPE_ERROR,
     INDEXOFCP_SUBSTRING_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_ONE_AND_HALF,
     MISSING,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.indexOfCP.utils.indexOfCP_common import (
+
+from .utils.indexOfCP_common import (
     IndexOfCPTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Strictness]: arguments of incorrect type produce an error.
 INDEXOFCP_TYPE_ERROR_TESTS: list[IndexOfCPTest] = [
@@ -469,6 +472,6 @@ INDEXOFCP_TYPE_ERROR_TESTS: list[IndexOfCPTest] = [
 def test_indexofcp_type_errors(collection, test_case: IndexOfCPTest):
     """Test $indexOfCP type error behavior."""
     result = execute_expression(collection, {"$indexOfCP": test_case.args})
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

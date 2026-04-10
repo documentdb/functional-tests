@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.indexOfBytes.utils.indexOfBytes_common import (
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.indexOfBytes_common import (
     IndexOfBytesTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [First Occurrence]: when the substring appears multiple times, the result is the byte
 # index of the first occurrence.
@@ -308,6 +311,6 @@ INDEXOFBYTES_SEARCH_TESTS = (
 def test_indexofbytes_cases(collection, test_case: IndexOfBytesTest):
     """Test $indexOfBytes cases."""
     result = execute_expression(collection, {"$indexOfBytes": test_case.args})
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

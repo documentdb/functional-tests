@@ -2,21 +2,22 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     EXPRESSION_TYPE_MISMATCH_ERROR,
     FAILED_TO_PARSE_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
     STRLENCP_TYPE_ERROR,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strLenCP.utils.strLenCP_common import (
+
+from .utils.strLenCP_common import (
     StrLenCPTest,
     _expr,
-)
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
-    execute_expression,
 )
 
 # Property [Null and Missing Errors]: null or missing arguments produce an error.
@@ -96,6 +97,6 @@ STRLENCP_INVALID_ARG_TESTS = (
 def test_strlencp_cases(collection, test_case: StrLenCPTest):
     """Test $strLenCP cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

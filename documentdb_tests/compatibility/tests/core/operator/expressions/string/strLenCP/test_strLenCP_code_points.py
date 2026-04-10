@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strLenCP.utils.strLenCP_common import (
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.strLenCP_common import (
     StrLenCPTest,
     _expr,
-)
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
-    execute_expression,
 )
 
 # Property [Core Behavior]: returns the number of UTF-8 code points in the input string.
@@ -294,6 +295,6 @@ STRLENCP_CODE_POINT_TESTS = STRLENCP_CORE_TESTS + STRLENCP_ENCODING_TESTS + STRL
 def test_strlencp_cases(collection, test_case: StrLenCPTest):
     """Test $strLenCP cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

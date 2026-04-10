@@ -6,9 +6,12 @@ import pytest
 from bson import Binary, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.code import Code
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import STRLENBYTES_TYPE_ERROR
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
@@ -18,11 +21,11 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strLenBytes.utils.strLenBytes_common import (
+
+from .utils.strLenBytes_common import (
     StrLenBytesTest,
     _expr,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Type Strictness]: any non-string argument produces an error.
 STRLENBYTES_TYPE_ERROR_TESTS: list[StrLenBytesTest] = [
@@ -201,6 +204,6 @@ STRLENBYTES_TYPE_ERROR_TESTS: list[StrLenBytesTest] = [
 def test_strlenbytes_cases(collection, test_case: StrLenBytesTest):
     """Test $strLenBytes type error cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

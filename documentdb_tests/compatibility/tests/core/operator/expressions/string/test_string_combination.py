@@ -14,9 +14,12 @@ from typing import Any
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    execute_expression,
+)
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.test_case import BaseTestCase, pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_case import BaseTestCase
 
 
 @dataclass(frozen=True)
@@ -190,28 +193,39 @@ LENGTH_DIVERGENCE_TESTS: list[ExprTest] = [
 TRIM_EQUIVALENCE_TESTS: list[ExprTest] = [
     ExprTest(
         "trim_eq_ltrim_rtrim_default",
-        expr={"$eq": [
-            {"$trim": {"input": "  hello  "}},
-            {"$ltrim": {"input": {"$rtrim": {"input": "  hello  "}}}},
-        ]},
+        expr={
+            "$eq": [
+                {"$trim": {"input": "  hello  "}},
+                {"$ltrim": {"input": {"$rtrim": {"input": "  hello  "}}}},
+            ]
+        },
         expected=True,
         msg="$trim should equal $ltrim($rtrim(x)) with default whitespace",
     ),
     ExprTest(
         "trim_eq_ltrim_rtrim_custom",
-        expr={"$eq": [
-            {"$trim": {"input": "aaahelloaaa", "chars": "a"}},
-            {"$ltrim": {"input": {"$rtrim": {"input": "aaahelloaaa", "chars": "a"}}, "chars": "a"}},
-        ]},
+        expr={
+            "$eq": [
+                {"$trim": {"input": "aaahelloaaa", "chars": "a"}},
+                {
+                    "$ltrim": {
+                        "input": {"$rtrim": {"input": "aaahelloaaa", "chars": "a"}},
+                        "chars": "a",
+                    }
+                },
+            ]
+        },
         expected=True,
         msg="$trim should equal $ltrim($rtrim(x)) with custom chars",
     ),
     ExprTest(
         "trim_eq_ltrim_rtrim_mixed_ws",
-        expr={"$eq": [
-            {"$trim": {"input": " \t\nhello\n\t "}},
-            {"$ltrim": {"input": {"$rtrim": {"input": " \t\nhello\n\t "}}}},
-        ]},
+        expr={
+            "$eq": [
+                {"$trim": {"input": " \t\nhello\n\t "}},
+                {"$ltrim": {"input": {"$rtrim": {"input": " \t\nhello\n\t "}}}},
+            ]
+        },
         expected=True,
         msg="$trim should equal $ltrim($rtrim(x)) with mixed whitespace",
     ),

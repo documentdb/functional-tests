@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.indexOfBytes.utils.indexOfBytes_common import (
-    IndexOfBytesTest,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_project_with_insert,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
+
+from .utils.indexOfBytes_common import (
+    IndexOfBytesTest,
 )
 
 # Property [Expression Arguments]: all argument positions accept expressions that resolve to the
@@ -61,7 +63,7 @@ INDEXOFBYTES_USAGE_TESTS = INDEXOFBYTES_EXPR_TESTS + INDEXOFBYTES_DOLLAR_SIGN_SU
 def test_indexofbytes_cases(collection, test_case: IndexOfBytesTest):
     """Test $indexOfBytes cases."""
     result = execute_expression(collection, {"$indexOfBytes": test_case.args})
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )
 

@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.test_case import pytest_params
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.strLenBytes.utils.strLenBytes_common import (
-    StrLenBytesTest,
-    _expr,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
     execute_project_with_insert,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
+
+from .utils.strLenBytes_common import (
+    StrLenBytesTest,
+    _expr,
 )
 
 # Property [Expression Arguments]: the argument accepts any expression that resolves to a string.
@@ -108,7 +110,7 @@ STRLENBYTES_INPUT_FORM_TESTS = (
 def test_strlenbytes_cases(collection, test_case: StrLenBytesTest):
     """Test $strLenBytes input form cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )
 

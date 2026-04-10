@@ -6,7 +6,10 @@ import pytest
 from bson import Binary, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.code import Code
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
 from documentdb_tests.framework.error_codes import (
     EXPRESSION_ARITY_ERROR,
     FAILED_TO_PARSE_ERROR,
@@ -15,14 +18,14 @@ from documentdb_tests.framework.error_codes import (
     INDEXOFCP_SUBSTRING_TYPE_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
 )
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_ONE_AND_HALF,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.indexOfCP.utils.indexOfCP_common import (
+
+from .utils.indexOfCP_common import (
     IndexOfCPTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Arity]: fewer than 2 or more than 4 arguments produces an error.
 INDEXOFCP_ARITY_TESTS: list[IndexOfCPTest] = [
@@ -207,6 +210,6 @@ INDEXOFCP_INVALID_ARG_TESTS = (
 def test_indexofcp_invalid_args(collection, test_case: IndexOfCPTest):
     """Test $indexOfCP invalid argument handling."""
     result = execute_expression(collection, {"$indexOfCP": test_case.args})
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

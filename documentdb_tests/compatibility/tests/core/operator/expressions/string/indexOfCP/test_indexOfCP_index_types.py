@@ -3,9 +3,15 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128, Int64
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import INDEXOF_INDEX_TYPE_ERROR, INDEXOF_NEGATIVE_INDEX_ERROR
-from documentdb_tests.framework.test_case import pytest_params
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+)
+from documentdb_tests.framework.error_codes import (
+    INDEXOF_INDEX_TYPE_ERROR,
+    INDEXOF_NEGATIVE_INDEX_ERROR,
+)
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
@@ -21,10 +27,10 @@ from documentdb_tests.framework.test_constants import (
     INT32_UNDERFLOW,
     INT64_ZERO,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.string.indexOfCP.utils.indexOfCP_common import (
+
+from .utils.indexOfCP_common import (
     IndexOfCPTest,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import execute_expression
 
 # Property [Index Type Acceptance]: integral Decimal128, Int64, and whole-number floats are accepted
 # for start and end.
@@ -312,6 +318,6 @@ INDEXOFCP_ALL_INDEX_TESTS = (
 def test_indexofcp_index_types(collection, test_case: IndexOfCPTest):
     """Test $indexOfCP index type acceptance and expression arguments."""
     result = execute_expression(collection, {"$indexOfCP": test_case.args})
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )
