@@ -24,7 +24,12 @@ Thank you for your interest in contributing to the DocumentDB Functional Tests! 
    pip install -r requirements-dev.txt
    ```
 
-4. Create a branch for your changes:
+4. Install pre-commit hooks:
+   ```bash
+   pre-commit install -t pre-commit -t prepare-commit-msg -t pre-push
+   ```
+
+5. Create a branch for your changes:
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -180,23 +185,15 @@ assert actual_doc == expected_doc
 
 ### Before Submitting
 
-Run these commands to ensure code quality:
+Pre-commit hooks run automatically on each commit to check formatting, linting, type checking, and unit tests. You can also run them manually:
 
 ```bash
-# Format code
+# Run all checks
+pre-commit run --all-files
+
+# Format code (auto-fix)
 black .
-
-# Sort imports
 isort .
-
-# Run linter
-flake8
-
-# Type checking (optional but recommended)
-mypy .
-
-# Run tests
-pytest
 ```
 
 ### Code Style
@@ -209,25 +206,32 @@ pytest
 
 ## Testing Your Changes
 
-### Run Tests Locally
+### Unit Tests
+
+Unit tests are marked with `@pytest.mark.unit` and run automatically via pre-commit hooks. To run them directly:
 
 ```bash
-# Run all tests
-pytest
+pytest -m unit -v
+```
 
-# Run specific test file
-pytest tests/find/test_basic_queries.py
+### Functional Tests
 
-# Run specific test
-pytest tests/find/test_basic_queries.py::test_find_all_documents
+Functional tests require a running database instance:
 
-# Run with your changes only
-pytest -m "your_new_tag"
+```bash
+# Run all functional tests
+pytest --connection-string mongodb://localhost:27017 --engine-name documentdb
+
+# Run a specific test file
+pytest documentdb_tests/compatibility/tests/core/query-and-write/commands/find/test_find_basic_queries.py
+
+# Run tests by marker
+pytest -m find
+pytest -m aggregate
+pytest -m smoke
 ```
 
 ### Test Against Multiple Engines
-
-To test against multiple engines, run pytest separately for each engine:
 
 ```bash
 # Test against DocumentDB
@@ -241,15 +245,15 @@ pytest --connection-string mongodb://mongo:27017 --engine-name mongodb
 
 ### Pull Request Process
 
-1. Ensure your code follows the style guidelines
+1. Ensure your code passes all pre-commit checks
 2. Add tests for new functionality
 3. Update documentation if needed
-4. Commit with clear, descriptive messages:
+4. Commit with clear, descriptive messages (a `Signed-off-by` line is added automatically):
    ```bash
    git commit -m "Add tests for $group stage with $avg operator"
    ```
 
-5. Push to your fork:
+5. Push to your fork (DCO sign-off is verified on push):
    ```bash
    git push origin feature/your-feature-name
    ```

@@ -209,3 +209,6 @@ __marimo__/
 # Test results directory
 .test-results/
 .idea/
+
+# Local pre-commit config (not committed)
+.pre-commit-config.local.yaml

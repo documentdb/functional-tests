@@ -9,9 +9,9 @@ import pytest
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
+pytestmark = pytest.mark.smoke
 
-@pytest.mark.aggregate
-@pytest.mark.smoke
+
 def test_smoke_match(collection):
     """Test basic $match behavior."""
     collection.insert_many(
