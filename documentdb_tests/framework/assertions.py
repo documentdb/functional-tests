@@ -4,10 +4,52 @@ Custom assertion helpers for functional tests.
 Provides convenient assertion methods for common test scenarios.
 """
 
+import math
 import pprint
 from typing import Any, Callable, Dict, Optional, Union
 
+from bson import Decimal128, Int64
+
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
+
+# BSON numeric types that must match exactly during comparison. Python's == operator
+# treats some of these as equal (e.g. int and Int64) but they are distinct BSON types.
+_NUMERIC_BSON_TYPES = (int, float, Int64, Decimal128)
+
+
+def _strict_equal(a: Any, b: Any) -> bool:
+    """Equality with stricter semantics for BSON numeric types.
+
+    Standard == considers -0.0 and 0.0 equal per IEEE 754, but the sign
+    of zero is preserved through arithmetic and operators like $toString.
+    A sign mismatch would cause downstream behavior differences that
+    these tests exist to detect, so we compare the sign bit explicitly
+    when both values are zero floats.
+
+    Python's == also considers int and Int64 equal, but they are distinct
+    BSON types. We reject cross-type numeric comparisons so that test
+    expectations must specify the exact BSON type returned by the server.
+    """
+    # Recurse into containers.
+    if isinstance(a, dict) and isinstance(b, dict):
+        if a.keys() != b.keys():
+            return False
+        return all(_strict_equal(a[k], b[k]) for k in a)
+    if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
+        if len(a) != len(b):
+            return False
+        return all(_strict_equal(x, y) for x, y in zip(a, b))
+
+    # Reject cross-type numeric comparisons.
+    if type(a) is not type(b):
+        if isinstance(a, _NUMERIC_BSON_TYPES) and isinstance(b, _NUMERIC_BSON_TYPES):
+            return False
+        return bool(a == b)
+
+    # Distinguish -0.0 from 0.0.
+    if isinstance(a, float) and a == 0.0 and a == b:
+        return math.copysign(1.0, a) == math.copysign(1.0, b)
+    return bool(a == b)
 
 
 class TestSetupError(AssertionError):
@@ -64,11 +106,12 @@ def assertSuccess(
     error_text += f"\n\nActual:\n{pprint.pformat(result, width=100)}\n"
 
     if ignore_doc_order and isinstance(result, list) and isinstance(expected, list):
-        assert sorted(result, key=lambda x: str(x)) == sorted(
-            expected, key=lambda x: str(x)
+        assert _strict_equal(
+            sorted(result, key=lambda x: str(x)),
+            sorted(expected, key=lambda x: str(x)),
         ), error_text
     else:
-        assert result == expected, error_text
+        assert _strict_equal(result, expected), error_text
 
 
 def assertSuccessPartial(
@@ -137,7 +180,7 @@ def assertFailure(
         f"Expected:\n{pprint.pformat(expected, width=100)}\n\n"
         f"Actual:\n{pprint.pformat(actual, width=100)}\n"
     )
-    assert actual == expected, error_text
+    assert _strict_equal(actual, expected), error_text
 
 
 def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Optional[str] = None):

@@ -5,8 +5,8 @@ on:
     branches: [main]
 
 jobs:
-  lint:
-    name: Code Style
+  pre-commit:
+    name: pre-commit checks
     runs-on: ubuntu-latest
 
     steps:
@@ -16,20 +16,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install lint tools
-        run: pip install flake8 black isort mypy
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
 
-      - name: Run flake8
-        run: flake8
-
-      - name: Check black formatting
-        run: black --check .
-
-      - name: Check import sorting
-        run: isort --check-only .
-
-      - name: Run type checking
-        run: mypy documentdb_tests/ --no-site-packages
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files
 
   unit-tests:
     name: Unit Tests
@@ -43,7 +34,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       - name: Run unit tests
-        run: pytest documentdb_tests/compatibility/result_analyzer/test_analyzer.py -v
+        run: pytest -m unit -v

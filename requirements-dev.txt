@@ -9,3 +9,6 @@ isort>=5.12.0  # Import sorting
 
 # Testing
 pytest-cov>=4.1.0  # Coverage reporting
+
+# Hooks
+pre-commit>=3.0.0  # Git hook management

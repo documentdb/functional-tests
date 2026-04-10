@@ -1,0 +1,44 @@
+repos:
+  - repo: local
+    hooks:
+      - id: sign-off
+        name: add Signed-off-by
+        entry: python hooks/sign_off.py
+        language: system
+        stages: [prepare-commit-msg]
+        pass_filenames: true
+
+      - id: black
+        name: black
+        entry: python -m black --check
+        language: system
+        types: [python]
+        require_serial: true
+
+      - id: isort
+        name: isort
+        entry: python -m isort --check-only
+        language: system
+        types: [python]
+        require_serial: true
+
+      - id: flake8
+        name: flake8
+        entry: python -m flake8
+        language: system
+        types: [python]
+        require_serial: true
+
+      - id: mypy
+        name: mypy
+        entry: python -m mypy documentdb_tests/ --no-site-packages
+        language: system
+        pass_filenames: false
+
+      - id: dco
+        name: verify DCO
+        entry: python hooks/verify_dco.py
+        language: system
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false

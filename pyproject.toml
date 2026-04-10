@@ -33,4 +33,13 @@ exclude = [
 ]
 
 [tool.pytest.ini_options]
-# Already in pytest.ini, keeping this for reference
+markers = [
+    "aggregate: aggregation pipeline tests",
+    "collection_mgmt: collection management tests",
+    "find: find operation tests",
+    "insert: insert operation tests",
+    "slowtest: tests that are slow to run",
+    "smoke: smoke tests",
+    "structures: structure validation tests",
+    "unit: fast unit tests with no external dependencies",
+]
