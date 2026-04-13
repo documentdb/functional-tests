@@ -6,14 +6,17 @@ from datetime import datetime
 import pytest
 from bson import Int64
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR
-from documentdb_tests.framework.test_constants import DATE_EPOCH
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.date_utils import ts_from_args, oid_from_args
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.date_utils import (
+    oid_from_args,
+    ts_from_args,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.error_codes import INVALID_DATE_STRING_ERROR
+from documentdb_tests.framework.test_constants import DATE_EPOCH
 
 _oid_2024_06_15 = oid_from_args(2024, 6, 15, 12, 0, 0)
 _ts_2024_06_15 = ts_from_args(2024, 6, 15, 12, 0, 0)
@@ -37,7 +40,7 @@ TODATE_FIELD_REF_TESTS = [
 def test_toDate_field_ref(collection, name, expr, doc, expected):
     """Test $toDate with field references."""
     result = execute_expression_with_insert(collection, {"$toDate": expr}, doc)
-    assertResult(result, expected=expected)
+    assert_expression_result(result, expected=expected)
 
 
 def test_toDate_nested_field_path(collection):
@@ -47,7 +50,7 @@ def test_toDate_nested_field_path(collection):
         {"$toDate": "$a.b"},
         {"a": {"b": "2024-06-15"}},
     )
-    assertResult(result, expected=datetime(2024, 6, 15, 0, 0, 0))
+    assert_expression_result(result, expected=datetime(2024, 6, 15, 0, 0, 0))
 
 
 def test_toDate_expression_as_input(collection):
@@ -56,7 +59,7 @@ def test_toDate_expression_as_input(collection):
         collection,
         {"$toDate": {"$concat": ["2024", "-06-15"]}},
     )
-    assertResult(result, expected=datetime(2024, 6, 15, 0, 0, 0))
+    assert_expression_result(result, expected=datetime(2024, 6, 15, 0, 0, 0))
 
 
 def test_toDate_composite_array_path(collection):
@@ -66,7 +69,7 @@ def test_toDate_composite_array_path(collection):
         {"$toDate": "$a.b"},
         {"a": [{"b": "2024-06-15"}, {"b": "2024-07-01"}]},
     )
-    assertResult(result, error_code=CONVERSION_FAILURE_ERROR)
+    assert_expression_result(result, error_code=INVALID_DATE_STRING_ERROR)
 
 
 def test_toDate_return_type(collection):
@@ -75,4 +78,4 @@ def test_toDate_return_type(collection):
         collection,
         {"$type": {"$toDate": "2024-06-15"}},
     )
-    assertResult(result, expected="date")
+    assert_expression_result(result, expected="date")

@@ -4,37 +4,44 @@ ObjectId, Timestamp, date passthrough, invalid types, special numerics, date bou
 from datetime import datetime
 
 import pytest
-from bson import Decimal128, Int64, Regex, MinKey, MaxKey, Binary, Code
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, Regex
 
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import INVALID_DATE_STRING_ERROR, TODATE_INVALID_TYPE_ERROR
-from documentdb_tests.framework.test_constants import (
-    MISSING,
-    DATE_EPOCH,
-    DATE_YEAR_1900,
-    DATE_BEFORE_EPOCH,
-    FLOAT_NAN,
-    FLOAT_INFINITY,
-    FLOAT_NEGATIVE_INFINITY,
-    DECIMAL128_NAN,
-    DECIMAL128_INFINITY,
-    DECIMAL128_NEGATIVE_INFINITY,
-    DOUBLE_NEGATIVE_ZERO,
-    DECIMAL128_NEGATIVE_ZERO,
-    DATE_MS_EPOCH,
-    DATE_MS_BEFORE_EPOCH,
-    TS_MAX_SIGNED32,
-    TS_MAX_UNSIGNED32,
-    OID_MAX_SIGNED32,
-    OID_MIN_SIGNED32,
-    OID_MAX_UNSIGNED32,
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.date_utils import (
+    oid_from_args,
+    ts_from_args,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.date_utils import ts_from_args, oid_from_args
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.type.toDate.utils.toDate_utils import ToDateTest
+from documentdb_tests.framework.error_codes import (
+    INVALID_DATE_STRING_ERROR,
+    TODATE_INVALID_TYPE_ERROR,
+)
+from documentdb_tests.framework.test_constants import (
+    DATE_BEFORE_EPOCH,
+    DATE_EPOCH,
+    DATE_MS_BEFORE_EPOCH,
+    DATE_MS_EPOCH,
+    DATE_YEAR_1900,
+    DECIMAL128_INFINITY,
+    DECIMAL128_NAN,
+    DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_NEGATIVE_ZERO,
+    DOUBLE_NEGATIVE_ZERO,
+    FLOAT_INFINITY,
+    FLOAT_NAN,
+    FLOAT_NEGATIVE_INFINITY,
+    MISSING,
+    OID_MAX_SIGNED32,
+    OID_MAX_UNSIGNED32,
+    OID_MIN_SIGNED32,
+    TS_MAX_SIGNED32,
+    TS_MAX_UNSIGNED32,
+)
+
+from .utils.toDate_utils import ToDateTest
 
 _oid_2024_01_01 = oid_from_args(2024, 1, 1, 0, 0, 0)
 _oid_2024_06_15 = oid_from_args(2024, 6, 15, 12, 0, 0)
@@ -493,13 +500,11 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
 _LITERAL_ONLY = {t.id for t in TODATE_BASIC_TESTS if t.value is MISSING}
 
 
-@pytest.mark.parametrize(
-    "test", TODATE_BASIC_TESTS, ids=lambda t: t.id
-)
+@pytest.mark.parametrize("test", TODATE_BASIC_TESTS, ids=lambda t: t.id)
 def test_toDate_basic_literal(collection, test):
     """Test $toDate with literal values."""
     result = execute_expression(collection, {"$toDate": test.value})
-    assertResult(result, expected=test.expected, error_code=test.error_code)
+    assert_expression_result(result, expected=test.expected, error_code=test.error_code)
 
 
 @pytest.mark.parametrize(
@@ -510,29 +515,28 @@ def test_toDate_basic_insert(collection, test):
     result = execute_expression_with_insert(
         collection, {"$toDate": "$value"}, {"value": test.value}
     )
-    assertResult(result, expected=test.expected, error_code=test.error_code)
+    assert_expression_result(result, expected=test.expected, error_code=test.error_code)
 
 
 # --- Array tests (literal vs insert behavior differs) ---
 
+
 def test_toDate_array_literal(collection):
     """$toDate with array literal rejects at parse time (error 50723)."""
     result = execute_expression(collection, {"$toDate": [1, 2]})
-    assertResult(result, error_code=TODATE_INVALID_TYPE_ERROR)
+    assert_expression_result(result, error_code=TODATE_INVALID_TYPE_ERROR)
 
 
 def test_toDate_array_insert(collection):
     """$toDate with array from document rejects at runtime (error 241)."""
-    result = execute_expression_with_insert(
-        collection, {"$toDate": "$value"}, {"value": [1, 2]}
-    )
-    assertResult(result, error_code=INVALID_DATE_STRING_ERROR)
+    result = execute_expression_with_insert(collection, {"$toDate": "$value"}, {"value": [1, 2]})
+    assert_expression_result(result, error_code=INVALID_DATE_STRING_ERROR)
 
 
 def test_toDate_array_date_literal(collection):
     """$toDate with single-element date array literal unwraps at parse time."""
     result = execute_expression(collection, {"$toDate": [datetime(2024, 1, 1)]})
-    assertResult(result, expected=datetime(2024, 1, 1, 0, 0, 0))
+    assert_expression_result(result, expected=datetime(2024, 1, 1, 0, 0, 0))
 
 
 def test_toDate_array_date_insert(collection):
@@ -540,4 +544,4 @@ def test_toDate_array_date_insert(collection):
     result = execute_expression_with_insert(
         collection, {"$toDate": "$value"}, {"value": [datetime(2024, 1, 1)]}
     )
-    assertResult(result, error_code=INVALID_DATE_STRING_ERROR)
+    assert_expression_result(result, error_code=INVALID_DATE_STRING_ERROR)
