@@ -135,6 +135,13 @@ SETUNION_INPUT_FORM_TESTS: list[ExpressionTestCase] = [
         expected=[1, 2, 3, 4],
         msg="$setUnion should accept a nested $setUnion as an operand",
     ),
+    ExpressionTestCase(
+        "input_nested_setunion_associative",
+        expression={"$setUnion": ["$a", {"$setUnion": ["$b", "$c"]}]},
+        doc={"a": [1, 2], "b": [2, 3], "c": [3, 4]},
+        expected=[1, 2, 3, 4],
+        msg="$setUnion should be associative: union(A, union(B, C)) == union(union(A, B), C)",
+    ),
 ]
 
 SETUNION_INPUT_FORMS_TESTS_ALL = (
