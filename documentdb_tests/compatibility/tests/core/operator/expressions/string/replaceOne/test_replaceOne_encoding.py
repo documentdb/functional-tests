@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.parametrize import pytest_params
 
 from .utils.replaceOne_common import (
@@ -216,7 +216,7 @@ REPLACEONE_ENCODING_ALL_TESTS = REPLACEONE_ENCODING_TESTS + REPLACEONE_UNICODE_T
 def test_replaceone_encoding_cases(collection, test_case: ReplaceOneTest):
     """Test $replaceOne encoding and unicode cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

@@ -3,10 +3,10 @@ from __future__ import annotations
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.parametrize import pytest_params
 
 from ...utils.expression_test_case import (
@@ -334,6 +334,13 @@ REPLACEALL_EMPTY_STRING_TESTS: list[ReplaceAllTest] = [
         replacement="X",
         expected="X\u00e9X",
         msg="$replaceAll empty string: find multibyte 2byte",
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB returns invalid UTF-8 for empty-find multibyte (#95)",
+                raises=AssertionError,
+            ),
+        ),
     ),
     # 3-byte character: 世 (U+4E16).
     ReplaceAllTest(
@@ -343,6 +350,13 @@ REPLACEALL_EMPTY_STRING_TESTS: list[ReplaceAllTest] = [
         replacement="X",
         expected="X\u4e16X",
         msg="$replaceAll empty string: find multibyte 3byte",
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB returns invalid UTF-8 for empty-find multibyte (#95)",
+                raises=AssertionError,
+            ),
+        ),
     ),
     # 4-byte character: 😀 (U+1F600).
     ReplaceAllTest(
@@ -352,6 +366,13 @@ REPLACEALL_EMPTY_STRING_TESTS: list[ReplaceAllTest] = [
         replacement="X",
         expected="X\U0001f600X",
         msg="$replaceAll empty string: find multibyte 4byte",
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB returns invalid UTF-8 for empty-find multibyte (#95)",
+                raises=AssertionError,
+            ),
+        ),
     ),
 ]
 
@@ -436,7 +457,7 @@ REPLACEALL_CORE_ALL_TESTS = (
 def test_replaceall_core_cases(collection, test_case: ReplaceAllTest):
     """Test $replaceAll core cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,
@@ -476,6 +497,6 @@ REPLACEALL_FIELD_REF_TESTS: list[ExpressionTestCase] = [
 def test_replaceall_field_refs(collection, test_case: ExpressionTestCase):
     """Test $replaceAll with document field references."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

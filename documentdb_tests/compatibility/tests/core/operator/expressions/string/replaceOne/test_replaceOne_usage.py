@@ -3,10 +3,10 @@ from __future__ import annotations
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.parametrize import pytest_params
 
 from ...utils.expression_test_case import (
@@ -84,7 +84,7 @@ REPLACEONE_EXPR_TESTS: list[ReplaceOneTest] = [
 def test_replaceone_usage_cases(collection, test_case: ReplaceOneTest):
     """Test $replaceOne expression argument cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,
@@ -124,6 +124,6 @@ REPLACEONE_FIELD_REF_TESTS: list[ExpressionTestCase] = [
 def test_replaceone_field_refs(collection, test_case: ExpressionTestCase):
     """Test $replaceOne with document field references."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
-    assertResult(
+    assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
     )

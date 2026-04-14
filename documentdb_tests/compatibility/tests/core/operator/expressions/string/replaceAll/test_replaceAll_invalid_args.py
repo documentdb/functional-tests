@@ -6,9 +6,9 @@ import pytest
 from bson import Binary, Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     FAILED_TO_PARSE_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
@@ -272,7 +272,7 @@ REPLACEALL_INVALID_ARGS_ALL_TESTS = (
 def test_replaceall_invalid_args_cases(collection, test_case: ReplaceAllTest):
     """Test $replaceAll invalid argument cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

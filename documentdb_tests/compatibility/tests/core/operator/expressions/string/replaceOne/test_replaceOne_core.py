@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.parametrize import pytest_params
 
 from .utils.replaceOne_common import (
@@ -372,7 +372,7 @@ REPLACEONE_CORE_ALL_TESTS = (
 def test_replaceone_core_cases(collection, test_case: ReplaceOneTest):
     """Test $replaceOne core replacement cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

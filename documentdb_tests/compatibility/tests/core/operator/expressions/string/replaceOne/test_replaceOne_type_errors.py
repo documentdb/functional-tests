@@ -6,9 +6,9 @@ import pytest
 from bson import Binary, Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     REPLACE_FIND_TYPE_ERROR,
     REPLACE_INPUT_TYPE_ERROR,
@@ -443,7 +443,7 @@ REPLACEONE_TYPE_ERROR_TESTS: list[ReplaceOneTest] = [
 def test_replaceone_type_error_cases(collection, test_case: ReplaceOneTest):
     """Test $replaceOne type error cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,

@@ -58,6 +58,18 @@ def pytest_configure(config):
         config.connection_string = "mongodb://localhost:27017"
 
 
+def pytest_runtest_setup(item):
+    """Apply engine-specific xfail markers."""
+    for marker in item.iter_markers("engine_xfail"):
+        if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
+            item.add_marker(
+                pytest.mark.xfail(
+                    reason=marker.kwargs.get("reason", ""),
+                    raises=marker.kwargs.get("raises", AssertionError),
+                )
+            )
+
+
 @pytest.fixture(scope="session")
 def engine_client(request):
     """

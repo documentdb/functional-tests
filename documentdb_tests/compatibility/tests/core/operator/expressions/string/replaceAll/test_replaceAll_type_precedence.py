@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
     execute_expression,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     REPLACE_FIND_TYPE_ERROR,
     REPLACE_INPUT_TYPE_ERROR,
@@ -91,7 +91,7 @@ REPLACEALL_TYPE_PRECEDENCE_TESTS: list[ReplaceAllTest] = [
 def test_replaceall_type_precedence_cases(collection, test_case: ReplaceAllTest):
     """Test $replaceAll type error precedence cases."""
     result = execute_expression(collection, _expr(test_case))
-    assertResult(
+    assert_expression_result(
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,
