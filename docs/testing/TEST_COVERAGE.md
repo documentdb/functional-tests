@@ -273,6 +273,22 @@ For each invalid_type in [string, object, array, ...]:
 
 ---
 
+### 20. Variable Operator Coverage
+**Rule**: Variable operators must be tested for value passthrough fidelity, expression suppression, scoping, and argument validation.
+
+**Behavior**:
+- **BSON type passthrough**: Test all BSON types to verify no coercion or precision loss. Type distinctions must be preserved (e.g. false ≠ 0, "" ≠ null, Decimal128("-0E+3") preserves exponent).
+- **Expression suppression**: `$literal` returns its argument as-is — expressions, field paths, and system variables are treated as plain values, not evaluated. $let evaluates in only within its declared variable scope.
+- **Project disambiguation**: `{"$literal": 1}` sets a field to value 1, not an inclusion flag — same for 0, true, false. Objects with dollar-prefixed keys, dot-containing keys, or operator-named keys are returned unchanged.
+- **Scoping** (`$let`): Variables in vars cannot reference each other. Nested `$let` can shadow outer variables without leaking. System variables (`$$ROOT`, `$$CURRENT`, `$$REMOVE`, `$$NOW`) are accessible but cannot be redefined in vars.
+- **Variable naming** (`$let`): Names must start with a lowercase letter or non-ASCII character. Uppercase, digits, special characters, and system variable names are rejected as starting characters. Dots and hyphens are rejected anywhere; underscores and digits are allowed after the first character.
+- **Path lookup** (`$let`): `"$$x.a.b"` traverses the variable's value. Non-existent paths omit the field. Paths on array-of-objects return an array of matched values. Null propagates; missing field paths omit the field.
+- **Argument validation**: `$literal` takes exactly one argument. `$let` requires both vars (object) and in — missing either, non-object vars, or unknown fields produce distinct errors.
+
+**Applies to**: `$let`, `$literal`
+
+---
+
 ## Test Category Checklist
 
 For any DocumentDB feature, ensure coverage of:
