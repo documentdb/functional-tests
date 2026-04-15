@@ -21,12 +21,6 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_SMALL_EXPONENT,
     DECIMAL128_ZERO,
-    DOUBLE_FROM_INT64_MAX,
-    DOUBLE_MAX,
-    FLOAT_INFINITY,
-    FLOAT_NEGATIVE_INFINITY,
-    INT64_MAX,
-    INT64_MIN,
 )
 
 # Property [Decimal128 Precision and Boundaries]: Decimal128 preserves full
@@ -144,6 +138,19 @@ AVG_DECIMAL128_PRECISION_TESTS: list[AvgTest] = [
         expected=Decimal128("5.00000000000000000000000000000000E+33"),
         msg="$avg of max-coefficient Decimal128 with double should produce Decimal128 result",
     ),
+    # Decimal128 overflow.
+    AvgTest(
+        "dec_overflow_positive",
+        args=[DECIMAL128_MAX, DECIMAL128_MAX],
+        expected=DECIMAL128_INFINITY,
+        msg="$avg should return Decimal128 Infinity when Decimal128 sum overflows",
+    ),
+    AvgTest(
+        "dec_overflow_negative",
+        args=[DECIMAL128_MIN, DECIMAL128_MIN],
+        expected=DECIMAL128_NEGATIVE_INFINITY,
+        msg="$avg should return Decimal128 -Infinity when negative Decimal128 sum overflows",
+    ),
 ]
 
 # Property [Mixed Double and Decimal128 Precision]: when a double is not
@@ -188,51 +195,7 @@ AVG_MIXED_DOUBLE_DECIMAL_TESTS: list[AvgTest] = [
     ),
 ]
 
-# Property [Overflow]: when the sum of operands exceeds the representable
-# range, $avg returns Infinity. Integer operands are converted to double
-# before summing, so overflow follows double rules.
-AVG_OVERFLOW_TESTS: list[AvgTest] = [
-    AvgTest(
-        "overflow_double_sum",
-        args=[DOUBLE_MAX, DOUBLE_MAX],
-        expected=FLOAT_INFINITY,
-        msg="$avg should return Infinity when double sum overflows",
-    ),
-    AvgTest(
-        "overflow_double_negative_sum",
-        args=[-DOUBLE_MAX, -DOUBLE_MAX],
-        expected=FLOAT_NEGATIVE_INFINITY,
-        msg="$avg should return -Infinity when negative double sum overflows",
-    ),
-    AvgTest(
-        "overflow_decimal_sum",
-        args=[DECIMAL128_MAX, DECIMAL128_MAX],
-        expected=DECIMAL128_INFINITY,
-        msg="$avg should return Decimal128 Infinity when Decimal128 sum overflows",
-    ),
-    AvgTest(
-        "overflow_decimal_negative_sum",
-        args=[DECIMAL128_MIN, DECIMAL128_MIN],
-        expected=DECIMAL128_NEGATIVE_INFINITY,
-        msg="$avg should return Decimal128 -Infinity when negative Decimal128 sum overflows",
-    ),
-    AvgTest(
-        "overflow_int64_follows_double",
-        args=[INT64_MAX, INT64_MAX],
-        expected=DOUBLE_FROM_INT64_MAX,
-        msg="$avg should convert int64 to double before summing, avoiding integer overflow",
-    ),
-    AvgTest(
-        "overflow_int64_negative_follows_double",
-        args=[INT64_MIN, INT64_MIN],
-        expected=-DOUBLE_FROM_INT64_MAX,
-        msg="$avg should convert negative int64 to double before summing, avoiding underflow",
-    ),
-]
-
-AVG_DECIMAL128_ALL_TESTS = (
-    AVG_DECIMAL128_PRECISION_TESTS + AVG_MIXED_DOUBLE_DECIMAL_TESTS + AVG_OVERFLOW_TESTS
-)
+AVG_DECIMAL128_ALL_TESTS = AVG_DECIMAL128_PRECISION_TESTS + AVG_MIXED_DOUBLE_DECIMAL_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_DECIMAL128_ALL_TESTS))

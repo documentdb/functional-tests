@@ -25,6 +25,8 @@ from documentdb_tests.framework.test_constants import (
     DOUBLE_NEAR_MIN,
     DOUBLE_PRECISION_LOSS,
     DOUBLE_ZERO,
+    FLOAT_INFINITY,
+    FLOAT_NEGATIVE_INFINITY,
     INT32_MAX,
     INT32_MAX_MINUS_1,
     INT32_MIN,
@@ -166,6 +168,19 @@ AVG_INTEGER_BOUNDARY_TESTS: list[AvgTest] = [
         args=[DECIMAL128_INT64_OVERFLOW, DECIMAL128_INT64_UNDERFLOW],
         expected=DECIMAL128_NEGATIVE_HALF,
         msg="$avg of Decimal128 values beyond int64 range should preserve precision",
+    ),
+    # int64 overflow: values are converted to double before summing.
+    AvgTest(
+        "intbound_int64_overflow_follows_double",
+        args=[INT64_MAX, INT64_MAX],
+        expected=DOUBLE_FROM_INT64_MAX,
+        msg="$avg should convert int64 to double before summing, avoiding integer overflow",
+    ),
+    AvgTest(
+        "intbound_int64_negative_overflow_follows_double",
+        args=[INT64_MIN, INT64_MIN],
+        expected=-DOUBLE_FROM_INT64_MAX,
+        msg="$avg should convert negative int64 to double before summing, avoiding underflow",
     ),
 ]
 
@@ -309,6 +324,19 @@ AVG_FLOAT_BOUNDARY_TESTS: list[AvgTest] = [
         args=[0.1, 0.1, 0.1],
         expected=0.10000000000000002,
         msg="$avg should exhibit accumulated imprecision with repeated 0.1",
+    ),
+    # Double overflow.
+    AvgTest(
+        "floatbound_overflow_positive",
+        args=[DOUBLE_MAX, DOUBLE_MAX],
+        expected=FLOAT_INFINITY,
+        msg="$avg should return Infinity when double sum overflows",
+    ),
+    AvgTest(
+        "floatbound_overflow_negative",
+        args=[-DOUBLE_MAX, -DOUBLE_MAX],
+        expected=FLOAT_NEGATIVE_INFINITY,
+        msg="$avg should return -Infinity when negative double sum overflows",
     ),
 ]
 
