@@ -84,7 +84,7 @@ def execute_project_with_insert(collection, document, project):
         ... )
         # Returns result with {"quotient": 3.33...} in firstBatch
     """
-    collection.insert_one(document)
+    collection.insert_one(document or {})
     return execute_command(
         collection,
         {
@@ -145,7 +145,7 @@ def execute_expression_with_insert(collection, expression, document):
         Result from execute_command with structure:
         {"cursor": {"firstBatch": [{"result": <value>}]}}
     """
-    collection.insert_one(document)
+    collection.insert_one(document or {})
     return execute_command(
         collection,
         {
