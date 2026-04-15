@@ -49,7 +49,7 @@ SORT_COMPOUND_TESTS: list[StageTestCase] = [
         msg="$sort should use key insertion order, not alphabetical field name order",
     ),
     StageTestCase(
-        "compound_mixed_directions",
+        "compound_asc_desc",
         docs=[
             {"_id": 1, "a": 2, "b": 30},
             {"_id": 2, "a": 1, "b": 20},
@@ -64,6 +64,40 @@ SORT_COMPOUND_TESTS: list[StageTestCase] = [
             {"_id": 3, "a": 2, "b": 10},
         ],
         msg="$sort should apply ascending on first field and descending on second field",
+    ),
+    StageTestCase(
+        "compound_desc_asc",
+        docs=[
+            {"_id": 1, "a": 2, "b": 30},
+            {"_id": 2, "a": 1, "b": 20},
+            {"_id": 3, "a": 2, "b": 10},
+            {"_id": 4, "a": 1, "b": 40},
+        ],
+        pipeline=[{"$sort": {"a": -1, "b": 1}}],
+        expected=[
+            {"_id": 3, "a": 2, "b": 10},
+            {"_id": 1, "a": 2, "b": 30},
+            {"_id": 2, "a": 1, "b": 20},
+            {"_id": 4, "a": 1, "b": 40},
+        ],
+        msg="$sort should apply descending on first field and ascending on second field",
+    ),
+    StageTestCase(
+        "compound_desc_desc",
+        docs=[
+            {"_id": 1, "a": 2, "b": 30},
+            {"_id": 2, "a": 1, "b": 20},
+            {"_id": 3, "a": 2, "b": 10},
+            {"_id": 4, "a": 1, "b": 40},
+        ],
+        pipeline=[{"$sort": {"a": -1, "b": -1}}],
+        expected=[
+            {"_id": 1, "a": 2, "b": 30},
+            {"_id": 3, "a": 2, "b": 10},
+            {"_id": 4, "a": 1, "b": 40},
+            {"_id": 2, "a": 1, "b": 20},
+        ],
+        msg="$sort should apply descending on both first and second fields",
     ),
 ]
 
