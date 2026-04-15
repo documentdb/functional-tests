@@ -212,3 +212,21 @@ def assertResult(
         assertFailureCode(result, error_code, msg)
     else:
         assertSuccess(result, expected, msg)
+
+
+def assertExceptionType(
+    result: Union[Any, Exception], expected_type: type, msg: Optional[str] = None
+):
+    """Assert that the result is an exception of the expected type.
+
+    Useful for client-side errors (e.g. InvalidBSON) that don't carry a
+    server error code.
+    """
+    custom_msg = f" {msg}" if msg else ""
+    error_text = (
+        f"[EXCEPTION_TYPE_MISMATCH]{custom_msg}\n"
+        f"Expected exception type: {expected_type.__name__}\n"
+        f"Actual: {type(result).__name__}: {result}\n"
+    )
+    if not isinstance(result, expected_type):
+        raise AssertionError(error_text)
