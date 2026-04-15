@@ -1,9 +1,9 @@
-"""Shared test case for expression/field path tests."""
-
-from __future__ import annotations
+"""
+Shared test case for expression/field path tests.
+"""
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 from documentdb_tests.framework.test_case import BaseTestCase
 
@@ -13,4 +13,4 @@ class ExpressionTestCase(BaseTestCase):
     """Test case for expression and field path tests."""
 
     expression: Any = None
-    doc: dict | None = None
+    doc: Optional[dict] = None
