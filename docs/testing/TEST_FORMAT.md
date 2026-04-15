@@ -48,7 +48,7 @@ assertResult(result, error_code=16555)    # checks error code only
 
 # assertSuccess — raw command output
 assertSuccess(result, [{"_id": 0, "a": 1}])
-assertSuccess(result, expected, ignore_order=True)
+assertSuccess(result, expected, ignore_doc_order=True)
 
 # assertFailureCode — error cases (only check code, not message)
 assertFailureCode(result, 14)
