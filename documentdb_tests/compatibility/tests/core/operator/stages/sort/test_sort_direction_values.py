@@ -110,14 +110,17 @@ SORT_META_ACCEPTANCE_TESTS: list[StageTestCase] = [
         docs=[{"_id": 1, "v": 20}, {"_id": 2, "v": 10}],
         pipeline=[{"$sort": {"v": 1, "t": {"$meta": "textScore"}}}],
         error_code=QUERY_METADATA_NOT_AVAILABLE_ERROR,
-        msg="$sort should accept {$meta: 'textScore'} as a sort order value",
+        msg="$sort should accept {$meta: 'textScore'} but fail without a preceding $text stage",
     ),
     StageTestCase(
         "accept_meta_geoneardistance",
         docs=[{"_id": 1, "v": 20}, {"_id": 2, "v": 10}],
         pipeline=[{"$sort": {"v": 1, "d": {"$meta": "geoNearDistance"}}}],
         error_code=QUERY_METADATA_NOT_AVAILABLE_ERROR,
-        msg="$sort should accept {$meta: 'geoNearDistance'} as a sort order value",
+        msg=(
+            "$sort should accept {$meta: 'geoNearDistance'}"
+            " but fail without a preceding $geoNear stage"
+        ),
     ),
     # $meta keys do not count toward the 32-key compound sort limit.
     StageTestCase(
