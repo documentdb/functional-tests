@@ -1,4 +1,7 @@
-from bson import Decimal128, Int64
+from datetime import datetime
+
+from bson import Decimal128, Int64, ObjectId, Timestamp
+from bson.datetime_ms import DatetimeMS
 
 # Int32 boundary values
 INT32_UNDERFLOW = -2147483649
@@ -141,3 +144,21 @@ NUMERIC = NUMERIC_DECIMAL128 + NUMERIC_FLOAT + NUMERIC_INT32 + NUMERIC_INT64 + N
 
 # NaN values
 NOT_A_NUMBER = [FLOAT_NAN, DECIMAL128_NAN]
+
+# Date constants
+DATE_EPOCH = datetime(1970, 1, 1, 0, 0, 0)
+DATE_BEFORE_EPOCH = datetime(1969, 12, 31, 23, 59, 59, 999000)
+DATE_YEAR_1900 = datetime(1900, 1, 1, 0, 0, 0)
+
+# DatetimeMS constants
+DATE_MS_EPOCH = DatetimeMS(0)
+DATE_MS_BEFORE_EPOCH = DatetimeMS(-1)
+
+# Timestamp boundary constants
+TS_MAX_SIGNED32 = Timestamp(2147483647, 1)
+TS_MAX_UNSIGNED32 = Timestamp(4294967295, 1)
+
+# ObjectId boundary constants
+OID_MAX_SIGNED32 = ObjectId("7fffffff0000000000000000")
+OID_MIN_SIGNED32 = ObjectId("800000000000000000000000")
+OID_MAX_UNSIGNED32 = ObjectId("ffffffff0000000000000000")
