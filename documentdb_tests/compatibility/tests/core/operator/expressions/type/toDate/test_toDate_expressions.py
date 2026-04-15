@@ -15,7 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.error_codes import INVALID_DATE_STRING_ERROR
+from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR
 from documentdb_tests.framework.test_constants import DATE_EPOCH, INT64_ZERO
 
 from .utils.toDate_utils import _DOC_EXPR_FORMS, _EXPR_FORMS, ToDateTest
@@ -82,7 +82,7 @@ def test_toDate_composite_array_path(collection, expr_fn):
         expr_fn("$a.b"),
         {"a": [{"b": "2024-06-15"}, {"b": "2024-07-01"}]},
     )
-    assert_expression_result(result, error_code=INVALID_DATE_STRING_ERROR)
+    assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
 
 
 @pytest.mark.parametrize("expr_fn", _EXPR_FORMS)

@@ -18,8 +18,8 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.assertions import assertExceptionType
 from documentdb_tests.framework.error_codes import (
-    INVALID_DATE_STRING_ERROR,
-    TODATE_INVALID_TYPE_ERROR,
+    CONVERSION_FAILURE_ERROR,
+    TO_TYPE_ARITY_ERROR,
 )
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
@@ -375,103 +375,103 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "int_zero_error",
         msg="Should reject int zero",
         value=0,
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "int_positive_error",
         msg="Should reject int positive",
         value=86400000,
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "int_negative_error",
         msg="Should reject int negative",
         value=-86400000,
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     # Invalid types.
     ToDateTest(
-        "bool_true", msg="Should reject bool true", value=True, error_code=INVALID_DATE_STRING_ERROR
+        "bool_true", msg="Should reject bool true", value=True, error_code=CONVERSION_FAILURE_ERROR
     ),
     ToDateTest(
         "bool_false",
         msg="Should reject bool false",
         value=False,
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
-        "object", msg="Should reject object", value={"a": 1}, error_code=INVALID_DATE_STRING_ERROR
+        "object", msg="Should reject object", value={"a": 1}, error_code=CONVERSION_FAILURE_ERROR
     ),
     # Invalid strings.
     ToDateTest(
         "string_friday",
         msg="Should parse friday",
         value="Friday",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "string_not_a_date",
         msg="Should parse not a date",
         value="not-a-date",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
-        "string_empty", msg="Should parse empty", value="", error_code=INVALID_DATE_STRING_ERROR
+        "string_empty", msg="Should parse empty", value="", error_code=CONVERSION_FAILURE_ERROR
     ),
     ToDateTest(
         "string_year_only",
         msg="Should reject year-only string",
         value="2024",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "string_space_in_date",
         msg="Should reject space within date portion",
         value="2024 -06-15T12:30:45Z",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "string_space_in_time",
         msg="Should reject space within time portion",
         value="2024-06-15T12: 30:45Z",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     # Special numeric values.
     ToDateTest(
         "nan_double",
         msg="Should reject nan double",
         value=FLOAT_NAN,
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "inf_double",
         msg="Should reject inf double",
         value=FLOAT_INFINITY,
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "neg_inf_double",
         msg="Should reject neg inf double",
         value=FLOAT_NEGATIVE_INFINITY,
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "nan_decimal",
         msg="Should reject nan decimal",
         value=DECIMAL128_NAN,
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "inf_decimal",
         msg="Should reject inf decimal",
         value=DECIMAL128_INFINITY,
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "neg_inf_decimal",
         msg="Should reject neg inf decimal",
         value=DECIMAL128_NEGATIVE_INFINITY,
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     # Pre-epoch and distant dates
     ToDateTest(
@@ -543,31 +543,31 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
     ),
     # Additional invalid types.
     ToDateTest(
-        "regex", msg="Should reject regex", value=Regex(".*"), error_code=INVALID_DATE_STRING_ERROR
+        "regex", msg="Should reject regex", value=Regex(".*"), error_code=CONVERSION_FAILURE_ERROR
     ),
     ToDateTest(
-        "minkey", msg="Should reject minkey", value=MinKey(), error_code=INVALID_DATE_STRING_ERROR
+        "minkey", msg="Should reject minkey", value=MinKey(), error_code=CONVERSION_FAILURE_ERROR
     ),
     ToDateTest(
-        "maxkey", msg="Should reject maxkey", value=MaxKey(), error_code=INVALID_DATE_STRING_ERROR
+        "maxkey", msg="Should reject maxkey", value=MaxKey(), error_code=CONVERSION_FAILURE_ERROR
     ),
     ToDateTest(
         "bindata",
         msg="Should reject bindata",
         value=Binary(b""),
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "javascript",
         msg="Should reject javascript",
         value=Code("function(){}"),
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "javascript_with_scope",
         msg="Should reject javascript with scope",
         value=Code("function(){}", {}),
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     # Negative zero.
     ToDateTest(
@@ -643,7 +643,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "string_year_10000",
         msg="Should reject year 10000 string",
         value="10000-01-01T00:00:00Z",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "long_year_9999_end",
@@ -659,31 +659,31 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "string_year_5_digits_low_prefix",
         msg="Should reject 5-digit year string with prefix <= 2059",
         value="20599-01-01T00:00:00Z",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "string_year_5_digits_high_prefix",
         msg="Should reject 5-digit year string with prefix > 2059",
         value="20609-01-01T00:00:00Z",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "string_year_5_digits_max",
         msg="Should reject 5-digit year string starting with 9999",
         value="99999-01-01T00:00:00Z",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "string_year_6_digits",
         msg="Should reject 6-digit year string",
         value="199990-01-01T00:00:00Z",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "string_year_50_digits",
         msg="Should reject year string far exceeding numeric limits",
         value="9" * 49 + "1-01-01T00:00:00Z",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     # Leap year string.
     ToDateTest(
@@ -708,13 +708,13 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "string_non_leap_feb29",
         msg="Should reject non leap feb29",
         value="2019-02-29",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
     ToDateTest(
         "string_non_leap_century_1900",
         msg="Should reject 1900 non-leap century feb29",
         value="1900-02-29",
-        error_code=INVALID_DATE_STRING_ERROR,
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
 ]
 
@@ -745,13 +745,13 @@ def test_toDate_basic_insert(collection, test, expr_fn):
 def test_toDate_array_literal(collection):
     """$toDate with array literal rejects at parse time (error 50723)."""
     result = execute_expression(collection, {"$toDate": [1, 2]})
-    assert_expression_result(result, error_code=TODATE_INVALID_TYPE_ERROR)
+    assert_expression_result(result, error_code=TO_TYPE_ARITY_ERROR)
 
 
 def test_toDate_array_insert(collection):
     """$toDate with array from document rejects at runtime (error 241)."""
     result = execute_expression_with_insert(collection, {"$toDate": "$value"}, {"value": [1, 2]})
-    assert_expression_result(result, error_code=INVALID_DATE_STRING_ERROR)
+    assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
 
 
 def test_toDate_array_date_literal(collection):
@@ -765,7 +765,7 @@ def test_toDate_array_date_insert(collection):
     result = execute_expression_with_insert(
         collection, {"$toDate": "$value"}, {"value": [datetime(2024, 1, 1)]}
     )
-    assert_expression_result(result, error_code=INVALID_DATE_STRING_ERROR)
+    assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
 
 
 # Out-of-Python-range year boundary tests.
