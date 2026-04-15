@@ -11,7 +11,13 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import FLOAT_NAN, MISSING
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_INFINITY,
+    DECIMAL128_NAN,
+    FLOAT_INFINITY,
+    FLOAT_NAN,
+    MISSING,
+)
 
 # Property [Return Type]: the result is always double unless at least one
 # numeric operand is Decimal128, in which case the result is Decimal128.
@@ -123,6 +129,24 @@ AVG_RETURN_TYPE_TESTS: list[AvgTest] = [
         args=FLOAT_NAN,
         expected="double",
         msg="$avg of NaN should return double",
+    ),
+    AvgTest(
+        "return_type_float_infinity",
+        args=FLOAT_INFINITY,
+        expected="double",
+        msg="$avg of float Infinity should return double",
+    ),
+    AvgTest(
+        "return_type_decimal128_nan",
+        args=DECIMAL128_NAN,
+        expected="decimal",
+        msg="$avg of Decimal128 NaN should return decimal",
+    ),
+    AvgTest(
+        "return_type_decimal128_infinity",
+        args=DECIMAL128_INFINITY,
+        expected="decimal",
+        msg="$avg of Decimal128 Infinity should return decimal",
     ),
 ]
 
