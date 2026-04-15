@@ -17,7 +17,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.error_codes import (
     CONVERSION_FAILURE_ERROR,
-    TODATE_INVALID_TYPE_ERROR,
+    TO_TYPE_ARITY_ERROR,
 )
 from documentdb_tests.framework.test_constants import (
     DATE_BEFORE_EPOCH,
@@ -524,7 +524,7 @@ def test_toDate_basic_insert(collection, test):
 def test_toDate_array_literal(collection):
     """$toDate with array literal rejects at parse time (error 50723)."""
     result = execute_expression(collection, {"$toDate": [1, 2]})
-    assert_expression_result(result, error_code=TODATE_INVALID_TYPE_ERROR)
+    assert_expression_result(result, error_code=TO_TYPE_ARITY_ERROR)
 
 
 def test_toDate_array_insert(collection):
