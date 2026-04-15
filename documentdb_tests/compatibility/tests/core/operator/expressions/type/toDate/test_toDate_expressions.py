@@ -15,7 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.error_codes import INVALID_DATE_STRING_ERROR
+from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR
 from documentdb_tests.framework.test_constants import DATE_EPOCH
 
 _oid_2024_06_15 = oid_from_args(2024, 6, 15, 12, 0, 0)
@@ -69,7 +69,7 @@ def test_toDate_composite_array_path(collection):
         {"$toDate": "$a.b"},
         {"a": [{"b": "2024-06-15"}, {"b": "2024-07-01"}]},
     )
-    assert_expression_result(result, error_code=INVALID_DATE_STRING_ERROR)
+    assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
 
 
 def test_toDate_return_type(collection):
