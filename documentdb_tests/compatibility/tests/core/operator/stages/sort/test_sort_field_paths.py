@@ -16,7 +16,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 # documents and arrays of objects for sort key extraction.
 SORT_NESTED_FIELD_TESTS: list[StageTestCase] = [
     StageTestCase(
-        "nested_dot_notation",
+        "nested_dot_notation_asc",
         docs=[
             {"_id": 1, "a": {"b": 30}},
             {"_id": 2, "a": {"b": 10}},
@@ -26,7 +26,20 @@ SORT_NESTED_FIELD_TESTS: list[StageTestCase] = [
             {"_id": 2, "a": {"b": 10}},
             {"_id": 1, "a": {"b": 30}},
         ],
-        msg="$sort should traverse embedded documents via dot notation",
+        msg="$sort should traverse embedded documents via dot notation ascending",
+    ),
+    StageTestCase(
+        "nested_dot_notation_desc",
+        docs=[
+            {"_id": 1, "a": {"b": 30}},
+            {"_id": 2, "a": {"b": 10}},
+        ],
+        pipeline=[{"$sort": {"a.b": -1}}],
+        expected=[
+            {"_id": 1, "a": {"b": 30}},
+            {"_id": 2, "a": {"b": 10}},
+        ],
+        msg="$sort should traverse embedded documents via dot notation descending",
     ),
     StageTestCase(
         "nested_array_of_objects_asc",
@@ -65,7 +78,7 @@ SORT_NESTED_FIELD_TESTS: list[StageTestCase] = [
         ),
     ),
     StageTestCase(
-        "nested_non_traversable_intermediate_treated_as_missing",
+        "nested_non_traversable_intermediate_treated_as_missing_asc",
         docs=[
             {"_id": 1, "a": 42},
             {"_id": 2, "a": None},
@@ -81,7 +94,29 @@ SORT_NESTED_FIELD_TESTS: list[StageTestCase] = [
             {"_id": 5, "a": {"b": 5}},
             {"_id": 3, "a": {"b": 10}},
         ],
-        msg="$sort should treat scalar and null at an intermediate path level as missing",
+        msg="$sort ascending should treat scalar and null at an intermediate path level as missing",
+    ),
+    StageTestCase(
+        "nested_non_traversable_intermediate_treated_as_missing_desc",
+        docs=[
+            {"_id": 1, "a": 42},
+            {"_id": 2, "a": None},
+            {"_id": 3, "a": {"b": 10}},
+            {"_id": 4},
+            {"_id": 5, "a": {"b": 5}},
+        ],
+        pipeline=[{"$sort": {"a.b": -1, "_id": 1}}],
+        expected=[
+            {"_id": 3, "a": {"b": 10}},
+            {"_id": 5, "a": {"b": 5}},
+            {"_id": 1, "a": 42},
+            {"_id": 2, "a": None},
+            {"_id": 4},
+        ],
+        msg=(
+            "$sort descending should treat scalar and null"
+            " at an intermediate path level as missing"
+        ),
     ),
     # The server limits document nesting to 180 levels, so the sort path
     # can only be verified up to that depth. The 200-component path test
