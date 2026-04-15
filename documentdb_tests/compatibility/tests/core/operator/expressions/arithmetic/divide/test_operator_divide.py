@@ -10,7 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.error_codes import DIVIDE_BY_ZERO_ERROR, TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_HALF,
@@ -662,42 +662,42 @@ DIVIDE_TESTS: list[DivideTest] = [
         "zero_divisor",
         dividend=10,
         divisor=0,
-        error_code=DIVIDE_BY_ZERO_ERROR,
+        error_code=BAD_VALUE_ERROR,
         msg="Should reject division by zero int",
     ),
     DivideTest(
         "zero_divisor_double",
         dividend=10,
         divisor=0.0,
-        error_code=DIVIDE_BY_ZERO_ERROR,
+        error_code=BAD_VALUE_ERROR,
         msg="Should reject division by zero double",
     ),
     DivideTest(
         "decimal_zero_divisor",
         dividend=Decimal128("10"),
         divisor=Decimal128("0"),
-        error_code=DIVIDE_BY_ZERO_ERROR,
+        error_code=BAD_VALUE_ERROR,
         msg="Should reject division by zero decimal128",
     ),
     DivideTest(
         "zero_div_zero",
         dividend=0,
         divisor=0,
-        error_code=DIVIDE_BY_ZERO_ERROR,
+        error_code=BAD_VALUE_ERROR,
         msg="Should reject 0/0",
     ),
     DivideTest(
         "zero_double_div_zero",
         dividend=0.0,
         divisor=0.0,
-        error_code=DIVIDE_BY_ZERO_ERROR,
+        error_code=BAD_VALUE_ERROR,
         msg="Should reject 0.0/0.0",
     ),
     DivideTest(
         "decimal_zero_div_zero",
         dividend=Decimal128("0"),
         divisor=Decimal128("0"),
-        error_code=DIVIDE_BY_ZERO_ERROR,
+        error_code=BAD_VALUE_ERROR,
         msg="Should reject decimal 0/0",
     ),
 ]
