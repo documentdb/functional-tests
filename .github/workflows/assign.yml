@@ -1,0 +1,54 @@
+name: Issue Assignment
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  assign:
+    if: >
+      !github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/take')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Check and assign
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { repo, issue } = context;
+            const user = context.payload.comment.user.login;
+            const issueNum = issue.number;
+            const comment = (body) => github.rest.issues.createComment({ ...repo, issue_number: issueNum, body });
+
+            // Check membership
+            let allowed = false;
+            try {
+              const { data } = await github.rest.orgs.getMembershipForUser({ org: repo.owner, username: user });
+              allowed = data.state === 'active';
+            } catch {}
+            if (!allowed) {
+              try {
+                await github.rest.repos.checkCollaborator({ ...repo, username: user });
+                allowed = true;
+              } catch {}
+            }
+            if (!allowed) {
+              await comment(`@${user} Sorry, only org members or collaborators can self-assign issues.`);
+              return;
+            }
+
+            // Check if already assigned
+            const assignees = context.payload.issue.assignees.map(a => a.login);
+            if (assignees.includes(user)) {
+              await comment(`@${user} You're already assigned to this issue.`);
+              return;
+            }
+            if (assignees.length > 0) {
+              await comment(`@${user} This issue is already assigned to @${assignees.join(', @')}.`);
+              return;
+            }
+
+            await github.rest.issues.addAssignees({ ...repo, issue_number: issueNum, assignees: [user] });
+            await comment(`Assigned to @${user}!`);
