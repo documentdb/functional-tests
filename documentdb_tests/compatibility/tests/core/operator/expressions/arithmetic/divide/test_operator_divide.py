@@ -11,6 +11,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_HALF,
@@ -703,7 +704,7 @@ DIVIDE_TESTS: list[DivideTest] = [
 ]
 
 
-@pytest.mark.parametrize("test", DIVIDE_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(DIVIDE_TESTS))
 def test_divide_literal(collection, test):
     """Test $divide from literals"""
     result = execute_expression(collection, {"$divide": [test.dividend, test.divisor]})
@@ -714,8 +715,7 @@ def test_divide_literal(collection, test):
 
 @pytest.mark.parametrize(
     "test",
-    [t for t in DIVIDE_TESTS if t.dividend != MISSING and t.divisor != MISSING],
-    ids=lambda t: t.id,
+    pytest_params([t for t in DIVIDE_TESTS if t.dividend != MISSING and t.divisor != MISSING]),
 )
 def test_divide_insert(collection, test):
     """Test $divide from documents"""
@@ -729,9 +729,7 @@ def test_divide_insert(collection, test):
     )
 
 
-@pytest.mark.parametrize(
-    "test", [t for t in DIVIDE_TESTS if t.dividend != MISSING], ids=lambda t: t.id
-)
+@pytest.mark.parametrize("test", pytest_params([t for t in DIVIDE_TESTS if t.dividend != MISSING]))
 def test_divide_mixed(collection, test):
     """Test $divide mixed literal and document"""
     result = execute_expression_with_insert(
