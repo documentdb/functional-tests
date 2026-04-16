@@ -25,6 +25,7 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_MANY_TRAILING_ZEROS,
     DECIMAL128_MAX,
     DECIMAL128_MIN,
+    DECIMAL128_MIN_POSITIVE,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_ZERO,
@@ -254,6 +255,12 @@ DATA_TYPE_TESTS: list[ExpressionTestCase] = [
         expression={"$literal": DECIMAL128_MANY_TRAILING_ZEROS},
         expected=DECIMAL128_MANY_TRAILING_ZEROS,
         msg="Should preserve many trailing zeros",
+    ),
+    ExpressionTestCase(
+        "d128_min_positive",
+        expression={"$literal": DECIMAL128_MIN_POSITIVE},
+        expected=DECIMAL128_MIN_POSITIVE,
+        msg="Should preserve DECIMAL128_MIN_POSITIVE",
     ),
     ExpressionTestCase(
         "d128_neg_zero_e_plus_3",
@@ -490,6 +497,38 @@ SUPPRESSION_TESTS: list[ExpressionTestCase] = [
         expression={"$literal": {"a$$b": 1}},
         expected={"a$$b": 1},
         msg="Should return object with consecutive dollars in field name",
+    ),
+    # System variable suppression
+    ExpressionTestCase(
+        "system_var_now",
+        expression={"$literal": "$$NOW"},
+        expected="$$NOW",
+        msg="Should return string '$$NOW', not current date",
+    ),
+    ExpressionTestCase(
+        "system_var_cluster_time",
+        expression={"$literal": "$$CLUSTER_TIME"},
+        expected="$$CLUSTER_TIME",
+        msg="Should return string '$$CLUSTER_TIME', not timestamp",
+    ),
+    # Bare dollar-sign edge cases
+    ExpressionTestCase(
+        "bare_dollar",
+        expression={"$literal": "$"},
+        expected="$",
+        msg="Should return bare '$' as-is",
+    ),
+    ExpressionTestCase(
+        "bare_double_dollar",
+        expression={"$literal": "$$"},
+        expected="$$",
+        msg="Should return '$$' as-is",
+    ),
+    ExpressionTestCase(
+        "dollar_dot",
+        expression={"$literal": "$."},
+        expected="$.",
+        msg="Should return '$.' as-is",
     ),
 ]
 

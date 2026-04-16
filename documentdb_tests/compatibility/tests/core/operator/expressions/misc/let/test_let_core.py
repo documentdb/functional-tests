@@ -463,6 +463,13 @@ INSERT_TESTS: list[ExpressionTestCase] = [
         expected=5,
         msg="Should access nested path on $$ROOT variable",
     ),
+    ExpressionTestCase(
+        "vars_current_ref",
+        expression={"$let": {"vars": {"doc": "$$CURRENT"}, "in": "$$doc.a"}},
+        doc={"_id": 1, "a": 5},
+        expected=5,
+        msg="Should assign $$CURRENT to variable and access nested path",
+    ),
 ]
 
 

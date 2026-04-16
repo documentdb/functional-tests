@@ -72,6 +72,12 @@ RAW_ERROR_TESTS: list[ExpressionTestCase] = [
         msg="Number argument should fail",
     ),
     ExpressionTestCase(
+        "non_object_null",
+        expression={"$let": None},
+        error_code=LET_NON_OBJECT_ARGUMENT_ERROR,
+        msg="Null argument should fail",
+    ),
+    ExpressionTestCase(
         "extra_unknown_field",
         expression={"$let": {"vars": {"x": 1}, "in": "$$x", "extra": 1}},
         error_code=LET_UNKNOWN_FIELD_ERROR,

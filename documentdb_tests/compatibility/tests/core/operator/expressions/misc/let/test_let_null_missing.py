@@ -24,6 +24,18 @@ NULL_TESTS: list[ExpressionTestCase] = [
         expected=None,
         msg="Null propagation: null + 1 = null",
     ),
+    ExpressionTestCase(
+        "null_in_eq",
+        expression={"$let": {"vars": {"x": None}, "in": {"$eq": ["$$x", 1]}}},
+        expected=False,
+        msg="Null compared via $eq to non-null should return false",
+    ),
+    ExpressionTestCase(
+        "null_in_concat",
+        expression={"$let": {"vars": {"x": None}, "in": {"$concat": ["$$x", "hello"]}}},
+        expected=None,
+        msg="Null propagation: concat(null, string) = null",
+    ),
 ]
 
 
