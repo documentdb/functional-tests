@@ -219,9 +219,7 @@ def test_let_cond_branching_on_variable(collection):
             }
         },
     )
-    assert_expression_result(
-        result, expected="yes", msg="$cond should branch on $let variable"
-    )
+    assert_expression_result(result, expected="yes", msg="$cond should branch on $let variable")
 
 
 def test_let_eq_comparing_variables(collection):
@@ -235,9 +233,7 @@ def test_let_eq_comparing_variables(collection):
             }
         },
     )
-    assert_expression_result(
-        result, expected=True, msg="$eq should compare $let variables"
-    )
+    assert_expression_result(result, expected=True, msg="$eq should compare $let variables")
 
 
 def test_let_gt_comparing_variables(collection):
@@ -251,9 +247,7 @@ def test_let_gt_comparing_variables(collection):
             }
         },
     )
-    assert_expression_result(
-        result, expected=True, msg="$gt should compare $let variables"
-    )
+    assert_expression_result(result, expected=True, msg="$gt should compare $let variables")
 
 
 def test_let_concat_with_string_variables(collection):

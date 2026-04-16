@@ -17,7 +17,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
-
 # ---------------------------------------------------------------------------
 # $literal with $type
 # ---------------------------------------------------------------------------

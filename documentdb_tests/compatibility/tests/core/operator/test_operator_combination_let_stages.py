@@ -209,9 +209,7 @@ def test_let_in_redact_keep(collection):
                     "$redact": {
                         "$let": {
                             "vars": {"role": "$access"},
-                            "in": {
-                                "$cond": [{"$eq": ["$$role", "admin"]}, "$$KEEP", "$$PRUNE"]
-                            },
+                            "in": {"$cond": [{"$eq": ["$$role", "admin"]}, "$$KEEP", "$$PRUNE"]},
                         }
                     }
                 },
@@ -342,9 +340,7 @@ def test_lookup_let_var_accessible_inside_let_in(database_client):
                                     "total": {
                                         "$let": {
                                             "vars": {"p": "$price"},
-                                            "in": {
-                                                "$multiply": ["$$p", "$$order_qty"]
-                                            },
+                                            "in": {"$multiply": ["$$p", "$$order_qty"]},
                                         }
                                     },
                                 }
