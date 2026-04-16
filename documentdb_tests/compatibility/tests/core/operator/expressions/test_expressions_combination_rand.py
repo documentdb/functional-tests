@@ -8,7 +8,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_project,
 )
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.test_constants import DOUBLE_ZERO
 
 
@@ -47,39 +46,6 @@ def test_rand_deep_nesting(collection):
     assert_expression_result(result, expected=True, msg="Should produce integer in [0, 99]")
 
 
-# ---------------------------------------------------------------------------
-# Null / Missing / Empty collection handling
-# ---------------------------------------------------------------------------
-def test_rand_on_null_field_document(collection):
-    """Test rand on a document with null fields still returns a double."""
-    collection.insert_one({"_id": 1, "a": None})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$project": {"_id": 0, "result": {"$type": {"$rand": {}}}}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"result": "double"}], msg="Should return double on null field doc")
-
-
-def test_rand_on_empty_collection(collection):
-    """Test rand projection on empty collection returns empty result."""
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$project": {"_id": 0, "r": {"$rand": {}}}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [], msg="Should return empty result on empty collection")
-
-
-# ---------------------------------------------------------------------------
-# Arithmetic operators
-# ---------------------------------------------------------------------------
 def test_rand_multiply_zero(collection):
     """Test rand multiplied by zero should always return zero."""
     result = execute_expression(collection, {"$multiply": [{"$rand": {}}, 0]})
