@@ -17,11 +17,6 @@ from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as
 _NUMERIC_BSON_TYPES = (int, float, Int64, Decimal128)
 
 
-def _sort_if_list(value: Any) -> Any:
-    """Return a sorted copy if value is a list, otherwise return it unchanged."""
-    return sorted(value, key=lambda x: str(x)) if isinstance(value, list) else value
-
-
 def _strict_equal(a: Any, b: Any) -> bool:
     """Equality with stricter semantics for BSON numeric types.
 
@@ -57,6 +52,25 @@ def _strict_equal(a: Any, b: Any) -> bool:
     return bool(a == b)
 
 
+def _sort_if_list(value):
+    """Return a sorted copy if value is a list, otherwise return unchanged."""
+    if not isinstance(value, list):
+        return value
+    return sorted(value, key=lambda x: (type(x).__name__, repr(x)))
+
+
+def _sort_fields(docs, fields):
+    """Sort list values for the named fields in each document."""
+    sorted_docs = []
+    for doc in docs:
+        doc = dict(doc)
+        for field in fields:
+            if field in doc:
+                doc[field] = _sort_if_list(doc[field])
+        sorted_docs.append(doc)
+    return sorted_docs
+
+
 class TestSetupError(AssertionError):
     """Raised when a test has invalid setup (bad arguments, malformed expected values)."""
 
@@ -80,6 +94,7 @@ def assertSuccess(
     raw_res: bool = False,
     transform: Optional[Callable] = None,
     ignore_doc_order: bool = False,
+    ignore_order_in: Optional[list[str]] = None,
 ):
     """
     Assert command succeeded and optionally check result.
@@ -103,6 +118,10 @@ def assertSuccess(
 
     if transform:
         result = transform(result)
+
+    if ignore_order_in:
+        expected = _sort_fields(expected, ignore_order_in)
+        result = _sort_fields(result, ignore_order_in)
 
     error_text = "[RESULT_MISMATCH]"
     if msg:
@@ -197,6 +216,7 @@ def assertResult(
     expected: Any = None,
     error_code: Optional[int] = None,
     msg: Optional[str] = None,
+    ignore_order_in: Optional[list[str]] = None,
     ignore_doc_order: bool = False,
 ):
     """
@@ -207,13 +227,23 @@ def assertResult(
         expected: Expected result documents (for success cases)
         error_code: Expected error code (for error cases)
         msg: Custom assertion message (optional)
+        ignore_order_in: Field names whose list values should be sorted before
+            comparison (for fields like set operation results where element
+            order is unspecified)
         ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
 
     Usage:
         assertResult(result, expected=[{"_id": 1}])  # Success case
         assertResult(result, error_code=16555)  # Error case
+        assertResult(result, expected=[{"r": [3, 1, 2]}], ignore_order_in=["r"])
     """
     if error_code is not None:
         assertFailureCode(result, error_code, msg)
     else:
-        assertSuccess(result, expected, msg, ignore_doc_order=ignore_doc_order)
+        assertSuccess(
+            result,
+            expected,
+            msg,
+            ignore_order_in=ignore_order_in,
+            ignore_doc_order=ignore_doc_order,
+        )
