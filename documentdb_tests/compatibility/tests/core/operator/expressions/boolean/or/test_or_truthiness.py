@@ -13,6 +13,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 COMBO_TESTS = [
     ExpressionTestCase(
@@ -59,7 +60,7 @@ ORDER_SENSITIVITY_TESTS = [
 ALL_TESTS = COMBO_TESTS + ORDER_SENSITIVITY_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_or_truthiness(collection, test):
     """Test $or truthiness evaluation."""
     result = execute_expression(collection, test.expression)
@@ -84,7 +85,7 @@ RETURN_TYPE_TESTS = [
 ]
 
 
-@pytest.mark.parametrize("test", RETURN_TYPE_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(RETURN_TYPE_TESTS))
 def test_or_return_type(collection, test):
     """Test $or return type."""
     result = execute_expression(collection, {"$type": test.expression})
