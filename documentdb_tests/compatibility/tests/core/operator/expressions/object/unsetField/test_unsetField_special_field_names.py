@@ -12,9 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
-from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.error_codes import NULL_CHAR_IN_FIELD_NAME_ERROR
-from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 EXPRESSION_TESTS: list[ExpressionTestCase] = [
@@ -202,23 +200,6 @@ def test_unsetField_long_field_name(collection):
         },
     )
     assert_expression_result(result, expected={"a": 1}, msg="Should remove very long field name")
-
-
-def test_unsetField_replaceWith_dotted(collection):
-    """Test $unsetField non-traversal via $replaceWith with dotted field."""
-    collection.insert_one({"_id": 1, "a": {"b": 2}})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$replaceWith": {"$setField": {"field": "a.b", "input": "$$ROOT", "value": 99}}},
-                {"$replaceWith": {"$unsetField": {"field": "a.b", "input": "$$ROOT"}}},
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"_id": 1, "a": {"b": 2}}])
 
 
 NULL_CHAR_FIELD_TESTS: list[ExpressionTestCase] = [

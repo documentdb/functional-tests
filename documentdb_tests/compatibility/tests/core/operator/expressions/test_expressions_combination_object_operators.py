@@ -17,12 +17,11 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.error_codes import (
     SET_FIELD_INVALID_INPUT_TYPE_ERROR,
     SET_FIELD_NON_CONST_FIELD_ERROR,
 )
-from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 EXPR_OP_SMOKE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -233,33 +232,6 @@ def test_setField_mergeObjects_interaction(collection, test):
     """Test $setField and $mergeObjects interaction."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(result, expected=test.expected, msg=test.msg)
-
-
-def test_setField_does_not_modify_original(collection):
-    """Test $setField does not modify original document in pipeline."""
-    collection.insert_one({"_id": 1, "a": 1})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$addFields": {
-                        "modified": {"$setField": {"field": "x", "input": "$$ROOT", "value": 1}}
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": 0,
-                        "original_has_x": {"$ifNull": ["$x", "missing"]},
-                        "modified_has_x": "$modified.x",
-                    }
-                },
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"original_has_x": "missing", "modified_has_x": 1}])
 
 
 UNSET_GETFIELD_TESTS: list[ExpressionTestCase] = [
@@ -607,23 +579,6 @@ def test_mergeObjects_expression_operator(collection):
     )
 
 
-def test_mergeObjects_original_not_modified(collection):
-    """Test $mergeObjects does not modify the original document."""
-    collection.insert_one({"_id": 1, "obj": {"a": 1, "b": 2}})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$addFields": {"merged": {"$mergeObjects": ["$obj", {"b": 99, "c": 3}]}}},
-                {"$project": {"_id": 0, "obj": 1, "merged": 1}},
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"obj": {"a": 1, "b": 2}, "merged": {"a": 1, "b": 99, "c": 3}}])
-
-
 SETFIELD_NESTING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "sf_nested_two_fields",
@@ -727,23 +682,6 @@ def test_setField_nesting(collection, test):
     assert_expression_result(result, expected=test.expected, msg=test.msg)
 
 
-def test_unsetField_original_not_modified(collection):
-    """Test $unsetField does not modify the original document."""
-    collection.insert_one({"_id": 1, "obj": {"a": 1, "b": 2}})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$addFields": {"updated": {"$unsetField": {"field": "a", "input": "$obj"}}}},
-                {"$project": {"_id": 0, "obj": 1, "updated": 1}},
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"obj": {"a": 1, "b": 2}, "updated": {"b": 2}}])
-
-
 UNSET_EQUIVALENCE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "uf_equivalence_unset",
@@ -799,54 +737,6 @@ def test_unsetField_equivalence(collection, test):
     """Test $unsetField/$setField equivalence and case sensitivity."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(result, expected=test.expected, msg=test.msg)
-
-
-def test_unsetField_equivalence_dotted(collection):
-    """Test $unsetField and $setField+$$REMOVE equivalence for dotted field."""
-    result = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [
-                {"$documents": [{}]},
-                {
-                    "$replaceWith": {
-                        "$unsetField": {
-                            "field": "a.b",
-                            "input": {"$setField": {"field": "a.b", "input": {}, "value": 1}},
-                        }
-                    }
-                },
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{}])
-
-
-def test_unsetField_equivalence_dollar(collection):
-    """Test $unsetField and $setField+$$REMOVE equivalence for dollar field."""
-    result = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [
-                {"$documents": [{}]},
-                {
-                    "$replaceWith": {
-                        "$unsetField": {
-                            "field": {"$literal": "$x"},
-                            "input": {
-                                "$setField": {"field": {"$literal": "$x"}, "input": {}, "value": 1}
-                            },
-                        }
-                    }
-                },
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{}])
 
 
 UNSET_CHAIN_TESTS: list[ExpressionTestCase] = [

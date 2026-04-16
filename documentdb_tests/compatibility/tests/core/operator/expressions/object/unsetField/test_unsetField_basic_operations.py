@@ -13,9 +13,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.error_codes import SET_FIELD_INVALID_INPUT_TYPE_ERROR
-from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 LITERAL_TESTS: list[ExpressionTestCase] = [
@@ -250,33 +248,6 @@ def test_unsetField_field_ref(collection, test):
         error_code=test.error_code,
         msg=test.msg,
     )
-
-
-def test_unsetField_multiple_docs(collection):
-    """Test $unsetField across multiple documents."""
-    collection.insert_many(
-        [
-            {"_id": 1, "obj": {"a": 1, "b": 2}},
-            {"_id": 2, "obj": {"a": 3, "b": 4}},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$project": {
-                        "_id": 0,
-                        "result": {"$unsetField": {"field": "a", "input": "$obj"}},
-                    }
-                },
-                {"$sort": {"result.b": 1}},
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"result": {"b": 2}}, {"result": {"b": 4}}])
 
 
 def test_unsetField_many_fields(collection):

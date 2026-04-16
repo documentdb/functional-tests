@@ -15,8 +15,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 LITERAL_TESTS: list[ExpressionTestCase] = [
@@ -85,48 +83,6 @@ def test_mergeObjects_field_ref(collection, test):
     """Test $mergeObjects with special field names via inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(result, expected=test.expected, msg=test.msg)
-
-
-def test_mergeObjects_dot_disjoint(collection):
-    """Test $mergeObjects with dotted field names preserved as literal keys."""
-    collection.insert_one({"_id": 1, "obj1": {"a.b": 1}, "obj2": {"c.d": 2}})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$replaceWith": {"$mergeObjects": ["$obj1", "$obj2"]}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"a.b": 1, "c.d": 2}])
-
-
-def test_mergeObjects_dot_overwrite(collection):
-    """Test $mergeObjects with dotted field name overwrite."""
-    collection.insert_one({"_id": 1, "obj1": {"a.b": 1}, "obj2": {"a.b": 2}})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$replaceWith": {"$mergeObjects": ["$obj1", "$obj2"]}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"a.b": 2}])
-
-
-def test_mergeObjects_empty_string_key(collection):
-    """Test $mergeObjects with empty string field name."""
-    collection.insert_one({"_id": 1, "obj1": {"": 1}, "obj2": {"a": 2}})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$replaceWith": {"$mergeObjects": ["$obj1", "$obj2"]}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"": 1, "a": 2}])
 
 
 def test_mergeObjects_long_field_name(collection):

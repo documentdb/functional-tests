@@ -1,0 +1,86 @@
+"""
+Integration tests for $setField with pipeline stages.
+
+Covers $setField used within $replaceWith and $addFields stages:
+dotted/dollar field handling via $replaceWith and non-persistence.
+"""
+
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.executor import execute_command
+
+
+def test_setField_dotted_remove(collection):
+    """Test removing a dotted field name."""
+    result = execute_command(
+        collection,
+        {
+            "aggregate": 1,
+            "pipeline": [
+                {"$documents": [{}]},
+                {
+                    "$replaceWith": {
+                        "$setField": {
+                            "field": "a.b",
+                            "input": {"$setField": {"field": "a.b", "input": {}, "value": 5}},
+                            "value": "$$REMOVE",
+                        }
+                    }
+                },
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(result, [{}], raw_res=False)
+
+
+def test_setField_dollar_remove(collection):
+    """Test removing a dollar-prefixed field name."""
+    result = execute_command(
+        collection,
+        {
+            "aggregate": 1,
+            "pipeline": [
+                {"$documents": [{}]},
+                {
+                    "$replaceWith": {
+                        "$setField": {
+                            "field": {"$literal": "$x"},
+                            "input": {
+                                "$setField": {"field": {"$literal": "$x"}, "input": {}, "value": 5}
+                            },
+                            "value": "$$REMOVE",
+                        }
+                    }
+                },
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(result, [{}], raw_res=False)
+
+
+def test_setField_does_not_modify_original(collection):
+    """Test $setField does not modify original document in pipeline."""
+    collection.insert_one({"_id": 1, "a": 1})
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {
+                    "$addFields": {
+                        "modified": {"$setField": {"field": "x", "input": "$$ROOT", "value": 1}}
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "original_has_x": {"$ifNull": ["$x", "missing"]},
+                        "modified_has_x": "$modified.x",
+                    }
+                },
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(result, [{"original_has_x": "missing", "modified_has_x": 1}])

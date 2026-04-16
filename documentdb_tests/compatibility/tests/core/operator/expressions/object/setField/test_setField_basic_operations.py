@@ -13,9 +13,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.error_codes import SET_FIELD_INVALID_INPUT_TYPE_ERROR
-from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 LITERAL_TESTS: list[ExpressionTestCase] = [
@@ -375,53 +373,3 @@ def test_setField_field_ref(collection, test):
         error_code=test.error_code,
         msg=test.msg,
     )
-
-
-def test_setField_dotted_remove(collection):
-    """Test removing a dotted field name."""
-    result = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [
-                {"$documents": [{}]},
-                {
-                    "$replaceWith": {
-                        "$setField": {
-                            "field": "a.b",
-                            "input": {"$setField": {"field": "a.b", "input": {}, "value": 5}},
-                            "value": "$$REMOVE",
-                        }
-                    }
-                },
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{}], raw_res=False)
-
-
-def test_setField_dollar_remove(collection):
-    """Test removing a dollar-prefixed field name."""
-    result = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [
-                {"$documents": [{}]},
-                {
-                    "$replaceWith": {
-                        "$setField": {
-                            "field": {"$literal": "$x"},
-                            "input": {
-                                "$setField": {"field": {"$literal": "$x"}, "input": {}, "value": 5}
-                            },
-                            "value": "$$REMOVE",
-                        }
-                    }
-                },
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{}], raw_res=False)
