@@ -20,6 +20,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_LARGE_EXPONENT,
@@ -389,7 +390,7 @@ CORE_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", CORE_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(CORE_TESTS))
 def test_let_core(collection, test):
     """Test $let core behavior: type passthrough, scoping, and expression types."""
     result = execute_expression(collection, test.expression)
@@ -473,7 +474,7 @@ INSERT_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", INSERT_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(INSERT_TESTS))
 def test_let_insert(collection, test):
     """Test $let with inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

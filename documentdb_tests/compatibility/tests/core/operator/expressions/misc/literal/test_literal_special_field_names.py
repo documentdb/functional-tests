@@ -14,6 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 # ---------------------------------------------------------------------------
 # All special field name tests (top-level and nested)
@@ -114,7 +115,7 @@ SPECIAL_FIELD_NAME_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", SPECIAL_FIELD_NAME_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(SPECIAL_FIELD_NAME_TESTS))
 def test_literal_special_field_names(collection, test):
     """Test $literal accepts objects with special field names."""
     result = execute_expression(collection, test.expression)

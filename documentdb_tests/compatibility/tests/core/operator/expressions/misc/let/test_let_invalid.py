@@ -30,6 +30,7 @@ from documentdb_tests.framework.error_codes import (
     LET_UNKNOWN_FIELD_ERROR,
     TYPE_MISMATCH_ERROR,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 # ---------------------------------------------------------------------------
 # Raw argument errors
@@ -116,7 +117,7 @@ RAW_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", RAW_ERROR_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(RAW_ERROR_TESTS))
 def test_let_raw_errors(collection, test):
     """Test $let with invalid raw arguments."""
     result = execute_expression(collection, test.expression)
@@ -196,7 +197,7 @@ EXPRESSION_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", EXPRESSION_ERROR_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(EXPRESSION_ERROR_TESTS))
 def test_let_expression_errors(collection, test):
     """Test $let with invalid expressions in vars or in."""
     result = execute_expression(collection, test.expression)

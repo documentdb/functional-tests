@@ -16,6 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
 
 NULL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -39,7 +40,7 @@ NULL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", NULL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(NULL_TESTS))
 def test_let_null_propagation(collection, test):
     """Test $let null propagation through variables."""
     result = execute_expression(collection, test.expression)
@@ -64,7 +65,7 @@ FIELD_LOOKUP_SUCCESS_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", FIELD_LOOKUP_SUCCESS_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(FIELD_LOOKUP_SUCCESS_TESTS))
 def test_let_field_lookup(collection, test):
     """Test $let with field path variable assignments."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
@@ -81,7 +82,7 @@ FIELD_LOOKUP_MISSING_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", FIELD_LOOKUP_MISSING_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(FIELD_LOOKUP_MISSING_TESTS))
 def test_let_field_lookup_missing(collection, test):
     """Test $let with missing field path variable assignments."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

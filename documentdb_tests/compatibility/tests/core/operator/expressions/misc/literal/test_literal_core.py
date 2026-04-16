@@ -20,6 +20,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_MANY_TRAILING_ZEROS,
@@ -311,7 +312,7 @@ DATA_TYPE_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", DATA_TYPE_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(DATA_TYPE_TESTS))
 def test_literal_data_types(collection, test):
     """Test $literal returns all data types unchanged."""
     result = execute_expression(collection, test.expression)
@@ -373,7 +374,7 @@ ARGUMENT_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", ARGUMENT_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ARGUMENT_TESTS))
 def test_literal_arguments(collection, test):
     """Test $literal accepts various argument formats and returns them unchanged."""
     result = execute_expression(collection, test.expression)
@@ -533,7 +534,7 @@ SUPPRESSION_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", SUPPRESSION_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(SUPPRESSION_TESTS))
 def test_literal_suppression(collection, test):
     """Test $literal prevents evaluation of expressions and returns values as-is."""
     result = execute_expression(collection, test.expression)

@@ -16,6 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 # ---------------------------------------------------------------------------
 # $literal with $type
@@ -54,7 +55,7 @@ LITERAL_TYPE_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", LITERAL_TYPE_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(LITERAL_TYPE_TESTS))
 def test_literal_type_verification(collection, test):
     """Test $type returns correct type name for $literal values."""
     result = execute_expression(collection, test.expression)

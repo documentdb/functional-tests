@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import FAILED_TO_PARSE_ERROR
+from documentdb_tests.framework.parametrize import pytest_params
 
 # ---------------------------------------------------------------------------
 # Invalid variable names — starting character
@@ -161,7 +162,7 @@ INVALID_START_CHAR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", INVALID_START_CHAR_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(INVALID_START_CHAR_TESTS))
 def test_let_invalid_variable_name_start(collection, test):
     """Test $let rejects variable names starting with invalid characters."""
     result = execute_expression(collection, test.expression)
@@ -265,7 +266,7 @@ INVALID_CHAR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", INVALID_CHAR_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(INVALID_CHAR_TESTS))
 def test_let_invalid_variable_name_chars(collection, test):
     """Test $let rejects variable names containing invalid characters."""
     result = execute_expression(collection, test.expression)

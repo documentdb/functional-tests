@@ -14,6 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
 
 # ---------------------------------------------------------------------------
 # Path lookup success cases
@@ -138,7 +139,7 @@ PATH_SUCCESS_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", PATH_SUCCESS_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(PATH_SUCCESS_TESTS))
 def test_let_path_lookup(collection, test):
     """Test $let path lookup on variable values."""
     result = execute_expression(collection, test.expression)
@@ -167,7 +168,7 @@ PATH_MISSING_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", PATH_MISSING_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(PATH_MISSING_TESTS))
 def test_let_path_lookup_missing(collection, test):
     """Test $let path lookup that results in missing/omitted field."""
     result = execute_expression(collection, test.expression)

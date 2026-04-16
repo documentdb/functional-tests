@@ -11,6 +11,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils import
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +64,7 @@ PROJECT_LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", PROJECT_LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(PROJECT_LITERAL_TESTS))
 def test_literal_project_disambiguation(collection, test):
     """Test $literal in $project sets field to value, not inclusion/exclusion."""
     result = _execute_project_literal(collection, test.expression)

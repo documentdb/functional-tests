@@ -18,6 +18,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.error_codes import LET_UNDEFINED_VARIABLE_ERROR
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 # ---------------------------------------------------------------------------
 # Nested $let scoping
@@ -162,7 +163,7 @@ NESTED_LET_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", NESTED_LET_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(NESTED_LET_TESTS))
 def test_let_nested_combinations(collection, test):
     """Test nested $let scoping and shadowing behavior."""
     result = execute_expression(collection, test.expression)
