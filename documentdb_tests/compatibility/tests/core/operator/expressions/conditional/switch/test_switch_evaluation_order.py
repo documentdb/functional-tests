@@ -19,6 +19,7 @@ from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     SWITCH_NO_MATCH_NO_DEFAULT_ERROR,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 # --- First match wins ---
 FIRST_MATCH_TESTS: list[ExpressionTestCase] = [
@@ -237,7 +238,7 @@ ALL_TESTS = (
 )
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_switch_evaluation(collection, test):
     """Test $switch evaluation order, short-circuit, and edge cases."""
     if test.doc:

@@ -17,7 +17,7 @@ def validate_test_format(file_path: str) -> list[str]:
     errors: list[str] = []
 
     try:
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             tree = ast.parse(f.read(), filename=file_path)
     except Exception:
         return errors  # Skip files that can't be parsed
@@ -119,7 +119,24 @@ def validate_test_format(file_path: str) -> list[str]:
                 errors.append(
                     f"  Function '{node.name}' at line {node.lineno}: "
                     f"Must use execute_command(), execute_admin_command(), or helper"
-                    f" functions from documentdb_tests.framework.utils for MongoDB operations"
+                    f" functions from documentdb_tests.framework.utils for database operations"
                 )
+
+            # Check for ids=lambda in @pytest.mark.parametrize decorators
+            for decorator in node.decorator_list:
+                if (
+                    isinstance(decorator, ast.Call)
+                    and isinstance(decorator.func, ast.Attribute)
+                    and decorator.func.attr == "parametrize"
+                    and any(
+                        kw.arg == "ids" and isinstance(kw.value, ast.Lambda)
+                        for kw in decorator.keywords
+                    )
+                ):
+                    errors.append(
+                        f"  Function '{node.name}' at line {decorator.lineno}: "
+                        f"Don't use ids=lambda in @pytest.mark.parametrize. "
+                        f"Use pytest_params() from documentdb_tests.framework.parametrize instead."
+                    )
 
     return errors
