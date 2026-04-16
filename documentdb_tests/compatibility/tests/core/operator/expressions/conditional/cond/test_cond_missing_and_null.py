@@ -10,6 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
 
 MISSING_AND_NULL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -71,7 +72,7 @@ MISSING_AND_NULL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", MISSING_AND_NULL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(MISSING_AND_NULL_TESTS))
 def test_cond_missing_and_null(collection, test):
     """Test $cond missing field behavior and null handling."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

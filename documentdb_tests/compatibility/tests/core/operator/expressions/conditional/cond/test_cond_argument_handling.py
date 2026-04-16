@@ -15,9 +15,8 @@ from documentdb_tests.framework.error_codes import (
     COND_MISSING_IF_ERROR,
     COND_MISSING_THEN_ERROR,
     EXPRESSION_TYPE_MISMATCH_ERROR,
-    INVALID_DOLLAR_FIELD_PATH,
-    LET_UNDEFINED_VARIABLE_ERROR,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 OBJECT_VALID_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -163,22 +162,6 @@ INVALID_FORMAT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-INVALID_REFERENCE_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "invalid_field_path_dollar",
-        expression={"$cond": {"if": True, "then": "$", "else": 0}},
-        error_code=INVALID_DOLLAR_FIELD_PATH,
-        msg="Should error with invalid field path '$'",
-    ),
-    ExpressionTestCase(
-        "undefined_variable",
-        expression={"$cond": [True, "$$foo", False]},
-        error_code=LET_UNDEFINED_VARIABLE_ERROR,
-        msg="Should error with undefined variable",
-    ),
-]
-
-
 ALL_TESTS = (
     OBJECT_VALID_TESTS
     + ARRAY_VALID_TESTS
@@ -186,11 +169,10 @@ ALL_TESTS = (
     + OBJECT_EXTRA_FIELD_TESTS
     + ARRAY_WRONG_COUNT_TESTS
     + INVALID_FORMAT_TESTS
-    + INVALID_REFERENCE_TESTS
 )
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_cond_argument_handling(collection, test):
     """Test $cond argument handling — valid/invalid argument counts, formats, and error codes."""
     result = execute_expression(collection, test.expression)

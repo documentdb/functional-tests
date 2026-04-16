@@ -11,6 +11,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 NESTED_OBJ_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -111,7 +112,7 @@ NESTED_ARR_TESTS: list[ExpressionTestCase] = [
 LITERAL_ONLY_TESTS = NESTED_OBJ_TESTS + NESTED_ARR_TESTS
 
 
-@pytest.mark.parametrize("test", LITERAL_ONLY_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(LITERAL_ONLY_TESTS))
 def test_cond_nesting_literal(collection, test):
     """Test $cond nesting and composition with literal/no-doc expressions."""
     result = execute_expression(collection, test.expression)
@@ -165,7 +166,7 @@ ISARRAY_COND_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", ISARRAY_COND_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ISARRAY_COND_TESTS))
 def test_cond_isarray_guard(collection, test):
     """Test $cond with $isArray to conditionally apply $size."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
@@ -197,7 +198,7 @@ NESTED_PATH_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", NESTED_PATH_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(NESTED_PATH_TESTS))
 def test_cond_nested_field_paths(collection, test):
     """Test $cond with deeply nested and numeric-indexed field paths."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

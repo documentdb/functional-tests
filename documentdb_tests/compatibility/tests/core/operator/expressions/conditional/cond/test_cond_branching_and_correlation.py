@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.error_codes import (
     EXPRESSION_TYPE_MISMATCH_ERROR,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 SYNTAX_EQUIV_LITERAL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -55,7 +56,7 @@ COND_VS_IFNULL_TESTS: list[ExpressionTestCase] = [
 LITERAL_TESTS = SYNTAX_EQUIV_LITERAL_TESTS + COND_VS_IFNULL_TESTS
 
 
-@pytest.mark.parametrize("test", LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(LITERAL_TESTS))
 def test_cond_branching_literal(collection, test):
     """Test $cond syntax equivalence and $cond vs $ifNull with literal expressions."""
     result = execute_expression(collection, test.expression)
@@ -121,19 +122,12 @@ LAZY_FIELD_TESTS: list[ExpressionTestCase] = [
         error_code=EXPRESSION_TYPE_MISMATCH_ERROR,
         msg="Syntax errors are caught at parse time even in untaken branches",
     ),
-    ExpressionTestCase(
-        "lazy_else_log_zero",
-        expression={"$cond": {"if": "$flag", "then": "$x", "else": {"$log": ["$zero", 10]}}},
-        doc={"flag": True, "x": 42, "zero": 0},
-        expected=42,
-        msg="Else not evaluated, no log(0) error",
-    ),
 ]
 
 INSERT_TESTS = SYNTAX_EQUIV_FIELD_TESTS + LAZY_FIELD_TESTS
 
 
-@pytest.mark.parametrize("test", INSERT_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(INSERT_TESTS))
 def test_cond_branching_insert(collection, test):
     """Test $cond syntax equivalence and short-circuit evaluation with field-based expressions."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

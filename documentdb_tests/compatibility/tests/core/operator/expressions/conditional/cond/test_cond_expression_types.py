@@ -10,6 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 IF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -159,7 +160,7 @@ COMPLEX_EXPRESSION_TESTS: list[ExpressionTestCase] = [
 ALL_TESTS = IF_TESTS + BRANCH_TESTS + ARRAY_WRAPPING_TESTS + COMPLEX_EXPRESSION_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_cond_expression_types(collection, test):
     """Test $cond with field paths, operators, system variables, and arrays in if/then/else."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

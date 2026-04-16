@@ -11,6 +11,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 TRUTHY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -172,7 +173,7 @@ EXPRESSION_RESULT_TESTS: list[ExpressionTestCase] = [
 ALL_TESTS = TRUTHY_TESTS + FALSY_TESTS + BOUNDARY_ZERO_TESTS + EXPRESSION_RESULT_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_cond_truthiness(collection, test):
     """Test $cond truthiness — condition evaluation selects correct branch."""
     result = execute_expression(collection, test.expression)
