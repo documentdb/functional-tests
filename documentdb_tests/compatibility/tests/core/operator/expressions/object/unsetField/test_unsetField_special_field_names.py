@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.error_codes import NULL_CHAR_IN_FIELD_NAME_ERROR
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 EXPRESSION_TESTS: list[ExpressionTestCase] = [
     # Fields with periods (non-traversal)
@@ -181,7 +182,7 @@ EXPRESSION_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", EXPRESSION_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(EXPRESSION_TESTS))
 def test_unsetField_special_names(collection, test):
     """Test $unsetField with special field names."""
     result = execute_expression(collection, test.expression)
@@ -242,7 +243,7 @@ NULL_CHAR_FIELD_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", NULL_CHAR_FIELD_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(NULL_CHAR_FIELD_TESTS))
 def test_unsetField_null_char_fields(collection, test):
     """Test $unsetField with null character field names."""
     result = execute_expression(collection, test.expression)

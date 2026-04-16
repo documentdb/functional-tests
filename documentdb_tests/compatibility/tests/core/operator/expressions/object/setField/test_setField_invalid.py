@@ -29,6 +29,7 @@ from documentdb_tests.framework.error_codes import (
     SET_FIELD_NON_OBJECT_ARGUMENT_ERROR,
     SET_FIELD_UNKNOWN_ARGUMENT_ERROR,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 LITERAL_TESTS: list[ExpressionTestCase] = [
     # Missing/Extra Arguments
@@ -324,7 +325,7 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(LITERAL_TESTS))
 def test_setField_literal(collection, test):
     """Test $setField literal argument handling and type validation."""
     result = execute_expression(collection, test.expression)
@@ -445,7 +446,7 @@ FIELD_REF_INVALID_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", FIELD_REF_INVALID_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(FIELD_REF_INVALID_TESTS))
 def test_setField_field_ref_invalid(collection, test):
     """Test $setField with field ref resolving to invalid input type."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

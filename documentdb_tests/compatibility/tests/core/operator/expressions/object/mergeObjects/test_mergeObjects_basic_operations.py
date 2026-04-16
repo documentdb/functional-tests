@@ -20,6 +20,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.error_codes import MERGE_OBJECTS_INVALID_TYPE_ERROR
+from documentdb_tests.framework.parametrize import pytest_params
 
 LITERAL_TESTS: list[ExpressionTestCase] = [
     # Argument count variations
@@ -423,7 +424,7 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(LITERAL_TESTS))
 def test_mergeObjects_literal(collection, test):
     """Test $mergeObjects with literal expressions."""
     result = execute_expression(collection, test.expression)
@@ -649,7 +650,7 @@ FIELD_REF_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", FIELD_REF_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(FIELD_REF_TESTS))
 def test_mergeObjects_field_ref(collection, test):
     """Test $mergeObjects with field references and inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

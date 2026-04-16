@@ -16,6 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.error_codes import SET_FIELD_INVALID_INPUT_TYPE_ERROR
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 LITERAL_TESTS: list[ExpressionTestCase] = [
     # Core behavior — field removal
@@ -135,7 +136,7 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(LITERAL_TESTS))
 def test_unsetField_literal(collection, test):
     """Test $unsetField core behavior and null/missing handling."""
     result = execute_expression(collection, test.expression)
@@ -239,7 +240,7 @@ FIELD_REF_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", FIELD_REF_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(FIELD_REF_TESTS))
 def test_unsetField_field_ref(collection, test):
     """Test $unsetField with field references and inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

@@ -13,6 +13,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import NULL_CHAR_IN_FIELD_NAME_ERROR
+from documentdb_tests.framework.parametrize import pytest_params
 
 SPECIAL_NAME_TESTS: list[ExpressionTestCase] = [
     # Dotted
@@ -154,7 +155,7 @@ SPECIAL_NAME_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", SPECIAL_NAME_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(SPECIAL_NAME_TESTS))
 def test_setField_special_names(collection, test):
     """Test $setField with special field names."""
     result = execute_expression(collection, test.expression)

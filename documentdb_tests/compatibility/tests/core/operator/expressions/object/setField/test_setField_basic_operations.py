@@ -16,6 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.error_codes import SET_FIELD_INVALID_INPUT_TYPE_ERROR
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 LITERAL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -231,7 +232,7 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(LITERAL_TESTS))
 def test_setField_literal(collection, test):
     """Test $setField with literal expressions."""
     result = execute_expression(collection, test.expression)
@@ -364,7 +365,7 @@ FIELD_REF_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", FIELD_REF_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(FIELD_REF_TESTS))
 def test_setField_field_ref(collection, test):
     """Test $setField with field references and inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

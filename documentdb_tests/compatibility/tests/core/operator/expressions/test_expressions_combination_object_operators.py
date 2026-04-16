@@ -17,6 +17,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.error_codes import (
     SET_FIELD_INVALID_INPUT_TYPE_ERROR,
     SET_FIELD_NON_CONST_FIELD_ERROR,
@@ -75,7 +76,7 @@ EXPR_OP_SMOKE_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", EXPR_OP_SMOKE_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(EXPR_OP_SMOKE_TESTS))
 def test_setField_expr_op_smoke(collection, test):
     """Test $setField with other expression operators as input/value."""
     result = execute_expression(collection, test.expression)
@@ -130,7 +131,7 @@ INVALID_INPUT_EXPR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", INVALID_INPUT_EXPR_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(INVALID_INPUT_EXPR_TESTS))
 def test_setField_invalid_input_expr(collection, test):
     """Test $setField with expressions resolving to invalid types."""
     result = execute_expression(collection, test.expression)
@@ -174,7 +175,7 @@ GETFIELD_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", GETFIELD_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(GETFIELD_TESTS))
 def test_setField_getField_interaction(collection, test):
     """Test $setField and $getField interaction."""
     result = execute_expression(collection, test.expression)
@@ -227,7 +228,7 @@ MERGE_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", MERGE_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(MERGE_TESTS))
 def test_setField_mergeObjects_interaction(collection, test):
     """Test $setField and $mergeObjects interaction."""
     result = execute_expression(collection, test.expression)
@@ -276,7 +277,7 @@ UNSET_GETFIELD_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", UNSET_GETFIELD_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(UNSET_GETFIELD_TESTS))
 def test_unsetField_getField_interaction(collection, test):
     """Test $unsetField and $getField interaction."""
     result = execute_expression(collection, test.expression)
@@ -317,7 +318,7 @@ UNSET_MERGE_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", UNSET_MERGE_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(UNSET_MERGE_TESTS))
 def test_unsetField_mergeObjects_interaction(collection, test):
     """Test $unsetField and $mergeObjects interaction."""
     result = execute_expression(collection, test.expression)
@@ -390,7 +391,7 @@ UNSET_SETFIELD_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", UNSET_SETFIELD_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(UNSET_SETFIELD_TESTS))
 def test_unsetField_setField_interaction(collection, test):
     """Test $unsetField and $setField interaction."""
     result = execute_expression(collection, test.expression)
@@ -419,7 +420,7 @@ UNSET_INVALID_EXPR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", UNSET_INVALID_EXPR_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(UNSET_INVALID_EXPR_TESTS))
 def test_unsetField_invalid_input_expr(collection, test):
     """Test $unsetField with expressions resolving to invalid types."""
     result = execute_expression(collection, test.expression)
@@ -442,7 +443,7 @@ MERGE_GETFIELD_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", MERGE_GETFIELD_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(MERGE_GETFIELD_TESTS))
 def test_mergeObjects_getField_interaction(collection, test):
     """Test $mergeObjects and $getField interaction."""
     result = execute_expression(collection, test.expression)
@@ -476,7 +477,7 @@ MERGE_SETFIELD_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", MERGE_SETFIELD_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(MERGE_SETFIELD_TESTS))
 def test_mergeObjects_setField_interaction(collection, test):
     """Test $mergeObjects and $setField interaction."""
     result = execute_expression(collection, test.expression)
@@ -506,7 +507,7 @@ MERGE_UNSETFIELD_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", MERGE_UNSETFIELD_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(MERGE_UNSETFIELD_TESTS))
 def test_mergeObjects_unsetField_interaction(collection, test):
     """Test $mergeObjects and $unsetField interaction."""
     result = execute_expression(collection, test.expression)
@@ -573,7 +574,7 @@ MERGE_COMBINATION_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", MERGE_COMBINATION_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(MERGE_COMBINATION_TESTS))
 def test_mergeObjects_combinations(collection, test):
     """Test $mergeObjects self-nesting and expression operator interactions."""
     result = execute_expression(collection, test.expression)
@@ -719,7 +720,7 @@ SETFIELD_NESTING_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", SETFIELD_NESTING_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(SETFIELD_NESTING_TESTS))
 def test_setField_nesting(collection, test):
     """Test nested $setField operations."""
     result = execute_expression(collection, test.expression)
@@ -793,7 +794,7 @@ UNSET_EQUIVALENCE_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", UNSET_EQUIVALENCE_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(UNSET_EQUIVALENCE_TESTS))
 def test_unsetField_equivalence(collection, test):
     """Test $unsetField/$setField equivalence and case sensitivity."""
     result = execute_expression(collection, test.expression)
@@ -887,7 +888,7 @@ UNSET_CHAIN_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", UNSET_CHAIN_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(UNSET_CHAIN_TESTS))
 def test_unsetField_chaining(collection, test):
     """Test chaining multiple $unsetField operations."""
     result = execute_expression(collection, test.expression)

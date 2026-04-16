@@ -17,6 +17,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 LITERAL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -40,7 +41,7 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(LITERAL_TESTS))
 def test_mergeObjects_literal(collection, test):
     """Test $mergeObjects with literal special field names."""
     result = execute_expression(collection, test.expression)
@@ -79,7 +80,7 @@ FIELD_REF_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", FIELD_REF_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(FIELD_REF_TESTS))
 def test_mergeObjects_field_ref(collection, test):
     """Test $mergeObjects with special field names via inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
