@@ -1,4 +1,4 @@
-"""Tests for $or null and missing field handling."""
+"""Tests for $and null and missing field handling."""
 
 import pytest
 
@@ -15,53 +15,47 @@ from documentdb_tests.framework.parametrize import pytest_params
 NULL_LITERAL_TESTS = [
     ExpressionTestCase(
         "null_null",
-        expression={"$or": [None, None]},
+        expression={"$and": [None, None]},
         expected=False,
         msg="Should return false for null, null",
     ),
     ExpressionTestCase(
-        "null_false",
-        expression={"$or": [None, False]},
-        expected=False,
-        msg="Should return false for null, false",
-    ),
-    ExpressionTestCase(
         "null_true",
-        expression={"$or": [None, True]},
-        expected=True,
-        msg="Should return true for null, true",
+        expression={"$and": [True, None]},
+        expected=False,
+        msg="Should return false for true, null",
     ),
 ]
 
 
 @pytest.mark.parametrize("test", pytest_params(NULL_LITERAL_TESTS))
-def test_or_null_literal(collection, test):
-    """Test $or with null literals."""
+def test_and_null_literal(collection, test):
+    """Test $and with null literals."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(result, expected=test.expected, msg=test.msg)
 
 
 MISSING_FIELD_TESTS = [
     ExpressionTestCase(
-        "missing_and_truthy",
-        expression={"$or": ["$b", "$a"]},
-        doc={"a": 1},
-        expected=True,
-        msg="Should return true when one field is truthy",
+        "missing_with_truthy",
+        expression={"$and": ["$a", "$nonexistent"]},
+        doc={"a": True},
+        expected=False,
+        msg="Missing field is falsy",
     ),
     ExpressionTestCase(
-        "two_missing",
-        expression={"$or": ["$b", "$c"]},
-        doc={"a": 1},
+        "single_missing",
+        expression={"$and": ["$nonexistent"]},
+        doc={},
         expected=False,
-        msg="Should return false for two missing fields",
+        msg="Single missing field is falsy",
     ),
 ]
 
 NULL_FIELD_TESTS = [
     ExpressionTestCase(
         "null_valued",
-        expression={"$or": ["$a"]},
+        expression={"$and": ["$a"]},
         doc={"a": None},
         expected=False,
         msg="Should return false for null-valued field",
@@ -71,14 +65,14 @@ NULL_FIELD_TESTS = [
 NULL_PATH_TESTS = [
     ExpressionTestCase(
         "null_intermediate",
-        expression={"$or": ["$a.b"]},
+        expression={"$and": ["$a.b"]},
         doc={"a": None},
         expected=False,
         msg="Should return false for null intermediate path",
     ),
     ExpressionTestCase(
         "null_leaf",
-        expression={"$or": ["$a.b"]},
+        expression={"$and": ["$a.b"]},
         doc={"a": {"b": None}},
         expected=False,
         msg="Should return false for null leaf in nested path",
@@ -89,7 +83,7 @@ INSERT_TESTS = MISSING_FIELD_TESTS + NULL_FIELD_TESTS + NULL_PATH_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(INSERT_TESTS))
-def test_or_null_missing_with_doc(collection, test):
-    """Test $or with null and missing fields."""
+def test_and_null_missing_with_doc(collection, test):
+    """Test $and with null and missing fields."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(result, expected=test.expected, msg=test.msg)

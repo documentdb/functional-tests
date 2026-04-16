@@ -1,4 +1,4 @@
-"""Tests for $or argument handling — count variations, formats, scalar/array input."""
+"""Tests for $and argument handling — count variations, formats, scalar/array input."""
 
 import pytest
 
@@ -14,49 +14,49 @@ from documentdb_tests.framework.parametrize import pytest_params
 ALL_TESTS = [
     ExpressionTestCase(
         "empty_array",
-        expression={"$or": []},
-        expected=False,
-        msg="Should return false for empty array",
+        expression={"$and": []},
+        expected=True,
+        msg="Should return true for empty array",
     ),
     ExpressionTestCase(
         "two_args_true_false",
-        expression={"$or": [True, False]},
-        expected=True,
-        msg="Should return true when any is true",
-    ),
-    ExpressionTestCase(
-        "two_args_all_false",
-        expression={"$or": [0, False]},
+        expression={"$and": [True, False]},
         expected=False,
-        msg="Should return false when all false",
+        msg="Should return false when any is false",
     ),
     ExpressionTestCase(
-        "large_all_false",
-        expression={"$or": [False] * 100},
-        expected=False,
-        msg="Should return false for 100 false values",
-    ),
-    ExpressionTestCase(
-        "large_last_true",
-        expression={"$or": [False] * 99 + [True]},
+        "two_args_all_true",
+        expression={"$and": [True, 1]},
         expected=True,
-        msg="Should return true with last true in 100",
+        msg="Should return true when all true",
+    ),
+    ExpressionTestCase(
+        "large_all_true",
+        expression={"$and": [True] * 100},
+        expected=True,
+        msg="Should return true for 100 true values",
+    ),
+    ExpressionTestCase(
+        "large_last_false",
+        expression={"$and": [True] * 99 + [False]},
+        expected=False,
+        msg="Should return false with last false in 100",
     ),
     ExpressionTestCase(
         "array_element_truthy",
-        expression={"$or": [[]]},
+        expression={"$and": [[]]},
         expected=True,
         msg="Should return true for array element (truthy)",
     ),
     ExpressionTestCase(
         "non_array_true",
-        expression={"$or": True},
+        expression={"$and": True},
         expected=True,
         msg="Should return true for non-array true",
     ),
     ExpressionTestCase(
         "non_array_null",
-        expression={"$or": None},
+        expression={"$and": None},
         expected=False,
         msg="Should return false for non-array null",
     ),
@@ -64,8 +64,8 @@ ALL_TESTS = [
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_or_argument_handling(collection, test):
-    """Test $or argument handling."""
+def test_and_argument_handling(collection, test):
+    """Test $and argument handling."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
