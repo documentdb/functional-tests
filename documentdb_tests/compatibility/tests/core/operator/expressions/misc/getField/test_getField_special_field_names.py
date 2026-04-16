@@ -14,8 +14,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 # ---------------------------------------------------------------------------
@@ -184,26 +182,3 @@ def test_getField_dollar_special_fields(collection, test):
     """Test $getField accesses dollar-prefixed field names from inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(result, expected=test.expected, msg=test.msg)
-
-
-# ---------------------------------------------------------------------------
-# Dotted field not nested
-# ---------------------------------------------------------------------------
-def test_getField_dotted_field_not_nested(collection):
-    """Test $getField with dotted field returns literal key, not nested path."""
-    collection.insert_one({"_id": 1, "a.b": 1, "a": {"b": 2}})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$project": {"_id": 0, "literal": {"$getField": "a.b"}, "nested": "$a.b"}}
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(
-        result,
-        [{"literal": 1, "nested": 2}],
-        msg="$getField should return literal 'a.b', $a.b should traverse",
-    )

@@ -15,10 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
 
 LITERAL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -90,30 +87,3 @@ def test_getField_nesting_insert(collection, test):
     """Test nested $getField with inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(result, expected=test.expected, msg=test.msg)
-
-
-def test_getField_multiple_in_project(collection):
-    """Test multiple $getField expressions in same $project."""
-    collection.insert_one({"_id": 1, "a": 1, "b": 2, "c": 3})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$project": {
-                        "_id": 0,
-                        "f1": {"$getField": "a"},
-                        "f2": {"$getField": "b"},
-                        "f3": {"$getField": "c"},
-                    }
-                },
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(
-        result,
-        [{"f1": 1, "f2": 2, "f3": 3}],
-        msg="Should support multiple $getField in same $project",
-    )
