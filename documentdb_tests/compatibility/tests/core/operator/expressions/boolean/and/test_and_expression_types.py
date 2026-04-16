@@ -26,7 +26,7 @@ NESTED_AND_TESTS = [
     ),
     ExpressionTestCase(
         "nested_and_all_true",
-        expression={"$and": [{"$and": [True, True]}, True]},
+        expression={"$and": [{"$and": [True, True]}, {"$and": [True, True]}]},
         expected=True,
         msg="Nested $and with all true should return true",
     ),

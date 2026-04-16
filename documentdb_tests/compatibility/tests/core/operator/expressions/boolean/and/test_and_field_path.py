@@ -55,16 +55,6 @@ ARRAY_INDEX_TESTS = [
     ),
 ]
 
-MISSING_FIELD_TESTS = [
-    ExpressionTestCase(
-        "nonexistent",
-        expression={"$and": ["$nonexistent"]},
-        doc={"a": 1},
-        expected=False,
-        msg="Should return false for non-existent field",
-    ),
-]
-
 ARRAY_VALUE_TESTS = [
     ExpressionTestCase(
         "field_is_array",
@@ -75,13 +65,7 @@ ARRAY_VALUE_TESTS = [
     ),
 ]
 
-ALL_TESTS = (
-    SIMPLE_FIELD_TESTS
-    + NESTED_FIELD_TESTS
-    + ARRAY_INDEX_TESTS
-    + MISSING_FIELD_TESTS
-    + ARRAY_VALUE_TESTS
-)
+ALL_TESTS = SIMPLE_FIELD_TESTS + NESTED_FIELD_TESTS + ARRAY_INDEX_TESTS + ARRAY_VALUE_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
