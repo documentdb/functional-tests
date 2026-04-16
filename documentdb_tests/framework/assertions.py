@@ -143,14 +143,10 @@ def assertSuccess(
     _large = len(repr(result)) > _MAX_REPR_LEN or len(repr(expected)) > _MAX_REPR_LEN
 
     if ignore_doc_order:
-        sorted_result = _sort_if_list(result)
-        sorted_expected = _sort_if_list(expected)
-        if _large:
-            if not _strict_equal(sorted_result, sorted_expected):
-                raise AssertionError(error_text)
-        else:
-            assert _strict_equal(sorted_result, sorted_expected), error_text
-    elif _large:
+        result = _sort_if_list(result)
+        expected = _sort_if_list(expected)
+
+    if _large:
         if not _strict_equal(result, expected):
             raise AssertionError(error_text)
     else:
