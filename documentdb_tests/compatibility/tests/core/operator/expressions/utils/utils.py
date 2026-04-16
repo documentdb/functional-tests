@@ -158,7 +158,7 @@ def execute_expression_with_insert(collection, expression, document):
     )
 
 
-def assert_expression_result(result, expected=None, error_code=None, msg=None):
+def assert_expression_result(result, expected=None, error_code=None, msg=None, ignore_order=False):
     """
     Assert the result of an execute_expression* call.
 
@@ -170,10 +170,12 @@ def assert_expression_result(result, expected=None, error_code=None, msg=None):
         expected: Expected scalar value (wrapped into [{"result": expected}])
         error_code: Expected error code (for error cases)
         msg: Custom assertion message (optional)
+        ignore_order: If True, sort list results before comparison
     """
     assertResult(
         result,
         expected=[{"result": expected}] if error_code is None else None,
         error_code=error_code,
         msg=msg,
+        ignore_order_in=["result"] if ignore_order else None,
     )
