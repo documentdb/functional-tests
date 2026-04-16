@@ -88,3 +88,73 @@ def test_setField_does_not_modify_original(collection):
         [{"original_has_x": "missing", "modified_has_x": 1}],
         msg="Original document should not be modified by $setField",
     )
+
+
+def test_setField_insert_many_addFields(collection):
+    """Test $setField in $addFields applies correctly to each document."""
+    collection.insert_many(
+        [
+            {"_id": 1, "a": 10},
+            {"_id": 2, "a": 20},
+            {"_id": 3},
+        ]
+    )
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$sort": {"_id": 1}},
+                {"$addFields": {"b": {"$setField": {"field": "x", "input": {}, "value": 1}}}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [
+            {"_id": 1, "a": 10, "b": {"x": 1}},
+            {"_id": 2, "a": 20, "b": {"x": 1}},
+            {"_id": 3, "b": {"x": 1}},
+        ],
+        msg="$setField in $addFields should apply per document",
+    )
+
+
+def test_setField_insert_many_replaceWith(collection):
+    """Test $setField in $replaceWith applies correctly to each document."""
+    collection.insert_many(
+        [
+            {"_id": 1, "a": 10, "b": 1},
+            {"_id": 2, "a": 20},
+            {"_id": 3, "b": 3},
+        ]
+    )
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$sort": {"_id": 1}},
+                {
+                    "$replaceWith": {
+                        "$setField": {
+                            "field": "b",
+                            "input": "$$ROOT",
+                            "value": 99,
+                        }
+                    }
+                },
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [
+            {"_id": 1, "a": 10, "b": 99},
+            {"_id": 2, "a": 20, "b": 99},
+            {"_id": 3, "b": 99},
+        ],
+        msg="$setField in $replaceWith should apply per document",
+    )
