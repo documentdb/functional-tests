@@ -106,7 +106,7 @@ def assertSuccess(
         raw_res: If asserting raw result. False by default,
             only compare content of ["cursor"]["firstBatch"]
         transform: Optional callback to transform result before comparison
-        ignore_doc_order: If True, compare lists as sets (order-independent)
+        ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
     """
     if isinstance(result, Exception):
         if isinstance(result, _INFRA_TYPES):
@@ -129,13 +129,11 @@ def assertSuccess(
     error_text += f"\n\nExpected:\n{pprint.pformat(expected, width=100)}"
     error_text += f"\n\nActual:\n{pprint.pformat(result, width=100)}\n"
 
-    if ignore_doc_order and isinstance(result, list) and isinstance(expected, list):
-        assert _strict_equal(
-            sorted(result, key=lambda x: str(x)),
-            sorted(expected, key=lambda x: str(x)),
-        ), error_text
-    else:
-        assert _strict_equal(result, expected), error_text
+    if ignore_doc_order:
+        result = _sort_if_list(result)
+        expected = _sort_if_list(expected)
+
+    assert _strict_equal(result, expected), error_text
 
 
 def assertSuccessPartial(
@@ -219,6 +217,7 @@ def assertResult(
     error_code: Optional[int] = None,
     msg: Optional[str] = None,
     ignore_order_in: Optional[list[str]] = None,
+    ignore_doc_order: bool = False,
 ):
     """
     Universal assertion that handles success and error cases.
@@ -231,6 +230,7 @@ def assertResult(
         ignore_order_in: Field names whose list values should be sorted before
             comparison (for fields like set operation results where element
             order is unspecified)
+        ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
 
     Usage:
         assertResult(result, expected=[{"_id": 1}])  # Success case
@@ -240,4 +240,10 @@ def assertResult(
     if error_code is not None:
         assertFailureCode(result, error_code, msg)
     else:
-        assertSuccess(result, expected, msg, ignore_order_in=ignore_order_in)
+        assertSuccess(
+            result,
+            expected,
+            msg,
+            ignore_order_in=ignore_order_in,
+            ignore_doc_order=ignore_doc_order,
+        )
