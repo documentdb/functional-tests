@@ -18,6 +18,7 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_MAX_COEFFICIENT,
     DECIMAL128_MAX_NEGATIVE,
     DECIMAL128_MIN,
+    DECIMAL128_MIN_COEFFICIENT,
     DECIMAL128_MIN_POSITIVE,
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_ZERO,
@@ -158,6 +159,46 @@ SUM_DECIMAL128_PRECISION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
+# Property [Banker's Rounding]: When a Decimal128 result exceeds 34 significant
+# digits, the halfway tie-breaking uses round-half-to-even (Banker's rounding).
+# Each sum below produces a 35-digit exact result. The 35th digit is the
+# rounding digit. When it is exactly 5 (halfway), the 34th digit determines
+# the direction: even keeps its value, odd rounds away from zero.
+SUM_DECIMAL128_BANKERS_ROUNDING_TESTS: list[ExpressionTestCase] = [
+    # exact result: 1000000000000000000000000000000000|5 (34th digit 0, even → round down)
+    ExpressionTestCase(
+        "d128_bankers_half_even_down",
+        expression={"$sum": ["$a", "$b"]},
+        doc={"a": DECIMAL128_MAX_COEFFICIENT, "b": Decimal128("6")},
+        expected=Decimal128("1.000000000000000000000000000000000E+34"),
+        msg="$sum should round half to even (down) when 34th digit is 0 (even)",
+    ),
+    # exact result: 1000000000000000000000000000000001|5 (34th digit 1, odd → round up)
+    ExpressionTestCase(
+        "d128_bankers_half_even_up",
+        expression={"$sum": ["$a", "$b"]},
+        doc={"a": DECIMAL128_MAX_COEFFICIENT, "b": Decimal128("16")},
+        expected=Decimal128("1.000000000000000000000000000000002E+34"),
+        msg="$sum should round half to even (up) when 34th digit is 1 (odd)",
+    ),
+    # exact result: -1000000000000000000000000000000000|5 (34th digit 0, even → toward zero)
+    ExpressionTestCase(
+        "d128_bankers_half_even_negative_down",
+        expression={"$sum": ["$a", "$b"]},
+        doc={"a": DECIMAL128_MIN_COEFFICIENT, "b": Decimal128("-6")},
+        expected=Decimal128("-1.000000000000000000000000000000000E+34"),
+        msg="$sum should round negative half to even (toward zero) when 34th digit is 0",
+    ),
+    # exact result: -1000000000000000000000000000000001|5 (34th digit 1, odd → away from zero)
+    ExpressionTestCase(
+        "d128_bankers_half_even_negative_up",
+        expression={"$sum": ["$a", "$b"]},
+        doc={"a": DECIMAL128_MIN_COEFFICIENT, "b": Decimal128("-16")},
+        expected=Decimal128("-1.000000000000000000000000000000002E+34"),
+        msg="$sum should round negative half to even (away from zero) when 34th digit is 1",
+    ),
+]
+
 # Property [Cross-Type Precision]: mixing double with Decimal128 reveals the full conversion.
 SUM_MIXED_PRECISION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -197,6 +238,7 @@ SUM_DECIMAL128_OVERFLOW_TESTS: list[ExpressionTestCase] = [
 SUM_DECIMAL128_ALL_TESTS = (
     SUM_DECIMAL128_BOUNDARY_TESTS
     + SUM_DECIMAL128_PRECISION_TESTS
+    + SUM_DECIMAL128_BANKERS_ROUNDING_TESTS
     + SUM_MIXED_PRECISION_TESTS
     + SUM_DECIMAL128_OVERFLOW_TESTS
 )
