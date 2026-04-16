@@ -30,7 +30,7 @@ def test_setField_dotted_remove(collection):
             "cursor": {},
         },
     )
-    assertSuccess(result, [{}], raw_res=False)
+    assertSuccess(result, [{}], raw_res=False, msg="Dotted field should be removed")
 
 
 def test_setField_dollar_remove(collection):
@@ -56,7 +56,7 @@ def test_setField_dollar_remove(collection):
             "cursor": {},
         },
     )
-    assertSuccess(result, [{}], raw_res=False)
+    assertSuccess(result, [{}], raw_res=False, msg="Dollar-prefixed field should be removed")
 
 
 def test_setField_does_not_modify_original(collection):
@@ -83,4 +83,8 @@ def test_setField_does_not_modify_original(collection):
             "cursor": {},
         },
     )
-    assertSuccess(result, [{"original_has_x": "missing", "modified_has_x": 1}])
+    assertSuccess(
+        result,
+        [{"original_has_x": "missing", "modified_has_x": 1}],
+        msg="Original document should not be modified by $setField",
+    )
