@@ -10,6 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     FLOAT_NAN,
@@ -61,7 +62,7 @@ DEC_NAN_INF_TESTS = [
 ]
 
 
-@pytest.mark.parametrize("test", DEC_NAN_INF_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(DEC_NAN_INF_TESTS))
 def test_or_decimal128_nan_inf_combos(collection, test):
     """Test $or with Decimal128 NaN/Inf and various numeric field values."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

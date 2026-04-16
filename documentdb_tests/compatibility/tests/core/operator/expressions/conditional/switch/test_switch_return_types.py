@@ -16,6 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 THEN_CASES: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -138,7 +139,7 @@ DEFAULT_CASES: list[ExpressionTestCase] = [
 ALL_TESTS = THEN_CASES + DEFAULT_CASES
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_switch_return_type(collection, test):
     """Test $switch preserves return type in then and default positions."""
     result = execute_expression(collection, {"$type": test.expression})
