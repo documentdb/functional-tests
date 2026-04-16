@@ -273,6 +273,31 @@ For each invalid_type in [string, object, array, ...]:
 
 ---
 
+
+### 12. Object Expression Test Coverage
+**Rule**: All sizes, shapes, and types of documents must be tested in object expressions.
+
+**Key Cases**:
+- Documents of different shapes must be tested:
+  - Empty documents
+  - Flat documents, including all scalar types
+  - Deeply nested documents ($a.b.c.d)
+  - Nested arrays (`{arr: [[1,2], [3,4]]}`, `{obj: {arr: [1,2,3]}}`)
+- For object manipulation:
+  - Overwriting existing fields returns object with new value
+  - Removing non-existant fields has no effect and returns original object
+  - Original document is not updated, only the returned object
+  - $set/unsetField does not traverse objects or arrays, it only works upon top level fields
+    - Test this using $replaceWith
+  - Field names with periods or dollar ($) signs require $replaceWith
+- Inputs other than objects, nulls, or undefined values are rejected
+- Verify that $merge objects accepts an array of any number of objects
+- For $mergeObjects, verify that field conflicts prioritize the last document
+
+**Applies to**: object expression operators (`$mergeObjects`, `$setField`, `$unsetField`, `$getField`)
+
+---
+
 ## Test Category Checklist
 
 For any DocumentDB feature, ensure coverage of:
