@@ -2,8 +2,11 @@
 Shared test case for pipeline stage tests.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any
 
 from documentdb_tests.framework.test_case import BaseTestCase
 
@@ -12,6 +15,6 @@ from documentdb_tests.framework.test_case import BaseTestCase
 class StageTestCase(BaseTestCase):
     """Test case for pipeline stage tests."""
 
-    docs: Optional[list[dict[str, Any]]] = None
-    pipeline: Optional[list[dict[str, Any]]] = None
-    setup: Optional[Callable] = None
+    docs: list[dict[str, Any]] | None = None
+    pipeline: list[dict[str, Any]] | None = None
+    setup: Callable | None = None
