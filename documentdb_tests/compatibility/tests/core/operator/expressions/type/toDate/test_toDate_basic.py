@@ -666,24 +666,52 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         msg="Should reject 5-digit year string with prefix > 2059",
         value="20609-01-01T00:00:00Z",
         error_code=CONVERSION_FAILURE_ERROR,
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB silently misparses multi-digit year strings instead of rejecting",
+                raises=AssertionError,
+            ),
+        ),
     ),
     ToDateTest(
         "string_year_5_digits_max",
         msg="Should reject 5-digit year string starting with 9999",
         value="99999-01-01T00:00:00Z",
         error_code=CONVERSION_FAILURE_ERROR,
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB silently misparses multi-digit year strings instead of rejecting",
+                raises=AssertionError,
+            ),
+        ),
     ),
     ToDateTest(
         "string_year_6_digits",
         msg="Should reject 6-digit year string",
         value="199990-01-01T00:00:00Z",
         error_code=CONVERSION_FAILURE_ERROR,
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB silently misparses multi-digit year strings instead of rejecting",
+                raises=AssertionError,
+            ),
+        ),
     ),
     ToDateTest(
         "string_year_50_digits",
         msg="Should reject year string far exceeding numeric limits",
         value="9" * 49 + "1-01-01T00:00:00Z",
         error_code=CONVERSION_FAILURE_ERROR,
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB silently misparses multi-digit year strings instead of rejecting",
+                raises=AssertionError,
+            ),
+        ),
     ),
     # Leap year string.
     ToDateTest(
