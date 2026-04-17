@@ -5,6 +5,7 @@ from datetime import datetime
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, Regex
+from bson.errors import InvalidBSON
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.date_utils import (
     oid_from_args,
@@ -15,6 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.assertions import assertExceptionType
 from documentdb_tests.framework.error_codes import (
     CONVERSION_FAILURE_ERROR,
     TO_TYPE_ARITY_ERROR,
@@ -30,10 +32,13 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ZERO,
     DOUBLE_NEGATIVE_ZERO,
+    DOUBLE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
+    INT64_ZERO,
     MISSING,
     OID_MAX_SIGNED32,
     OID_MAX_UNSIGNED32,
@@ -42,7 +47,7 @@ from documentdb_tests.framework.test_constants import (
     TS_MAX_UNSIGNED32,
 )
 
-from .utils.toDate_utils import ToDateTest
+from .utils.toDate_utils import _DOC_EXPR_FORMS, _EXPR_FORMS, ToDateTest
 
 _oid_2024_01_01 = oid_from_args(2024, 1, 1, 0, 0, 0)
 _oid_2024_06_15 = oid_from_args(2024, 6, 15, 12, 0, 0)
@@ -54,12 +59,16 @@ _ts_2024_12_31 = ts_from_args(2024, 12, 31, 23, 59, 59)
 _ts_2021_11_23 = ts_from_args(2021, 11, 23, 17, 21, 58)
 
 
+# Property [Basic Conversion]: $toDate converts supported BSON types to dates,
+# returns null for null/missing, and rejects unsupported types.
 TODATE_BASIC_TESTS: list[ToDateTest] = [
-    # --- Null / missing ---
+    # Null / missing.
     ToDateTest("null", msg="Should return null for null", value=None, expected=None),
     ToDateTest("missing", msg="Should return null for missing", value=MISSING, expected=None),
-    # --- Double (ms since epoch) ---
-    ToDateTest("double_zero", msg="Should handle double zero", value=0.0, expected=DATE_EPOCH),
+    # Double (ms since epoch).
+    ToDateTest(
+        "double_zero", msg="Should handle double zero", value=DOUBLE_ZERO, expected=DATE_EPOCH
+    ),
     ToDateTest(
         "double_positive",
         msg="Should handle double positive",
@@ -84,8 +93,8 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value=1000.9,
         expected=datetime(1970, 1, 1, 0, 0, 1),
     ),
-    # --- Long (ms since epoch) ---
-    ToDateTest("long_zero", msg="Should handle long zero", value=Int64(0), expected=DATE_EPOCH),
+    # Long (ms since epoch).
+    ToDateTest("long_zero", msg="Should handle long zero", value=INT64_ZERO, expected=DATE_EPOCH),
     ToDateTest(
         "long_positive",
         msg="Should handle long positive",
@@ -116,9 +125,9 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value=Int64(1),
         expected=datetime(1970, 1, 1, 0, 0, 0, 1000),
     ),
-    # --- Decimal128 (ms since epoch) ---
+    # Decimal128 (ms since epoch).
     ToDateTest(
-        "decimal_zero", msg="Should handle decimal zero", value=Decimal128("0"), expected=DATE_EPOCH
+        "decimal_zero", msg="Should handle decimal zero", value=DECIMAL128_ZERO, expected=DATE_EPOCH
     ),
     ToDateTest(
         "decimal_positive",
@@ -138,7 +147,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value=Decimal128("86400000"),
         expected=datetime(1970, 1, 2, 0, 0, 0),
     ),
-    # --- String ---
+    # String.
     ToDateTest(
         "string_date_only",
         msg="Should parse date only",
@@ -158,12 +167,6 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         expected=datetime(2018, 3, 20, 7, 0, 0),
     ),
     ToDateTest(
-        "string_with_space_offset",
-        msg="Should parse with space offset",
-        value="2018-03-20 11:00:06 +0500",
-        expected=datetime(2018, 3, 20, 6, 0, 6),
-    ),
-    ToDateTest(
         "string_date_2024",
         msg="Should parse date 2024",
         value="2024-01-01",
@@ -175,7 +178,141 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value="2024-06-15T12:30:45Z",
         expected=datetime(2024, 6, 15, 12, 30, 45),
     ),
-    # --- ObjectId (various dates) ---
+    ToDateTest(
+        "string_datetime_no_tz",
+        msg="Should parse datetime without timezone",
+        value="2024-06-15T12:30:45",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    # String whitespace trimming.
+    ToDateTest(
+        "string_leading_space",
+        msg="Should trim leading space",
+        value=" 2024-06-15T12:30:45Z",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_trailing_space",
+        msg="Should trim trailing space",
+        value="2024-06-15T12:30:45Z ",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_leading_tab",
+        msg="Should trim leading tab",
+        value="\t2024-06-15T12:30:45Z",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_trailing_tab",
+        msg="Should trim trailing tab",
+        value="2024-06-15T12:30:45Z\t",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_leading_newline",
+        msg="Should trim leading newline",
+        value="\n2024-06-15T12:30:45Z",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_trailing_newline",
+        msg="Should trim trailing newline",
+        value="2024-06-15T12:30:45Z\n",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_leading_null_byte",
+        msg="Should trim leading null byte",
+        value="\x002024-06-15T12:30:45Z",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_trailing_null_byte",
+        msg="Should trim trailing null byte",
+        value="2024-06-15T12:30:45Z\x00",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_leading_nbsp",
+        msg="Should trim leading NBSP",
+        value="\u00a02024-06-15T12:30:45Z",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_trailing_nbsp",
+        msg="Should trim trailing NBSP",
+        value="2024-06-15T12:30:45Z\u00a0",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_tab_separator",
+        msg="Should accept tab as date/time separator",
+        value="2024-06-15\t12:30:45Z",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_multiple_space_separator",
+        msg="Should accept multiple spaces as date/time separator",
+        value="2024-06-15  12:30:45Z",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_space_before_tz",
+        msg="Should accept space before timezone designator",
+        value="2024-06-15T12:30:45 Z",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_space_separator_with_offset",
+        msg="Should parse space-separated date/time with space before numeric offset",
+        value="2018-03-20 11:00:06 +0500",
+        expected=datetime(2018, 3, 20, 6, 0, 6),
+    ),
+    # Timezone offset formats.
+    ToDateTest(
+        "string_tz_plus_colon",
+        msg="Should parse +HH:MM timezone offset",
+        value="2024-06-15T12:30:45+05:00",
+        expected=datetime(2024, 6, 15, 7, 30, 45),
+    ),
+    ToDateTest(
+        "string_tz_plus_compact",
+        msg="Should parse +HHMM timezone offset",
+        value="2024-06-15T12:30:45+0500",
+        expected=datetime(2024, 6, 15, 7, 30, 45),
+    ),
+    ToDateTest(
+        "string_tz_minus_zero_colon",
+        msg="Should parse -00:00 timezone offset",
+        value="2024-06-15T12:30:45-00:00",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_tz_plus_zero_compact",
+        msg="Should parse +0000 timezone offset",
+        value="2024-06-15T12:30:45+0000",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_tz_plus_zero_short",
+        msg="Should parse +HH shorthand timezone offset",
+        value="2024-06-15T12:30:45+00",
+        expected=datetime(2024, 6, 15, 12, 30, 45),
+    ),
+    ToDateTest(
+        "string_tz_minus_colon",
+        msg="Should parse -HH:MM timezone offset",
+        value="2024-06-15T12:30:45-05:30",
+        expected=datetime(2024, 6, 15, 18, 0, 45),
+    ),
+    ToDateTest(
+        "string_tz_minus_compact",
+        msg="Should parse -HHMM timezone offset",
+        value="2024-06-15T12:30:45-0530",
+        expected=datetime(2024, 6, 15, 18, 0, 45),
+    ),
+    # ObjectId (various dates).
     ToDateTest(
         "oid_2024_jan1",
         msg="Should handle oid 2024 jan1",
@@ -200,7 +337,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value=_oid_2018_03_27,
         expected=datetime(2018, 3, 27, 4, 8, 58),
     ),
-    # --- Timestamp (various dates) ---
+    # Timestamp (various dates).
     ToDateTest(
         "ts_2024_jan1",
         msg="Should handle ts 2024 jan1",
@@ -225,7 +362,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value=_ts_2021_11_23,
         expected=datetime(2021, 11, 23, 17, 21, 58),
     ),
-    # --- Date passthrough ---
+    # Date passthrough.
     ToDateTest(
         "date_passthrough",
         msg="Should handle date passthrough",
@@ -233,7 +370,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         expected=datetime(2024, 6, 15, 12, 0, 0),
     ),
     ToDateTest("date_epoch", msg="Should handle date epoch", value=DATE_EPOCH, expected=DATE_EPOCH),
-    # --- Sign handling (int32 not supported, use Long) ---
+    # Sign handling (int32 not supported, use Long).
     ToDateTest(
         "int_zero_error",
         msg="Should reject int zero",
@@ -252,7 +389,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value=-86400000,
         error_code=CONVERSION_FAILURE_ERROR,
     ),
-    # --- Invalid types ---
+    # Invalid types.
     ToDateTest(
         "bool_true", msg="Should reject bool true", value=True, error_code=CONVERSION_FAILURE_ERROR
     ),
@@ -265,7 +402,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
     ToDateTest(
         "object", msg="Should reject object", value={"a": 1}, error_code=CONVERSION_FAILURE_ERROR
     ),
-    # --- Invalid strings ---
+    # Invalid strings.
     ToDateTest(
         "string_friday",
         msg="Should parse friday",
@@ -281,7 +418,25 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
     ToDateTest(
         "string_empty", msg="Should parse empty", value="", error_code=CONVERSION_FAILURE_ERROR
     ),
-    # --- Special numeric values ---
+    ToDateTest(
+        "string_year_only",
+        msg="Should reject year-only string",
+        value="2024",
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
+    ToDateTest(
+        "string_space_in_date",
+        msg="Should reject space within date portion",
+        value="2024 -06-15T12:30:45Z",
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
+    ToDateTest(
+        "string_space_in_time",
+        msg="Should reject space within time portion",
+        value="2024-06-15T12: 30:45Z",
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
+    # Special numeric values.
     ToDateTest(
         "nan_double",
         msg="Should reject nan double",
@@ -386,7 +541,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value=ts_from_args(2100, 6, 15, 0, 0, 0),
         expected=datetime(2100, 6, 15, 0, 0, 0),
     ),
-    # --- Additional invalid types ---
+    # Additional invalid types.
     ToDateTest(
         "regex", msg="Should reject regex", value=Regex(".*"), error_code=CONVERSION_FAILURE_ERROR
     ),
@@ -408,7 +563,13 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value=Code("function(){}"),
         error_code=CONVERSION_FAILURE_ERROR,
     ),
-    # --- Negative zero ---
+    ToDateTest(
+        "javascript_with_scope",
+        msg="Should reject javascript with scope",
+        value=Code("function(){}", {}),
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
+    # Negative zero.
     ToDateTest(
         "double_neg_zero",
         msg="Should handle double neg zero",
@@ -421,7 +582,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value=DECIMAL128_NEGATIVE_ZERO,
         expected=DATE_EPOCH,
     ),
-    # --- Date boundary tests ---
+    # Date boundary tests.
     ToDateTest(
         "date_passthrough_epoch_ms",
         msg="Should handle date passthrough epoch ms",
@@ -465,7 +626,94 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         value=OID_MAX_UNSIGNED32,
         expected=datetime(1969, 12, 31, 23, 59, 59),
     ),
-    # --- Leap year string ---
+    # Year boundary tests.
+    ToDateTest(
+        "string_year_0001",
+        msg="Should parse earliest representable year string",
+        value="0001-01-01T00:00:00Z",
+        expected=datetime(1, 1, 1, 0, 0, 0),
+    ),
+    ToDateTest(
+        "string_year_9999_end",
+        msg="Should parse last millisecond of year 9999",
+        value="9999-12-31T23:59:59.999Z",
+        expected=datetime(9999, 12, 31, 23, 59, 59, 999000),
+    ),
+    ToDateTest(
+        "string_year_10000",
+        msg="Should reject year 10000 string",
+        value="10000-01-01T00:00:00Z",
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
+    ToDateTest(
+        "long_year_9999_end",
+        msg="Should handle last millisecond of year 9999 from Int64",
+        value=Int64(253402300799999),
+        expected=datetime(9999, 12, 31, 23, 59, 59, 999000),
+    ),
+    # Year strings with more than 4 digits should be rejected. Testing revealed
+    # that some implementations silently misparse these depending on whether the
+    # first 4 digits exceed a 2-digit year cutoff (2059). Both sides of that
+    # boundary are tested, along with longer digit sequences.
+    ToDateTest(
+        "string_year_5_digits_low_prefix",
+        msg="Should reject 5-digit year string with prefix <= 2059",
+        value="20599-01-01T00:00:00Z",
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
+    ToDateTest(
+        "string_year_5_digits_high_prefix",
+        msg="Should reject 5-digit year string with prefix > 2059",
+        value="20609-01-01T00:00:00Z",
+        error_code=CONVERSION_FAILURE_ERROR,
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB silently misparses multi-digit year strings instead of rejecting",
+                raises=AssertionError,
+            ),
+        ),
+    ),
+    ToDateTest(
+        "string_year_5_digits_max",
+        msg="Should reject 5-digit year string starting with 9999",
+        value="99999-01-01T00:00:00Z",
+        error_code=CONVERSION_FAILURE_ERROR,
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB silently misparses multi-digit year strings instead of rejecting",
+                raises=AssertionError,
+            ),
+        ),
+    ),
+    ToDateTest(
+        "string_year_6_digits",
+        msg="Should reject 6-digit year string",
+        value="199990-01-01T00:00:00Z",
+        error_code=CONVERSION_FAILURE_ERROR,
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB silently misparses multi-digit year strings instead of rejecting",
+                raises=AssertionError,
+            ),
+        ),
+    ),
+    ToDateTest(
+        "string_year_50_digits",
+        msg="Should reject year string far exceeding numeric limits",
+        value="9" * 49 + "1-01-01T00:00:00Z",
+        error_code=CONVERSION_FAILURE_ERROR,
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB silently misparses multi-digit year strings instead of rejecting",
+                raises=AssertionError,
+            ),
+        ),
+    ),
+    # Leap year string.
     ToDateTest(
         "string_leap_feb29",
         msg="Should parse leap feb29",
@@ -501,25 +749,25 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
 _LITERAL_ONLY = {t.id for t in TODATE_BASIC_TESTS if t.value is MISSING}
 
 
+@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
 @pytest.mark.parametrize("test", pytest_params(TODATE_BASIC_TESTS))
-def test_toDate_basic_literal(collection, test):
+def test_toDate_basic_literal(collection, test, expr_fn):
     """Test $toDate with literal values."""
-    result = execute_expression(collection, {"$toDate": test.value})
+    result = execute_expression(collection, expr_fn(test))
     assert_expression_result(result, expected=test.expected, error_code=test.error_code)
 
 
+@pytest.mark.parametrize("expr_fn", _DOC_EXPR_FORMS)
 @pytest.mark.parametrize(
     "test", pytest_params([t for t in TODATE_BASIC_TESTS if t.id not in _LITERAL_ONLY])
 )
-def test_toDate_basic_insert(collection, test):
+def test_toDate_basic_insert(collection, test, expr_fn):
     """Test $toDate from documents."""
-    result = execute_expression_with_insert(
-        collection, {"$toDate": "$value"}, {"value": test.value}
-    )
+    result = execute_expression_with_insert(collection, expr_fn("$value"), {"value": test.value})
     assert_expression_result(result, expected=test.expected, error_code=test.error_code)
 
 
-# --- Array tests (literal vs insert behavior differs) ---
+# Array tests (literal vs insert behavior differs).
 
 
 def test_toDate_array_literal(collection):
@@ -546,3 +794,68 @@ def test_toDate_array_date_insert(collection):
         collection, {"$toDate": "$value"}, {"value": [datetime(2024, 1, 1)]}
     )
     assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
+
+
+# Out-of-Python-range year boundary tests.
+# Python's datetime cannot represent years outside 1-9999, so we use $year
+# to extract and verify the year without decoding the Date client-side.
+
+# Property [Out-of-Range Year]: $toDate produces correct dates for years
+# outside Python's 1-9999 range, verified via $year extraction.
+TODATE_OUT_OF_RANGE_YEAR_TESTS: list[ToDateTest] = [
+    ToDateTest(
+        "long_year_negative",
+        msg="$toDate should produce year -1 from Int64",
+        value=Int64(-62198755200000),
+        expected=-1,
+    ),
+    ToDateTest(
+        "long_year_0",
+        msg="$toDate should produce year 0 from Int64",
+        value=Int64(-62167219200000),
+        expected=0,
+    ),
+    ToDateTest(
+        "long_year_10000",
+        msg="$toDate should produce year 10000 from Int64",
+        value=Int64(253402300800000),
+        expected=10000,
+    ),
+    ToDateTest(
+        "string_year_negative",
+        msg="$toDate should produce year -1 from string",
+        value="-0001-01-01T00:00:00Z",
+        expected=-1,
+    ),
+    ToDateTest(
+        "string_year_0",
+        msg="$toDate should produce year 0 from string",
+        value="0000-01-01T00:00:00Z",
+        expected=0,
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(TODATE_OUT_OF_RANGE_YEAR_TESTS))
+def test_toDate_out_of_range_year(collection, test):
+    """Test $toDate creates correct Date for out-of-Python-range years."""
+    result = execute_expression(collection, {"$year": {"$toDate": test.value}})
+    assert_expression_result(result, expected=test.expected, msg=test.msg)
+
+
+@pytest.mark.parametrize(
+    "label, ms",
+    [
+        ("year_negative", Int64(-62198755200000)),
+        ("year_0", Int64(-62167219200000)),
+        ("year_10000", Int64(253402300800000)),
+    ],
+)
+def test_toDate_out_of_range_year_driver_rejects(collection, label, ms):
+    """Test that the BSON driver raises InvalidBSON when decoding out-of-range dates."""
+    result = execute_expression(collection, {"$toDate": ms})
+    assertExceptionType(
+        result,
+        InvalidBSON,
+        msg=f"BSON driver should raise InvalidBSON when decoding {label} date",
+    )
