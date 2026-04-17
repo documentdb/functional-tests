@@ -12,6 +12,7 @@ def execute_command(collection, command: Dict, codec_options=None) -> Union[Any,
     Args:
         collection: DocumentDB collection
         command: Command to execute via runCommand
+        codec_options: Optional CodecOptions to verify timezone-aware datetime results
 
     Returns:
         Result if successful, Exception if failed

@@ -190,6 +190,7 @@ Example path: `documentdb_tests/compatibility/tests/core/operator/expressions/ar
   - Date + NaN (should fail)
   - Date + non-numeric types (should fail)
 - **Overflow**: Date + LONG_MAX (should fail)
+- **Timezone awareness**: Use `CodecOptions(tz_aware=True, tzinfo=timezone.utc)` to verify timezone-aware datetime decoding, e.g. `datetime(2024, 1, 1, tzinfo=timezone.utc)`
 
 ---
 
