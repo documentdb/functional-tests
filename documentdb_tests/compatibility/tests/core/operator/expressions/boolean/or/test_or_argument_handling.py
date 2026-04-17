@@ -9,6 +9,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 ALL_TESTS = [
     ExpressionTestCase(
@@ -62,7 +63,7 @@ ALL_TESTS = [
 ]
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_or_argument_handling(collection, test):
     """Test $or argument handling."""
     result = execute_expression(collection, test.expression)

@@ -12,6 +12,17 @@ from bson import Decimal128, Int64
 
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
 
+_MAX_REPR_LEN = 1000
+
+
+def _truncate_repr(obj: Any) -> str:
+    """Format an object for error output, truncating if too long."""
+    text = pprint.pformat(obj, width=100)
+    if len(text) > _MAX_REPR_LEN:
+        return text[:_MAX_REPR_LEN] + f"... (truncated, {len(text)} chars total)"
+    return text
+
+
 # BSON numeric types that must match exactly during comparison. Python's == operator
 # treats some of these as equal (e.g. int and Int64) but they are distinct BSON types.
 _NUMERIC_BSON_TYPES = (int, float, Int64, Decimal128)
@@ -52,6 +63,25 @@ def _strict_equal(a: Any, b: Any) -> bool:
     return bool(a == b)
 
 
+def _sort_if_list(value):
+    """Return a sorted copy if value is a list, otherwise return unchanged."""
+    if not isinstance(value, list):
+        return value
+    return sorted(value, key=lambda x: (type(x).__name__, repr(x)))
+
+
+def _sort_fields(docs, fields):
+    """Sort list values for the named fields in each document."""
+    sorted_docs = []
+    for doc in docs:
+        doc = dict(doc)
+        for field in fields:
+            if field in doc:
+                doc[field] = _sort_if_list(doc[field])
+        sorted_docs.append(doc)
+    return sorted_docs
+
+
 class TestSetupError(AssertionError):
     """Raised when a test has invalid setup (bad arguments, malformed expected values)."""
 
@@ -64,7 +94,7 @@ def _format_exception_error(result: Exception) -> str:
     msg = getattr(result, "details", {}).get("errmsg", str(result))
     return (
         f"[UNEXPECTED_ERROR] Expected success but got exception:\n"
-        f"{pprint.pformat({'code': code, 'msg': msg}, width=100)}\n"
+        f"{_truncate_repr({'code': code, 'msg': msg})}\n"
     )
 
 
@@ -75,6 +105,7 @@ def assertSuccess(
     raw_res: bool = False,
     transform: Optional[Callable] = None,
     ignore_doc_order: bool = False,
+    ignore_order_in: Optional[list[str]] = None,
 ):
     """
     Assert command succeeded and optionally check result.
@@ -86,7 +117,7 @@ def assertSuccess(
         raw_res: If asserting raw result. False by default,
             only compare content of ["cursor"]["firstBatch"]
         transform: Optional callback to transform result before comparison
-        ignore_doc_order: If True, compare lists as sets (order-independent)
+        ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
     """
     if isinstance(result, Exception):
         if isinstance(result, _INFRA_TYPES):
@@ -99,17 +130,25 @@ def assertSuccess(
     if transform:
         result = transform(result)
 
+    if ignore_order_in:
+        expected = _sort_fields(expected, ignore_order_in)
+        result = _sort_fields(result, ignore_order_in)
+
     error_text = "[RESULT_MISMATCH]"
     if msg:
         error_text += f" {msg}"
-    error_text += f"\n\nExpected:\n{pprint.pformat(expected, width=100)}"
-    error_text += f"\n\nActual:\n{pprint.pformat(result, width=100)}\n"
+    error_text += f"\n\nExpected:\n{_truncate_repr(expected)}"
+    error_text += f"\n\nActual:\n{_truncate_repr(result)}\n"
 
-    if ignore_doc_order and isinstance(result, list) and isinstance(expected, list):
-        assert _strict_equal(
-            sorted(result, key=lambda x: str(x)),
-            sorted(expected, key=lambda x: str(x)),
-        ), error_text
+    _large = len(repr(result)) > _MAX_REPR_LEN or len(repr(expected)) > _MAX_REPR_LEN
+
+    if ignore_doc_order:
+        result = _sort_if_list(result)
+        expected = _sort_if_list(expected)
+
+    if _large:
+        if not _strict_equal(result, expected):
+            raise AssertionError(error_text)
     else:
         assert _strict_equal(result, expected), error_text
 
@@ -160,7 +199,7 @@ def assertFailure(
     else:
         error_text = (
             f"[UNEXPECTED_SUCCESS]{custom_msg} Expected error but got result:\n"
-            f"{pprint.pformat(result, width=100)}\n"
+            f"{_truncate_repr(result)}\n"
         )
         raise AssertionError(error_text)
 
@@ -177,10 +216,14 @@ def assertFailure(
 
     error_text = (
         f"[ERROR_MISMATCH]{custom_msg}\n\n"
-        f"Expected:\n{pprint.pformat(expected, width=100)}\n\n"
-        f"Actual:\n{pprint.pformat(actual, width=100)}\n"
+        f"Expected:\n{_truncate_repr(expected)}\n\n"
+        f"Actual:\n{_truncate_repr(actual)}\n"
     )
-    assert _strict_equal(actual, expected), error_text
+    if len(repr(actual)) > _MAX_REPR_LEN or len(repr(expected)) > _MAX_REPR_LEN:
+        if not _strict_equal(actual, expected):
+            raise AssertionError(error_text)
+    else:
+        assert _strict_equal(actual, expected), error_text
 
 
 def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Optional[str] = None):
@@ -194,6 +237,8 @@ def assertResult(
     expected: Any = None,
     error_code: Optional[int] = None,
     msg: Optional[str] = None,
+    ignore_order_in: Optional[list[str]] = None,
+    ignore_doc_order: bool = False,
 ):
     """
     Universal assertion that handles success and error cases.
@@ -203,12 +248,52 @@ def assertResult(
         expected: Expected result documents (for success cases)
         error_code: Expected error code (for error cases)
         msg: Custom assertion message (optional)
+        ignore_order_in: Field names whose list values should be sorted before
+            comparison (for fields like set operation results where element
+            order is unspecified)
+        ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
 
     Usage:
         assertResult(result, expected=[{"_id": 1}])  # Success case
         assertResult(result, error_code=16555)  # Error case
+        assertResult(result, expected=[{"r": [3, 1, 2]}], ignore_order_in=["r"])
     """
     if error_code is not None:
         assertFailureCode(result, error_code, msg)
     else:
-        assertSuccess(result, expected, msg)
+        assertSuccess(
+            result,
+            expected,
+            msg,
+            ignore_order_in=ignore_order_in,
+            ignore_doc_order=ignore_doc_order,
+        )
+
+
+def _replace_nan(val: Any) -> Any:
+    """Recursively replace NaN (float or Decimal128) with __NAN__ so that == works."""
+    if isinstance(val, float) and math.isnan(val):
+        return "__NaN__"
+    if isinstance(val, Decimal128) and val.to_decimal().is_nan():
+        return "__NaN__"
+    if isinstance(val, dict):
+        return {k: _replace_nan(v) for k, v in val.items()}
+    if isinstance(val, list):
+        return [_replace_nan(v) for v in val]
+    return val
+
+
+def assertSuccessNaN(
+    result: Union[Any, Exception],
+    expected: Any,
+    msg: Optional[str] = None,
+    ignore_doc_order: bool = False,
+):
+    """Assert command succeeded, treating NaN == NaN as True."""
+    assertSuccess(
+        result,
+        _replace_nan(expected),
+        msg=msg,
+        ignore_doc_order=ignore_doc_order,
+        transform=_replace_nan,
+    )

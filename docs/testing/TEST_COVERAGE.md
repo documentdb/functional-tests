@@ -190,6 +190,7 @@ Example path: `documentdb_tests/compatibility/tests/core/operator/expressions/ar
   - Date + NaN (should fail)
   - Date + non-numeric types (should fail)
 - **Overflow**: Date + LONG_MAX (should fail)
+- **Timezone awareness**: Use `CodecOptions(tz_aware=True, tzinfo=timezone.utc)` to verify timezone-aware datetime decoding, e.g. `datetime(2024, 1, 1, tzinfo=timezone.utc)`
 
 ---
 
@@ -270,6 +271,47 @@ For each invalid_type in [string, object, array, ...]:
 - `stages/group/test_operators_in_group.py`
 
 **Applies to**: all expression operators (`$abs`, `$add`, `$ceil`, `$floor`, `$sqrt`, `$concat`, etc.)
+
+---
+
+### 12. Object Expression Test Coverage
+**Rule**: All sizes, shapes, and types of documents must be tested in object expressions.
+
+**Key Cases**:
+- Documents of different shapes must be tested:
+  - Empty documents
+  - Flat documents, including all scalar types
+  - Deeply nested documents ($a.b.c.d)
+  - Nested arrays (`{arr: [[1,2], [3,4]]}`, `{obj: {arr: [1,2,3]}}`)
+- For object manipulation:
+  - Overwriting existing fields returns object with new value
+  - Removing non-existent fields has no effect and returns original object
+  - Original document is not updated, only the returned object
+  - $set/unsetField does not traverse objects or arrays, it only works upon top level fields
+    - Test this using $replaceWith
+  - Field names with periods or dollar ($) signs require $replaceWith
+- Inputs other than objects, nulls, or undefined values are rejected
+- Verify that $mergeObjects accepts an array of any number of objects
+- For $mergeObjects, verify that field conflicts prioritize the last document
+
+**Applies to**: object expression operators (`$mergeObjects`, `$setField`, `$unsetField`, `$getField`)
+
+---
+
+### 13. Variable Operator Coverage
+**Rule**: Variable operators must be tested for value passthrough fidelity, expression suppression, scoping, and argument validation.
+
+**Behavior**:
+- **BSON type passthrough**: Test all BSON types to verify no coercion or precision loss. Type distinctions must be preserved (e.g. false ≠ 0, "" ≠ null, Decimal128("-0E+3") preserves exponent).
+- **Expression suppression**: `$literal` returns its argument as-is — expressions, field paths, and system variables are treated as plain values, not evaluated. `$let` evaluates `in` only within its declared variable scope.
+- **Project disambiguation**: `{"$literal": 1}` sets a field to value 1, not an inclusion flag — same for 0, true, false. Objects with dollar-prefixed keys, dot-containing keys, or operator-named keys are returned unchanged.
+- **Scoping** (`$let`): Variables in vars cannot reference each other. Nested `$let` can shadow outer variables without leaking. System variables (`$$ROOT`, `$$CURRENT`, `$$REMOVE`, `$$NOW`) are accessible but cannot be redefined in vars.
+- **Variable naming** (`$let`): Names must start with a lowercase letter or non-ASCII character. Uppercase, digits, special characters, and system variable names are rejected as starting characters. Dots and hyphens are rejected anywhere; underscores and digits are allowed after the first character.
+- **Path lookup** (`$let`): `"$$x.a.b"` traverses the variable's value. Non-existent paths omit the field. Paths on array-of-objects return an array of matched values. Null propagates; missing field paths omit the field.
+- **Argument validation**: `$literal` takes exactly one argument. `$let` requires both vars (object) and in — missing either, non-object vars, or unknown fields produce distinct errors.
+- **Operator interaction**: Variable operators should be tested in combination with conditional (`$cond`), iteration (`$map`, `$reduce`, `$filter`), and access control (`$redact`) operators to verify scope isolation.
+
+**Applies to**: `$let`, `$literal`
 
 ---
 

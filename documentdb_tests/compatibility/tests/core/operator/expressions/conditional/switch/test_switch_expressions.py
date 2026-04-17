@@ -12,6 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 # --- Literal tests (no doc insert needed) ---
 LITERAL_TESTS: list[ExpressionTestCase] = [
@@ -49,7 +50,7 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(LITERAL_TESTS))
 def test_switch_expression_literal(collection, test):
     """Test $switch with literal expression inputs."""
     result = execute_expression(collection, test.expression)
@@ -232,7 +233,7 @@ INSERT_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", INSERT_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(INSERT_TESTS))
 def test_switch_expression_insert(collection, test):
     """Test $switch with field reference and document-dependent inputs."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
