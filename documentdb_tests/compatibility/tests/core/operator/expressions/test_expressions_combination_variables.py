@@ -129,7 +129,7 @@ NESTED_LET_TESTS: list[ExpressionTestCase] = [
         msg="Swap: x=2, y=1, 2-1=1",
     ),
     ExpressionTestCase(
-        "triple_nested_scoping_result_8",
+        "triple_nested_innermost_shadow_wins",
         expression={
             "$let": {
                 "vars": {"x": 1},
@@ -142,10 +142,10 @@ NESTED_LET_TESTS: list[ExpressionTestCase] = [
             }
         },
         expected=8,
-        msg="Innermost x=4, 4*2=8",
+        msg="Innermost shadow of x should be used when all three levels redefine it",
     ),
     ExpressionTestCase(
-        "triple_nested_scoping_result_10",
+        "triple_nested_mixed_scope_resolution",
         expression={
             "$let": {
                 "vars": {"x": 1, "y": 2},
@@ -158,7 +158,8 @@ NESTED_LET_TESTS: list[ExpressionTestCase] = [
             }
         },
         expected=10,
-        msg="z=5, x=3(shadowed), y=2(outer), 5+3+2=10",
+        msg="Variables resolve from correct nesting levels: "
+        "shadowed, inherited, and locally defined",
     ),
 ]
 
