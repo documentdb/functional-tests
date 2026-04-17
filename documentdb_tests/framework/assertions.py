@@ -12,6 +12,17 @@ from bson import Decimal128, Int64
 
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
 
+_MAX_REPR_LEN = 1000
+
+
+def _truncate_repr(obj: Any) -> str:
+    """Format an object for error output, truncating if too long."""
+    text = pprint.pformat(obj, width=100)
+    if len(text) > _MAX_REPR_LEN:
+        return text[:_MAX_REPR_LEN] + f"... (truncated, {len(text)} chars total)"
+    return text
+
+
 # BSON numeric types that must match exactly during comparison. Python's == operator
 # treats some of these as equal (e.g. int and Int64) but they are distinct BSON types.
 _NUMERIC_BSON_TYPES = (int, float, Int64, Decimal128)
@@ -83,7 +94,7 @@ def _format_exception_error(result: Exception) -> str:
     msg = getattr(result, "details", {}).get("errmsg", str(result))
     return (
         f"[UNEXPECTED_ERROR] Expected success but got exception:\n"
-        f"{pprint.pformat({'code': code, 'msg': msg}, width=100)}\n"
+        f"{_truncate_repr({'code': code, 'msg': msg})}\n"
     )
 
 
@@ -126,14 +137,20 @@ def assertSuccess(
     error_text = "[RESULT_MISMATCH]"
     if msg:
         error_text += f" {msg}"
-    error_text += f"\n\nExpected:\n{pprint.pformat(expected, width=100)}"
-    error_text += f"\n\nActual:\n{pprint.pformat(result, width=100)}\n"
+    error_text += f"\n\nExpected:\n{_truncate_repr(expected)}"
+    error_text += f"\n\nActual:\n{_truncate_repr(result)}\n"
+
+    _large = len(repr(result)) > _MAX_REPR_LEN or len(repr(expected)) > _MAX_REPR_LEN
 
     if ignore_doc_order:
         result = _sort_if_list(result)
         expected = _sort_if_list(expected)
 
-    assert _strict_equal(result, expected), error_text
+    if _large:
+        if not _strict_equal(result, expected):
+            raise AssertionError(error_text)
+    else:
+        assert _strict_equal(result, expected), error_text
 
 
 def assertSuccessPartial(
@@ -182,7 +199,7 @@ def assertFailure(
     else:
         error_text = (
             f"[UNEXPECTED_SUCCESS]{custom_msg} Expected error but got result:\n"
-            f"{pprint.pformat(result, width=100)}\n"
+            f"{_truncate_repr(result)}\n"
         )
         raise AssertionError(error_text)
 
@@ -199,10 +216,14 @@ def assertFailure(
 
     error_text = (
         f"[ERROR_MISMATCH]{custom_msg}\n\n"
-        f"Expected:\n{pprint.pformat(expected, width=100)}\n\n"
-        f"Actual:\n{pprint.pformat(actual, width=100)}\n"
+        f"Expected:\n{_truncate_repr(expected)}\n\n"
+        f"Actual:\n{_truncate_repr(actual)}\n"
     )
-    assert _strict_equal(actual, expected), error_text
+    if len(repr(actual)) > _MAX_REPR_LEN or len(repr(expected)) > _MAX_REPR_LEN:
+        if not _strict_equal(actual, expected):
+            raise AssertionError(error_text)
+    else:
+        assert _strict_equal(actual, expected), error_text
 
 
 def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Optional[str] = None):

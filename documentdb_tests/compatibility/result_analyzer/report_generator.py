@@ -101,6 +101,8 @@ def generate_text_report(analysis: Dict[str, Any], output_path: str):
     lines.append(f"Passed:       {summary['passed']} ({summary['pass_rate']}%)")
     lines.append(f"Failed:       {summary['failed']}")
     lines.append(f"Skipped:      {summary['skipped']}")
+    lines.append(f"XFailed:      {summary['xfailed']}")
+    lines.append(f"XPassed:      {summary['xpassed']}")
     lines.append("")
 
     # Results by tag
@@ -141,6 +143,16 @@ def generate_text_report(analysis: Dict[str, Any], output_path: str):
         for test in skipped_tests:
             lines.append(f"  {test['name']}")
 
+    # XPASS warning
+    xpassed_tests = [t for t in analysis["tests"] if t["outcome"] == "XPASS"]
+    if xpassed_tests:
+        lines.append("")
+        lines.append(f"⚠ ERROR: {len(xpassed_tests)} test(s) unexpectedly passed (XPASS).")
+        lines.append("  With xfail_strict=true, these should appear as failures instead.")
+        lines.append("  If you see this, the test run may not have used pytest.ini.")
+        for test in xpassed_tests:
+            lines.append(f"    {test['name']}")
+
     lines.append("")
     lines.append("=" * 80)
 
@@ -163,6 +175,8 @@ def print_summary(analysis: Dict[str, Any]):
     print(f"Passed:  {summary['passed']} ({summary['pass_rate']}%)")
     print(f"Failed:  {summary['failed']}")
     print(f"Skipped: {summary['skipped']}")
+    print(f"XFailed: {summary['xfailed']}")
+    print(f"XPassed: {summary['xpassed']}")
     print("=" * 60)
 
     # Failed test counts by type
@@ -173,5 +187,13 @@ def print_summary(analysis: Dict[str, Any]):
         print("-" * 60)
         for ft in sorted(grouped):
             print(f"  {ft}: {len(grouped[ft])}")
+
+    if summary["xpassed"] > 0:
+        xpassed_tests = [t for t in analysis["tests"] if t["outcome"] == "XPASS"]
+        print(f"\n⚠ ERROR: {summary['xpassed']} test(s) unexpectedly passed (XPASS).")
+        print("  With xfail_strict=true, these should appear as failures instead.")
+        print("  If you see this, the test run may not have used pytest.ini.")
+        for t in xpassed_tests:
+            print(f"    {t['name']}")
 
     print("=" * 60 + "\n")
