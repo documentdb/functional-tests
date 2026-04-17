@@ -270,11 +270,11 @@ INSERT_ERROR_TESTS: list[ExpressionTestCase] = [
         msg="Should error when field ref resolves to int",
     ),
     ExpressionTestCase(
-        "ref_to_missing",
+        "ref_to_array",
         expression={"$getField": {"field": "$f", "input": {"a": 1}}},
-        doc={"a": 1},
+        doc={"f": ["a"]},
         error_code=GETFIELD_FIELD_NOT_STRING_ERROR,
-        msg="Should error when field ref resolves to missing",
+        msg="Should error when field ref resolves to array",
     ),
 ]
 

@@ -91,6 +91,20 @@ SHORTHAND_TESTS: list[ExpressionTestCase] = [
         msg="Should access field ending with dot",
     ),
     ExpressionTestCase(
+        "unicode",
+        expression={"$getField": "café"},
+        doc={"café": 1},
+        expected=1,
+        msg="Should access field with Unicode characters",
+    ),
+    ExpressionTestCase(
+        "unicode_cjk",
+        expression={"$getField": "日本語"},
+        doc={"日本語": 2},
+        expected=2,
+        msg="Should access field with CJK characters",
+    ),
+    ExpressionTestCase(
         "duplicate_like",
         expression={"$getField": "a.b"},
         doc={"a.b": 2, "a": {"b": 99}},
