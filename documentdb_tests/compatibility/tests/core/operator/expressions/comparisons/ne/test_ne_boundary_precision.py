@@ -4,7 +4,7 @@ Tests for $ne boundary values and precision.
 Covers cross-type boundary values, large number precision at double/long boundary,
 and overflow adjacency.
 Decimal128 precision and double self-equality are tested in
-/core/data-types/bson-types/test_bson_type_ordering.py.
+/core/bson_types/test_bson_types_ordering.py.
 """
 
 import pytest

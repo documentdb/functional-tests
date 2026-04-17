@@ -2,7 +2,7 @@
 Tests for $ne same-type comparisons.
 
 Covers date, timestamp, ObjectId, BinData, regex, UUID, and large input comparisons.
-String comparison semantics are tested in /core/data-types/bson-types/test_bson_type_ordering.py.
+String comparison semantics are tested in /core/bson_types/test_bson_types_ordering.py.
 """
 
 from datetime import datetime
@@ -128,6 +128,27 @@ REGEX_TESTS: list[ExpressionTestCase] = [
 ]
 
 
+BOOLEAN_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "true_true",
+        expression={"$ne": [True, True]},
+        expected=False,
+        msg="True equals True",
+    ),
+    ExpressionTestCase(
+        "false_false",
+        expression={"$ne": [False, False]},
+        expected=False,
+        msg="False equals False",
+    ),
+    ExpressionTestCase(
+        "true_false",
+        expression={"$ne": [True, False]},
+        expected=True,
+        msg="True not equal to False",
+    ),
+]
+
 UUID_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "same",
@@ -186,6 +207,7 @@ ALL_TESTS = (
     + OBJECTID_TESTS
     + BINDATA_TESTS
     + REGEX_TESTS
+    + BOOLEAN_TESTS
     + UUID_TESTS
     + LARGE_INPUT_TESTS
 )

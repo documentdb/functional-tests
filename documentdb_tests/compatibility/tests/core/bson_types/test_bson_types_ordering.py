@@ -152,6 +152,83 @@ def test_adjacent_type_ordering(collection, test):
     assert_expression_result(result, expected=test.expected, msg=test.msg)
 
 
+NON_ADJACENT_TYPE_ORDERING_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "null_lt_object",
+        expression={"$lt": [None, {}]},
+        expected=True,
+        msg="Null < object (skipping number and string)",
+    ),
+    ExpressionTestCase(
+        "int_lt_bindata",
+        expression={"$lt": [0, Binary(b"", 0)]},
+        expected=True,
+        msg="Number < BinData (skipping string, object, array)",
+    ),
+    ExpressionTestCase(
+        "int_ne_string",
+        expression={"$eq": [1, "1"]},
+        expected=False,
+        msg="Number not equal to string (no type coercion)",
+    ),
+    ExpressionTestCase(
+        "int_ne_bool",
+        expression={"$eq": [0, False]},
+        expected=False,
+        msg="Number not equal to bool (no type coercion)",
+    ),
+    ExpressionTestCase(
+        "null_ne_bool",
+        expression={"$eq": [None, False]},
+        expected=False,
+        msg="Null not equal to bool (no type coercion)",
+    ),
+    ExpressionTestCase(
+        "bool_ne_int",
+        expression={"$eq": [True, 1]},
+        expected=False,
+        msg="Bool not equal to number (no type coercion)",
+    ),
+    ExpressionTestCase(
+        "empty_string_ne_none",
+        expression={"$eq": ["", None]},
+        expected=False,
+        msg="Empty string not equal to null (no null coercion)",
+    ),
+    ExpressionTestCase(
+        "zero_ne_none",
+        expression={"$eq": [0, None]},
+        expected=False,
+        msg="Zero not equal to null (no null coercion)",
+    ),
+    ExpressionTestCase(
+        "empty_string_ne_false",
+        expression={"$eq": ["", False]},
+        expected=False,
+        msg="Empty string not equal to false (no falsy coercion)",
+    ),
+    ExpressionTestCase(
+        "empty_array_ne_false",
+        expression={"$eq": [[], False]},
+        expected=False,
+        msg="Empty array not equal to false (no falsy coercion)",
+    ),
+    ExpressionTestCase(
+        "string_lt_timestamp",
+        expression={"$lt": ["", Timestamp(0, 0)]},
+        expected=True,
+        msg="String < Timestamp (skipping object, array, bindata, ObjectId, bool, date)",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(NON_ADJACENT_TYPE_ORDERING_TESTS))
+def test_non_adjacent_type_ordering(collection, test):
+    """Test non-adjacent cross-type comparisons for transitive ordering."""
+    result = execute_expression(collection, test.expression)
+    assert_expression_result(result, expected=test.expected, msg=test.msg)
+
+
 STRING_COMPARISON_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "str_equal", expression={"$eq": ["abc", "abc"]}, expected=True, msg="Same strings equal"

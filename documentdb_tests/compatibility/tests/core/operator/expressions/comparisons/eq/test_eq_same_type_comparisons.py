@@ -2,7 +2,7 @@
 Tests for $eq same-type comparisons.
 
 Covers date, timestamp, ObjectId, BinData, regex, UUID, and large input comparisons.
-String comparison semantics are tested in /core/data-types/bson-types/test_bson_type_ordering.py.
+String comparison semantics are tested in /core/bson_types/test_bson_types_ordering.py.
 """
 
 from datetime import datetime
@@ -128,6 +128,27 @@ REGEX_TESTS: list[ExpressionTestCase] = [
 ]
 
 
+BOOLEAN_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "true_true",
+        expression={"$eq": [True, True]},
+        expected=True,
+        msg="True equals True",
+    ),
+    ExpressionTestCase(
+        "false_false",
+        expression={"$eq": [False, False]},
+        expected=True,
+        msg="False equals False",
+    ),
+    ExpressionTestCase(
+        "true_false",
+        expression={"$eq": [True, False]},
+        expected=False,
+        msg="True not equal to False",
+    ),
+]
+
 UUID_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "same",
@@ -186,6 +207,7 @@ ALL_TESTS = (
     + OBJECTID_TESTS
     + BINDATA_TESTS
     + REGEX_TESTS
+    + BOOLEAN_TESTS
     + UUID_TESTS
     + LARGE_INPUT_TESTS
 )
