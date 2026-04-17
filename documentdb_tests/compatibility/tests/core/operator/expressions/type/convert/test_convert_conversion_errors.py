@@ -206,6 +206,13 @@ CONVERT_DATE_STRING_YEAR_RANGE_ERROR_TESTS: list[ConvertTest] = [
         on_error="caught",
         expected="caught",
         msg="$convert onError should catch date-to-string year range error for negative year",
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB evaluates year-range errors at optimize time, before onError fires",
+                raises=AssertionError,
+            ),
+        ),
     ),
     ConvertTest(
         "date_str_year_err_on_error_caught_above_9999",
@@ -214,6 +221,13 @@ CONVERT_DATE_STRING_YEAR_RANGE_ERROR_TESTS: list[ConvertTest] = [
         on_error="caught",
         expected="caught",
         msg="$convert onError should catch date-to-string year range error for year above 9999",
+        marks=(
+            pytest.mark.engine_xfail(
+                engine="mongodb",
+                reason="MongoDB evaluates year-range errors at optimize time, before onError fires",
+                raises=AssertionError,
+            ),
+        ),
     ),
 ]
 
