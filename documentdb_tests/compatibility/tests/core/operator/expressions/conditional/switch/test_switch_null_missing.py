@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.parametrize import pytest_params
 
 # --- Tests that produce a result value (including null) ---
 RESULT_TESTS: list[ExpressionTestCase] = [
@@ -101,7 +102,7 @@ MISSING_FIELD_OUTPUT_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", RESULT_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(RESULT_TESTS))
 def test_switch_null_missing_result(collection, test):
     """Test $switch null/missing propagation returning a value or error."""
     if test.doc:
@@ -113,7 +114,7 @@ def test_switch_null_missing_result(collection, test):
     )
 
 
-@pytest.mark.parametrize("test", MISSING_FIELD_OUTPUT_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(MISSING_FIELD_OUTPUT_TESTS))
 def test_switch_null_missing_field_output(collection, test):
     """Test $switch with missing field reference excludes field from output."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

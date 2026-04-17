@@ -10,6 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
+from documentdb_tests.framework.parametrize import pytest_params
 
 CONST_OPTIMIZATION_TESTS = [
     ExpressionTestCase(
@@ -65,7 +66,7 @@ ERROR_TESTS = [
 ALL_TESTS = CONST_OPTIMIZATION_TESTS + NO_OPTIMIZATION_TESTS + ERROR_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_or_short_circuit(collection, test):
     """Test $or short-circuit behavior."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

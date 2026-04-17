@@ -25,6 +25,7 @@ from documentdb_tests.framework.error_codes import (
     SWITCH_UNKNOWN_BRANCH_FIELD_ERROR,
     SWITCH_UNKNOWN_TOP_LEVEL_FIELD_ERROR,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 # --- Non-object argument ---
 NON_OBJECT_ARG_TESTS: list[ExpressionTestCase] = [
@@ -288,7 +289,7 @@ SUCCESS_TESTS: list[ExpressionTestCase] = [
 ALL_TESTS = ALL_ERROR_TESTS + SUCCESS_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_switch_argument_handling(collection, test):
     """Test $switch argument validation and basic handling."""
     result = execute_expression(collection, test.expression)

@@ -10,6 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 NULL_LITERAL_TESTS = [
     ExpressionTestCase(
@@ -33,7 +34,7 @@ NULL_LITERAL_TESTS = [
 ]
 
 
-@pytest.mark.parametrize("test", NULL_LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(NULL_LITERAL_TESTS))
 def test_or_null_literal(collection, test):
     """Test $or with null literals."""
     result = execute_expression(collection, test.expression)
@@ -87,7 +88,7 @@ NULL_PATH_TESTS = [
 INSERT_TESTS = MISSING_FIELD_TESTS + NULL_FIELD_TESTS + NULL_PATH_TESTS
 
 
-@pytest.mark.parametrize("test", INSERT_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(INSERT_TESTS))
 def test_or_null_missing_with_doc(collection, test):
     """Test $or with null and missing fields."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

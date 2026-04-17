@@ -9,6 +9,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 NESTED_OR_TESTS = [
     ExpressionTestCase(
@@ -32,7 +33,7 @@ NESTED_OR_TESTS = [
 ]
 
 
-@pytest.mark.parametrize("test", NESTED_OR_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(NESTED_OR_TESTS))
 def test_or_nested_self(collection, test):
     """Test $or nested inside $or."""
     result = execute_expression(collection, test.expression)

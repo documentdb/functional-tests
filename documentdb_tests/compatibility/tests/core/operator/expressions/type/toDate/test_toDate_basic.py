@@ -722,7 +722,7 @@ _LITERAL_ONLY = {t.id for t in TODATE_BASIC_TESTS if t.value is MISSING}
 
 
 @pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-@pytest.mark.parametrize("test", TODATE_BASIC_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(TODATE_BASIC_TESTS))
 def test_toDate_basic_literal(collection, test, expr_fn):
     """Test $toDate with literal values."""
     result = execute_expression(collection, expr_fn(test))
@@ -731,7 +731,7 @@ def test_toDate_basic_literal(collection, test, expr_fn):
 
 @pytest.mark.parametrize("expr_fn", _DOC_EXPR_FORMS)
 @pytest.mark.parametrize(
-    "test", [t for t in TODATE_BASIC_TESTS if t.id not in _LITERAL_ONLY], ids=lambda t: t.id
+    "test", pytest_params([t for t in TODATE_BASIC_TESTS if t.id not in _LITERAL_ONLY])
 )
 def test_toDate_basic_insert(collection, test, expr_fn):
     """Test $toDate from documents."""
