@@ -19,6 +19,7 @@ from documentdb_tests.framework.error_codes import (
     CONVERSION_FAILURE_ERROR,
     TO_TYPE_ARITY_ERROR,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DATE_BEFORE_EPOCH,
     DATE_EPOCH,
@@ -500,7 +501,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
 _LITERAL_ONLY = {t.id for t in TODATE_BASIC_TESTS if t.value is MISSING}
 
 
-@pytest.mark.parametrize("test", TODATE_BASIC_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(TODATE_BASIC_TESTS))
 def test_toDate_basic_literal(collection, test):
     """Test $toDate with literal values."""
     result = execute_expression(collection, {"$toDate": test.value})
@@ -508,7 +509,7 @@ def test_toDate_basic_literal(collection, test):
 
 
 @pytest.mark.parametrize(
-    "test", [t for t in TODATE_BASIC_TESTS if t.id not in _LITERAL_ONLY], ids=lambda t: t.id
+    "test", pytest_params([t for t in TODATE_BASIC_TESTS if t.id not in _LITERAL_ONLY])
 )
 def test_toDate_basic_insert(collection, test):
     """Test $toDate from documents."""

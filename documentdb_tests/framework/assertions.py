@@ -247,3 +247,32 @@ def assertResult(
             ignore_order_in=ignore_order_in,
             ignore_doc_order=ignore_doc_order,
         )
+
+
+def _replace_nan(val: Any) -> Any:
+    """Recursively replace NaN (float or Decimal128) with __NAN__ so that == works."""
+    if isinstance(val, float) and math.isnan(val):
+        return "__NaN__"
+    if isinstance(val, Decimal128) and val.to_decimal().is_nan():
+        return "__NaN__"
+    if isinstance(val, dict):
+        return {k: _replace_nan(v) for k, v in val.items()}
+    if isinstance(val, list):
+        return [_replace_nan(v) for v in val]
+    return val
+
+
+def assertSuccessNaN(
+    result: Union[Any, Exception],
+    expected: Any,
+    msg: Optional[str] = None,
+    ignore_doc_order: bool = False,
+):
+    """Assert command succeeded, treating NaN == NaN as True."""
+    assertSuccess(
+        result,
+        _replace_nan(expected),
+        msg=msg,
+        ignore_doc_order=ignore_doc_order,
+        transform=_replace_nan,
+    )
