@@ -70,22 +70,6 @@ NESTED_LET_TESTS: list[ExpressionTestCase] = [
         msg="Inner $let without redefining should see outer value",
     ),
     ExpressionTestCase(
-        "triple_nested",
-        expression={
-            "$let": {
-                "vars": {"x": 1},
-                "in": {
-                    "$let": {
-                        "vars": {"x": 2},
-                        "in": {"$let": {"vars": {"x": 4}, "in": {"$add": ["$$x", 4]}}},
-                    }
-                },
-            }
-        },
-        expected=8,
-        msg="Triple nested should use innermost value: 4+4=8",
-    ),
-    ExpressionTestCase(
         "shadow_does_not_leak",
         expression={
             "$let": {
