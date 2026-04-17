@@ -15,20 +15,20 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
+    EXPRESSION_NOT_OBJECT_ERROR,
     EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
     FAILED_TO_PARSE_ERROR,
-    FIELD_PATH_CONSECUTIVE_DOTS_ERROR,
     FIELD_PATH_DOLLAR_PREFIX_ERROR,
+    FIELD_PATH_EMPTY_COMPONENT_ERROR,
     FIELD_PATH_TRAILING_DOT_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
-    INVALID_FIELD_PATH_DOLLAR_IN_VARIABLE_ERROR,
-    LET_INVALID_VARS_TYPE_ERROR,
     LET_MISSING_IN_ERROR,
     LET_MISSING_VARS_ERROR,
     LET_NON_OBJECT_ARGUMENT_ERROR,
     LET_UNDEFINED_VARIABLE_ERROR,
     LET_UNKNOWN_FIELD_ERROR,
     TYPE_MISMATCH_ERROR,
+    UNRECOGNIZED_EXPRESSION_ERROR,
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -87,7 +87,7 @@ RAW_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "vars_string",
         expression={"$let": {"vars": "not_object", "in": 1}},
-        error_code=LET_INVALID_VARS_TYPE_ERROR,
+        error_code=EXPRESSION_NOT_OBJECT_ERROR,
         msg="String vars should fail",
     ),
     ExpressionTestCase(
@@ -99,19 +99,19 @@ RAW_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "vars_number",
         expression={"$let": {"vars": 42, "in": 1}},
-        error_code=LET_INVALID_VARS_TYPE_ERROR,
+        error_code=EXPRESSION_NOT_OBJECT_ERROR,
         msg="Number vars should fail",
     ),
     ExpressionTestCase(
         "vars_null",
         expression={"$let": {"vars": None, "in": 1}},
-        error_code=LET_INVALID_VARS_TYPE_ERROR,
+        error_code=EXPRESSION_NOT_OBJECT_ERROR,
         msg="Null vars should fail",
     ),
     ExpressionTestCase(
         "vars_bool",
         expression={"$let": {"vars": True, "in": 1}},
-        error_code=LET_INVALID_VARS_TYPE_ERROR,
+        error_code=EXPRESSION_NOT_OBJECT_ERROR,
         msg="Bool vars should fail",
     ),
 ]
@@ -179,13 +179,13 @@ EXPRESSION_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "consecutive_dots",
         expression={"$let": {"vars": {"x": {"a": 1}}, "in": "$$x..a"}},
-        error_code=FIELD_PATH_CONSECUTIVE_DOTS_ERROR,
+        error_code=FIELD_PATH_EMPTY_COMPONENT_ERROR,
         msg="Consecutive dots should fail",
     ),
     ExpressionTestCase(
         "dollar_field_path",
         expression={"$let": {"vars": {"x": {"$a": 1}}, "in": "$$x.$a"}},
-        error_code=INVALID_FIELD_PATH_DOLLAR_IN_VARIABLE_ERROR,
+        error_code=UNRECOGNIZED_EXPRESSION_ERROR,
         msg="Dollar-prefixed field in path should fail",
     ),
     ExpressionTestCase(
