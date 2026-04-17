@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
+from documentdb_tests.framework.parametrize import pytest_params
 
 EAGER_EVALUATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -60,7 +61,7 @@ ERROR_PROPAGATION_TESTS: list[ExpressionTestCase] = [
 ALL_TESTS = EAGER_EVALUATION_TESTS + ERROR_PROPAGATION_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_ifNull_evaluation_order(collection, test):
     """Test $ifNull eager evaluation order and error propagation."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

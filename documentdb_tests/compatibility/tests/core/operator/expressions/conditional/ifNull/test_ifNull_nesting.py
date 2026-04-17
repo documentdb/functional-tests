@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 NESTED_IFNULL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -43,7 +44,7 @@ ALL_INSERT_TESTS = [t for t in NESTED_IFNULL_TESTS if t.doc is not None]
 ALL_LITERAL_TESTS = [t for t in NESTED_IFNULL_TESTS if t.doc is None]
 
 
-@pytest.mark.parametrize("test", ALL_INSERT_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_INSERT_TESTS))
 def test_ifNull_nesting_insert(collection, test):
     """Test $ifNull nesting with expressions requiring document insert."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
@@ -52,7 +53,7 @@ def test_ifNull_nesting_insert(collection, test):
     )
 
 
-@pytest.mark.parametrize("test", ALL_LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_LITERAL_TESTS))
 def test_ifNull_nesting_literal(collection, test):
     """Test $ifNull nesting with literal expressions (no document insert)."""
     result = execute_expression(collection, test.expression)

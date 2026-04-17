@@ -18,6 +18,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 NULL_PROPAGATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -225,7 +226,7 @@ ALL_INSERT_TESTS = (
 ALL_LITERAL_TESTS = [t for t in CONSTANT_ARG_TESTS if t.doc is None] + FALSY_NOT_NULL_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_INSERT_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_INSERT_TESTS))
 def test_ifNull_null_missing_insert(collection, test):
     """Test $ifNull null/missing with document insert."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
@@ -234,7 +235,7 @@ def test_ifNull_null_missing_insert(collection, test):
     )
 
 
-@pytest.mark.parametrize("test", ALL_LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_LITERAL_TESTS))
 def test_ifNull_null_missing_literal(collection, test):
     """Test $ifNull null/missing with literal expressions."""
     result = execute_expression(collection, test.expression)

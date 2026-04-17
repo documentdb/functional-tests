@@ -13,6 +13,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 SYSTEM_VARIABLE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -41,7 +42,7 @@ SYSTEM_VARIABLE_TESTS: list[ExpressionTestCase] = [
 ALL_TESTS = SYSTEM_VARIABLE_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_ifNull_system_variables(collection, test):
     """Test $ifNull with system variables."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)

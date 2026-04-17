@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import IFNULL_INVALID_ARGS_ERROR
+from documentdb_tests.framework.parametrize import pytest_params
 
 INVALID_ARG_FORMAT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -91,7 +92,7 @@ VALID_ARG_COUNT_TESTS: list[ExpressionTestCase] = [
 ALL_TESTS = INVALID_ARG_FORMAT_TESTS + VALID_ARG_COUNT_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_ifNull_argument_handling(collection, test):
     """Test $ifNull argument handling and error cases."""
     result = execute_expression(collection, test.expression)

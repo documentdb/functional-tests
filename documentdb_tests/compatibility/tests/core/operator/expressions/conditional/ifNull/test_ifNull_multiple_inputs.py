@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.parametrize import pytest_params
 
 ALL_LITERAL_NULL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -55,7 +56,7 @@ STRESS_TESTS: list[ExpressionTestCase] = [
 ALL_LITERAL_TESTS = ALL_LITERAL_NULL_TESTS + STRESS_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_LITERAL_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_LITERAL_TESTS))
 def test_ifNull_multiple_inputs_literal(collection, test):
     """Test $ifNull with multiple literal inputs (no document insert)."""
     result = execute_expression(collection, test.expression)
@@ -132,7 +133,7 @@ MIXED_TYPE_TESTS: list[ExpressionTestCase] = [
 ALL_INSERT_TESTS = FIRST_NON_NULL_TESTS + MIXED_NULL_MISSING_TESTS + MIXED_TYPE_TESTS
 
 
-@pytest.mark.parametrize("test", ALL_INSERT_TESTS, ids=lambda t: t.id)
+@pytest.mark.parametrize("test", pytest_params(ALL_INSERT_TESTS))
 def test_ifNull_multiple_inputs_insert(collection, test):
     """Test $ifNull with multiple inputs requiring document insert."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
