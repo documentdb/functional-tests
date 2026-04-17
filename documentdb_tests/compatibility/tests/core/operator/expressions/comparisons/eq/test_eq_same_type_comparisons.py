@@ -61,6 +61,12 @@ TIMESTAMP_TESTS: list[ExpressionTestCase] = [
         expected=False,
         msg="Different seconds not equal",
     ),
+    ExpressionTestCase(
+        "date_ne_timestamp",
+        expression={"$eq": [datetime(2024, 1, 1), Timestamp(1704067200, 0)]},
+        expected=False,
+        msg="Date and Timestamp are different BSON types, never equal",
+    ),
 ]
 
 
