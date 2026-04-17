@@ -298,6 +298,24 @@ For each invalid_type in [string, object, array, ...]:
 **Applies to**: object expression operators (`$mergeObjects`, `$setField`, `$unsetField`, `$getField`)
 
 ---
+### 13. Meta Operator Coverage
+	 
+	 **Rule**: `$meta` should be tested in the two modes supported by version 8.x: `textScore` and `indexKey`. These operators
+	 have little effect in isolation, but return metadata of query results.
+	 
+	 **textScore**
+	 - Returns a float score indicating how well a document matches a `$text` search.
+	 - If `textScore` is used without a `$text` an error is returned.
+	 - `$meta` tests do not comprehensively test `$text` queries, only that the `$meta` operator returns text scores when a `$text` query is used.
+	 
+	 **indexKey**
+	 - If an index is used in a query `indexKey` returns the key of that index.
+	 - `indexKey` should be tested with different index types while minimally testing the indexes themselves.
+	   - Basic, compound key, array, sparse, text, and hashed indexes
+	 - If no index is used, the field is absent.
+	 
+	 ---
+	
 
 ## Test Category Checklist
 
