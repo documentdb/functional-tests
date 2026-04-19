@@ -104,6 +104,18 @@ RANGE_EXCLUSION_TESTS: list[QueryTestCase] = [
         msg="$in with $gt on same level",
     ),
     QueryTestCase(
+        id="in_with_lt_same_level",
+        filter={"a": {"$in": [1, 2, 3, 4, 5], "$lt": 3}},
+        doc=[
+            {"_id": 1, "a": 1},
+            {"_id": 2, "a": 3},
+            {"_id": 3, "a": 2},
+            {"_id": 4, "a": 5},
+        ],
+        expected=[{"_id": 1, "a": 1}, {"_id": 3, "a": 2}],
+        msg="$in with $lt on same level",
+    ),
+    QueryTestCase(
         id="nin_with_range_same_level",
         filter={"a": {"$nin": [3, 5], "$gte": 1, "$lte": 7}},
         doc=[
@@ -167,6 +179,30 @@ NOT_WITH_COMPARISON_TESTS: list[QueryTestCase] = [
         ],
         expected=[{"_id": 2, "a": 7}, {"_id": 3}],
         msg="$not $lt matches gte AND missing",
+    ),
+    QueryTestCase(
+        id="not_lte",
+        filter={"a": {"$not": {"$lte": 5}}},
+        doc=[
+            {"_id": 1, "a": 3},
+            {"_id": 2, "a": 5},
+            {"_id": 3, "a": 7},
+            {"_id": 4},
+        ],
+        expected=[{"_id": 3, "a": 7}, {"_id": 4}],
+        msg="$not $lte matches gt AND missing",
+    ),
+    QueryTestCase(
+        id="not_gte",
+        filter={"a": {"$not": {"$gte": 5}}},
+        doc=[
+            {"_id": 1, "a": 3},
+            {"_id": 2, "a": 5},
+            {"_id": 3, "a": 7},
+            {"_id": 4},
+        ],
+        expected=[{"_id": 1, "a": 3}, {"_id": 4}],
+        msg="$not $gte matches lt AND missing",
     ),
     QueryTestCase(
         id="not_in",
@@ -272,6 +308,17 @@ MISSING_PAIR_TESTS: list[QueryTestCase] = [
         ],
         expected=[{"_id": 2, "a": 2, "b": "y"}],
         msg="$in with $ne on different fields",
+    ),
+    QueryTestCase(
+        id="ne_with_lt_different_fields",
+        filter={"a": {"$ne": 2}, "b": {"$lt": 10}},
+        doc=[
+            {"_id": 1, "a": 2, "b": 5},
+            {"_id": 2, "a": 3, "b": 5},
+            {"_id": 3, "a": 3, "b": 15},
+        ],
+        expected=[{"_id": 2, "a": 3, "b": 5}],
+        msg="$ne with $lt on different fields",
     ),
     QueryTestCase(
         id="in_and_nin_different_fields",
