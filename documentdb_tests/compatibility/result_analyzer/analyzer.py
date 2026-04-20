@@ -19,6 +19,8 @@ OUTCOME_TO_KEY = {
     "PASS": "passed",
     "FAIL": "failed",
     "SKIPPED": "skipped",
+    "XFAIL": "xfailed",
+    "XPASS": "xpassed",
 }
 
 
@@ -28,6 +30,8 @@ class TestOutcome:
     PASS = "PASS"
     FAIL = "FAIL"
     SKIPPED = "SKIPPED"
+    XFAIL = "XFAIL"
+    XPASS = "XPASS"
 
 
 def categorize_outcome(test_result: Dict[str, Any]) -> str:
@@ -38,12 +42,14 @@ def categorize_outcome(test_result: Dict[str, Any]) -> str:
     - PASS: Test passed
     - FAIL: Test failed (for any reason)
     - SKIPPED: Test skipped
+    - XFAIL: Test expected to fail and did fail
+    - XPASS: Test expected to fail but passed
 
     Args:
         test_result: Test result dictionary from pytest JSON report
 
     Returns:
-        One of: PASS, FAIL, SKIPPED
+        One of: PASS, FAIL, SKIPPED, XFAIL, XPASS
     """
     outcome = test_result.get("outcome", "")
 
@@ -51,8 +57,11 @@ def categorize_outcome(test_result: Dict[str, Any]) -> str:
         return TestOutcome.PASS
     elif outcome == "skipped":
         return TestOutcome.SKIPPED
+    elif outcome == "xfailed":
+        return TestOutcome.XFAIL
+    elif outcome == "xpassed":
+        return TestOutcome.XPASS
     else:
-        # Failed or any other outcome
         return TestOutcome.FAIL
 
 
@@ -93,6 +102,11 @@ def extract_failure_tag(test_result: Dict[str, Any]) -> str:
     call_info = test_result.get("call", {})
     crash_info = call_info.get("crash", {})
     crash_message = crash_info.get("message", "")
+
+    # Detect strict XPASS from longrepr
+    longrepr = call_info.get("longrepr", "")
+    if longrepr.startswith("[XPASS(strict)]"):
+        return "XPASS_STRICT"
 
     match = re.search(r"\[([A-Z_]+)\]", crash_message)
     if match:
@@ -300,10 +314,12 @@ class ResultAnalyzer:
             "passed": 0,
             "failed": 0,
             "skipped": 0,
+            "xfailed": 0,
+            "xpassed": 0,
         }
 
         by_tag: Dict[str, Dict[str, int]] = defaultdict(
-            lambda: {"passed": 0, "failed": 0, "skipped": 0}
+            lambda: {"passed": 0, "failed": 0, "skipped": 0, "xfailed": 0, "xpassed": 0}
         )
 
         tests_details = []
