@@ -19,7 +19,12 @@ def test_smoke_limit(collection):
     )
 
     result = execute_command(
-        collection, {"aggregate": collection.name, "pipeline": [{"$limit": 2}], "cursor": {}}
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [{"$sort": {"_id": 1}}, {"$limit": 2}],
+            "cursor": {},
+        },
     )
 
     expected = [{"_id": 1, "value": 10}, {"_id": 2, "value": 20}]
