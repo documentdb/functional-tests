@@ -122,6 +122,27 @@ PROJECT_PIPELINE_POSITION_TESTS: list[StageTestCase] = [
         expected=[{"x": 10}],
         msg="$project should reshape documents after $replaceRoot",
     ),
+    StageTestCase(
+        "pipeline_project_meta_textscore",
+        docs=[
+            {"_id": 1, "content": "apple"},
+            {"_id": 2, "content": "banana"},
+        ],
+        setup=lambda collection: collection.create_index([("content", "text")]),
+        pipeline=[
+            {"$match": {"$text": {"$search": "apple"}}},
+            {"$project": {"_id": 1, "score": {"$meta": "textScore"}}},
+            {"$match": {"score": {"$gt": 0}}},
+            {"$project": {"_id": 1}},
+        ],
+        expected=[
+            {"_id": 1},
+        ],
+        msg=(
+            "$project with $meta textScore should produce a"
+            " positive score field for matching documents"
+        ),
+    ),
 ]
 
 
@@ -129,6 +150,8 @@ PROJECT_PIPELINE_POSITION_TESTS: list[StageTestCase] = [
 @pytest.mark.parametrize("test_case", pytest_params(PROJECT_PIPELINE_POSITION_TESTS))
 def test_stages_position_project_cases(collection, test_case: StageTestCase):
     """Test $project composing with other stages at different pipeline positions."""
+    if test_case.setup:
+        test_case.setup(collection)
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(
