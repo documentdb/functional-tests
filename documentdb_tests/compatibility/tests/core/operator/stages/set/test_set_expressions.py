@@ -7,6 +7,10 @@ from uuid import UUID
 import pytest
 from bson import Binary, Decimal128, Int64, ObjectId, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.stages.set.utils.set_common import (
+    STAGE_NAMES,
+    _replace_stage_name,
+)
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
     populate_collection,
@@ -1210,15 +1214,17 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
 
 
 @pytest.mark.aggregate
+@pytest.mark.parametrize("stage_name", STAGE_NAMES)
 @pytest.mark.parametrize("test_case", pytest_params(SET_EXPRESSION_TESTS))
-def test_set_expression_cases(collection: Any, test_case: StageTestCase):
-    """Test that expression operators work within $set."""
+def test_set_expression_cases(collection: Any, stage_name: str, test_case: StageTestCase):
+    """Test that expression operators work within $set / $addFields."""
     populate_collection(collection, test_case)
+    pipeline = _replace_stage_name(test_case.pipeline, stage_name)
     result = execute_command(
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": test_case.pipeline,
+            "pipeline": pipeline,
             "cursor": {},
         },
     )
@@ -1226,5 +1232,5 @@ def test_set_expression_cases(collection: Any, test_case: StageTestCase):
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,
-        msg=test_case.msg,
+        msg=f"{stage_name!r}: {test_case.msg!r}",
     )
