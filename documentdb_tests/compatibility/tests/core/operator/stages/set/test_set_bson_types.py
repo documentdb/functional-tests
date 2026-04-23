@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import UUID
 
 import pytest
-from bson import Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.stages.set.utils.set_common import (
     STAGE_NAMES,
@@ -16,6 +17,11 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import (
+    DOUBLE_NEGATIVE_ZERO,
+    FLOAT_INFINITY,
+    FLOAT_NAN,
+)
 
 # Property [BSON Type Pass-Through]: all BSON types are accepted as field
 # values and pass through unchanged, including empty arrays, empty objects,
@@ -153,6 +159,69 @@ SET_BSON_TYPE_TESTS: list[StageTestCase] = [
         pipeline=[{"$set": {"v": {"$literal": {}}}}],
         expected=[{"_id": 1, "v": {}}],
         msg="$set should pass through an empty object unchanged",
+    ),
+    StageTestCase(
+        "bson_bool_true",
+        docs=[{"_id": 1}],
+        pipeline=[{"$set": {"v": True}}],
+        expected=[{"_id": 1, "v": True}],
+        msg="$set should pass through a boolean true value unchanged",
+    ),
+    StageTestCase(
+        "bson_bool_false",
+        docs=[{"_id": 1}],
+        pipeline=[{"$set": {"v": False}}],
+        expected=[{"_id": 1, "v": False}],
+        msg="$set should pass through a boolean false value unchanged",
+    ),
+    StageTestCase(
+        "bson_none",
+        docs=[{"_id": 1}],
+        pipeline=[{"$set": {"v": None}}],
+        expected=[{"_id": 1, "v": None}],
+        msg="$set should pass through a null value unchanged",
+    ),
+    StageTestCase(
+        "bson_float_nan",
+        docs=[{"_id": 1}],
+        pipeline=[{"$set": {"v": FLOAT_NAN}}],
+        expected=[{"_id": 1, "v": pytest.approx(FLOAT_NAN, nan_ok=True)}],
+        msg="$set should pass through NaN unchanged",
+    ),
+    StageTestCase(
+        "bson_float_inf",
+        docs=[{"_id": 1}],
+        pipeline=[{"$set": {"v": FLOAT_INFINITY}}],
+        expected=[{"_id": 1, "v": FLOAT_INFINITY}],
+        msg="$set should pass through Infinity unchanged",
+    ),
+    StageTestCase(
+        "bson_float_neg_zero",
+        docs=[{"_id": 1}],
+        pipeline=[{"$set": {"v": DOUBLE_NEGATIVE_ZERO}}],
+        expected=[{"_id": 1, "v": DOUBLE_NEGATIVE_ZERO}],
+        msg="$set should pass through -0.0 unchanged",
+    ),
+    StageTestCase(
+        "bson_uuid",
+        docs=[{"_id": 1}],
+        pipeline=[{"$set": {"v": Binary.from_uuid(UUID("12345678-1234-1234-1234-123456789abc"))}}],
+        expected=[{"_id": 1, "v": Binary.from_uuid(UUID("12345678-1234-1234-1234-123456789abc"))}],
+        msg="$set should pass through a UUID value unchanged",
+    ),
+    StageTestCase(
+        "bson_binary_subtype_5",
+        docs=[{"_id": 1}],
+        pipeline=[{"$set": {"v": Binary(b"\x01\x02\x03", 5)}}],
+        expected=[{"_id": 1, "v": Binary(b"\x01\x02\x03", 5)}],
+        msg="$set should pass through a Binary with non-default subtype unchanged",
+    ),
+    StageTestCase(
+        "bson_timestamp_zero",
+        docs=[{"_id": 1}],
+        pipeline=[{"$set": {"v": Timestamp(0, 0)}}],
+        expected=[{"_id": 1, "v": Timestamp(0, 0)}],
+        msg="$set should pass through Timestamp(0, 0) unchanged",
     ),
 ]
 
