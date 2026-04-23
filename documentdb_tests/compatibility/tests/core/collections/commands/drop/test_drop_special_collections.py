@@ -4,6 +4,9 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
+    CappedCollection,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -12,9 +15,9 @@ from documentdb_tests.framework.parametrize import pytest_params
 DROP_CAPPED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "capped",
-        setup=lambda db: db.create_collection("test_drop_capped", capped=True, size=4096),
+        target_collection=CappedCollection(size=4096),
         docs=[{"_id": 1}],
-        command={"drop": "test_drop_capped"},
+        command=lambda ctx: {"drop": ctx.collection},
         expected=lambda ctx: {"nIndexesWas": 1, "ns": ctx.namespace, "ok": 1.0},
         msg="Drop on capped collection should succeed",
     ),
@@ -46,11 +49,9 @@ DROP_SPECIAL_TESTS: list[CommandTestCase] = DROP_CAPPED_TESTS + DROP_LARGE_COLLE
 @pytest.mark.parametrize("test", pytest_params(DROP_SPECIAL_TESTS))
 def test_drop_special(database_client, collection, test):
     """Test drop on special collection types."""
-    target = test.setup(database_client) if test.setup else collection
-    if test.docs:
-        target.insert_many(test.docs)
-    ctx = CommandContext.from_collection(target)
-    result = execute_command(target, test.build_command(ctx))
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
     assertResult(
         result,
         expected=test.build_expected(ctx),

@@ -88,11 +88,9 @@ DROP_INVALID_NAME_TESTS: list[CommandTestCase] = (
 @pytest.mark.parametrize("test", pytest_params(DROP_INVALID_NAME_TESTS))
 def test_drop_invalid_names(database_client, collection, test):
     """Test drop command rejects invalid collection names."""
-    target = test.setup(database_client) if test.setup else collection
-    if test.docs:
-        target.insert_many(test.docs)
-    ctx = CommandContext.from_collection(target)
-    result = execute_command(target, test.build_command(ctx))
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
     assertResult(
         result,
         expected=test.build_expected(ctx),

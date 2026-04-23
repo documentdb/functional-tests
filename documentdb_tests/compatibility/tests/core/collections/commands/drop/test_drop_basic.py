@@ -4,6 +4,9 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
+    NamedCollection,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -20,8 +23,8 @@ DROP_BASIC_TESTS: list[CommandTestCase] = [
     ),
     CommandTestCase(
         "empty_collection",
-        setup=lambda db: db.create_collection("empty_via_create"),
-        command={"drop": "empty_via_create"},
+        target_collection=NamedCollection(),
+        command=lambda ctx: {"drop": ctx.collection},
         expected=lambda ctx: {"nIndexesWas": 1, "ns": ctx.namespace, "ok": 1.0},
         msg="Explicitly created empty collection should have nIndexesWas=1",
     ),
@@ -38,22 +41,22 @@ DROP_BASIC_TESTS: list[CommandTestCase] = [
 DROP_SPECIAL_NAME_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "spaces",
-        setup=lambda db: db.create_collection("test drop spaces"),
-        command={"drop": "test drop spaces"},
+        target_collection=NamedCollection(suffix=" spaces"),
+        command=lambda ctx: {"drop": ctx.collection},
         expected=lambda ctx: {"nIndexesWas": 1, "ns": ctx.namespace, "ok": 1.0},
         msg="Should succeed with spaces in name",
     ),
     CommandTestCase(
         "unicode",
-        setup=lambda db: db.create_collection("test_drôp_ünïcödé"),
-        command={"drop": "test_drôp_ünïcödé"},
+        target_collection=NamedCollection(suffix="_drôp_ünïcödé"),
+        command=lambda ctx: {"drop": ctx.collection},
         expected=lambda ctx: {"nIndexesWas": 1, "ns": ctx.namespace, "ok": 1.0},
         msg="Should succeed with unicode in name",
     ),
     CommandTestCase(
         "dots",
-        setup=lambda db: db.create_collection("test.drop.dots"),
-        command={"drop": "test.drop.dots"},
+        target_collection=NamedCollection(suffix=".dots"),
+        command=lambda ctx: {"drop": ctx.collection},
         expected=lambda ctx: {"nIndexesWas": 1, "ns": ctx.namespace, "ok": 1.0},
         msg="Should succeed with dots in name",
     ),
@@ -80,11 +83,9 @@ DROP_BASIC_ALL_TESTS: list[CommandTestCase] = (
 @pytest.mark.parametrize("test", pytest_params(DROP_BASIC_ALL_TESTS))
 def test_drop_basic(database_client, collection, test):
     """Test basic drop command response."""
-    target = test.setup(database_client) if test.setup else collection
-    if test.docs:
-        target.insert_many(test.docs)
-    ctx = CommandContext.from_collection(target)
-    result = execute_command(target, test.build_command(ctx))
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
     assertResult(
         result,
         expected=test.build_expected(ctx),

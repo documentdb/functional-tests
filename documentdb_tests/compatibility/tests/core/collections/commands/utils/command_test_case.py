@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
+from pymongo import IndexModel
 from pymongo.collection import Collection
 from pymongo.database import Database
 
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
+    TargetCollection,
+)
 from documentdb_tests.framework.test_case import BaseTestCase
 
 
@@ -27,7 +31,7 @@ class CommandContext:
     namespace: str
 
     @classmethod
-    def from_collection(cls, collection) -> CommandContext:
+    def from_collection(cls, collection: Collection) -> CommandContext:
         db = collection.database.name
         coll = collection.name
         return cls(collection=coll, database=db, namespace=f"{db}.{coll}")
@@ -42,9 +46,10 @@ class CommandTestCase(BaseTestCase):
     a callable that receives a CommandContext at execution time.
 
     Attributes:
-        setup: A callable that receives a Database and returns the
-            Collection to execute against. When None, uses the default
-            fixture collection.
+        target_collection: Describes the collection to execute against.
+            Defaults to the fixture collection.
+        indexes: Indexes to create before executing the command. Each
+            entry is passed to create_index.
         docs: Documents to insert before executing the command.
         command: A callable (CommandContext -> dict) for commands that
             need fixture values, or a plain dict.
@@ -52,10 +57,20 @@ class CommandTestCase(BaseTestCase):
             need fixture values, a plain dict, or None for error cases.
     """
 
-    setup: Callable[[Database], Collection] | None = None
+    target_collection: TargetCollection = field(default_factory=TargetCollection)
+    indexes: list[IndexModel] | None = None
     docs: list[dict[str, Any]] | None = None
     command: dict[str, Any] | Callable[[CommandContext], dict[str, Any]] | None = None
     expected: dict[str, Any] | Callable[[CommandContext], dict[str, Any]] | None = None
+
+    def prepare(self, db: Database, collection: Collection) -> Collection:
+        """Resolve the target collection and apply indexes/docs."""
+        collection = self.target_collection.resolve(db, collection)
+        if self.indexes:
+            collection.create_indexes(self.indexes)
+        if self.docs:
+            collection.insert_many(self.docs)
+        return collection
 
     def build_command(self, ctx: CommandContext) -> dict[str, Any]:
         """Resolve the command dict from a callable or plain dict."""

@@ -4,6 +4,9 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
+    ViewCollection,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -13,68 +16,62 @@ from documentdb_tests.framework.parametrize import pytest_params
 DROP_VIEW_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "view",
-        setup=lambda db: (
-            db.create_collection("test_drop_view_src"),
-            db.command("create", "test_drop_view_v", viewOn="test_drop_view_src", pipeline=[]),
-            db["test_drop_view_v"],
-        )[-1],
-        command={"drop": "test_drop_view_v"},
+        target_collection=ViewCollection(),
+        command=lambda ctx: {"drop": ctx.collection},
         expected=lambda ctx: {"ns": ctx.namespace, "ok": 1.0},
         msg="Drop on view should return ns and ok without nIndexesWas",
     ),
 ]
 
-# Property [Underlying Collection Drop]: drop succeeds on the source
-# collection underlying a view.
-DROP_UNDERLYING_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "succeeds",
-        setup=lambda db: (
-            db["test_drop_under_src"].insert_one({"_id": 1, "a": 1}),
-            db.command("create", "test_drop_under_v", viewOn="test_drop_under_src", pipeline=[]),
-            db["test_drop_under_src"],
-        )[-1],
-        command={"drop": "test_drop_under_src"},
-        expected=lambda ctx: {"nIndexesWas": 1, "ns": ctx.namespace, "ok": 1.0},
-        msg="Drop underlying collection should succeed",
-    ),
-]
-
-# Property [system.views Drop]: drop succeeds on the system.views collection.
-DROP_SYSTEM_VIEWS_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "system_views",
-        setup=lambda db: (
-            db.create_collection("test_drop_sysviews_src"),
-            db.command(
-                "create", "test_drop_sysviews_v", viewOn="test_drop_sysviews_src", pipeline=[]
-            ),
-            db["system.views"],
-        )[-1],
-        command={"drop": "system.views"},
-        expected=lambda ctx: {"nIndexesWas": 1, "ns": ctx.namespace, "ok": 1.0},
-        msg="Drop on system.views should succeed",
-    ),
-]
-
-DROP_VIEW_ALL_TESTS: list[CommandTestCase] = (
-    DROP_VIEW_TESTS + DROP_UNDERLYING_TESTS + DROP_SYSTEM_VIEWS_TESTS
-)
-
 
 @pytest.mark.collection_mgmt
-@pytest.mark.parametrize("test", pytest_params(DROP_VIEW_ALL_TESTS))
+@pytest.mark.parametrize("test", pytest_params(DROP_VIEW_TESTS))
 def test_drop_views(database_client, collection, test):
     """Test drop command behavior on views."""
-    target = test.setup(database_client) if test.setup else collection
-    if test.docs:
-        target.insert_many(test.docs)
-    ctx = CommandContext.from_collection(target)
-    result = execute_command(target, test.build_command(ctx))
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
     assertResult(
         result,
         expected=test.build_expected(ctx),
         error_code=test.error_code,
         msg=test.msg,
+        raw_res=True,
+    )
+
+
+# Property [Underlying Collection Drop]: drop succeeds on the source
+# collection underlying a view.
+@pytest.mark.collection_mgmt
+def test_drop_underlying_collection(database_client, collection):
+    """Drop the source collection underlying a view."""
+    collection.insert_one({"_id": 1, "a": 1})
+    view_name = f"{collection.name}_view"
+    database_client.command("create", view_name, viewOn=collection.name, pipeline=[])
+    result = execute_command(collection, {"drop": collection.name})
+    ns = f"{database_client.name}.{collection.name}"
+    assertResult(
+        result,
+        expected={"nIndexesWas": 1, "ns": ns, "ok": 1.0},
+        msg="Drop underlying collection should succeed",
+        raw_res=True,
+    )
+
+
+# Property [system.views Drop]: drop succeeds on the system.views collection.
+@pytest.mark.collection_mgmt
+def test_drop_system_views(database_client, collection):
+    """Drop the system.views collection."""
+    src_name = f"{collection.name}_src"
+    view_name = f"{collection.name}_view"
+    database_client.create_collection(src_name)
+    database_client.command("create", view_name, viewOn=src_name, pipeline=[])
+    system_views = database_client["system.views"]
+    result = execute_command(system_views, {"drop": "system.views"})
+    ns = f"{database_client.name}.system.views"
+    assertResult(
+        result,
+        expected={"nIndexesWas": 1, "ns": ns, "ok": 1.0},
+        msg="Drop on system.views should succeed",
         raw_res=True,
     )
