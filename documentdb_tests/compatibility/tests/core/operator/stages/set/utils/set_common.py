@@ -16,7 +16,7 @@ STAGE_NAMES = [
 ]
 
 
-def _replace_stage_name(
+def replace_stage_name(
     pipeline: list[dict[str, Any]] | None, stage_name: str
 ) -> list[dict[str, Any]]:
     """Swap $set for the given stage name so tests run against both aliases."""

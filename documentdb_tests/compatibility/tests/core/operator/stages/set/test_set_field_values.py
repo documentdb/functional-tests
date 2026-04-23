@@ -5,7 +5,7 @@ from bson import Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.stages.set.utils.set_common import (
     STAGE_NAMES,
-    _replace_stage_name,
+    replace_stage_name,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
@@ -247,7 +247,7 @@ SET_FIELD_VALUE_TESTS = (
 def test_set_field_values(collection, stage_name: str, test_case: StageTestCase):
     """Test $set / $addFields field value cases."""
     populate_collection(collection, test_case)
-    pipeline = _replace_stage_name(test_case.pipeline, stage_name)
+    pipeline = replace_stage_name(test_case.pipeline, stage_name)
     result = execute_command(
         collection,
         {

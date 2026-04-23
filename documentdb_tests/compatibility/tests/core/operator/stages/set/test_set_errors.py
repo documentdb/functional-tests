@@ -7,7 +7,7 @@ from bson import Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.stages.set.utils.set_common import (
     STAGE_NAMES,
-    _replace_stage_name,
+    replace_stage_name,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
@@ -326,7 +326,7 @@ SET_ERROR_TESTS = (
 def test_set_errors(collection, stage_name: str, test_case: StageTestCase):
     """Test $set / $addFields error cases."""
     populate_collection(collection, test_case)
-    pipeline = _replace_stage_name(test_case.pipeline, stage_name)
+    pipeline = replace_stage_name(test_case.pipeline, stage_name)
     result = execute_command(
         collection,
         {

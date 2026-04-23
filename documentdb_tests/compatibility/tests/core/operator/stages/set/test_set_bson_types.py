@@ -7,7 +7,7 @@ from bson import Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Times
 
 from documentdb_tests.compatibility.tests.core.operator.stages.set.utils.set_common import (
     STAGE_NAMES,
-    _replace_stage_name,
+    replace_stage_name,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
@@ -162,7 +162,7 @@ SET_BSON_TYPE_TESTS: list[StageTestCase] = [
 def test_set_bson_types(collection, stage_name: str, test_case: StageTestCase):
     """Test $set / $addFields BSON type pass-through cases."""
     populate_collection(collection, test_case)
-    pipeline = _replace_stage_name(test_case.pipeline, stage_name)
+    pipeline = replace_stage_name(test_case.pipeline, stage_name)
     result = execute_command(
         collection,
         {

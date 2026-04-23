@@ -4,7 +4,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.set.utils.set_common import (
     STAGE_NAMES,
-    _replace_stage_name,
+    replace_stage_name,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
@@ -208,7 +208,7 @@ SET_PATH_TESTS = SET_SAME_STAGE_REF_TESTS + SET_DOT_NOTATION_TESTS + SET_EMBEDDE
 def test_set_paths(collection, stage_name: str, test_case: StageTestCase):
     """Test $set / $addFields path traversal and embedded object cases."""
     populate_collection(collection, test_case)
-    pipeline = _replace_stage_name(test_case.pipeline, stage_name)
+    pipeline = replace_stage_name(test_case.pipeline, stage_name)
     result = execute_command(
         collection,
         {
