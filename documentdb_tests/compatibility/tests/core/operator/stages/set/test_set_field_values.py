@@ -185,6 +185,46 @@ SET_REMOVE_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [System Variables]: system variables $$ROOT and $$CURRENT resolve
+# to the full input document when used as field values in $set.
+SET_SYSTEM_VARIABLE_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "root_resolves_to_document",
+        docs=[{"_id": 1, "a": 10}],
+        pipeline=[{"$set": {"copy": "$$ROOT"}}, {"$project": {"copy": 1}}],
+        expected=[{"_id": 1, "copy": {"_id": 1, "a": 10}}],
+        msg="$set should resolve $$ROOT to the full input document",
+    ),
+    StageTestCase(
+        "current_resolves_to_document",
+        docs=[{"_id": 1, "a": 10}],
+        pipeline=[{"$set": {"copy": "$$CURRENT"}}, {"$project": {"copy": 1}}],
+        expected=[{"_id": 1, "copy": {"_id": 1, "a": 10}}],
+        msg="$set should resolve $$CURRENT to the full input document",
+    ),
+    StageTestCase(
+        "root_field_path",
+        docs=[{"_id": 1, "a": 42}],
+        pipeline=[{"$set": {"v": "$$ROOT.a"}}, {"$project": {"v": 1}}],
+        expected=[{"_id": 1, "v": 42}],
+        msg="$set should resolve $$ROOT.a to the value of field a",
+    ),
+    StageTestCase(
+        "current_field_path",
+        docs=[{"_id": 1, "a": 42}],
+        pipeline=[{"$set": {"v": "$$CURRENT.a"}}, {"$project": {"v": 1}}],
+        expected=[{"_id": 1, "v": 42}],
+        msg="$set should resolve $$CURRENT.a to the value of field a",
+    ),
+    StageTestCase(
+        "now_returns_date_type",
+        docs=[{"_id": 1}],
+        pipeline=[{"$set": {"v": {"$type": "$$NOW"}}}, {"$project": {"v": 1}}],
+        expected=[{"_id": 1, "v": "date"}],
+        msg="$set should resolve $$NOW to a date value",
+    ),
+]
+
 # Property [Empty Specification]: an empty specification is a no-op and
 # documents pass through unchanged.
 SET_EMPTY_SPEC_TESTS: list[StageTestCase] = [
@@ -236,6 +276,7 @@ SET_FIELD_VALUE_TESTS = (
     + SET_FIELD_ADDITION_TESTS
     + SET_FIELD_OVERWRITE_TESTS
     + SET_REMOVE_TESTS
+    + SET_SYSTEM_VARIABLE_TESTS
     + SET_EMPTY_SPEC_TESTS
     + SET_LITERAL_VALUE_TESTS
     + SET_TIMESTAMP_TESTS
