@@ -7,6 +7,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -192,8 +193,7 @@ SORT_FIELD_PATH_TESTS = SORT_NESTED_FIELD_TESTS + SORT_FIELD_NAME_ACCEPTANCE_TES
 @pytest.mark.parametrize("test_case", pytest_params(SORT_FIELD_PATH_TESTS))
 def test_sort_field_paths(collection, test_case: StageTestCase):
     """Test $sort field path traversal and name acceptance."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {

@@ -9,6 +9,7 @@ from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Rege
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
@@ -185,8 +186,7 @@ MATCH_ERROR_TESTS_ALL = MATCH_ARGUMENT_VALIDATION_TESTS + MATCH_RESTRICTED_OPERA
 @pytest.mark.parametrize("test_case", pytest_params(MATCH_ERROR_TESTS_ALL))
 def test_match_error_cases(collection, test_case: StageTestCase):
     """Test $match argument validation and restricted operator errors."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {

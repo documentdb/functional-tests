@@ -5,6 +5,7 @@ from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import QUERY_METADATA_NOT_AVAILABLE_ERROR
@@ -146,8 +147,7 @@ SORT_DIRECTION_VALUE_TESTS = SORT_ORDER_VALUE_ACCEPTANCE_TESTS + SORT_META_ACCEP
 @pytest.mark.parametrize("test_case", pytest_params(SORT_DIRECTION_VALUE_TESTS))
 def test_sort_direction_values(collection, test_case: StageTestCase):
     """Test $sort accepted direction values."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {

@@ -7,6 +7,7 @@ from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -263,8 +264,7 @@ SORT_TYPE_COMPARISON_TESTS = SORT_BSON_TYPE_ORDER_TESTS + SORT_WITHIN_TYPE_TESTS
 @pytest.mark.parametrize("test_case", pytest_params(SORT_TYPE_COMPARISON_TESTS))
 def test_sort_type_comparison(collection, test_case: StageTestCase):
     """Test $sort BSON type comparison ordering."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {

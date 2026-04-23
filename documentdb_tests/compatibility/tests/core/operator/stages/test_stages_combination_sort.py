@@ -6,6 +6,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -243,8 +244,7 @@ STAGE_COMBINATIONS_SORT_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(STAGE_COMBINATIONS_SORT_TESTS))
 def test_stage_combinations_sort(collection, test_case: StageTestCase):
     """Test interesting $sort combinations with other pipeline stages."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {

@@ -17,6 +17,7 @@ from bson import (
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -384,14 +385,42 @@ SORT_EQUAL_VALUE_TESTS: list[StageTestCase] = [
     ),
 ]
 
-SORT_BASIC_ORDERING_TESTS = SORT_ASC_DESC_TESTS + SORT_EQUAL_VALUE_TESTS
+# Property [Non-Existent Collection]: sorting a collection that does not exist
+# returns an empty result set without error.
+SORT_NONEXISTENT_COLLECTION_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "nonexistent_collection",
+        docs=None,
+        pipeline=[{"$sort": {"v": 1}}],
+        expected=[],
+        msg="$sort on a non-existent collection should return empty result",
+    ),
+]
+
+# Property [Empty Collection]: sorting a collection with no documents returns
+# an empty result set without error.
+SORT_EMPTY_COLLECTION_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "empty_collection",
+        docs=[],
+        pipeline=[{"$sort": {"v": 1}}],
+        expected=[],
+        msg="$sort on an empty collection should return empty result",
+    ),
+]
+
+SORT_BASIC_ORDERING_TESTS = (
+    SORT_ASC_DESC_TESTS
+    + SORT_EQUAL_VALUE_TESTS
+    + SORT_NONEXISTENT_COLLECTION_TESTS
+    + SORT_EMPTY_COLLECTION_TESTS
+)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SORT_BASIC_ORDERING_TESTS))
 def test_sort_basic_ordering(collection, test_case: StageTestCase):
     """Test $sort ascending, descending, and equal-value ordering."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {
