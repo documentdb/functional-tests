@@ -151,9 +151,9 @@ PROJECT_PIPELINE_POSITION_TESTS: list[StageTestCase] = [
 @pytest.mark.parametrize("test_case", pytest_params(PROJECT_PIPELINE_POSITION_TESTS))
 def test_stages_position_project_cases(collection, test_case: StageTestCase):
     """Test $project composing with other stages at different pipeline positions."""
+    populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
-    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {
