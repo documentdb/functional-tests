@@ -18,6 +18,7 @@ from bson import (
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
@@ -312,48 +313,96 @@ COUNT_ERROR_PRECEDENCE_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [Errors on Non-Existent Collection]: every validation error fires
+# even when the collection does not exist, confirming that the server rejects
+# invalid $count parameters without requiring any input documents.
+COUNT_NONEXISTENT_COLLECTION_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "timing_type_error_nonexistent_collection",
+        docs=None,
+        pipeline=[{"$count": 123}],
+        error_code=COUNT_FIELD_TYPE_ERROR,
+        msg="$count type error should fire on a non-existent collection",
+    ),
+    StageTestCase(
+        "timing_empty_string_nonexistent_collection",
+        docs=None,
+        pipeline=[{"$count": ""}],
+        error_code=COUNT_FIELD_EMPTY_ERROR,
+        msg="$count empty string error should fire on a non-existent collection",
+    ),
+    StageTestCase(
+        "timing_dollar_prefix_nonexistent_collection",
+        docs=None,
+        pipeline=[{"$count": "$bad"}],
+        error_code=COUNT_FIELD_DOLLAR_PREFIX_ERROR,
+        msg="$count $ prefix error should fire on a non-existent collection",
+    ),
+    StageTestCase(
+        "timing_null_byte_nonexistent_collection",
+        docs=None,
+        pipeline=[{"$count": "a\x00b"}],
+        error_code=COUNT_FIELD_NULL_BYTE_ERROR,
+        msg="$count null byte error should fire on a non-existent collection",
+    ),
+    StageTestCase(
+        "timing_dot_nonexistent_collection",
+        docs=None,
+        pipeline=[{"$count": "a.b"}],
+        error_code=COUNT_FIELD_DOT_ERROR,
+        msg="$count dot error should fire on a non-existent collection",
+    ),
+    StageTestCase(
+        "timing_id_reserved_nonexistent_collection",
+        docs=None,
+        pipeline=[{"$count": "_id"}],
+        error_code=COUNT_FIELD_ID_RESERVED_ERROR,
+        msg="$count _id reserved error should fire on a non-existent collection",
+    ),
+]
+
 # Property [Errors on Empty Collection]: every validation error fires even
 # when the collection is empty, confirming that the server rejects invalid
 # $count parameters without requiring any input documents.
 COUNT_EMPTY_COLLECTION_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "timing_type_error_empty_collection",
-        docs=None,
+        docs=[],
         pipeline=[{"$count": 123}],
         error_code=COUNT_FIELD_TYPE_ERROR,
         msg="$count type error should fire on empty collection",
     ),
     StageTestCase(
         "timing_empty_string_empty_collection",
-        docs=None,
+        docs=[],
         pipeline=[{"$count": ""}],
         error_code=COUNT_FIELD_EMPTY_ERROR,
         msg="$count empty string error should fire on empty collection",
     ),
     StageTestCase(
         "timing_dollar_prefix_empty_collection",
-        docs=None,
+        docs=[],
         pipeline=[{"$count": "$bad"}],
         error_code=COUNT_FIELD_DOLLAR_PREFIX_ERROR,
         msg="$count $ prefix error should fire on empty collection",
     ),
     StageTestCase(
         "timing_null_byte_empty_collection",
-        docs=None,
+        docs=[],
         pipeline=[{"$count": "a\x00b"}],
         error_code=COUNT_FIELD_NULL_BYTE_ERROR,
         msg="$count null byte error should fire on empty collection",
     ),
     StageTestCase(
         "timing_dot_empty_collection",
-        docs=None,
+        docs=[],
         pipeline=[{"$count": "a.b"}],
         error_code=COUNT_FIELD_DOT_ERROR,
         msg="$count dot error should fire on empty collection",
     ),
     StageTestCase(
         "timing_id_reserved_empty_collection",
-        docs=None,
+        docs=[],
         pipeline=[{"$count": "_id"}],
         error_code=COUNT_FIELD_ID_RESERVED_ERROR,
         msg="$count _id reserved error should fire on empty collection",
@@ -365,6 +414,7 @@ COUNT_ERROR_TESTS = (
     + COUNT_TYPE_STRICTNESS_TESTS
     + COUNT_STRING_VALIDATION_ERROR_TESTS
     + COUNT_ERROR_PRECEDENCE_TESTS
+    + COUNT_NONEXISTENT_COLLECTION_ERROR_TESTS
     + COUNT_EMPTY_COLLECTION_ERROR_TESTS
 )
 
@@ -373,8 +423,7 @@ COUNT_ERROR_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(COUNT_ERROR_TESTS))
 def test_count_errors(collection, test_case: StageTestCase):
     """Test $count error handling."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {

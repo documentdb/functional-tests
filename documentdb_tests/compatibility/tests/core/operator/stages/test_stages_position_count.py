@@ -6,6 +6,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -178,8 +179,7 @@ def test_stages_position_count_cases(collection, test_case: StageTestCase):
     """Test $count composing with other stages at different pipeline positions."""
     if test_case.setup:
         test_case.setup(collection)
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {

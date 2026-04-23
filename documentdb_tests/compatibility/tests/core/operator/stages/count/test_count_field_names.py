@@ -6,6 +6,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -214,8 +215,7 @@ COUNT_FIELD_NAME_TESTS = COUNT_VALID_FIELD_NAME_TESTS + COUNT_ID_CASE_SENSITIVIT
 @pytest.mark.parametrize("test_case", pytest_params(COUNT_FIELD_NAME_TESTS))
 def test_count_field_names(collection, test_case: StageTestCase):
     """Test $count field name validation."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {

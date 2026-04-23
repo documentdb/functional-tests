@@ -6,6 +6,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -41,8 +42,15 @@ COUNT_CORE_TESTS: list[StageTestCase] = [
 # the result is an empty cursor rather than a document with count 0.
 COUNT_EMPTY_INPUT_TESTS: list[StageTestCase] = [
     StageTestCase(
-        "empty_collection",
+        "nonexistent_collection",
         docs=None,
+        pipeline=[{"$count": "total"}],
+        expected=[],
+        msg="$count should return empty cursor on a non-existent collection",
+    ),
+    StageTestCase(
+        "empty_collection",
+        docs=[],
         pipeline=[{"$count": "total"}],
         expected=[],
         msg="$count should return empty cursor on an empty collection",
@@ -101,8 +109,7 @@ COUNT_BEHAVIOR_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(COUNT_BEHAVIOR_TESTS))
 def test_count_behavior(collection, test_case: StageTestCase):
     """Test $count core counting behavior."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {
