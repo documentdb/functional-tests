@@ -252,7 +252,7 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
         docs=[{"_id": 1, "a": [1, 2, 3]}],
         pipeline=[
             {
-                "$project": {
+                "$set": {
                     "r": {
                         "$reduce": {
                             "input": "$a",
@@ -261,7 +261,8 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
                         }
                     }
                 }
-            }
+            },
+            {"$project": {"r": 1}},
         ],
         expected=[{"_id": 1, "r": 6}],
         msg="$reduce should work in $set",
@@ -428,7 +429,7 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
         docs=[{"_id": 1, "a": 2}],
         pipeline=[
             {
-                "$project": {
+                "$set": {
                     "r": {
                         "$switch": {
                             "branches": [{"case": {"$eq": ["$a", 2]}, "then": "two"}],
@@ -436,7 +437,8 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
                         }
                     }
                 }
-            }
+            },
+            {"$project": {"r": 1}},
         ],
         expected=[{"_id": 1, "r": "two"}],
         msg="$switch should work in $set",
@@ -1193,11 +1195,8 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
         "expr_percentile",
         docs=[{"_id": 1, "a": [1, 2, 3, 4, 5]}],
         pipeline=[
-            {
-                "$project": {
-                    "r": {"$percentile": {"input": "$a", "p": [0.5], "method": "approximate"}}
-                }
-            }
+            {"$set": {"r": {"$percentile": {"input": "$a", "p": [0.5], "method": "approximate"}}}},
+            {"$project": {"r": 1}},
         ],
         expected=[{"_id": 1, "r": [3.0]}],
         msg="$percentile should work in $set",
