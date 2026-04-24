@@ -273,6 +273,7 @@ LIMIT_SUCCESS_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(LIMIT_SUCCESS_TESTS))
 def test_limit_success(collection, test_case: StageTestCase):
     """Test $limit core behavior, numeric types, boundaries, and invariants."""

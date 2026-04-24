@@ -481,6 +481,7 @@ LIMIT_ERROR_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(LIMIT_ERROR_TESTS))
 def test_limit_errors(collection, test_case: StageTestCase):
     """Test $limit validation and error handling."""

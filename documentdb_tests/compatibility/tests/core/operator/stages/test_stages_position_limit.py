@@ -285,6 +285,7 @@ LIMIT_POSITION_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(LIMIT_POSITION_TESTS))
 def test_stages_position_limit(collection, test_case: StageTestCase):
     """Test $limit composing with other stages at different pipeline positions."""
