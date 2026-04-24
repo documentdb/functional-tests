@@ -6,6 +6,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -201,10 +202,9 @@ SORT_STAGE_POSITION_TESTS_ALL = SORT_PIPELINE_POSITION_TESTS + SORT_META_PREREQU
 @pytest.mark.parametrize("test_case", pytest_params(SORT_STAGE_POSITION_TESTS_ALL))
 def test_stage_position_sort_cases(collection, test_case: StageTestCase):
     """Test $sort composing with other stages at different pipeline positions."""
+    populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
     result = execute_command(
         collection,
         {

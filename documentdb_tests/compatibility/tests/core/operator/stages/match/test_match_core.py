@@ -7,6 +7,7 @@ from bson.son import SON
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -73,6 +74,13 @@ MATCH_CORE_TESTS: list[StageTestCase] = [
             {"_id": 3, "a": 10, "b": "z"},
         ],
         msg="$match should filter documents to those where the field equals the value",
+    ),
+    StageTestCase(
+        "core_nonexistent_collection",
+        docs=None,
+        pipeline=[{"$match": {"a": 1}}],
+        expected=[],
+        msg="$match on a non-existent collection should return empty result",
     ),
     StageTestCase(
         "core_empty_collection",
@@ -198,6 +206,13 @@ MATCH_EMPTY_PREDICATE_TESTS: list[StageTestCase] = [
         msg="$match with empty predicate should return all documents",
     ),
     StageTestCase(
+        "nonexistent_collection_empty_predicate",
+        docs=None,
+        pipeline=[{"$match": {}}],
+        expected=[],
+        msg="$match on a non-existent collection with empty predicate should return empty result",
+    ),
+    StageTestCase(
         "empty_collection_empty_predicate",
         docs=[],
         pipeline=[{"$match": {}}],
@@ -245,8 +260,7 @@ MATCH_CORE_TESTS_ALL = (
 @pytest.mark.parametrize("test_case", pytest_params(MATCH_CORE_TESTS_ALL))
 def test_match_core_cases(collection, test_case: StageTestCase):
     """Test $match core matching behavior."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {

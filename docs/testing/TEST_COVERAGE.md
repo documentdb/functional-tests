@@ -316,7 +316,7 @@ For each invalid_type in [string, object, array, ...]:
 	 ---
 	
 
-### 13. Variable Operator Coverage
+### 14. Variable Operator Coverage
 **Rule**: Variable operators must be tested for value passthrough fidelity, expression suppression, scoping, and argument validation.
 
 **Behavior**:
@@ -330,6 +330,61 @@ For each invalid_type in [string, object, array, ...]:
 - **Operator interaction**: Variable operators should be tested in combination with conditional (`$cond`), iteration (`$map`, `$reduce`, `$filter`), and access control (`$redact`) operators to verify scope isolation.
 
 **Applies to**: `$let`, `$literal`
+
+---
+
+### 15. Pipeline Stage Coverage
+**Rule**: Each aggregation pipeline stage must be tested for its core semantics, parameter validation, document handling, and interactions with adjacent stages. Stage tests live under `tests/core/operator/stages/$stageName/`. Data type coverage (section 1), error code validation (section 6), and boundary values follow the same rules as other operators.
+
+**Core Semantics**:
+- Primary operation on basic input
+- Empty input and non-existent collection both produce correct output without error
+- Works as the sole pipeline stage
+
+**Parameter Validation**:
+- Test every BSON type against the parameter. Numeric stages (`$limit`, `$skip`, `$sample`) accept int32, int64, whole-number double, whole-number Decimal128. Document stages (`$match`, `$project`, `$group`, `$set`) reject non-documents. String stages (`$count`, `$unwind`) reject non-strings.
+- Extra keys in the stage document must error
+- Validation errors fire at parse time — verify on empty and non-existent collections
+- Test error precedence within a stage and cross-stage (first invalid stage by position wins)
+
+**Document Handling**:
+- Pass-through stages (`$limit`, `$skip`, `$sort`, `$match`) must preserve all BSON types unchanged, including deprecated types
+- Reshaping stages (`$project`, `$set`, `$unset`, `$addFields`) must be tested with all BSON types as values
+- New-document stages (`$count`, `$group`, `$bucket`, `$sortByCount`) must verify output field names and types
+
+**Stage Interactions**:
+- Multi-stage interaction tests belong in the parent `stages/` directory, not in individual stage folders. Per `FOLDER_STRUCTURE.md`, interactions between same-level features go in the parent folder (e.g., `stages/test_stages_combination_sort.py`, `stages/test_stages_position_match.py`).
+- Test interactions where ordering affects results or where adjacent stages compose non-obviously (e.g., optimization coalescence, count-modifying vs non-count-modifying intervening stages, additive vs min-taking consecutive stages)
+- Cover common multi-stage usage patterns for the stage under test
+
+**Out of Scope**:
+- Cross-cutting concerns (views, capped collections, timeseries) belong in their own directories
+- Aggregate command options (`allowDiskUse`, etc.) belong in aggregate command tests
+- Non-observable optimizer behavior belongs in `explain` tests
+
+---
+
+### 16. Collection Command Coverage
+**Rule**: Each collection command must be tested for its core behavior, argument validation, response structure, and behavior across collection variants. Command tests live under `tests/core/collections/commands/$commandName/`. Data type coverage (section 1) and error code validation (section 6) follow the same rules as other features.
+
+**Core Behavior**:
+- Primary operation succeeds and returns expected response fields
+- Behavior on non-existent collections (some commands succeed silently, others error)
+- Behavior on empty collections created explicitly vs implicitly
+
+**Argument Validation**:
+- Test all BSON types against each required argument — invalid types must be rejected with correct error codes
+- Test invalid values for string arguments (empty, system prefixes, illegal characters where applicable)
+- Test accepted and rejected values for each command-specific option
+- Unrecognized fields in the command document must be rejected
+
+**Response Structure**:
+- Verify all response fields and their types for the command's success case
+- Verify response varies correctly based on collection state (e.g., index count, collection existence)
+
+**Collection Variants**:
+- Test against collection types the command supports: regular, capped, views, timeseries, clustered
+- Verify correct behavior or error for unsupported collection types
 
 ---
 
@@ -358,7 +413,14 @@ For any DocumentDB feature, ensure coverage of:
 - [ ] **Numeric equivalence**: equivalent values across numeric types grouped/matched correctly (if applicable)
 - [ ] **BSON type distinction**: different BSON types treated as distinct (if applicable)
 - [ ] **Pipeline stage interaction**: interaction with preceding/following stages (if pipeline stage)
+- [ ] **Pipeline stage core semantics**: primary operation, empty input, non-existent collection, sole stage (if pipeline stage)
+- [ ] **Pipeline stage parameter validation**: accepted types, rejected values, stage shape, parse-time validation (if pipeline stage)
+- [ ] **Pipeline stage document handling**: pass-through preservation or output shape verification (if pipeline stage)
 - [ ] **Pipeline contexts**: one test case per operator per context — $project, $addFields, $match+$expr, $group (if expression operator)
+- [ ] **Collection command core behavior**: success response, non-existent collection, empty collection (if collection command)
+- [ ] **Collection command argument validation**: name type/value, options, unrecognized fields (if collection command)
+- [ ] **Collection command response structure**: all response fields and types verified (if collection command)
+- [ ] **Collection command variants**: behavior across collection types — regular, capped, views (if collection command)
 - [ ] **System variables**: $$ROOT, $$CURRENT, $$REMOVE, $let — only if official documentation says supported
 - [ ] **Negative zero**: `DOUBLE_NEGATIVE_ZERO` and `DECIMAL128_NEGATIVE_ZERO` behavior (if numeric operator)
 - [ ] **Double precision boundaries**: `DOUBLE_NEAR_MAX`, `DOUBLE_MIN_SUBNORMAL`, `DOUBLE_NEAR_MIN` (if accepts double)

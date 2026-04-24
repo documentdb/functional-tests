@@ -18,6 +18,7 @@ from bson.raw_bson import RawBSONDocument
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.bson_helpers import build_raw_bson_doc
@@ -266,8 +267,7 @@ SORT_SPEC_ERROR_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(SORT_SPEC_ERROR_TESTS))
 def test_sort_spec_errors(collection, test_case: StageTestCase):
     """Test $sort specification and field path validation errors."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {
