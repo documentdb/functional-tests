@@ -205,6 +205,7 @@ SORT_ARRAY_KEY_TESTS: list[StageTestCase] = [
 ]
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SORT_ARRAY_KEY_TESTS))
 def test_sort_arrays(collection, test_case: StageTestCase):
     """Test $sort array key extraction."""

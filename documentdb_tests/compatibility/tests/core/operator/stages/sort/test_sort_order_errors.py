@@ -330,6 +330,7 @@ SORT_ORDER_ERROR_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SORT_ORDER_ERROR_TESTS))
 def test_sort_order_errors(collection, test_case: StageTestCase):
     """Test $sort order value type and range errors."""

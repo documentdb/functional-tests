@@ -520,6 +520,7 @@ PROJECT_ERROR_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(PROJECT_ERROR_TESTS))
 def test_project_errors(collection: Any, test_case: StageTestCase) -> None:
     """Test $project error cases."""

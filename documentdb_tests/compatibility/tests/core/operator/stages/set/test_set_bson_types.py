@@ -227,6 +227,7 @@ SET_BSON_TYPE_TESTS: list[StageTestCase] = [
 
 
 @pytest.mark.parametrize("stage_name", STAGE_NAMES)
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SET_BSON_TYPE_TESTS))
 def test_set_bson_types(collection, stage_name: str, test_case: StageTestCase):
     """Test $set / $addFields BSON type pass-through cases."""

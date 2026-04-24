@@ -76,6 +76,7 @@ PROJECT_ID_BEHAVIOR_TESTS: list[StageTestCase] = [
 ]
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(PROJECT_ID_BEHAVIOR_TESTS))
 def test_project_id(collection: Any, test_case: StageTestCase) -> None:
     """Test $project _id field behavior."""

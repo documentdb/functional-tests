@@ -122,6 +122,7 @@ SET_FIELD_NAME_TESTS = SET_FIELD_NAME_ACCEPTANCE_TESTS + SET_DOLLAR_SIGN_STRING_
 
 
 @pytest.mark.parametrize("stage_name", STAGE_NAMES)
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SET_FIELD_NAME_TESTS))
 def test_set_field_names(collection, stage_name: str, test_case: StageTestCase):
     """Test $set / $addFields field name acceptance and dollar-sign string cases."""

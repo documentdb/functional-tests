@@ -240,6 +240,7 @@ PROJECT_ACCEPTANCE_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(PROJECT_ACCEPTANCE_TESTS))
 def test_project_acceptance(collection: Any, test_case: StageTestCase) -> None:
     """Test $project accepted inputs."""

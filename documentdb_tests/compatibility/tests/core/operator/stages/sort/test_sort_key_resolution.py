@@ -146,6 +146,7 @@ SORT_NULL_MISSING_TESTS: list[StageTestCase] = [
 SORT_KEY_RESOLUTION_TESTS = SORT_COMPOUND_TESTS + SORT_NULL_MISSING_TESTS
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SORT_KEY_RESOLUTION_TESTS))
 def test_sort_key_resolution(collection, test_case: StageTestCase):
     """Test $sort compound keys, null, and missing fields."""
@@ -166,6 +167,7 @@ def test_sort_key_resolution(collection, test_case: StageTestCase):
     )
 
 
+@pytest.mark.aggregate
 def test_sort_key_resolution_timestamp_zero_replaced(collection):
     """Test $sort with Timestamp(0, 0) which is replaced by the server on insert."""
     collection.insert_many(

@@ -232,6 +232,7 @@ SORT_META_ERROR_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SORT_META_ERROR_TESTS))
 def test_sort_meta_errors(collection, test_case: StageTestCase):
     """Test $sort $meta validation errors."""

@@ -144,6 +144,7 @@ SORT_META_ACCEPTANCE_TESTS: list[StageTestCase] = [
 SORT_DIRECTION_VALUE_TESTS = SORT_ORDER_VALUE_ACCEPTANCE_TESTS + SORT_META_ACCEPTANCE_TESTS
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SORT_DIRECTION_VALUE_TESTS))
 def test_sort_direction_values(collection, test_case: StageTestCase):
     """Test $sort accepted direction values."""

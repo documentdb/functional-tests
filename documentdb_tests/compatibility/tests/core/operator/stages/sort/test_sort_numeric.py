@@ -297,6 +297,7 @@ SORT_NUMERIC_ORDERING_TESTS: list[StageTestCase] = [
 ]
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SORT_NUMERIC_ORDERING_TESTS))
 def test_sort_numeric(collection, test_case: StageTestCase):
     """Test $sort numeric type ordering."""

@@ -204,6 +204,7 @@ SET_PATH_TESTS = SET_SAME_STAGE_REF_TESTS + SET_DOT_NOTATION_TESTS + SET_EMBEDDE
 
 
 @pytest.mark.parametrize("stage_name", STAGE_NAMES)
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SET_PATH_TESTS))
 def test_set_paths(collection, stage_name: str, test_case: StageTestCase):
     """Test $set / $addFields path traversal and embedded object cases."""

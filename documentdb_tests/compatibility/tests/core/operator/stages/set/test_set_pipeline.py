@@ -78,6 +78,7 @@ SET_PIPELINE_TESTS = (
 
 
 @pytest.mark.parametrize("stage_name", STAGE_NAMES)
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SET_PIPELINE_TESTS))
 def test_set_pipeline(collection, stage_name: str, test_case: StageTestCase):
     """Test $set / $addFields pipeline-level behavior cases."""

@@ -322,6 +322,7 @@ SET_ERROR_TESTS = (
 
 
 @pytest.mark.parametrize("stage_name", STAGE_NAMES)
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SET_ERROR_TESTS))
 def test_set_errors(collection, stage_name: str, test_case: StageTestCase):
     """Test $set / $addFields error cases."""

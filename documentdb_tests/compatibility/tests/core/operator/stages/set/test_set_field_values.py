@@ -291,6 +291,7 @@ SET_FIELD_VALUE_TESTS = (
 
 
 @pytest.mark.parametrize("stage_name", STAGE_NAMES)
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SET_FIELD_VALUE_TESTS))
 def test_set_field_values(collection, stage_name: str, test_case: StageTestCase):
     """Test $set / $addFields field value cases."""

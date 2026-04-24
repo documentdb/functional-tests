@@ -417,6 +417,7 @@ SORT_BASIC_ORDERING_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SORT_BASIC_ORDERING_TESTS))
 def test_sort_basic_ordering(collection, test_case: StageTestCase):
     """Test $sort ascending, descending, and equal-value ordering."""

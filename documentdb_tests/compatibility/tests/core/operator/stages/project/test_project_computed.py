@@ -165,6 +165,7 @@ PROJECT_COMPUTED_ALL_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(PROJECT_COMPUTED_ALL_TESTS))
 def test_project_computed(collection: Any, test_case: StageTestCase) -> None:
     """Test $project computed fields."""

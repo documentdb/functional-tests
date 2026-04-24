@@ -190,6 +190,7 @@ SORT_FIELD_NAME_ACCEPTANCE_TESTS: list[StageTestCase] = [
 SORT_FIELD_PATH_TESTS = SORT_NESTED_FIELD_TESTS + SORT_FIELD_NAME_ACCEPTANCE_TESTS
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SORT_FIELD_PATH_TESTS))
 def test_sort_field_paths(collection, test_case: StageTestCase):
     """Test $sort field path traversal and name acceptance."""

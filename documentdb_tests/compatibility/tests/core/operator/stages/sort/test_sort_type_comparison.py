@@ -261,6 +261,7 @@ SORT_WITHIN_TYPE_TESTS: list[StageTestCase] = [
 SORT_TYPE_COMPARISON_TESTS = SORT_BSON_TYPE_ORDER_TESTS + SORT_WITHIN_TYPE_TESTS
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SORT_TYPE_COMPARISON_TESTS))
 def test_sort_type_comparison(collection, test_case: StageTestCase):
     """Test $sort BSON type comparison ordering."""

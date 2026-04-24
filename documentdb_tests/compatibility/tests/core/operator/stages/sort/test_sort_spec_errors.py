@@ -264,6 +264,7 @@ SORT_SPEC_ERROR_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SORT_SPEC_ERROR_TESTS))
 def test_sort_spec_errors(collection, test_case: StageTestCase):
     """Test $sort specification and field path validation errors."""
@@ -292,6 +293,7 @@ def _build_raw_sort_stage(fields: list[tuple[str, int]]) -> RawBSONDocument:
     return RawBSONDocument(doc_len.to_bytes(4, "little") + stage_elements + b"\x00")
 
 
+@pytest.mark.aggregate
 def test_sort_spec_errors_duplicate_fields(collection):
     """Test $sort rejects duplicate field names in the sort specification."""
     collection.insert_many(

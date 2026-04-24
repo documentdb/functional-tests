@@ -283,6 +283,7 @@ PROJECT_PATH_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(PROJECT_PATH_TESTS))
 def test_project_paths(collection: Any, test_case: StageTestCase) -> None:
     """Test $project path resolution."""

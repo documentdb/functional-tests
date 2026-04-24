@@ -231,6 +231,7 @@ PROJECT_MODE_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(PROJECT_MODE_TESTS))
 def test_project_modes(collection: Any, test_case: StageTestCase) -> None:
     """Test $project inclusion and exclusion modes."""
