@@ -262,6 +262,7 @@ SAMPLE_NUMERIC_COERCION_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SAMPLE_NUMERIC_COERCION_TESTS))
 def test_sample_numeric_coercion(collection, test_case: StageTestCase):
     """Test $sample stage numeric coercion."""

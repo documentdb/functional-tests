@@ -364,6 +364,7 @@ SAMPLE_SIZE_ERROR_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SAMPLE_SIZE_ERROR_TESTS))
 def test_sample_size_errors(collection, test_case: StageTestCase):
     """Test $sample stage size value errors."""

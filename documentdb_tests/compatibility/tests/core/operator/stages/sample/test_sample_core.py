@@ -180,6 +180,7 @@ SAMPLE_NO_DUPLICATES_TESTS: list[StageTestCase] = [
 SAMPLE_CORE_TESTS = SAMPLE_CORE_COUNT_TESTS + SAMPLE_STRUCTURE_TESTS + SAMPLE_NO_DUPLICATES_TESTS
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SAMPLE_CORE_TESTS))
 def test_sample_core(collection, test_case: StageTestCase):
     """Test $sample stage core behavior."""

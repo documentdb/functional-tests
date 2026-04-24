@@ -330,6 +330,7 @@ SAMPLE_SPEC_ERROR_TESTS = (
 )
 
 
+@pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SAMPLE_SPEC_ERROR_TESTS))
 def test_sample_spec_errors(collection, test_case: StageTestCase):
     """Test $sample stage spec shape errors."""

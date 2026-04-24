@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import pytest
+
 from documentdb_tests.framework.executor import execute_command
 
 
 # Property [Randomness]: repeated executions of the same $sample pipeline may
 # return different documents.
+@pytest.mark.aggregate
 def test_sample_statistical_randomness(collection):
     """Test $sample can reach every document in the collection.
 
@@ -44,6 +47,7 @@ def test_sample_statistical_randomness(collection):
 
 # Property [Uniformity]: $sample selects documents with approximately equal
 # probability rather than favoring particular documents.
+@pytest.mark.aggregate
 def test_sample_statistical_uniformity(collection):
     """Test $sample selects each document with roughly equal probability.
 
