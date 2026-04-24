@@ -1,7 +1,8 @@
 """
-Tests for $expr in aggregate command contexts.
+Tests for $expr in $lookup subpipeline.
 
-Covers $match, $match with pipeline stages, let variables, and $lookup subpipeline.
+Covers $lookup with $expr join conditions, let variables,
+arithmetic in $expr, null/missing field handling, and error cases.
 """
 
 from documentdb_tests.framework.assertions import (
@@ -10,182 +11,8 @@ from documentdb_tests.framework.assertions import (
 )
 from documentdb_tests.framework.error_codes import (
     LET_UNDEFINED_VARIABLE_ERROR,
-    UNRECOGNIZED_EXPRESSION_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
-
-BASIC_DOCS = [
-    {"_id": 1, "a": 5, "b": 3},
-    {"_id": 2, "a": 1, "b": 10},
-    {"_id": 3, "a": -1, "b": 0},
-]
-
-
-def test_expr_aggregate_match(collection):
-    """Test $expr in aggregate $match — same results as find."""
-    collection.insert_many(BASIC_DOCS)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$match": {"$expr": {"$gt": ["$a", "$b"]}}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"_id": 1, "a": 5, "b": 3}])
-
-
-def test_expr_match_combined_with_regular_query(collection):
-    """Test $expr combined with regular query operator in $match."""
-    collection.insert_many(BASIC_DOCS)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$match": {"$expr": {"$gt": ["$a", 0]}, "b": {"$lt": 10}}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"_id": 1, "a": 5, "b": 3}])
-
-
-def test_expr_match_with_and(collection):
-    """Test $match with $and containing two $expr clauses."""
-    collection.insert_many(BASIC_DOCS)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$match": {
-                        "$and": [
-                            {"$expr": {"$gt": ["$a", 0]}},
-                            {"$expr": {"$lt": ["$b", 10]}},
-                        ]
-                    }
-                }
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"_id": 1, "a": 5, "b": 3}])
-
-
-def test_expr_match_truthiness(collection):
-    """Test $expr truthiness in $match — literal true matches all."""
-    collection.insert_many(BASIC_DOCS)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$match": {"$expr": True}}, {"$sort": {"_id": 1}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, BASIC_DOCS)
-
-
-def test_expr_match_error(collection):
-    """Test $expr with invalid operator in $match — returns error."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$match": {"$expr": {"$invalidOp": 1}}}],
-            "cursor": {},
-        },
-    )
-    assertFailureCode(result, UNRECOGNIZED_EXPRESSION_ERROR)
-
-
-def test_expr_match_array_no_implicit(collection):
-    """Test $expr in $match does NOT do implicit array element matching."""
-    collection.insert_one({"_id": 1, "a": [1, 5, 10, 15]})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$match": {"$expr": {"$gt": ["$a", 12]}}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"_id": 1, "a": [1, 5, 10, 15]}])
-
-
-def test_expr_match_after_group(collection):
-    """Test $expr in $match after $group — references grouped fields."""
-    collection.insert_many(
-        [
-            {"_id": 1, "cat": "A", "val": 10},
-            {"_id": 2, "cat": "A", "val": 20},
-            {"_id": 3, "cat": "B", "val": 5},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$group": {"_id": "$cat", "total": {"$sum": "$val"}}},
-                {"$match": {"$expr": {"$gt": ["$total", 10]}}},
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"_id": "A", "total": 30}])
-
-
-def test_expr_match_after_addfields(collection):
-    """Test $expr in $match after $addFields references computed field."""
-    collection.insert_many([{"_id": 1, "price": 80, "tax": 15}, {"_id": 2, "price": 50, "tax": 5}])
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$addFields": {"total": {"$add": ["$price", "$tax"]}}},
-                {"$match": {"$expr": {"$gt": ["$total", 90]}}},
-                {"$project": {"_id": 1, "total": 1}},
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"_id": 1, "total": 95}])
-
-
-def test_expr_match_after_unwind(collection):
-    """Test $expr in $match after $unwind references unwound field."""
-    collection.insert_one({"_id": 1, "items": [{"v": 10}, {"v": 3}]})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$unwind": "$items"},
-                {"$match": {"$expr": {"$gt": ["$items.v", 5]}}},
-                {"$project": {"_id": 1, "v": "$items.v"}},
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [{"_id": 1, "v": 10}])
-
-
-def test_expr_let_in_aggregate(collection):
-    """Test $expr with let variable in aggregate $match."""
-    collection.insert_many(BASIC_DOCS)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$match": {"$expr": {"$eq": ["$a", "$$target"]}}}],
-            "cursor": {},
-            "let": {"target": 5},
-        },
-    )
-    assertSuccess(result, [{"_id": 1, "a": 5, "b": 3}])
 
 
 def test_expr_lookup_basic_eq(database_client):
@@ -210,7 +37,16 @@ def test_expr_lookup_basic_eq(database_client):
                         "from": orders.name,
                         "let": {"cust_id": "$_id"},
                         "pipeline": [
-                            {"$match": {"$expr": {"$eq": ["$customer_id", "$$cust_id"]}}},
+                            {
+                                "$match": {
+                                    "$expr": {
+                                        "$eq": [
+                                            "$customer_id",
+                                            "$$cust_id",
+                                        ]
+                                    }
+                                }
+                            },
                             {"$project": {"_id": 0, "item": 1}},
                         ],
                         "as": "orders",
@@ -224,7 +60,11 @@ def test_expr_lookup_basic_eq(database_client):
     assertSuccess(
         result,
         [
-            {"_id": 1, "name": "Alice", "orders": [{"item": "A"}, {"item": "B"}]},
+            {
+                "_id": 1,
+                "name": "Alice",
+                "orders": [{"item": "A"}, {"item": "B"}],
+            },
             {"_id": 2, "name": "Bob", "orders": [{"item": "C"}]},
         ],
     )
@@ -235,7 +75,13 @@ def test_expr_lookup_range_gt(database_client):
     items = database_client.create_collection("items_test")
     thresholds = database_client.create_collection("thresholds_test")
     thresholds.insert_one({"_id": 1, "min_qty": 5})
-    items.insert_many([{"_id": 10, "qty": 10}, {"_id": 11, "qty": 3}, {"_id": 12, "qty": 7}])
+    items.insert_many(
+        [
+            {"_id": 10, "qty": 10},
+            {"_id": 11, "qty": 3},
+            {"_id": 12, "qty": 7},
+        ]
+    )
     result = execute_command(
         thresholds,
         {
@@ -257,7 +103,16 @@ def test_expr_lookup_range_gt(database_client):
             "cursor": {},
         },
     )
-    assertSuccess(result, [{"_id": 1, "min_qty": 5, "above_min": [{"qty": 7}, {"qty": 10}]}])
+    assertSuccess(
+        result,
+        [
+            {
+                "_id": 1,
+                "min_qty": 5,
+                "above_min": [{"qty": 7}, {"qty": 10}],
+            }
+        ],
+    )
 
 
 def test_expr_lookup_arithmetic(database_client):
@@ -278,7 +133,12 @@ def test_expr_lookup_arithmetic(database_client):
                         "pipeline": [
                             {
                                 "$match": {
-                                    "$expr": {"$gt": ["$amount", {"$multiply": ["$$limit", 2]}]}
+                                    "$expr": {
+                                        "$gt": [
+                                            "$amount",
+                                            {"$multiply": ["$$limit", 2]},
+                                        ]
+                                    }
                                 }
                             },
                             {"$project": {"_id": 0, "amount": 1}},
@@ -290,7 +150,10 @@ def test_expr_lookup_arithmetic(database_client):
             "cursor": {},
         },
     )
-    assertSuccess(result, [{"_id": 1, "base_limit": 50, "over_double": [{"amount": 120}]}])
+    assertSuccess(
+        result,
+        [{"_id": 1, "base_limit": 50, "over_double": [{"amount": 120}]}],
+    )
 
 
 def test_expr_lookup_let_null(database_client):
@@ -323,7 +186,7 @@ def test_expr_lookup_let_null(database_client):
 
 
 def test_expr_lookup_let_missing_field(database_client):
-    """Test $lookup with let variable from missing field — resolves to missing, not null."""
+    """Test $lookup with let variable from missing field."""
     inner = database_client.create_collection("inner_miss")
     outer = database_client.create_collection("outer_miss")
     outer.insert_one({"_id": 1})
@@ -353,7 +216,7 @@ def test_expr_lookup_let_missing_field(database_client):
 
 
 def test_expr_lookup_no_match(database_client):
-    """Test $lookup with $expr where no inner docs match — as field is empty array."""
+    """Test $lookup with $expr where no inner docs match."""
     inner = database_client.create_collection("inner_nomatch")
     outer = database_client.create_collection("outer_nomatch")
     outer.insert_one({"_id": 1, "val": 999})
@@ -367,7 +230,9 @@ def test_expr_lookup_no_match(database_client):
                     "$lookup": {
                         "from": inner.name,
                         "let": {"v": "$val"},
-                        "pipeline": [{"$match": {"$expr": {"$eq": ["$x", "$$v"]}}}],
+                        "pipeline": [
+                            {"$match": {"$expr": {"$eq": ["$x", "$$v"]}}},
+                        ],
                         "as": "matched",
                     }
                 }
@@ -379,7 +244,7 @@ def test_expr_lookup_no_match(database_client):
 
 
 def test_expr_lookup_undefined_variable(database_client):
-    """Test $lookup with $expr referencing undefined let variable — error."""
+    """Test $lookup with $expr referencing undefined let variable."""
     inner = database_client.create_collection("inner_undef")
     outer = database_client.create_collection("outer_undef")
     outer.insert_one({"_id": 1})
@@ -393,7 +258,9 @@ def test_expr_lookup_undefined_variable(database_client):
                     "$lookup": {
                         "from": inner.name,
                         "let": {},
-                        "pipeline": [{"$match": {"$expr": {"$eq": ["$x", "$$undefined_var"]}}}],
+                        "pipeline": [
+                            {"$match": {"$expr": {"$eq": ["$x", "$$undefined_var"]}}},
+                        ],
                         "as": "matched",
                     }
                 }
