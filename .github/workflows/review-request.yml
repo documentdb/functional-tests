@@ -1,0 +1,49 @@
+name: Review Request
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  request-review:
+    if: >
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/review')
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Request review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { repo, issue } = context;
+            const user = context.payload.comment.user.login;
+            const prNum = issue.number;
+            const body = context.payload.comment.body;
+            const comment = (msg) => github.rest.issues.createComment({ ...repo, issue_number: prNum, body: msg });
+
+            // Parse reviewers from "/review @user1 @user2"
+            const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number: prNum });
+            if (user !== pr.user.login) {
+              await comment(`@${user} Only the PR author can request reviews.`);
+              return;
+            }
+
+            const mentions = body.match(/@([\w-]+)/g);
+            if (!mentions || mentions.length === 0) {
+              await comment(`@${user} Usage: \`/review @username1 @username2\``);
+              return;
+            }
+            const reviewers = mentions.map(m => m.slice(1)).filter(r => r !== user);
+            if (reviewers.length === 0) {
+              await comment(`@${user} You can't request a review from yourself.`);
+              return;
+            }
+
+            try {
+              await github.rest.pulls.requestReviewers({ ...repo, pull_number: prNum, reviewers });
+              await comment(`Review requested from ${reviewers.map(r => '@' + r).join(', ')}.`);
+            } catch (err) {
+              await comment(`@${user} Failed to request review. Make sure the usernames are valid.`);
+            }
