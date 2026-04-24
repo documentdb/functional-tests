@@ -239,6 +239,7 @@ def assertResult(
     msg: Optional[str] = None,
     ignore_order_in: Optional[list[str]] = None,
     ignore_doc_order: bool = False,
+    raw_res: bool = False,
 ):
     """
     Universal assertion that handles success and error cases.
@@ -252,11 +253,14 @@ def assertResult(
             comparison (for fields like set operation results where element
             order is unspecified)
         ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
+        raw_res: If True, compare the raw result dict instead of
+            extracting cursor.firstBatch
 
     Usage:
         assertResult(result, expected=[{"_id": 1}])  # Success case
         assertResult(result, error_code=16555)  # Error case
         assertResult(result, expected=[{"r": [3, 1, 2]}], ignore_order_in=["r"])
+        assertResult(result, expected={"ok": 1.0}, raw_res=True)  # Raw command result
     """
     if error_code is not None:
         assertFailureCode(result, error_code, msg)
@@ -265,6 +269,7 @@ def assertResult(
             result,
             expected,
             msg,
+            raw_res=raw_res,
             ignore_order_in=ignore_order_in,
             ignore_doc_order=ignore_doc_order,
         )
