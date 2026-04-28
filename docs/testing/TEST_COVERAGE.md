@@ -388,6 +388,20 @@ For each invalid_type in [string, object, array, ...]:
 
 ---
 
+### 17. $expr Coverage in Filter/Query Contexts
+**Rule**: Any command or stage that accepts a query/filter expression must include `$expr` tests.
+
+**Commands with a filter parameter**:
+- `find`, `update`, `delete`, `findAndModify`, `count`, `distinct`
+
+**Commands with a query parameter**:
+- `listCollections`, `listDatabases`
+
+**Stages with a match expression**:
+- `$match`, `$lookup` subpipeline
+
+---
+
 ## Test Category Checklist
 
 For any DocumentDB feature, ensure coverage of:
@@ -421,6 +435,7 @@ For any DocumentDB feature, ensure coverage of:
 - [ ] **Collection command argument validation**: name type/value, options, unrecognized fields (if collection command)
 - [ ] **Collection command response structure**: all response fields and types verified (if collection command)
 - [ ] **Collection command variants**: behavior across collection types — regular, capped, views (if collection command)
+- [ ] **$expr in filter/query contexts**: commands with filter (find, update, delete, findAndModify, count, distinct), commands with query (listCollections, listDatabases), stages ($match, $lookup subpipeline)
 - [ ] **System variables**: $$ROOT, $$CURRENT, $$REMOVE, $let — only if official documentation says supported
 - [ ] **Negative zero**: `DOUBLE_NEGATIVE_ZERO` and `DECIMAL128_NEGATIVE_ZERO` behavior (if numeric operator)
 - [ ] **Double precision boundaries**: `DOUBLE_NEAR_MAX`, `DOUBLE_MIN_SUBNORMAL`, `DOUBLE_NEAR_MIN` (if accepts double)
