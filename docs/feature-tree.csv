@@ -3,7 +3,7 @@ core,aggregation,commands,-,-,aggregate
 core,aggregation,commands,-,-,count
 core,aggregation,commands,-,-,distinct
 core,aggregation,commands,-,-,mapReduce
-core,collections,-,-,-,capped_collections
+core,collections,-,-,-,capped-collections
 core,collections,-,-,-,clustered-collections
 core,collections,-,-,-,materialized-views
 core,collections,-,-,-,timeseries
@@ -66,7 +66,7 @@ core,operator,accumulators,-,-,sum
 core,operator,accumulators,-,-,top
 core,operator,accumulators,-,-,topN
 core,operator,expressions,-,-,literal
-core,operator,expressions,-,-,text
+core,operator,expressions,text,-,meta
 core,operator,expressions,accumulator,-,avg
 core,operator,expressions,accumulator,-,first
 core,operator,expressions,accumulator,-,last
@@ -153,7 +153,6 @@ core,operator,expressions,date,-,millisecond
 core,operator,expressions,date,-,minute
 core,operator,expressions,date,-,month
 core,operator,expressions,date,-,second
-core,operator,expressions,date,-,toDate
 core,operator,expressions,date,-,week
 core,operator,expressions,date,-,year
 core,operator,expressions,misc,-,binarySize
@@ -218,6 +217,7 @@ core,operator,expressions,type,-,toInt
 core,operator,expressions,type,-,toLong
 core,operator,expressions,type,-,toObjectId
 core,operator,expressions,type,-,toUUID
+core,operator,expressions,type,-,toDate
 core,operator,expressions,type,-,type
 core,operator,expressions,variable,-,let
 core,operator,projection,-,-,elemMatch
