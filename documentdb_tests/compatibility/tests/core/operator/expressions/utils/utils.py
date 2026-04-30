@@ -5,7 +5,8 @@ Provides helper functions for building and executing MongoDB aggregation
 expressions and operators in test scenarios.
 """
 
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.assertions import assertResult, assertResultV2
+from documentdb_tests.framework.error_codes import ErrorCode
 from documentdb_tests.framework.executor import execute_command
 
 
@@ -176,6 +177,26 @@ def assert_expression_result(result, expected=None, error_code=None, msg=None, i
         result,
         expected=[{"result": expected}] if error_code is None else None,
         error_code=error_code,
+        msg=msg,
+        ignore_order_in=["result"] if ignore_order else None,
+    )
+
+
+def assert_expression_result_v2(result, expected, msg=None, ignore_order=False):
+    """Assert expression result, routing ErrorCode automatically.
+
+    Args:
+        result: Result from execute_expression or execute_expression_with_insert
+        expected: Expected scalar value (wrapped into [{"result": expected}]).
+            If an ErrorCode, asserts the command failed with that code.
+        msg: Custom assertion message (optional)
+        ignore_order: If True, sort list results before comparison
+    """
+    if not isinstance(expected, ErrorCode):
+        expected = [{"result": expected}]
+    assertResultV2(
+        result,
+        expected,
         msg=msg,
         ignore_order_in=["result"] if ignore_order else None,
     )

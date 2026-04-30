@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, Optional, Union
 
 from bson import Decimal128, Int64
 
+from documentdb_tests.framework.error_codes import ErrorCode
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
 
 _MAX_REPR_LEN = 1000
@@ -228,8 +229,43 @@ def assertFailure(
 
 def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Optional[str] = None):
     """Assert command failed and check only the code field."""
-    expected = {"code": expected_code}
+    expected = {"code": int(expected_code)}
     assertFailure(result, expected, msg, transform=partial_match(expected))
+
+
+def assertResultV2(
+    result: Union[Any, Exception],
+    expected: Any = None,
+    msg: Optional[str] = None,
+    ignore_order_in: Optional[list[str]] = None,
+    ignore_doc_order: bool = False,
+    raw_res: bool = False,
+):
+    """Assert command result, routing ErrorCode to error_code param automatically.
+
+    Args:
+        result: Result from execute_command
+        expected: Expected value. If an ErrorCode, asserts failure with that code.
+            Otherwise, asserts success with this as the firstBatch content.
+        msg: Custom assertion message (optional)
+        ignore_order_in: Field names whose list values should be sorted before
+            comparison (for fields like set operation results where element
+            order is unspecified)
+        ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
+        raw_res: If True, compare the raw result dict instead of
+            extracting cursor.firstBatch
+    """
+    if isinstance(expected, ErrorCode):
+        assertFailureCode(result, expected, msg)
+    else:
+        assertSuccess(
+            result,
+            expected,
+            msg,
+            raw_res=raw_res,
+            ignore_order_in=ignore_order_in,
+            ignore_doc_order=ignore_doc_order,
+        )
 
 
 def assertResult(
@@ -243,6 +279,8 @@ def assertResult(
 ):
     """
     Universal assertion that handles success and error cases.
+
+    Delegates to assertResultV2. Kept for backward compatibility.
 
     Args:
         result: Result from execute_command
@@ -263,16 +301,15 @@ def assertResult(
         assertResult(result, expected={"ok": 1.0}, raw_res=True)  # Raw command result
     """
     if error_code is not None:
-        assertFailureCode(result, error_code, msg)
-    else:
-        assertSuccess(
-            result,
-            expected,
-            msg,
-            raw_res=raw_res,
-            ignore_order_in=ignore_order_in,
-            ignore_doc_order=ignore_doc_order,
-        )
+        expected = ErrorCode(error_code)
+    assertResultV2(
+        result,
+        expected,
+        msg=msg,
+        ignore_order_in=ignore_order_in,
+        ignore_doc_order=ignore_doc_order,
+        raw_res=raw_res,
+    )
 
 
 def assertExceptionType(
