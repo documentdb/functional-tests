@@ -10,7 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
@@ -572,91 +572,6 @@ DIVIDE_TESTS: list[DivideTest] = [
         divisor=None,
         expected=None,
         msg="Should return null when both are null",
-    ),
-    # Error cases - invalid types
-    DivideTest(
-        "string_divisor",
-        dividend=10,
-        divisor="string",
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject string divisor",
-    ),
-    DivideTest(
-        "string_dividend",
-        dividend="string",
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject string dividend",
-    ),
-    DivideTest(
-        "boolean_divisor",
-        dividend=10,
-        divisor=True,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject boolean divisor",
-    ),
-    DivideTest(
-        "boolean_dividend",
-        dividend=True,
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject boolean dividend",
-    ),
-    DivideTest(
-        "array_divisor",
-        dividend=10,
-        divisor=[2, 3],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject array divisor",
-    ),
-    DivideTest(
-        "array_dividend",
-        dividend=[2, 3],
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject array dividend",
-    ),
-    DivideTest(
-        "object_divisor",
-        dividend=10,
-        divisor={"a": 2},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject object divisor",
-    ),
-    DivideTest(
-        "object_dividend",
-        dividend={"a": 2},
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject object dividend",
-    ),
-    DivideTest(
-        "empty_array_dividend",
-        dividend=[],
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject empty array dividend",
-    ),
-    DivideTest(
-        "empty_object_dividend",
-        dividend={},
-        divisor=2,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject empty object dividend",
-    ),
-    DivideTest(
-        "empty_array_divisor",
-        dividend=10,
-        divisor=[],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject empty array divisor",
-    ),
-    DivideTest(
-        "empty_object_divisor",
-        dividend=10,
-        divisor={},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Should reject empty object divisor",
     ),
     # Error cases - zero divisor
     DivideTest(

@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from bson import Decimal128, Int64, ObjectId, Timestamp
+import pytest
+from bson import Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.datetime_ms import DatetimeMS
 
 # Int32 boundary values
@@ -189,3 +190,54 @@ OID_EPOCH = ObjectId("000000000000000000000000")
 OID_MAX_SIGNED32 = ObjectId("7fffffff0000000000000000")
 OID_MIN_SIGNED32 = ObjectId("800000000000000000000000")
 OID_MAX_UNSIGNED32 = ObjectId("ffffffff0000000000000000")
+
+# Representative value for each non-numeric BSON type, for type-validation parametrization.
+# Operators pair these with their own expected outcomes via with_expected().
+BSON_TYPE_SAMPLES = [
+    pytest.param("str", id="string"),
+    pytest.param(True, id="bool"),
+    pytest.param(1, id="int32"),
+    pytest.param(Int64(1), id="int64"),
+    pytest.param(1.0, id="double"),
+    pytest.param(Decimal128("1"), id="decimal128"),
+    pytest.param([1, 2], id="array"),
+    pytest.param({"x": 1}, id="object"),
+    pytest.param([], id="empty_array"),
+    pytest.param({}, id="empty_object"),
+    pytest.param(datetime(2024, 1, 1), id="date"),
+    pytest.param(ObjectId(), id="objectid"),
+    pytest.param(Regex(".*"), id="regex"),
+    pytest.param(Code("function(){}"), id="code"),
+    pytest.param(Timestamp(0, 0), id="timestamp"),
+    pytest.param(MinKey(), id="minkey"),
+    pytest.param(MaxKey(), id="maxkey"),
+    pytest.param(b"\x00", id="bindata"),
+    pytest.param(None, id="null"),
+]
+
+# Argument lists of length 0–5 and representative non-array types
+# for testing array-input operators.
+# Uses field refs to missing fields (type-neutral) so arg-count validation
+# triggers before any type check, regardless of operator input type.
+ARRAY_INPUT_ARGS = [
+    pytest.param(["$a", "$b", "$c", "$d", "$e"][:n], id=f"{n}_args") for n in range(6)
+] + [
+    pytest.param("$a", id="string"),
+    pytest.param(True, id="bool"),
+    pytest.param(None, id="null"),
+    pytest.param({}, id="object"),
+    pytest.param({"x": 1}, id="non_empty_object"),
+]
+
+# Invalid arguments for object-input operators, stages, or commands
+# (e.g. $filter, $match, $createCollection).
+# Tests representative non-object types and invalid object shapes.
+OBJECT_INPUT_ARGS = [
+    pytest.param("$a", id="string"),
+    pytest.param([], id="empty_array"),
+    pytest.param([1, 2], id="array"),
+    pytest.param(True, id="bool"),
+    pytest.param(None, id="null"),
+    pytest.param({}, id="empty_object"),
+    pytest.param({"invalid_field": None}, id="unknown_field"),
+]
