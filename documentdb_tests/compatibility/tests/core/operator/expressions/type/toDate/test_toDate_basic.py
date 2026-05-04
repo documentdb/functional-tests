@@ -1,7 +1,7 @@
 """$toDate basic tests: null/missing, double/long/decimal128 conversion, string parsing,
 ObjectId, Timestamp, date passthrough, invalid types, special numerics, date boundaries."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, Regex
@@ -73,25 +73,25 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "double_positive",
         msg="Should handle double positive",
         value=120000000000.5,
-        expected=datetime(1973, 10, 20, 21, 20, 0),
+        expected=datetime(1973, 10, 20, 21, 20, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "double_negative",
         msg="Should handle double negative",
         value=-120000000000.0,
-        expected=datetime(1966, 3, 14, 2, 40, 0),
+        expected=datetime(1966, 3, 14, 2, 40, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "double_one_day",
         msg="Should handle double one day",
         value=86400000.0,
-        expected=datetime(1970, 1, 2, 0, 0, 0),
+        expected=datetime(1970, 1, 2, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "double_fractional_truncated",
         msg="Should handle double fractional truncated",
         value=1000.9,
-        expected=datetime(1970, 1, 1, 0, 0, 1),
+        expected=datetime(1970, 1, 1, 0, 0, 1, tzinfo=timezone.utc),
     ),
     # Long (ms since epoch).
     ToDateTest("long_zero", msg="Should handle long zero", value=INT64_ZERO, expected=DATE_EPOCH),
@@ -99,31 +99,31 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "long_positive",
         msg="Should handle long positive",
         value=Int64(1100000000000),
-        expected=datetime(2004, 11, 9, 11, 33, 20),
+        expected=datetime(2004, 11, 9, 11, 33, 20, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "long_negative",
         msg="Should handle long negative",
         value=Int64(-1100000000000),
-        expected=datetime(1935, 2, 22, 12, 26, 40),
+        expected=datetime(1935, 2, 22, 12, 26, 40, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "long_one_day",
         msg="Should handle long one day",
         value=Int64(86400000),
-        expected=datetime(1970, 1, 2, 0, 0, 0),
+        expected=datetime(1970, 1, 2, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "long_one_second",
         msg="Should handle long one second",
         value=Int64(1000),
-        expected=datetime(1970, 1, 1, 0, 0, 1),
+        expected=datetime(1970, 1, 1, 0, 0, 1, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "long_one_ms",
         msg="Should handle long one ms",
         value=Int64(1),
-        expected=datetime(1970, 1, 1, 0, 0, 0, 1000),
+        expected=datetime(1970, 1, 1, 0, 0, 0, 1000, tzinfo=timezone.utc),
     ),
     # Decimal128 (ms since epoch).
     ToDateTest(
@@ -133,241 +133,241 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "decimal_positive",
         msg="Should handle decimal positive",
         value=Decimal128("1253372036000.50"),
-        expected=datetime(2009, 9, 19, 14, 53, 56),
+        expected=datetime(2009, 9, 19, 14, 53, 56, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "decimal_negative",
         msg="Should handle decimal negative",
         value=Decimal128("-86400000"),
-        expected=datetime(1969, 12, 31, 0, 0, 0),
+        expected=datetime(1969, 12, 31, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "decimal_one_day",
         msg="Should handle decimal one day",
         value=Decimal128("86400000"),
-        expected=datetime(1970, 1, 2, 0, 0, 0),
+        expected=datetime(1970, 1, 2, 0, 0, 0, tzinfo=timezone.utc),
     ),
     # String.
     ToDateTest(
         "string_date_only",
         msg="Should parse date only",
         value="2018-03-20",
-        expected=datetime(2018, 3, 20, 0, 0, 0),
+        expected=datetime(2018, 3, 20, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_datetime_z",
         msg="Should parse datetime z",
         value="2018-03-20T12:00:00Z",
-        expected=datetime(2018, 3, 20, 12, 0, 0),
+        expected=datetime(2018, 3, 20, 12, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_datetime_offset",
         msg="Should parse datetime offset",
         value="2018-03-20T12:00:00+0500",
-        expected=datetime(2018, 3, 20, 7, 0, 0),
+        expected=datetime(2018, 3, 20, 7, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_date_2024",
         msg="Should parse date 2024",
         value="2024-01-01",
-        expected=datetime(2024, 1, 1, 0, 0, 0),
+        expected=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_date_with_time",
         msg="Should parse date with time",
         value="2024-06-15T12:30:45Z",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_datetime_no_tz",
         msg="Should parse datetime without timezone",
         value="2024-06-15T12:30:45",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     # String whitespace trimming.
     ToDateTest(
         "string_leading_space",
         msg="Should trim leading space",
         value=" 2024-06-15T12:30:45Z",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_trailing_space",
         msg="Should trim trailing space",
         value="2024-06-15T12:30:45Z ",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_leading_tab",
         msg="Should trim leading tab",
         value="\t2024-06-15T12:30:45Z",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_trailing_tab",
         msg="Should trim trailing tab",
         value="2024-06-15T12:30:45Z\t",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_leading_newline",
         msg="Should trim leading newline",
         value="\n2024-06-15T12:30:45Z",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_trailing_newline",
         msg="Should trim trailing newline",
         value="2024-06-15T12:30:45Z\n",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_leading_null_byte",
         msg="Should trim leading null byte",
         value="\x002024-06-15T12:30:45Z",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_trailing_null_byte",
         msg="Should trim trailing null byte",
         value="2024-06-15T12:30:45Z\x00",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_leading_nbsp",
         msg="Should trim leading NBSP",
         value="\u00a02024-06-15T12:30:45Z",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_trailing_nbsp",
         msg="Should trim trailing NBSP",
         value="2024-06-15T12:30:45Z\u00a0",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_tab_separator",
         msg="Should accept tab as date/time separator",
         value="2024-06-15\t12:30:45Z",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_multiple_space_separator",
         msg="Should accept multiple spaces as date/time separator",
         value="2024-06-15  12:30:45Z",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_space_before_tz",
         msg="Should accept space before timezone designator",
         value="2024-06-15T12:30:45 Z",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_space_separator_with_offset",
         msg="Should parse space-separated date/time with space before numeric offset",
         value="2018-03-20 11:00:06 +0500",
-        expected=datetime(2018, 3, 20, 6, 0, 6),
+        expected=datetime(2018, 3, 20, 6, 0, 6, tzinfo=timezone.utc),
     ),
     # Timezone offset formats.
     ToDateTest(
         "string_tz_plus_colon",
         msg="Should parse +HH:MM timezone offset",
         value="2024-06-15T12:30:45+05:00",
-        expected=datetime(2024, 6, 15, 7, 30, 45),
+        expected=datetime(2024, 6, 15, 7, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_tz_plus_compact",
         msg="Should parse +HHMM timezone offset",
         value="2024-06-15T12:30:45+0500",
-        expected=datetime(2024, 6, 15, 7, 30, 45),
+        expected=datetime(2024, 6, 15, 7, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_tz_minus_zero_colon",
         msg="Should parse -00:00 timezone offset",
         value="2024-06-15T12:30:45-00:00",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_tz_plus_zero_compact",
         msg="Should parse +0000 timezone offset",
         value="2024-06-15T12:30:45+0000",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_tz_plus_zero_short",
         msg="Should parse +HH shorthand timezone offset",
         value="2024-06-15T12:30:45+00",
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_tz_minus_colon",
         msg="Should parse -HH:MM timezone offset",
         value="2024-06-15T12:30:45-05:30",
-        expected=datetime(2024, 6, 15, 18, 0, 45),
+        expected=datetime(2024, 6, 15, 18, 0, 45, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_tz_minus_compact",
         msg="Should parse -HHMM timezone offset",
         value="2024-06-15T12:30:45-0530",
-        expected=datetime(2024, 6, 15, 18, 0, 45),
+        expected=datetime(2024, 6, 15, 18, 0, 45, tzinfo=timezone.utc),
     ),
     # ObjectId (various dates).
     ToDateTest(
         "oid_2024_jan1",
         msg="Should handle oid 2024 jan1",
         value=_oid_2024_01_01,
-        expected=datetime(2024, 1, 1, 0, 0, 0),
+        expected=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "oid_2024_jun15",
         msg="Should handle oid 2024 jun15",
         value=_oid_2024_06_15,
-        expected=datetime(2024, 6, 15, 12, 0, 0),
+        expected=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "oid_2024_dec31",
         msg="Should handle oid 2024 dec31",
         value=_oid_2024_12_31,
-        expected=datetime(2024, 12, 31, 23, 59, 59),
+        expected=datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "oid_2018_mar27",
         msg="Should handle oid 2018 mar27",
         value=_oid_2018_03_27,
-        expected=datetime(2018, 3, 27, 4, 8, 58),
+        expected=datetime(2018, 3, 27, 4, 8, 58, tzinfo=timezone.utc),
     ),
     # Timestamp (various dates).
     ToDateTest(
         "ts_2024_jan1",
         msg="Should handle ts 2024 jan1",
         value=_ts_2024_01_01,
-        expected=datetime(2024, 1, 1, 0, 0, 0),
+        expected=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "ts_2024_jun15",
         msg="Should handle ts 2024 jun15",
         value=_ts_2024_06_15,
-        expected=datetime(2024, 6, 15, 12, 0, 0),
+        expected=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "ts_2024_dec31",
         msg="Should handle ts 2024 dec31",
         value=_ts_2024_12_31,
-        expected=datetime(2024, 12, 31, 23, 59, 59),
+        expected=datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "ts_2021_nov23",
         msg="Should handle ts 2021 nov23",
         value=_ts_2021_11_23,
-        expected=datetime(2021, 11, 23, 17, 21, 58),
+        expected=datetime(2021, 11, 23, 17, 21, 58, tzinfo=timezone.utc),
     ),
     # Date passthrough.
     ToDateTest(
         "date_passthrough",
         msg="Should handle date passthrough",
-        value=datetime(2024, 6, 15, 12, 0, 0),
-        expected=datetime(2024, 6, 15, 12, 0, 0),
+        value=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
+        expected=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest("date_epoch", msg="Should handle date epoch", value=DATE_EPOCH, expected=DATE_EPOCH),
     # Sign handling (int32 not supported, use Long).
@@ -478,7 +478,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "string_pre_epoch",
         msg="Should parse pre epoch",
         value="1969-12-31",
-        expected=datetime(1969, 12, 31, 0, 0, 0),
+        expected=datetime(1969, 12, 31, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_distant_past",
@@ -490,25 +490,25 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "string_distant_future",
         msg="Should parse distant future",
         value="2100-12-31",
-        expected=datetime(2100, 12, 31, 0, 0, 0),
+        expected=datetime(2100, 12, 31, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "long_far_future",
         msg="Should handle long far future",
         value=Int64(4102444800000),
-        expected=datetime(2100, 1, 1, 0, 0, 0),
+        expected=datetime(2100, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "long_pre_epoch",
         msg="Should handle long pre epoch",
         value=Int64(-86400000),
-        expected=datetime(1969, 12, 31, 0, 0, 0),
+        expected=datetime(1969, 12, 31, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "double_far_future",
         msg="Should handle double far future",
         value=4102444800000.0,
-        expected=datetime(2100, 1, 1, 0, 0, 0),
+        expected=datetime(2100, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
     ),
     # OID/TS at distant dates
     ToDateTest(
@@ -521,13 +521,13 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "oid_1980",
         msg="Should handle oid 1980",
         value=oid_from_args(1980, 1, 1, 0, 0, 0),
-        expected=datetime(1980, 1, 1, 0, 0, 0),
+        expected=datetime(1980, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "oid_distant_future",
         msg="Should handle oid distant future",
         value=oid_from_args(2035, 6, 15, 0, 0, 0),
-        expected=datetime(2035, 6, 15, 0, 0, 0),
+        expected=datetime(2035, 6, 15, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "ts_epoch",
@@ -539,7 +539,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "ts_distant_future",
         msg="Should handle ts distant future",
         value=ts_from_args(2100, 6, 15, 0, 0, 0),
-        expected=datetime(2100, 6, 15, 0, 0, 0),
+        expected=datetime(2100, 6, 15, 0, 0, 0, tzinfo=timezone.utc),
     ),
     # Additional invalid types.
     ToDateTest(
@@ -599,45 +599,45 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "ts_boundary_max_s32",
         msg="Should handle ts boundary max s32",
         value=TS_MAX_SIGNED32,
-        expected=datetime(2038, 1, 19, 3, 14, 7),
+        expected=datetime(2038, 1, 19, 3, 14, 7, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "ts_boundary_max_u32",
         msg="Should handle ts boundary max u32",
         value=TS_MAX_UNSIGNED32,
-        expected=datetime(2106, 2, 7, 6, 28, 15),
+        expected=datetime(2106, 2, 7, 6, 28, 15, tzinfo=timezone.utc),
     ),
     # ObjectId boundaries
     ToDateTest(
         "oid_boundary_max_s32",
         msg="Should handle max signed 32-bit ObjectId",
         value=OID_MAX_SIGNED32,
-        expected=datetime(2038, 1, 19, 3, 14, 7),
+        expected=datetime(2038, 1, 19, 3, 14, 7, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "oid_boundary_min_s32",
         msg="Should handle min signed 32-bit ObjectId",
         value=OID_MIN_SIGNED32,
-        expected=datetime(1901, 12, 13, 20, 45, 52),
+        expected=datetime(1901, 12, 13, 20, 45, 52, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "oid_boundary_max_u32",
         msg="Should handle max unsigned 32-bit ObjectId",
         value=OID_MAX_UNSIGNED32,
-        expected=datetime(1969, 12, 31, 23, 59, 59),
+        expected=datetime(1969, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
     ),
     # Year boundary tests.
     ToDateTest(
         "string_year_0001",
         msg="Should parse earliest representable year string",
         value="0001-01-01T00:00:00Z",
-        expected=datetime(1, 1, 1, 0, 0, 0),
+        expected=datetime(1, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_year_9999_end",
         msg="Should parse last millisecond of year 9999",
         value="9999-12-31T23:59:59.999Z",
-        expected=datetime(9999, 12, 31, 23, 59, 59, 999000),
+        expected=datetime(9999, 12, 31, 23, 59, 59, 999000, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_year_10000",
@@ -649,7 +649,7 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "long_year_9999_end",
         msg="Should handle last millisecond of year 9999 from Int64",
         value=Int64(253402300799999),
-        expected=datetime(9999, 12, 31, 23, 59, 59, 999000),
+        expected=datetime(9999, 12, 31, 23, 59, 59, 999000, tzinfo=timezone.utc),
     ),
     # Year strings with more than 4 digits should be rejected. Testing revealed
     # that some implementations silently misparse these depending on whether the
@@ -718,19 +718,19 @@ TODATE_BASIC_TESTS: list[ToDateTest] = [
         "string_leap_feb29",
         msg="Should parse leap feb29",
         value="2020-02-29",
-        expected=datetime(2020, 2, 29, 0, 0, 0),
+        expected=datetime(2020, 2, 29, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_leap_feb29_2024",
         msg="Should parse leap feb29 2024",
         value="2024-02-29",
-        expected=datetime(2024, 2, 29, 0, 0, 0),
+        expected=datetime(2024, 2, 29, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_leap_feb29_century_2000",
         msg="Should parse leap feb29 century 2000",
         value="2000-02-29",
-        expected=datetime(2000, 2, 29, 0, 0, 0),
+        expected=datetime(2000, 2, 29, 0, 0, 0, tzinfo=timezone.utc),
     ),
     ToDateTest(
         "string_non_leap_feb29",
@@ -784,14 +784,16 @@ def test_toDate_array_insert(collection):
 
 def test_toDate_array_date_literal(collection):
     """$toDate with single-element date array literal unwraps at parse time."""
-    result = execute_expression(collection, {"$toDate": [datetime(2024, 1, 1)]})
-    assert_expression_result(result, expected=datetime(2024, 1, 1, 0, 0, 0))
+    result = execute_expression(
+        collection, {"$toDate": [datetime(2024, 1, 1, tzinfo=timezone.utc)]}
+    )
+    assert_expression_result(result, expected=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
 
 
 def test_toDate_array_date_insert(collection):
     """$toDate with single-element date array from document rejects at runtime."""
     result = execute_expression_with_insert(
-        collection, {"$toDate": "$value"}, {"value": [datetime(2024, 1, 1)]}
+        collection, {"$toDate": "$value"}, {"value": [datetime(2024, 1, 1, tzinfo=timezone.utc)]}
     )
     assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
 

@@ -8,11 +8,10 @@ import math
 import pprint
 from typing import Any, Callable, Dict, Optional, Union
 
-from bson import Decimal128
+from bson import Decimal128, Int64
 
-from documentdb_tests.framework.bson_compare import strict_equal as _strict_equal
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
-from documentdb_tests.framework.property_checks import _FIELD_ABSENT
+from documentdb_tests.framework.property_checks import _FIELD_ABSENT, Check
 
 _MAX_REPR_LEN = 1000
 
@@ -23,6 +22,46 @@ def _truncate_repr(obj: Any) -> str:
     if len(text) > _MAX_REPR_LEN:
         return text[:_MAX_REPR_LEN] + f"... (truncated, {len(text)} chars total)"
     return text
+
+
+# BSON numeric types that must match exactly during comparison. Python's == operator
+# treats some of these as equal (e.g. int and Int64) but they are distinct BSON types.
+_NUMERIC_BSON_TYPES = (int, float, Int64, Decimal128)
+
+
+def _strict_equal(a: Any, b: Any) -> bool:
+    """Equality with stricter semantics for BSON numeric types.
+
+    Standard == considers -0.0 and 0.0 equal per IEEE 754, but the sign
+    of zero is preserved through arithmetic and operators like $toString.
+    A sign mismatch would cause downstream behavior differences that
+    these tests exist to detect, so we compare the sign bit explicitly
+    when both values are zero floats.
+
+    Python's == also considers int and Int64 equal, but they are distinct
+    BSON types. We reject cross-type numeric comparisons so that test
+    expectations must specify the exact BSON type returned by the server.
+    """
+    # Recurse into containers.
+    if isinstance(a, dict) and isinstance(b, dict):
+        if a.keys() != b.keys():
+            return False
+        return all(_strict_equal(a[k], b[k]) for k in a)
+    if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
+        if len(a) != len(b):
+            return False
+        return all(_strict_equal(x, y) for x, y in zip(a, b))
+
+    # Reject cross-type numeric comparisons.
+    if type(a) is not type(b):
+        if isinstance(a, _NUMERIC_BSON_TYPES) and isinstance(b, _NUMERIC_BSON_TYPES):
+            return False
+        return bool(a == b)
+
+    # Distinguish -0.0 from 0.0.
+    if isinstance(a, float) and a == 0.0 and a == b:
+        return math.copysign(1.0, a) == math.copysign(1.0, b)
+    return bool(a == b)
 
 
 def _sort_if_list(value):
@@ -226,6 +265,10 @@ def assertResult(
     """
     if error_code is not None:
         assertFailureCode(result, error_code, msg)
+    elif isinstance(expected, dict) and any(
+        isinstance(v, (Check, dict)) for v in expected.values()
+    ):
+        assertProperties(result, expected, msg=msg, raw_res=raw_res)
     else:
         assertSuccess(
             result,
@@ -285,12 +328,20 @@ def assertSuccessNaN(
 
 
 def _walk_path(doc: dict, path: str) -> Any:
-    """Walk doc along a dotted path, returning _MISSING if absent."""
+    """Walk doc along a dotted path, returning _FIELD_ABSENT if absent.
+
+    Supports dict keys and numeric list indices (e.g. ``cursor.firstBatch.0.name``).
+    """
     current: Any = doc
     for part in path.split("."):
-        if not isinstance(current, dict) or part not in current:
+        if isinstance(current, list):
+            if not part.isdigit() or int(part) >= len(current):
+                return _FIELD_ABSENT
+            current = current[int(part)]
+        elif isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
             return _FIELD_ABSENT
-        current = current[part]
     return current
 
 
@@ -298,8 +349,9 @@ def assertProperties(
     result: Union[Any, Exception],
     checks: dict[str, Any],
     msg: Optional[str] = None,
+    raw_res: bool = False,
 ) -> None:
-    """Assert that the first result document satisfies property checks.
+    """Assert that a result document satisfies property checks.
 
     Unlike ``assertSuccess`` which compares the entire result document
     against an expected value, this function checks individual fields
@@ -307,31 +359,44 @@ def assertProperties(
     alongside exact-value checks without specifying every field.
 
     Each key in ``checks`` is a dotted field path. The value must be a
-    ``Check`` instance for the assertion to apply.
+    ``Check`` instance for the assertion to apply. If the value is a
+    plain dict, it is treated as a nested group: each sub-key is
+    prefixed with the parent path.
 
     Args:
         result: Result to check.
-        checks: Mapping of dotted paths to Check objects.
+        checks: Mapping of dotted paths to Check objects or nested dicts.
         msg: Optional message prefix for failures.
+        raw_res: If True, check paths against the raw result dict
+            instead of extracting ``cursor.firstBatch[0]``.
     """
     if isinstance(result, Exception):
         if isinstance(result, _INFRA_TYPES):
             raise result
         raise AssertionError(_format_exception_error(result))
 
-    docs = result["cursor"]["firstBatch"]
-    if not docs:
-        prefix = f" {msg}" if msg else ""
-        raise AssertionError(f"[NO_DOCUMENTS]{prefix} Expected at least one document")
-
-    doc = docs[0]
+    if raw_res:
+        doc = result
+    else:
+        docs = result["cursor"]["firstBatch"]
+        if not docs:
+            prefix = f" {msg}" if msg else ""
+            raise AssertionError(f"[NO_DOCUMENTS]{prefix} Expected at least one document")
+        doc = docs[0]
     failures: list[str] = []
 
-    for path, check in checks.items():
-        actual = _walk_path(doc, path)
-        err = check.check(actual, path)
-        if err:
-            failures.append(err)
+    def _run_checks(checks: dict[str, Any], prefix: str = "") -> None:
+        for path, check in checks.items():
+            full_path = f"{prefix}.{path}" if prefix else path
+            if isinstance(check, dict):
+                _run_checks(check, full_path)
+            else:
+                actual = _walk_path(doc, full_path)
+                err = check.check(actual, full_path)
+                if err:
+                    failures.append(err)
+
+    _run_checks(checks)
 
     if failures:
         prefix = f" {msg}" if msg else ""

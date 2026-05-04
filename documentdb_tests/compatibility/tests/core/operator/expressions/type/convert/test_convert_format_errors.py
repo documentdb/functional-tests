@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import (
@@ -135,7 +135,7 @@ CONVERT_FORMAT_ERROR_TESTS: list[ConvertTest] = [
         "format_type_datetime",
         input="hello",
         to="binData",
-        format=datetime(2024, 1, 1),
+        format=datetime(2024, 1, 1, tzinfo=timezone.utc),
         error_code=CONVERT_FORMAT_TYPE_ERROR,
         msg="$convert should reject datetime as format",
     ),

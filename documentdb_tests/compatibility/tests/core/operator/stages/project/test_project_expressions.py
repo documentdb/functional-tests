@@ -438,7 +438,7 @@ PROJECT_EXPRESSION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$project": {"r": {"$dateAdd": {"startDate": "$d", "unit": "day", "amount": 1}}}}
         ],
-        expected=[{"_id": 1, "r": datetime(2024, 1, 2)}],
+        expected=[{"_id": 1, "r": datetime(2024, 1, 2, tzinfo=timezone.utc)}],
         msg="$dateAdd should work in $project",
     ),
     StageTestCase(
@@ -460,14 +460,14 @@ PROJECT_EXPRESSION_TESTS: list[StageTestCase] = [
         "expr_dateFromParts",
         docs=[{"_id": 1}],
         pipeline=[{"$project": {"r": {"$dateFromParts": {"year": 2024, "month": 6, "day": 15}}}}],
-        expected=[{"_id": 1, "r": datetime(2024, 6, 15)}],
+        expected=[{"_id": 1, "r": datetime(2024, 6, 15, tzinfo=timezone.utc)}],
         msg="$dateFromParts should work in $project",
     ),
     StageTestCase(
         "expr_dateFromString",
         docs=[{"_id": 1}],
         pipeline=[{"$project": {"r": {"$dateFromString": {"dateString": "2024-01-01"}}}}],
-        expected=[{"_id": 1, "r": datetime(2024, 1, 1)}],
+        expected=[{"_id": 1, "r": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$dateFromString should work in $project",
     ),
     StageTestCase(
@@ -476,7 +476,7 @@ PROJECT_EXPRESSION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$project": {"r": {"$dateSubtract": {"startDate": "$d", "unit": "day", "amount": 1}}}}
         ],
-        expected=[{"_id": 1, "r": datetime(2024, 1, 2)}],
+        expected=[{"_id": 1, "r": datetime(2024, 1, 2, tzinfo=timezone.utc)}],
         msg="$dateSubtract should work in $project",
     ),
     StageTestCase(
@@ -510,7 +510,7 @@ PROJECT_EXPRESSION_TESTS: list[StageTestCase] = [
         "expr_dateTrunc",
         docs=[{"_id": 1, "d": datetime(2024, 3, 15, 10, 30, tzinfo=timezone.utc)}],
         pipeline=[{"$project": {"r": {"$dateTrunc": {"date": "$d", "unit": "month"}}}}],
-        expected=[{"_id": 1, "r": datetime(2024, 3, 1)}],
+        expected=[{"_id": 1, "r": datetime(2024, 3, 1, tzinfo=timezone.utc)}],
         msg="$dateTrunc should work in $project",
     ),
     StageTestCase(
@@ -594,7 +594,7 @@ PROJECT_EXPRESSION_TESTS: list[StageTestCase] = [
         "expr_toDate",
         docs=[{"_id": 1, "a": Int64(1704067200000)}],
         pipeline=[{"$project": {"r": {"$toDate": "$a"}}}],
-        expected=[{"_id": 1, "r": datetime(2024, 1, 1)}],
+        expected=[{"_id": 1, "r": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$toDate should work in $project",
     ),
     StageTestCase(

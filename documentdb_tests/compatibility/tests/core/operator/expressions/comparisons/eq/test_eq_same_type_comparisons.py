@@ -5,7 +5,7 @@ Covers date, timestamp, ObjectId, BinData, regex, UUID, and large input comparis
 String comparison semantics are tested in /core/bson_types/test_bson_types_ordering.py.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -23,19 +23,34 @@ from documentdb_tests.framework.parametrize import pytest_params
 DATE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "same_date",
-        expression={"$eq": [datetime(2024, 1, 1), datetime(2024, 1, 1)]},
+        expression={
+            "$eq": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+            ]
+        },
         expected=True,
         msg="Same dates equal",
     ),
     ExpressionTestCase(
         "diff_date",
-        expression={"$eq": [datetime(2024, 1, 1), datetime(2024, 1, 2)]},
+        expression={
+            "$eq": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 2, tzinfo=timezone.utc),
+            ]
+        },
         expected=False,
         msg="Different dates not equal",
     ),
     ExpressionTestCase(
         "ms_precision",
-        expression={"$eq": [datetime(2024, 1, 1, 0, 0, 0, 0), datetime(2024, 1, 1, 0, 0, 0, 1000)]},
+        expression={
+            "$eq": [
+                datetime(2024, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc),
+                datetime(2024, 1, 1, 0, 0, 0, 1000, tzinfo=timezone.utc),
+            ]
+        },
         expected=False,
         msg="Millisecond precision matters",
     ),
@@ -63,7 +78,7 @@ TIMESTAMP_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "date_ne_timestamp",
-        expression={"$eq": [datetime(2024, 1, 1), Timestamp(1704067200, 0)]},
+        expression={"$eq": [datetime(2024, 1, 1, tzinfo=timezone.utc), Timestamp(1704067200, 0)]},
         expected=False,
         msg="Date and Timestamp are different BSON types, never equal",
     ),

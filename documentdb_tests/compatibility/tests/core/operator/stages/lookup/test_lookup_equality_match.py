@@ -574,26 +574,36 @@ LOOKUP_EQUALITY_MATCH_TESTS: list[LookupTestCase] = [
         expected=[
             {
                 "_id": 1,
-                "lf": datetime.datetime(1960, 1, 1),
-                "joined": [{"_id": 100, "ff": datetime.datetime(1960, 1, 1)}],
+                "lf": datetime.datetime(1960, 1, 1, tzinfo=datetime.timezone.utc),
+                "joined": [
+                    {"_id": 100, "ff": datetime.datetime(1960, 1, 1, tzinfo=datetime.timezone.utc)}
+                ],
             },
             {
                 "_id": 2,
-                "lf": datetime.datetime(2099, 12, 31, 23, 59, 59, 999_000),
+                "lf": datetime.datetime(
+                    2099, 12, 31, 23, 59, 59, 999_000, tzinfo=datetime.timezone.utc
+                ),
                 "joined": [
                     {
                         "_id": 101,
-                        "ff": datetime.datetime(2099, 12, 31, 23, 59, 59, 999_000),
+                        "ff": datetime.datetime(
+                            2099, 12, 31, 23, 59, 59, 999_000, tzinfo=datetime.timezone.utc
+                        ),
                     },
                 ],
             },
             {
                 "_id": 3,
-                "lf": datetime.datetime(2024, 6, 15, 12, 30, 45, 123_000),
+                "lf": datetime.datetime(
+                    2024, 6, 15, 12, 30, 45, 123_000, tzinfo=datetime.timezone.utc
+                ),
                 "joined": [
                     {
                         "_id": 102,
-                        "ff": datetime.datetime(2024, 6, 15, 12, 30, 45, 123_000),
+                        "ff": datetime.datetime(
+                            2024, 6, 15, 12, 30, 45, 123_000, tzinfo=datetime.timezone.utc
+                        ),
                     },
                 ],
             },

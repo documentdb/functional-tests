@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -97,7 +97,7 @@ SAMPLE_STRUCTURE_TESTS: list[StageTestCase] = [
                 "binary_uuid": Binary.from_uuid(UUID("12345678-1234-5678-1234-567812345678")),
                 "objectid": ObjectId("507f1f77bcf86cd799439011"),
                 "boolean": True,
-                "datetime": datetime(2023, 1, 1),
+                "datetime": datetime(2023, 1, 1, tzinfo=timezone.utc),
                 "null": None,
                 "regex": Regex("abc", 2),
                 "javascript": Code("function(){}"),
@@ -122,7 +122,7 @@ SAMPLE_STRUCTURE_TESTS: list[StageTestCase] = [
                 "binary_uuid": Binary.from_uuid(UUID("12345678-1234-5678-1234-567812345678")),
                 "objectid": ObjectId("507f1f77bcf86cd799439011"),
                 "boolean": True,
-                "datetime": datetime(2023, 1, 1),
+                "datetime": datetime(2023, 1, 1, tzinfo=timezone.utc),
                 "null": None,
                 "regex": Regex("abc", 2),
                 "javascript": Code("function(){}"),

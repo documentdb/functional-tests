@@ -6,7 +6,7 @@ field lookup, $$ROOT/$$CURRENT, empty documents, passthrough, literal-only,
 array-of-objects input, and multiple field references.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -378,8 +378,13 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "bson_decimal128_date",
-        expression={"$mergeObjects": [{"a": Decimal128("1.5")}, {"b": datetime(2024, 1, 1)}]},
-        expected={"a": Decimal128("1.5"), "b": datetime(2024, 1, 1)},
+        expression={
+            "$mergeObjects": [
+                {"a": Decimal128("1.5")},
+                {"b": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+            ]
+        },
+        expected={"a": Decimal128("1.5"), "b": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         msg="Merging Decimal128 and Date should succeed and preserve BSON types",
     ),
     ExpressionTestCase(

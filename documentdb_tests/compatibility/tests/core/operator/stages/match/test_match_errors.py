@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -80,7 +80,7 @@ MATCH_ARGUMENT_VALIDATION_TESTS: list[StageTestCase] = [
     ),
     StageTestCase(
         "arg_error_datetime",
-        pipeline=[{"$match": datetime(2024, 1, 1)}],
+        pipeline=[{"$match": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         error_code=MATCH_FILTER_NOT_OBJECT_ERROR,
         msg="$match should reject a datetime argument",
     ),

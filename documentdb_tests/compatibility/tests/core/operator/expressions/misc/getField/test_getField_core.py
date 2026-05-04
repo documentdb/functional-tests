@@ -6,7 +6,7 @@ BSON types, expression types for field and input parameters, system variables,
 null/missing propagation, and non-object input behavior.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -70,8 +70,13 @@ RETURN_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "date",
-        expression={"$getField": {"field": "val", "input": {"val": datetime(2024, 1, 1)}}},
-        expected=datetime(2024, 1, 1),
+        expression={
+            "$getField": {
+                "field": "val",
+                "input": {"val": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+            }
+        },
+        expected=datetime(2024, 1, 1, tzinfo=timezone.utc),
         msg="Should return date",
     ),
     ExpressionTestCase(
@@ -424,7 +429,9 @@ LITERAL_MISSING_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "date_input",
-        expression={"$getField": {"field": "a", "input": datetime(2024, 1, 1)}},
+        expression={
+            "$getField": {"field": "a", "input": datetime(2024, 1, 1, tzinfo=timezone.utc)}
+        },
         msg="Should return missing for date input",
     ),
     ExpressionTestCase(

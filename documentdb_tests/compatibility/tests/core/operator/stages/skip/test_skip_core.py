@@ -111,7 +111,7 @@ SKIP_CORE_BEHAVIOR_TESTS: list[StageTestCase] = [
                 "array": [1, 2, 3],
                 "obj": {"nested": "value"},
                 "oid": ObjectId("aaaaaaaaaaaaaaaaaaaaaaaa"),
-                "dt": datetime(2024, 1, 1),
+                "dt": datetime(2024, 1, 1, tzinfo=timezone.utc),
                 "ts": Timestamp(100, 1),
                 "bin": b"\x01\x02",
                 "dec": DECIMAL128_ONE_AND_HALF,

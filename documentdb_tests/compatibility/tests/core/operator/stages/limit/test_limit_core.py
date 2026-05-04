@@ -123,7 +123,7 @@ LIMIT_PRESERVATION_TESTS: list[StageTestCase] = [
                 "null": None,
                 "arr": [1, [2, 3]],
                 "obj": {"nested": {"deep": True}},
-                "date": datetime(2024, 1, 1),
+                "date": datetime(2024, 1, 1, tzinfo=timezone.utc),
                 "oid": ObjectId("aaaaaaaaaaaaaaaaaaaaaaaa"),
                 "bin": b"\x01\x02",
                 "ts": Timestamp(100, 1),

@@ -69,7 +69,7 @@ BSON_TYPE_TESTS: list[QueryTestCase] = [
             {"_id": 1, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)},
             {"_id": 2, "a": datetime(2025, 1, 1, tzinfo=timezone.utc)},
         ],
-        expected=[{"_id": 1, "a": datetime(2024, 1, 1)}],
+        expected=[{"_id": 1, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$in with datetime",
     ),
     QueryTestCase(
@@ -232,7 +232,7 @@ TYPE_DISTINCTION_TESTS: list[QueryTestCase] = [
             {"_id": 1, "a": Timestamp(1704067200, 0)},
             {"_id": 2, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         ],
-        expected=[{"_id": 2, "a": datetime(2024, 1, 1)}],
+        expected=[{"_id": 2, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$in datetime does NOT match Timestamp with same epoch seconds",
     ),
 ]

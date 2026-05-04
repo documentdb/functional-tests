@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import (
@@ -233,7 +233,7 @@ BUCKET_BSON_TYPE_ROUTING_TESTS: list[StageTestCase] = [
         docs=[
             {"_id": 1, "x": "hello"},
             {"_id": 2, "x": True},
-            {"_id": 3, "x": datetime(2024, 1, 1)},
+            {"_id": 3, "x": datetime(2024, 1, 1, tzinfo=timezone.utc)},
             {"_id": 4, "x": ObjectId("000000000000000000000001")},
             {"_id": 5, "x": Regex("abc")},
             {"_id": 6, "x": Binary(b"hi")},

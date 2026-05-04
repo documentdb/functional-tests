@@ -456,7 +456,9 @@ LOOKUP_BSON_TYPE_PRESERVATION_TESTS: list[LookupTestCase] = [
                         "binary_uuid_val": Binary(b"\x01" * 16, 4),
                         "oid_val": ObjectId("507f1f77bcf86cd799439011"),
                         "bool_val": True,
-                        "datetime_val": datetime.datetime(2024, 6, 15, 12, 0, 0),
+                        "datetime_val": datetime.datetime(
+                            2024, 6, 15, 12, 0, 0, tzinfo=datetime.timezone.utc
+                        ),
                         "null_val": None,
                         "regex_val": Regex("^abc", 2),
                         "code_val": Code("function() {}"),
