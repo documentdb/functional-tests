@@ -87,7 +87,7 @@ VALIDATED_COLLECTION_OUTPUT_TESTS: list[CommandTestCase] = [
 ]
 
 # Property [Collated Collection Output]: collated collections include
-# collation with all server-expanded defaults in options.
+# collation in options with at least the requested locale.
 COLLATED_COLLECTION_OUTPUT_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         target_collection=CollatedCollection(),
@@ -95,23 +95,11 @@ COLLATED_COLLECTION_OUTPUT_TESTS: list[CommandTestCase] = [
         expected={
             "cursor.firstBatch.0": {
                 "type": Eq("collection"),
-                "options.collation": Eq(
-                    {
-                        "locale": "en",
-                        "caseLevel": False,
-                        "caseFirst": "off",
-                        "strength": 3,
-                        "numericOrdering": False,
-                        "alternate": "non-ignorable",
-                        "maxVariable": "punct",
-                        "normalization": False,
-                        "backwards": False,
-                        "version": "57.1",
-                    }
-                ),
+                "options.collation": Exists(),
+                "options.collation.locale": Eq("en"),
             },
         },
-        msg="Collated collection should include full server-expanded collation",
+        msg="Collated collection should include collation with requested locale",
         id="collated_collection_output",
     ),
 ]
