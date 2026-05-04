@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import (
@@ -134,7 +134,7 @@ CONVERT_BYTE_ORDER_ERROR_TESTS: list[ConvertTest] = [
         "byte_order_type_datetime",
         input=42,
         to="binData",
-        byte_order=datetime(2024, 1, 1),
+        byte_order=datetime(2024, 1, 1, tzinfo=timezone.utc),
         error_code=CONVERT_BYTE_ORDER_TYPE_ERROR,
         msg="$convert should reject datetime as byteOrder",
     ),

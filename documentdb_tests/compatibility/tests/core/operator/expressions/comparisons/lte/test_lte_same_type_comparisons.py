@@ -4,7 +4,7 @@ Tests for $lte same-type comparisons.
 Covers numeric, string, boolean, date, object, array, and sign handling.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Decimal128, Int64
@@ -121,19 +121,34 @@ BOOLEAN_TESTS: list[ExpressionTestCase] = [
 DATE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "date_lt",
-        expression={"$lte": [datetime(2024, 1, 1), datetime(2024, 12, 31)]},
+        expression={
+            "$lte": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 12, 31, tzinfo=timezone.utc),
+            ]
+        },
         expected=True,
         msg="earlier date <= later date",
     ),
     ExpressionTestCase(
         "date_gt",
-        expression={"$lte": [datetime(2024, 12, 31), datetime(2024, 1, 1)]},
+        expression={
+            "$lte": [
+                datetime(2024, 12, 31, tzinfo=timezone.utc),
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+            ]
+        },
         expected=False,
         msg="later date not <= earlier date",
     ),
     ExpressionTestCase(
         "date_eq",
-        expression={"$lte": [datetime(2024, 1, 1), datetime(2024, 1, 1)]},
+        expression={
+            "$lte": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+            ]
+        },
         expected=True,
         msg="same date <= same date",
     ),

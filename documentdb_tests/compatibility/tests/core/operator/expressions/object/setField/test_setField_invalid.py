@@ -5,7 +5,7 @@ Covers missing/extra arguments, invalid types per parameter position,
 and field paths resolving to non-document types.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -179,7 +179,13 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "field_date",
-        expression={"$setField": {"field": datetime(2024, 1, 1), "input": {}, "value": 1}},
+        expression={
+            "$setField": {
+                "field": datetime(2024, 1, 1, tzinfo=timezone.utc),
+                "input": {},
+                "value": 1,
+            }
+        },
         error_code=SET_FIELD_INVALID_FIELD_TYPE_ERROR,
         msg="Date as field parameter should error with invalid field type",
     ),
@@ -276,7 +282,13 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "input_date",
-        expression={"$setField": {"field": "x", "input": datetime(2024, 1, 1), "value": 1}},
+        expression={
+            "$setField": {
+                "field": "x",
+                "input": datetime(2024, 1, 1, tzinfo=timezone.utc),
+                "value": 1,
+            }
+        },
         error_code=SET_FIELD_INVALID_INPUT_TYPE_ERROR,
         msg="Date as input parameter should error with invalid input type",
     ),
@@ -390,7 +402,7 @@ FIELD_REF_INVALID_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "date_input_errors",
         expression={"$setField": {"field": "x", "input": "$v", "value": 1}},
-        doc={"v": datetime(2024, 1, 1)},
+        doc={"v": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=SET_FIELD_INVALID_INPUT_TYPE_ERROR,
         msg="Field ref resolving to date should error with invalid input type",
     ),

@@ -5,7 +5,7 @@ Covers invalid argument types, negative values, fractional values,
 no range support, and boundary errors.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex
@@ -139,7 +139,7 @@ INVALID_ARGUMENT_TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="date",
-        filter={"a": {"$size": datetime(2020, 1, 1)}},
+        filter={"a": {"$size": datetime(2020, 1, 1, tzinfo=timezone.utc)}},
         doc=DOCS,
         error_code=BAD_VALUE_ERROR,
         msg="$size with date errors",

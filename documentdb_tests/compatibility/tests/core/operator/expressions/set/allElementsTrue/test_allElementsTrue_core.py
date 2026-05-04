@@ -6,7 +6,7 @@ element order independence, falsy position testing, scale testing,
 large mixed-type arrays, falsy position testing, and scale testing.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, ObjectId, Regex, Timestamp
@@ -32,7 +32,7 @@ _LARGE_TRUTHY = [
     {"a": 1},
     [1],
     ObjectId("507f1f77bcf86cd799439011"),
-    datetime(2017, 1, 1),
+    datetime(2017, 1, 1, tzinfo=timezone.utc),
     Timestamp(1, 1),
     Binary(b"", 0),
     Regex("re"),
@@ -70,7 +70,7 @@ ALL_ELEMENTS_TRUE_CORE_TESTS: list[AllElementsTrueTest] = [
             {"a": 1},
             [1],
             ObjectId("507f1f77bcf86cd799439011"),
-            datetime(2017, 1, 1),
+            datetime(2017, 1, 1, tzinfo=timezone.utc),
             Timestamp(1, 1),
             Binary(b"", 0),
             Regex("re"),

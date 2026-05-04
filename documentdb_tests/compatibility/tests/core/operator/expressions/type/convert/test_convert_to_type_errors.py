@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import (
@@ -71,7 +71,7 @@ CONVERT_TO_TYPE_ERROR_TESTS: list[ConvertTest] = [
     ConvertTest(
         "to_type_datetime",
         input=42,
-        to=datetime(2024, 1, 1),
+        to=datetime(2024, 1, 1, tzinfo=timezone.utc),
         error_code=FAILED_TO_PARSE_ERROR,
         msg="$convert should reject datetime as to parameter",
     ),
@@ -230,7 +230,7 @@ CONVERT_TO_TYPE_ERROR_TESTS: list[ConvertTest] = [
     ConvertTest(
         "to_obj_type_datetime",
         input=42,
-        to={"type": datetime(2024, 1, 1)},
+        to={"type": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="$convert should reject datetime as type in object form",
     ),
@@ -392,7 +392,7 @@ CONVERT_SUBTYPE_ERROR_TESTS: list[ConvertTest] = [
     ConvertTest(
         "subtype_type_datetime",
         input=42,
-        to={"type": "binData", "subtype": datetime(2024, 1, 1)},
+        to={"type": "binData", "subtype": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=CONVERT_SUBTYPE_TYPE_ERROR,
         msg="$convert should reject datetime as subtype",
     ),

@@ -4,7 +4,7 @@ Tests for $mergeObjects invalid inputs and error codes.
 Covers per-position invalid type validation and field paths resolving to non-document types.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -60,7 +60,7 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "date_2nd",
-        expression={"$mergeObjects": [{"a": 1}, datetime(2024, 1, 1)]},
+        expression={"$mergeObjects": [{"a": 1}, datetime(2024, 1, 1, tzinfo=timezone.utc)]},
         error_code=MERGE_OBJECTS_INVALID_TYPE_ERROR,
         msg="Date literal in second position should error with invalid type",
     ),
@@ -151,7 +151,7 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "date_1st",
-        expression={"$mergeObjects": [datetime(2024, 1, 1), {"a": 1}]},
+        expression={"$mergeObjects": [datetime(2024, 1, 1, tzinfo=timezone.utc), {"a": 1}]},
         error_code=MERGE_OBJECTS_INVALID_TYPE_ERROR,
         msg="Date literal in first position should error with invalid type",
     ),
@@ -242,7 +242,7 @@ LITERAL_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "non_array_date",
-        expression={"$mergeObjects": datetime(2024, 1, 1)},
+        expression={"$mergeObjects": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=MERGE_OBJECTS_INVALID_TYPE_ERROR,
         msg="Non-array date literal argument should error with invalid type",
     ),
@@ -363,7 +363,7 @@ FIELD_REF_INVALID_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "date_field_errors",
         expression={"$mergeObjects": ["$x", {"a": 1}]},
-        doc={"x": datetime(2024, 1, 1)},
+        doc={"x": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=MERGE_OBJECTS_INVALID_TYPE_ERROR,
         msg="Field ref resolving to date should error with invalid type",
     ),
