@@ -4,7 +4,7 @@ Smoke test for $dateDiff expression.
 Tests basic $dateDiff expression functionality.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Int64
@@ -21,8 +21,8 @@ def test_smoke_dateDiff(collection):
         [
             {
                 "_id": 1,
-                "startDate": datetime(2024, 1, 1, 0, 0, 0),
-                "endDate": datetime(2024, 1, 6, 0, 0, 0),
+                "startDate": datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                "endDate": datetime(2024, 1, 6, 0, 0, 0, tzinfo=timezone.utc),
             }
         ]
     )

@@ -6,7 +6,7 @@ BSON type distinction, shorthand syntax, boolean result type,
 order independence, and argument handling.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, ObjectId, Regex, Timestamp
@@ -107,7 +107,7 @@ ANYELEMENTTRUE_CORE_TESTS: list[AnyElementTrueTest] = [
     ),
     AnyElementTrueTest(
         "falsy_plus_date",
-        array=[False, 0, None, datetime(2017, 1, 1)],
+        array=[False, 0, None, datetime(2017, 1, 1, tzinfo=timezone.utc)],
         expected=True,
         msg="Should return true for date among falsy",
     ),

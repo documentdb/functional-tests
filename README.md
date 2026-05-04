@@ -237,6 +237,7 @@ tests/
 - `smoke`: Quick smoke tests for feature detection
 - `slow`: Tests that take longer to execute
 - `no_parallel`: Tests that must run sequentially (e.g., tests that kill sessions/ops, modify server config, or drop all users/roles). Automatically deferred to Phase 2 when using `-n`.
+- `replica_set`: Tests that require a replica set topology (e.g., change streams, encryption, certain admin commands). Skipped by default in CI. To run locally, pass a replica set connection string: `pytest -m replica_set --connection-string "mongodb://localhost:27017/?directConnection=true"`
 
 ## Writing Tests
 

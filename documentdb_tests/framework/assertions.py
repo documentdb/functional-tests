@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, Optional, Union
 from bson import Decimal128, Int64
 
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
+from documentdb_tests.framework.property_checks import _FIELD_ABSENT, Check
 
 _MAX_REPR_LEN = 1000
 
@@ -264,6 +265,10 @@ def assertResult(
     """
     if error_code is not None:
         assertFailureCode(result, error_code, msg)
+    elif isinstance(expected, dict) and any(
+        isinstance(v, (Check, dict)) for v in expected.values()
+    ):
+        assertProperties(result, expected, msg=msg, raw_res=raw_res)
     else:
         assertSuccess(
             result,
@@ -320,3 +325,80 @@ def assertSuccessNaN(
         ignore_doc_order=ignore_doc_order,
         transform=_replace_nan,
     )
+
+
+def _walk_path(doc: dict, path: str) -> Any:
+    """Walk doc along a dotted path, returning _FIELD_ABSENT if absent.
+
+    Supports dict keys and numeric list indices (e.g. ``cursor.firstBatch.0.name``).
+    """
+    current: Any = doc
+    for part in path.split("."):
+        if isinstance(current, list):
+            if not part.isdigit() or int(part) >= len(current):
+                return _FIELD_ABSENT
+            current = current[int(part)]
+        elif isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
+            return _FIELD_ABSENT
+    return current
+
+
+def assertProperties(
+    result: Union[Any, Exception],
+    checks: dict[str, Any],
+    msg: Optional[str] = None,
+    raw_res: bool = False,
+) -> None:
+    """Assert that a result document satisfies property checks.
+
+    Unlike ``assertSuccess`` which compares the entire result document
+    against an expected value, this function checks individual fields
+    by dotted path, allowing structural assertions (existence, type)
+    alongside exact-value checks without specifying every field.
+
+    Each key in ``checks`` is a dotted field path. The value must be a
+    ``Check`` instance for the assertion to apply. If the value is a
+    plain dict, it is treated as a nested group: each sub-key is
+    prefixed with the parent path.
+
+    Args:
+        result: Result to check.
+        checks: Mapping of dotted paths to Check objects or nested dicts.
+        msg: Optional message prefix for failures.
+        raw_res: If True, check paths against the raw result dict
+            instead of extracting ``cursor.firstBatch[0]``.
+    """
+    if isinstance(result, Exception):
+        if isinstance(result, _INFRA_TYPES):
+            raise result
+        raise AssertionError(_format_exception_error(result))
+
+    if raw_res:
+        doc = result
+    else:
+        docs = result["cursor"]["firstBatch"]
+        if not docs:
+            prefix = f" {msg}" if msg else ""
+            raise AssertionError(f"[NO_DOCUMENTS]{prefix} Expected at least one document")
+        doc = docs[0]
+    failures: list[str] = []
+
+    def _run_checks(checks: dict[str, Any], prefix: str = "") -> None:
+        for path, check in checks.items():
+            full_path = f"{prefix}.{path}" if prefix else path
+            if isinstance(check, dict):
+                _run_checks(check, full_path)
+            else:
+                actual = _walk_path(doc, full_path)
+                err = check.check(actual, full_path)
+                if err:
+                    failures.append(err)
+
+    _run_checks(checks)
+
+    if failures:
+        prefix = f" {msg}" if msg else ""
+        detail = "\n  ".join(failures)
+        raise AssertionError(f"[PROPERTY_MISMATCH]{prefix}\n  {detail}")

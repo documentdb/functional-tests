@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import struct
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Decimal128, Int64, ObjectId
@@ -60,7 +60,7 @@ CONVERT_NUMERIC_TYPE_CODE_TESTS: list[ConvertTest] = [
         "type_code_int32_date",
         input=INT64_ZERO,
         to=9,
-        expected=datetime(1970, 1, 1),
+        expected=datetime(1970, 1, 1, tzinfo=timezone.utc),
         msg="$convert should accept int32 type code 9 for date",
     ),
     ConvertTest(

@@ -75,7 +75,7 @@ BSON_TYPE_TESTS: list[QueryTestCase] = [
             {"_id": 1, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)},
             {"_id": 2, "a": datetime(2025, 1, 1, tzinfo=timezone.utc)},
         ],
-        expected=[{"_id": 2, "a": datetime(2025, 1, 1)}],
+        expected=[{"_id": 2, "a": datetime(2025, 1, 1, tzinfo=timezone.utc)}],
         msg="$nin with datetime excludes matching document",
     ),
     QueryTestCase(

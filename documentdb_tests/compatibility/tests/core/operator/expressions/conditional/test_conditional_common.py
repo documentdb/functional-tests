@@ -4,7 +4,7 @@ Tests for return type preservation across conditional expressions ($switch, $con
 Verifies that $switch, $cond, and $ifNull preserve the BSON type of their result expressions.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import (
@@ -36,7 +36,7 @@ BSON_VALUES = [
     ("null", None),
     ("array", [1, 2, 3]),
     ("object", {"$literal": {"a": 1}}),
-    ("date", datetime(2026, 1, 1)),
+    ("date", datetime(2026, 1, 1, tzinfo=timezone.utc)),
     ("decimal", Decimal128("3.14")),
     ("objectId", ObjectId()),
     ("binData", Binary(b"\x00")),

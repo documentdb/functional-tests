@@ -4,7 +4,7 @@ Smoke test for $dateSubtract expression.
 Tests basic $dateSubtract expression functionality.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -16,7 +16,7 @@ pytestmark = pytest.mark.smoke
 
 def test_smoke_dateSubtract(collection):
     """Test basic $dateSubtract expression behavior."""
-    collection.insert_many([{"_id": 1, "date": datetime(2024, 1, 6, 0, 0, 0)}])
+    collection.insert_many([{"_id": 1, "date": datetime(2024, 1, 6, 0, 0, 0, tzinfo=timezone.utc)}])
 
     result = execute_command(
         collection,
@@ -35,5 +35,5 @@ def test_smoke_dateSubtract(collection):
         },
     )
 
-    expected = [{"_id": 1, "newDate": datetime(2024, 1, 1, 0, 0, 0)}]
+    expected = [{"_id": 1, "newDate": datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)}]
     assertSuccess(result, expected, msg="Should support $dateSubtract expression")

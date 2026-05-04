@@ -5,7 +5,7 @@ Covers non-array field types (silent skip), null field handling,
 and missing field handling.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex
@@ -72,7 +72,7 @@ NON_ARRAY_FIELD_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="date_field",
         filter={"a": {"$size": 1}},
-        doc=[{"_id": 1, "a": datetime(2020, 1, 1)}],
+        doc=[{"_id": 1, "a": datetime(2020, 1, 1, tzinfo=timezone.utc)}],
         expected=[],
         msg="$size on date field — no match, no error",
     ),

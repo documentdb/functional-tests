@@ -10,7 +10,7 @@ from pymongo import IndexModel
 from pymongo.collection import Collection
 from pymongo.database import Database
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
+from documentdb_tests.framework.target_collection import (
     TargetCollection,
 )
 from documentdb_tests.framework.test_case import BaseTestCase

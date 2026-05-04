@@ -5,7 +5,7 @@ Covers date, timestamp, ObjectId, BinData, regex, UUID, and large input comparis
 String comparison semantics are tested in /core/bson_types/test_bson_types_ordering.py.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -23,19 +23,34 @@ from documentdb_tests.framework.parametrize import pytest_params
 DATE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "same_date",
-        expression={"$ne": [datetime(2024, 1, 1), datetime(2024, 1, 1)]},
+        expression={
+            "$ne": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+            ]
+        },
         expected=False,
         msg="Same dates equal",
     ),
     ExpressionTestCase(
         "diff_date",
-        expression={"$ne": [datetime(2024, 1, 1), datetime(2024, 1, 2)]},
+        expression={
+            "$ne": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 2, tzinfo=timezone.utc),
+            ]
+        },
         expected=True,
         msg="Different dates not equal",
     ),
     ExpressionTestCase(
         "ms_precision",
-        expression={"$ne": [datetime(2024, 1, 1, 0, 0, 0, 0), datetime(2024, 1, 1, 0, 0, 0, 1000)]},
+        expression={
+            "$ne": [
+                datetime(2024, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc),
+                datetime(2024, 1, 1, 0, 0, 0, 1000, tzinfo=timezone.utc),
+            ]
+        },
         expected=True,
         msg="Millisecond precision matters",
     ),

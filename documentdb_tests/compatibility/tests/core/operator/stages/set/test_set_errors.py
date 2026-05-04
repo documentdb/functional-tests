@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -100,7 +100,7 @@ SET_SPEC_TYPE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "spec_type_error_datetime",
         docs=[{"_id": 1}],
-        pipeline=[{"$set": datetime(2023, 1, 1)}],
+        pipeline=[{"$set": datetime(2023, 1, 1, tzinfo=timezone.utc)}],
         error_code=SET_SPECIFICATION_NOT_OBJECT_ERROR,
         msg="$set should reject a datetime specification",
     ),

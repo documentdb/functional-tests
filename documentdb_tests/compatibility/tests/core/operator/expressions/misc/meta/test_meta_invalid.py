@@ -4,6 +4,7 @@ Tests for $meta invalid arguments and error cases in aggregation $project.
 
 import datetime
 import re
+from datetime import timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Timestamp
@@ -76,7 +77,7 @@ INVALID_ARGUMENT_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "date",
-        expression=datetime.datetime(2024, 1, 1),
+        expression=datetime.datetime(2024, 1, 1, tzinfo=timezone.utc),
         error_code=META_NON_STRING_ERROR,
         msg="Date should fail",
     ),

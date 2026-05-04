@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -58,8 +58,8 @@ SET_BSON_TYPE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "bson_datetime",
         docs=[{"_id": 1}],
-        pipeline=[{"$set": {"v": datetime(2023, 1, 15)}}],
-        expected=[{"_id": 1, "v": datetime(2023, 1, 15)}],
+        pipeline=[{"$set": {"v": datetime(2023, 1, 15, tzinfo=timezone.utc)}}],
+        expected=[{"_id": 1, "v": datetime(2023, 1, 15, tzinfo=timezone.utc)}],
         msg="$set should pass through a datetime value unchanged",
     ),
     StageTestCase(

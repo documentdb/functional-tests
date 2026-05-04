@@ -179,7 +179,28 @@ def pytest_collection_modifyitems(session, config, items):
     'no_parallel' to prevent interference. Run these separately with:
         pytest -m no_parallel -p no:xdist
     Or run them manually with: pytest -m no_parallel -p no:xdist
+
+    Tests marked 'replica_set' are skipped when the server is not a replica set member.
     """
+    # Skip replica_set tests when not connected to a replica set
+    conn_str = getattr(config, "connection_string", "") or ""
+    try:
+        from pymongo import MongoClient
+
+        client = MongoClient(conn_str, serverSelectionTimeoutMS=5000, directConnection=True)
+        is_replica_set = bool(client.admin.command("hello").get("setName"))
+        client.close()
+    except Exception:
+        is_replica_set = False
+    if not is_replica_set:
+        for item in items:
+            if item.get_closest_marker("replica_set"):
+                item.add_marker(
+                    pytest.mark.skip(
+                        reason="requires replica set " "(server is not a replica set member)"
+                    )
+                )
+
     # Deselect no_parallel tests when running under xdist
     is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")
     if is_xdist:
