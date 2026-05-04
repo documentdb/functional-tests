@@ -56,7 +56,7 @@ CURSOR_BATCH_SIZE_TESTS: list[CommandTestCase] = [
         id="batch_size_zero_opens_cursor",
         docs=[{"_id": 1}],
         command={"listCollections": 1, "cursor": {"batchSize": 0}},
-        expected={"cursor.firstBatch": Len(0), "cursor.id": Ne(0)},
+        expected={"cursor.firstBatch": Len(0), "cursor.id": Ne(INT64_ZERO)},
         msg="batchSize=0 should produce empty firstBatch with open cursor",
     ),
     CommandTestCase(
@@ -216,7 +216,7 @@ BATCH_SIZE_BOUNDARY_ZERO_TESTS: list[CommandTestCase] = [
         id="double_negative_zero",
         command={"listCollections": 1, "cursor": {"batchSize": DOUBLE_NEGATIVE_ZERO}},
         msg="batchSize=-0.0 should be treated as 0",
-        expected={"cursor.firstBatch": Len(0), "cursor.id": Ne(0)},
+        expected={"cursor.firstBatch": Len(0), "cursor.id": Ne(INT64_ZERO)},
     ),
     CommandTestCase(
         target_collection=ExtraCollections(count=5),
@@ -224,7 +224,7 @@ BATCH_SIZE_BOUNDARY_ZERO_TESTS: list[CommandTestCase] = [
         id="decimal128_negative_zero",
         command={"listCollections": 1, "cursor": {"batchSize": DECIMAL128_NEGATIVE_ZERO}},
         msg="batchSize=Decimal128('-0') should be treated as 0",
-        expected={"cursor.firstBatch": Len(0), "cursor.id": Ne(0)},
+        expected={"cursor.firstBatch": Len(0), "cursor.id": Ne(INT64_ZERO)},
     ),
     CommandTestCase(
         target_collection=ExtraCollections(count=5),
@@ -232,7 +232,7 @@ BATCH_SIZE_BOUNDARY_ZERO_TESTS: list[CommandTestCase] = [
         id="float_nan",
         command={"listCollections": 1, "cursor": {"batchSize": FLOAT_NAN}},
         msg="batchSize=NaN (float) should be treated as 0",
-        expected={"cursor.firstBatch": Len(0), "cursor.id": Ne(0)},
+        expected={"cursor.firstBatch": Len(0), "cursor.id": Ne(INT64_ZERO)},
     ),
     CommandTestCase(
         target_collection=ExtraCollections(count=5),
@@ -240,7 +240,7 @@ BATCH_SIZE_BOUNDARY_ZERO_TESTS: list[CommandTestCase] = [
         id="decimal128_nan",
         command={"listCollections": 1, "cursor": {"batchSize": DECIMAL128_NAN}},
         msg="batchSize=Decimal128('nan') should be treated as 0",
-        expected={"cursor.firstBatch": Len(0), "cursor.id": Ne(0)},
+        expected={"cursor.firstBatch": Len(0), "cursor.id": Ne(INT64_ZERO)},
     ),
 ]
 
