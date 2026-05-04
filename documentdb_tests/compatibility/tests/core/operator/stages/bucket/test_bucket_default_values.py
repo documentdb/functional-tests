@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import (
@@ -71,11 +71,11 @@ BUCKET_DEFAULT_ID_TYPE_TESTS: list[StageTestCase] = [
                 "$bucket": {
                     "groupBy": "$x",
                     "boundaries": [0, 10],
-                    "default": datetime(2099, 1, 1),
+                    "default": datetime(2099, 1, 1, tzinfo=timezone.utc),
                 }
             }
         ],
-        expected=[{"_id": datetime(2099, 1, 1), "count": 1}],
+        expected=[{"_id": datetime(2099, 1, 1, tzinfo=timezone.utc), "count": 1}],
         msg="$bucket default _id should preserve datetime type",
         id="default_id_preserves_datetime",
     ),

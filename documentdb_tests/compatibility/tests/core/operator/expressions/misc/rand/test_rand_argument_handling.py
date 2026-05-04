@@ -2,7 +2,7 @@
 Tests for $rand argument handling and error cases.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -131,7 +131,7 @@ INVALID_INPUTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "date",
-        expression={"$rand": datetime(2024, 1, 1)},
+        expression={"$rand": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=EXPRESSION_NOT_OBJECT_ERROR,
         msg="Should error for date argument",
     ),

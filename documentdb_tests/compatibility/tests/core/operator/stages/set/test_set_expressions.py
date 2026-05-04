@@ -451,7 +451,7 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
             {"$set": {"r": {"$dateAdd": {"startDate": "$d", "unit": "day", "amount": 1}}}},
             {"$project": {"r": 1}},
         ],
-        expected=[{"_id": 1, "r": datetime(2024, 1, 2)}],
+        expected=[{"_id": 1, "r": datetime(2024, 1, 2, tzinfo=timezone.utc)}],
         msg="$dateAdd should work in $set",
     ),
     StageTestCase(
@@ -477,7 +477,7 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
             {"$set": {"r": {"$dateFromParts": {"year": 2024, "month": 6, "day": 15}}}},
             {"$project": {"r": 1}},
         ],
-        expected=[{"_id": 1, "r": datetime(2024, 6, 15)}],
+        expected=[{"_id": 1, "r": datetime(2024, 6, 15, tzinfo=timezone.utc)}],
         msg="$dateFromParts should work in $set",
     ),
     StageTestCase(
@@ -487,7 +487,7 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
             {"$set": {"r": {"$dateFromString": {"dateString": "2024-01-01"}}}},
             {"$project": {"r": 1}},
         ],
-        expected=[{"_id": 1, "r": datetime(2024, 1, 1)}],
+        expected=[{"_id": 1, "r": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$dateFromString should work in $set",
     ),
     StageTestCase(
@@ -497,7 +497,7 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
             {"$set": {"r": {"$dateSubtract": {"startDate": "$d", "unit": "day", "amount": 1}}}},
             {"$project": {"r": 1}},
         ],
-        expected=[{"_id": 1, "r": datetime(2024, 1, 2)}],
+        expected=[{"_id": 1, "r": datetime(2024, 1, 2, tzinfo=timezone.utc)}],
         msg="$dateSubtract should work in $set",
     ),
     StageTestCase(
@@ -537,7 +537,7 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
             {"$set": {"r": {"$dateTrunc": {"date": "$d", "unit": "month"}}}},
             {"$project": {"r": 1}},
         ],
-        expected=[{"_id": 1, "r": datetime(2024, 3, 1)}],
+        expected=[{"_id": 1, "r": datetime(2024, 3, 1, tzinfo=timezone.utc)}],
         msg="$dateTrunc should work in $set",
     ),
     StageTestCase(
@@ -621,7 +621,7 @@ SET_EXPRESSION_TESTS: list[StageTestCase] = [
         "expr_toDate",
         docs=[{"_id": 1, "a": Int64(1704067200000)}],
         pipeline=[{"$set": {"r": {"$toDate": "$a"}}}, {"$project": {"r": 1}}],
-        expected=[{"_id": 1, "r": datetime(2024, 1, 1)}],
+        expected=[{"_id": 1, "r": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$toDate should work in $set",
     ),
     StageTestCase(

@@ -4,7 +4,7 @@ Smoke test for $toDate expression.
 Tests basic $toDate expression functionality.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -27,5 +27,5 @@ def test_smoke_toDate(collection):
         },
     )
 
-    expected = [{"_id": 1, "date": datetime(2024, 1, 15, 10, 50, 45)}]
+    expected = [{"_id": 1, "date": datetime(2024, 1, 15, 10, 50, 45, tzinfo=timezone.utc)}]
     assertSuccess(result, expected, msg="Should support $toDate expression")

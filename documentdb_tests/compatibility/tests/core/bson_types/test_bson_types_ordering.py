@@ -9,7 +9,7 @@ Decimal128 precision (trailing zeros, scientific notation),
 and field path resolution (nested, missing fields).
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -120,13 +120,13 @@ ADJACENT_TYPE_ORDERING_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "bool_lt_date",
-        expression={"$lt": [False, datetime(1970, 1, 1)]},
+        expression={"$lt": [False, datetime(1970, 1, 1, tzinfo=timezone.utc)]},
         expected=True,
         msg="Bool < date",
     ),
     ExpressionTestCase(
         "date_lt_timestamp",
-        expression={"$lt": [datetime(1970, 1, 1), Timestamp(0, 0)]},
+        expression={"$lt": [datetime(1970, 1, 1, tzinfo=timezone.utc), Timestamp(0, 0)]},
         expected=True,
         msg="Date < Timestamp",
     ),

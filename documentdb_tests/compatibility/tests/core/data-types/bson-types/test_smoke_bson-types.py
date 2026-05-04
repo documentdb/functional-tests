@@ -4,7 +4,7 @@ Smoke test for bson-types.
 Tests basic BSON type support including ObjectId, Date, and Binary.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, ObjectId
@@ -18,7 +18,7 @@ pytestmark = pytest.mark.smoke
 def test_smoke_bson_types(collection):
     """Test basic BSON type storage and retrieval."""
     test_oid = ObjectId()
-    test_date = datetime(2024, 1, 1, 12, 0, 0)
+    test_date = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     test_binary = Binary(b"test data")
 
     collection.insert_many([{"_id": 1, "oid": test_oid, "date": test_date, "binary": test_binary}])

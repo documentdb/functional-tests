@@ -5,7 +5,7 @@ Covers string, object, array, date, and boolean comparisons,
 and $gte vs $gt equality edge cases.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, ObjectId, Regex, Timestamp
@@ -211,25 +211,45 @@ NESTED_ARRAY_TESTS: list[ExpressionTestCase] = [
 DATE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "later_date",
-        expression={"$gte": [datetime(2025, 6, 1), datetime(2025, 1, 1)]},
+        expression={
+            "$gte": [
+                datetime(2025, 6, 1, tzinfo=timezone.utc),
+                datetime(2025, 1, 1, tzinfo=timezone.utc),
+            ]
+        },
         expected=True,
         msg="later date >= earlier",
     ),
     ExpressionTestCase(
         "earlier_date",
-        expression={"$gte": [datetime(2025, 1, 1), datetime(2025, 6, 1)]},
+        expression={
+            "$gte": [
+                datetime(2025, 1, 1, tzinfo=timezone.utc),
+                datetime(2025, 6, 1, tzinfo=timezone.utc),
+            ]
+        },
         expected=False,
         msg="earlier not >= later",
     ),
     ExpressionTestCase(
         "same_date",
-        expression={"$gte": [datetime(2025, 1, 1), datetime(2025, 1, 1)]},
+        expression={
+            "$gte": [
+                datetime(2025, 1, 1, tzinfo=timezone.utc),
+                datetime(2025, 1, 1, tzinfo=timezone.utc),
+            ]
+        },
         expected=True,
         msg="same date >= same date",
     ),
     ExpressionTestCase(
         "millisecond_precision",
-        expression={"$gte": [datetime(2025, 1, 1, 0, 0, 0, 1000), datetime(2025, 1, 1)]},
+        expression={
+            "$gte": [
+                datetime(2025, 1, 1, 0, 0, 0, 1000, tzinfo=timezone.utc),
+                datetime(2025, 1, 1, tzinfo=timezone.utc),
+            ]
+        },
         expected=True,
         msg="1ms later >= earlier",
     ),

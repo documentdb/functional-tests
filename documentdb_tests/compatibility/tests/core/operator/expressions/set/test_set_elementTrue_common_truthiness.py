@@ -10,7 +10,7 @@ Divergent behavior (multi-element arrays, empty arrays) is tested
 in each operator's own truthiness file.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, ObjectId, Regex, Timestamp
@@ -98,7 +98,7 @@ TRUTHY_VALUES = [
     ("empty_object", [{}]),
     ("object", [{"a": 1}]),
     ("objectid", [ObjectId("507f1f77bcf86cd799439011")]),
-    ("date", [datetime(2017, 1, 1)]),
+    ("date", [datetime(2017, 1, 1, tzinfo=timezone.utc)]),
     ("timestamp", [Timestamp(1, 1)]),
     ("bindata", [Binary(b"", 0)]),
     ("regex", [Regex("pattern")]),

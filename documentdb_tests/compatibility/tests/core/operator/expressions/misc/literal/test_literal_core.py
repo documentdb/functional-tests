@@ -7,7 +7,7 @@ suppression, field path suppression, and dollar-sign handling.
 """
 
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -82,8 +82,8 @@ DATA_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "date",
-        expression={"$literal": datetime(2024, 1, 1)},
-        expected=datetime(2024, 1, 1),
+        expression={"$literal": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+        expected=datetime(2024, 1, 1, tzinfo=timezone.utc),
         msg="Should return date as-is",
     ),
     ExpressionTestCase(
@@ -289,8 +289,8 @@ DATA_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "epoch",
-        expression={"$literal": datetime(1970, 1, 1)},
-        expected=datetime(1970, 1, 1),
+        expression={"$literal": datetime(1970, 1, 1, tzinfo=timezone.utc)},
+        expected=datetime(1970, 1, 1, tzinfo=timezone.utc),
         msg="Should return epoch date",
     ),
     ExpressionTestCase(

@@ -5,7 +5,7 @@ Covers non-array argument errors, wrong argument count,
 field path resolving to non-array, and missing field errors.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -78,7 +78,7 @@ NON_ARRAY_FIELD_TESTS: list[AnyElementTrueTest] = [
     ),
     AnyElementTrueTest(
         "date_field",
-        document={"A": datetime(2017, 1, 1)},
+        document={"A": datetime(2017, 1, 1, tzinfo=timezone.utc)},
         error_code=ANY_ELEMENTS_TRUE_NON_ARRAY_ERROR,
         msg="Date field should error",
     ),

@@ -23,7 +23,7 @@ core,cursors,-,-,-,tailable-cursors
 core,cursors,commands,-,-,getMore
 core,cursors,commands,-,-,killCursors
 core,data-types,-,-,-,bson-types
-core,data-types,-,-,-,mongodb-extended-json
+core,data-types,-,-,-,extended-json
 core,indexes,commands,-,-,createIndexes
 core,indexes,commands,-,-,dropIndexes
 core,indexes,commands,-,-,listIndexes

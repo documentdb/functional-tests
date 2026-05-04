@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from bson import Decimal128, Int64, ObjectId, Timestamp
 from bson.datetime_ms import DatetimeMS
@@ -61,7 +61,6 @@ DECIMAL128_INFINITY = Decimal128("Infinity")
 DECIMAL128_MAX = Decimal128("9.999999999999999999999999999999999E+6144")
 DECIMAL128_LARGE_EXPONENT = Decimal128("1E+6144")
 DECIMAL128_SMALL_EXPONENT = Decimal128("1E-6143")
-DECIMAL128_MIN_POSITIVE = Decimal128("1E-6176")
 DECIMAL128_TRAILING_ZERO = Decimal128("1.0")
 DECIMAL128_MANY_TRAILING_ZEROS = Decimal128("1.00000000000000000000000000000000")
 DECIMAL128_MAX_COEFFICIENT = Decimal128("9999999999999999999999999999999999")
@@ -164,13 +163,13 @@ NUMERIC = NUMERIC_DECIMAL128 + NUMERIC_FLOAT + NUMERIC_INT32 + NUMERIC_INT64 + N
 NOT_A_NUMBER = [FLOAT_NAN, DECIMAL128_NAN]
 
 # Date constants
-DATE_EPOCH = datetime(1970, 1, 1, 0, 0, 0)
-DATE_BEFORE_EPOCH = datetime(1969, 12, 31, 23, 59, 59, 999000)
-DATE_Y2K = datetime(2000, 1, 1, 0, 0, 0)
-DATE_YEAR_1 = datetime(1, 1, 1, 0, 0, 0)
-DATE_YEAR_9999 = datetime(9999, 12, 31, 23, 59, 59, 999000)
-DATE_YEAR_1900 = datetime(1900, 1, 1, 0, 0, 0)
-DATE_LEAP_FEB29 = datetime(2000, 2, 29, 0, 0, 0)
+DATE_EPOCH = datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+DATE_BEFORE_EPOCH = datetime(1969, 12, 31, 23, 59, 59, 999000, tzinfo=timezone.utc)
+DATE_Y2K = datetime(2000, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+DATE_YEAR_1 = datetime(1, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+DATE_YEAR_9999 = datetime(9999, 12, 31, 23, 59, 59, 999000, tzinfo=timezone.utc)
+DATE_YEAR_1900 = datetime(1900, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+DATE_LEAP_FEB29 = datetime(2000, 2, 29, 0, 0, 0, tzinfo=timezone.utc)
 
 # DatetimeMS constants
 DATE_MS_EPOCH = DatetimeMS(0)

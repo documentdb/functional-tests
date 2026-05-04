@@ -4,7 +4,7 @@ Smoke test for $integral window operator.
 Tests basic $integral window operator functionality.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -18,9 +18,9 @@ def test_smoke_window_integral(collection):
     """Test basic $integral window operator behavior."""
     collection.insert_many(
         [
-            {"_id": 1, "time": datetime(2021, 1, 1, 0, 0, 0), "value": 10},
-            {"_id": 2, "time": datetime(2021, 1, 1, 0, 0, 10), "value": 20},
-            {"_id": 3, "time": datetime(2021, 1, 1, 0, 0, 20), "value": 30},
+            {"_id": 1, "time": datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc), "value": 10},
+            {"_id": 2, "time": datetime(2021, 1, 1, 0, 0, 10, tzinfo=timezone.utc), "value": 20},
+            {"_id": 3, "time": datetime(2021, 1, 1, 0, 0, 20, tzinfo=timezone.utc), "value": 30},
         ]
     )
 
@@ -46,8 +46,23 @@ def test_smoke_window_integral(collection):
     )
 
     expected = [
-        {"_id": 1, "time": datetime(2021, 1, 1, 0, 0, 0), "value": 10, "integral": 0.0},
-        {"_id": 2, "time": datetime(2021, 1, 1, 0, 0, 10), "value": 20, "integral": 150.0},
-        {"_id": 3, "time": datetime(2021, 1, 1, 0, 0, 20), "value": 30, "integral": 400.0},
+        {
+            "_id": 1,
+            "time": datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "value": 10,
+            "integral": 0.0,
+        },
+        {
+            "_id": 2,
+            "time": datetime(2021, 1, 1, 0, 0, 10, tzinfo=timezone.utc),
+            "value": 20,
+            "integral": 150.0,
+        },
+        {
+            "_id": 3,
+            "time": datetime(2021, 1, 1, 0, 0, 20, tzinfo=timezone.utc),
+            "value": 30,
+            "integral": 400.0,
+        },
     ]
     assertSuccess(result, expected, msg="Should support $integral window operator")

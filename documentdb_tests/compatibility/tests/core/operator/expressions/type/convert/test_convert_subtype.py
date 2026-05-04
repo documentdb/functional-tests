@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import struct
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, ObjectId
@@ -153,7 +153,7 @@ CONVERT_SUBTYPE_IGNORED_TESTS: list[ConvertTest] = [
         "subtype_ignored_for_date",
         input="2024-06-15T12:30:45Z",
         to={"type": "date", "subtype": 5},
-        expected=datetime(2024, 6, 15, 12, 30, 45),
+        expected=datetime(2024, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
         msg="$convert should ignore subtype when target type is date",
     ),
     ConvertTest(

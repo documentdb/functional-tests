@@ -5,7 +5,7 @@ Validates that $all rejects invalid arguments.
 
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -69,7 +69,7 @@ INVALID_ARGUMENT_TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="date_arg",
-        filter={"a": {"$all": datetime(2024, 1, 1)}},
+        filter={"a": {"$all": datetime(2024, 1, 1, tzinfo=timezone.utc)}},
         error_code=BAD_VALUE_ERROR,
         msg="Date argument should error",
     ),
