@@ -11,7 +11,7 @@ from typing import Any
 
 from bson import Binary, Decimal128, Int64
 
-from documentdb_tests.framework.bson_compare import strict_equal
+from documentdb_tests.framework.bson_compare import _NUMERIC_BSON_TYPES, strict_equal
 
 _FIELD_ABSENT = object()
 """Sentinel used by check classes when a dotted path is absent."""
@@ -175,6 +175,16 @@ class Ne(Check):
             return None  # absent is not equal
         if strict_equal(value, self.rejected):
             return f"expected '{path}' != {self.rejected!r}, but got {value!r}"
+        if (
+            type(value) in _NUMERIC_BSON_TYPES
+            and type(self.rejected) in _NUMERIC_BSON_TYPES
+            and type(value) is not type(self.rejected)
+        ):
+            return (
+                f"Ne() type mismatch on '{path}': actual is {type(value).__name__} "
+                f"but rejected value is {type(self.rejected).__name__} — "
+                f"cross-type numeric Ne is always true"
+            )
         return None
 
     def __repr__(self) -> str:
