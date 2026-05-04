@@ -29,6 +29,7 @@ class IndexTestCase(BaseTestCase):
         comment: Optional comment field for the command.
         write_concern: Optional writeConcern for the command.
         invalid_input: Optional invalid BSON value for type-rejection tests.
+        command_options: Optional additional command options.
     """
 
     indexes: Optional[tuple] = ()
@@ -37,3 +38,4 @@ class IndexTestCase(BaseTestCase):
     comment: Optional[Any] = None
     write_concern: Optional[dict] = None
     invalid_input: Optional[Any] = None
+    command_options: Optional[dict] = None
