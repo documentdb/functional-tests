@@ -93,7 +93,7 @@ PROJECT_BSON_INCLUSION_TESTS: list[StageTestCase] = [
         "inclusion_datetime",
         docs=[{"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         pipeline=[{"$project": {"v": 1}}],
-        expected=[{"_id": 1, "v": datetime(2024, 1, 1)}],
+        expected=[{"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$project inclusion should preserve datetime",
     ),
     StageTestCase(
@@ -224,7 +224,7 @@ PROJECT_BSON_EXCLUSION_TESTS: list[StageTestCase] = [
         "exclusion_datetime",
         docs=[{"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc), "x": 0}],
         pipeline=[{"$project": {"x": 0}}],
-        expected=[{"_id": 1, "v": datetime(2024, 1, 1)}],
+        expected=[{"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$project exclusion should preserve datetime",
     ),
     StageTestCase(
@@ -355,7 +355,7 @@ PROJECT_BSON_FIELD_PATH_TESTS: list[StageTestCase] = [
         "field_path_datetime",
         docs=[{"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         pipeline=[{"$project": {"r": "$v"}}],
-        expected=[{"_id": 1, "r": datetime(2024, 1, 1)}],
+        expected=[{"_id": 1, "r": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$project field path should preserve datetime",
     ),
     StageTestCase(

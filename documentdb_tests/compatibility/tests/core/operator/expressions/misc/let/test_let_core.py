@@ -6,7 +6,7 @@ type distinction, variable binding, scoping basics, field path assignments,
 and $$ROOT/$$CURRENT access.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -94,8 +94,10 @@ CORE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "date",
-        expression={"$let": {"vars": {"x": datetime(2024, 1, 1)}, "in": "$$x"}},
-        expected=datetime(2024, 1, 1),
+        expression={
+            "$let": {"vars": {"x": datetime(2024, 1, 1, tzinfo=timezone.utc)}, "in": "$$x"}
+        },
+        expected=datetime(2024, 1, 1, tzinfo=timezone.utc),
         msg="Should preserve date",
     ),
     ExpressionTestCase(

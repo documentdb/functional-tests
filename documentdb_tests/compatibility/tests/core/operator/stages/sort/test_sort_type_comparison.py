@@ -46,7 +46,7 @@ SORT_BSON_TYPE_ORDER_TESTS: list[StageTestCase] = [
             {"_id": 9, "v": b"\x01"},
             {"_id": 8, "v": ObjectId("000000000000000000000001")},
             {"_id": 7, "v": True},
-            {"_id": 6, "v": datetime(2024, 1, 1)},
+            {"_id": 6, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)},
             {"_id": 5, "v": Timestamp(1, 1)},
             {"_id": 4, "v": Regex("a")},
             {"_id": 3, "v": Code("f")},
@@ -220,8 +220,8 @@ SORT_WITHIN_TYPE_TESTS: list[StageTestCase] = [
         ],
         pipeline=[{"$sort": {"v": 1}}],
         expected=[
-            {"_id": 2, "v": datetime(1969, 12, 31)},
-            {"_id": 1, "v": datetime(2024, 1, 1)},
+            {"_id": 2, "v": datetime(1969, 12, 31, tzinfo=timezone.utc)},
+            {"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         ],
         msg=(
             "$sort should sort datetime values chronologically"
@@ -236,8 +236,8 @@ SORT_WITHIN_TYPE_TESTS: list[StageTestCase] = [
         ],
         pipeline=[{"$sort": {"v": 1}}],
         expected=[
-            {"_id": 2, "v": datetime(2024, 1, 1, 0, 0, 0, 1000)},
-            {"_id": 1, "v": datetime(2024, 1, 1, 0, 0, 0, 2000)},
+            {"_id": 2, "v": datetime(2024, 1, 1, 0, 0, 0, 1000, tzinfo=timezone.utc)},
+            {"_id": 1, "v": datetime(2024, 1, 1, 0, 0, 0, 2000, tzinfo=timezone.utc)},
         ],
         msg="$sort should respect millisecond precision in datetime ordering",
     ),

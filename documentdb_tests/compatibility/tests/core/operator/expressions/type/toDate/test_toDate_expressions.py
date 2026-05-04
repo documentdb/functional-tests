@@ -1,7 +1,7 @@
 """$toDate expression tests: field references, nested paths, expression input,
 and composite array path."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Int64
@@ -27,14 +27,24 @@ _ts_2024_06_15 = ts_from_args(2024, 6, 15, 12, 0, 0)
 # Property [Field References]: $toDate resolves field paths, nested paths,
 # and various BSON types from documents.
 TODATE_FIELD_REF_TESTS = [
-    ("field_ref", "$v", {"v": Int64(86400000)}, datetime(1970, 1, 2, 0, 0, 0)),
-    ("nested_field", "$doc.v", {"doc": {"v": "2024-06-15"}}, datetime(2024, 6, 15, 0, 0, 0)),
+    ("field_ref", "$v", {"v": Int64(86400000)}, datetime(1970, 1, 2, 0, 0, 0, tzinfo=timezone.utc)),
+    (
+        "nested_field",
+        "$doc.v",
+        {"doc": {"v": "2024-06-15"}},
+        datetime(2024, 6, 15, 0, 0, 0, tzinfo=timezone.utc),
+    ),
     ("missing_nested", "$doc.missing", {"doc": {"x": 1}}, None),
-    ("oid_field", "$v", {"v": _oid_2024_06_15}, datetime(2024, 6, 15, 12, 0, 0)),
-    ("ts_field", "$v", {"v": _ts_2024_06_15}, datetime(2024, 6, 15, 12, 0, 0)),
-    ("string_field", "$v", {"v": "2024-01-01"}, datetime(2024, 1, 1, 0, 0, 0)),
+    (
+        "oid_field",
+        "$v",
+        {"v": _oid_2024_06_15},
+        datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
+    ),
+    ("ts_field", "$v", {"v": _ts_2024_06_15}, datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)),
+    ("string_field", "$v", {"v": "2024-01-01"}, datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)),
     ("long_field", "$v", {"v": INT64_ZERO}, DATE_EPOCH),
-    ("double_field", "$v", {"v": 86400000.0}, datetime(1970, 1, 2, 0, 0, 0)),
+    ("double_field", "$v", {"v": 86400000.0}, datetime(1970, 1, 2, 0, 0, 0, tzinfo=timezone.utc)),
 ]
 
 
@@ -56,7 +66,7 @@ def test_toDate_nested_field_path(collection, expr_fn):
         expr_fn("$a.b"),
         {"a": {"b": "2024-06-15"}},
     )
-    assert_expression_result(result, expected=datetime(2024, 6, 15, 0, 0, 0))
+    assert_expression_result(result, expected=datetime(2024, 6, 15, 0, 0, 0, tzinfo=timezone.utc))
 
 
 @pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
@@ -71,7 +81,7 @@ def test_toDate_expression_as_input(collection, expr_fn):
         collection,
         expr_fn(test),
     )
-    assert_expression_result(result, expected=datetime(2024, 6, 15, 0, 0, 0))
+    assert_expression_result(result, expected=datetime(2024, 6, 15, 0, 0, 0, tzinfo=timezone.utc))
 
 
 @pytest.mark.parametrize("expr_fn", _DOC_EXPR_FORMS)

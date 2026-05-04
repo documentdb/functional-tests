@@ -5,7 +5,7 @@ Covers date, timestamp, ObjectId, BinData, regex, string, object,
 and MinKey/MaxKey comparisons.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import SON, Binary, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -22,20 +22,33 @@ from documentdb_tests.framework.parametrize import pytest_params
 DATE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "same_date",
-        expression={"$cmp": [datetime(2024, 1, 1), datetime(2024, 1, 1)]},
+        expression={
+            "$cmp": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+            ]
+        },
         expected=0,
         msg="Same dates equal",
     ),
     ExpressionTestCase(
         "diff_date",
-        expression={"$cmp": [datetime(2024, 1, 1), datetime(2024, 1, 2)]},
+        expression={
+            "$cmp": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 2, tzinfo=timezone.utc),
+            ]
+        },
         expected=-1,
         msg="Earlier date < later date",
     ),
     ExpressionTestCase(
         "ms_precision",
         expression={
-            "$cmp": [datetime(2024, 1, 1, 0, 0, 0, 0), datetime(2024, 1, 1, 0, 0, 0, 1000)]
+            "$cmp": [
+                datetime(2024, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc),
+                datetime(2024, 1, 1, 0, 0, 0, 1000, tzinfo=timezone.utc),
+            ]
         },
         expected=-1,
         msg="Millisecond precision matters",

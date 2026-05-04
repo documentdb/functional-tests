@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Timestamp
@@ -21,56 +21,59 @@ MAX_DATETIME_COMPARISON_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "datetime_earlier_vs_later",
         expression={"$max": ["$a", "$b"]},
-        doc={"a": DATE_EPOCH, "b": datetime(2024, 6, 15, 12, 0, 0)},
-        expected=datetime(2024, 6, 15, 12, 0, 0),
+        doc={"a": DATE_EPOCH, "b": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)},
+        expected=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
         msg="$max should pick the chronologically later datetime",
     ),
     ExpressionTestCase(
         "datetime_later_vs_earlier",
         expression={"$max": ["$a", "$b"]},
-        doc={"a": datetime(2024, 6, 15, 12, 0, 0), "b": DATE_EPOCH},
-        expected=datetime(2024, 6, 15, 12, 0, 0),
+        doc={"a": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc), "b": DATE_EPOCH},
+        expected=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
         msg="$max should pick the later datetime regardless of argument order",
     ),
     ExpressionTestCase(
         "datetime_pre_epoch_vs_epoch",
         expression={"$max": ["$a", "$b"]},
-        doc={"a": datetime(1969, 12, 31), "b": DATE_EPOCH},
+        doc={"a": datetime(1969, 12, 31, tzinfo=timezone.utc), "b": DATE_EPOCH},
         expected=DATE_EPOCH,
         msg="$max should pick epoch over pre-epoch datetime",
     ),
     ExpressionTestCase(
         "datetime_pre_epoch_vs_far_future",
         expression={"$max": ["$a", "$b"]},
-        doc={"a": datetime(1969, 12, 31), "b": datetime(9999, 12, 31, 23, 59, 59)},
-        expected=datetime(9999, 12, 31, 23, 59, 59),
+        doc={
+            "a": datetime(1969, 12, 31, tzinfo=timezone.utc),
+            "b": datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+        },
+        expected=datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
         msg="$max should pick far future over pre-epoch datetime",
     ),
     ExpressionTestCase(
         "datetime_epoch_vs_far_future",
         expression={"$max": ["$a", "$b"]},
-        doc={"a": DATE_EPOCH, "b": datetime(9999, 12, 31, 23, 59, 59)},
-        expected=datetime(9999, 12, 31, 23, 59, 59),
+        doc={"a": DATE_EPOCH, "b": datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc)},
+        expected=datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
         msg="$max should pick far future over epoch datetime",
     ),
     ExpressionTestCase(
         "datetime_millis_precision",
         expression={"$max": ["$a", "$b"]},
         doc={
-            "a": datetime(2024, 6, 15, 12, 30, 45, 123_000),
-            "b": datetime(2024, 6, 15, 12, 30, 45, 124_000),
+            "a": datetime(2024, 6, 15, 12, 30, 45, 123_000, tzinfo=timezone.utc),
+            "b": datetime(2024, 6, 15, 12, 30, 45, 124_000, tzinfo=timezone.utc),
         },
-        expected=datetime(2024, 6, 15, 12, 30, 45, 124_000),
+        expected=datetime(2024, 6, 15, 12, 30, 45, 124_000, tzinfo=timezone.utc),
         msg="$max should distinguish datetimes differing by one millisecond",
     ),
     ExpressionTestCase(
         "datetime_millis_precision_reversed",
         expression={"$max": ["$a", "$b"]},
         doc={
-            "a": datetime(2024, 6, 15, 12, 30, 45, 124_000),
-            "b": datetime(2024, 6, 15, 12, 30, 45, 123_000),
+            "a": datetime(2024, 6, 15, 12, 30, 45, 124_000, tzinfo=timezone.utc),
+            "b": datetime(2024, 6, 15, 12, 30, 45, 123_000, tzinfo=timezone.utc),
         },
-        expected=datetime(2024, 6, 15, 12, 30, 45, 124_000),
+        expected=datetime(2024, 6, 15, 12, 30, 45, 124_000, tzinfo=timezone.utc),
         msg="$max should pick the later millisecond-precision datetime regardless of order",
     ),
 ]

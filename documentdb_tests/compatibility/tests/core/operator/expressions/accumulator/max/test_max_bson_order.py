@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import (
@@ -78,14 +78,14 @@ MAX_BSON_ORDER_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "bson_boolean_vs_date",
         expression={"$max": ["$a", "$b"]},
-        doc={"a": True, "b": datetime(1970, 1, 1)},
-        expected=datetime(1970, 1, 1),
+        doc={"a": True, "b": datetime(1970, 1, 1, tzinfo=timezone.utc)},
+        expected=datetime(1970, 1, 1, tzinfo=timezone.utc),
         msg="$max should pick date over boolean per BSON order",
     ),
     ExpressionTestCase(
         "bson_date_vs_timestamp",
         expression={"$max": ["$a", "$b"]},
-        doc={"a": datetime(1970, 1, 1), "b": Timestamp(1, 1)},
+        doc={"a": datetime(1970, 1, 1, tzinfo=timezone.utc), "b": Timestamp(1, 1)},
         expected=Timestamp(1, 1),
         msg="$max should pick timestamp over date per BSON order",
     ),
@@ -143,8 +143,8 @@ MAX_BSON_ORDER_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "bson_date_vs_string_reversed",
         expression={"$max": ["$a", "$b"]},
-        doc={"a": datetime(1970, 1, 1), "b": "zzz"},
-        expected=datetime(1970, 1, 1),
+        doc={"a": datetime(1970, 1, 1, tzinfo=timezone.utc), "b": "zzz"},
+        expected=datetime(1970, 1, 1, tzinfo=timezone.utc),
         msg="$max should pick date over string even when date is first",
     ),
     # Full range: MinKey vs MaxKey.

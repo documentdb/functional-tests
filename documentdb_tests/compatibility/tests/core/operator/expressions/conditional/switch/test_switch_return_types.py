@@ -4,7 +4,7 @@ Tests for $switch return type preservation in then and default positions.
 Verifies that $switch preserves the BSON type of then/default expressions.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Decimal128, Int64
@@ -57,7 +57,11 @@ THEN_CASES: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "then_date",
-        expression={"$switch": {"branches": [{"case": True, "then": datetime(2026, 1, 1)}]}},
+        expression={
+            "$switch": {
+                "branches": [{"case": True, "then": datetime(2026, 1, 1, tzinfo=timezone.utc)}]
+            }
+        },
         expected="date",
         msg="then should return date",
     ),
@@ -117,7 +121,7 @@ DEFAULT_CASES: list[ExpressionTestCase] = [
         expression={
             "$switch": {
                 "branches": [{"case": False, "then": "unused"}],
-                "default": datetime(2026, 1, 1),
+                "default": datetime(2026, 1, 1, tzinfo=timezone.utc),
             }
         },
         expected="date",

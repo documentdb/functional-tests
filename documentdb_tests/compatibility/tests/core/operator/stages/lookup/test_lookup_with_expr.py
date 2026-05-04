@@ -5,16 +5,14 @@ Covers $lookup with $expr join conditions, let variables,
 arithmetic in $expr, null/missing field handling, and error cases.
 """
 
-from documentdb_tests.framework.assertions import (
-    assertFailureCode,
-    assertSuccess,
-)
-from documentdb_tests.framework.error_codes import (
-    LET_UNDEFINED_VARIABLE_ERROR,
-)
+import pytest
+
+from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
+from documentdb_tests.framework.error_codes import LET_UNDEFINED_VARIABLE_ERROR
 from documentdb_tests.framework.executor import execute_command
 
 
+@pytest.mark.aggregate
 def test_expr_lookup_basic_eq(database_client):
     """Test $lookup with $expr $eq joining on let variable."""
     orders = database_client.create_collection("orders_test")
@@ -67,9 +65,11 @@ def test_expr_lookup_basic_eq(database_client):
             },
             {"_id": 2, "name": "Bob", "orders": [{"item": "C"}]},
         ],
+        msg="$lookup with $expr $eq should join on let variable",
     )
 
 
+@pytest.mark.aggregate
 def test_expr_lookup_range_gt(database_client):
     """Test $lookup with $expr $gt for range join."""
     items = database_client.create_collection("items_test")
@@ -112,9 +112,11 @@ def test_expr_lookup_range_gt(database_client):
                 "above_min": [{"qty": 7}, {"qty": 10}],
             }
         ],
+        msg="$lookup with $expr $gt should filter by range condition",
     )
 
 
+@pytest.mark.aggregate
 def test_expr_lookup_arithmetic(database_client):
     """Test $lookup with $expr using arithmetic on let variable."""
     orders = database_client.create_collection("orders_arith")
@@ -153,9 +155,11 @@ def test_expr_lookup_arithmetic(database_client):
     assertSuccess(
         result,
         [{"_id": 1, "base_limit": 50, "over_double": [{"amount": 120}]}],
+        msg="$lookup with $expr should support arithmetic on let variables",
     )
 
 
+@pytest.mark.aggregate
 def test_expr_lookup_let_null(database_client):
     """Test $lookup with let variable resolving to null."""
     inner = database_client.create_collection("inner_null")
@@ -182,9 +186,14 @@ def test_expr_lookup_let_null(database_client):
             "cursor": {},
         },
     )
-    assertSuccess(result, [{"_id": 1, "val": None, "matched": [{"_id": 10}]}])
+    assertSuccess(
+        result,
+        [{"_id": 1, "val": None, "matched": [{"_id": 10}]}],
+        msg="$lookup with let variable resolving to null should match null values",
+    )
 
 
+@pytest.mark.aggregate
 def test_expr_lookup_let_missing_field(database_client):
     """Test $lookup with let variable from missing field."""
     inner = database_client.create_collection("inner_miss")
@@ -212,9 +221,14 @@ def test_expr_lookup_let_missing_field(database_client):
         },
     )
     # Missing field in let resolves to missing, which doesn't match null
-    assertSuccess(result, [{"_id": 1, "matched": []}])
+    assertSuccess(
+        result,
+        [{"_id": 1, "matched": []}],
+        msg="$lookup with let variable from missing field should not match any docs",
+    )
 
 
+@pytest.mark.aggregate
 def test_expr_lookup_no_match(database_client):
     """Test $lookup with $expr where no inner docs match."""
     inner = database_client.create_collection("inner_nomatch")
@@ -240,9 +254,14 @@ def test_expr_lookup_no_match(database_client):
             "cursor": {},
         },
     )
-    assertSuccess(result, [{"_id": 1, "val": 999, "matched": []}])
+    assertSuccess(
+        result,
+        [{"_id": 1, "val": 999, "matched": []}],
+        msg="$lookup with $expr should return empty array when no docs match",
+    )
 
 
+@pytest.mark.aggregate
 def test_expr_lookup_undefined_variable(database_client):
     """Test $lookup with $expr referencing undefined let variable."""
     inner = database_client.create_collection("inner_undef")
@@ -268,4 +287,8 @@ def test_expr_lookup_undefined_variable(database_client):
             "cursor": {},
         },
     )
-    assertFailureCode(result, LET_UNDEFINED_VARIABLE_ERROR)
+    assertFailureCode(
+        result,
+        LET_UNDEFINED_VARIABLE_ERROR,
+        msg="$lookup with $expr referencing undefined let variable should fail",
+    )

@@ -5,7 +5,7 @@ Tests missing/extra arguments, invalid field types (BSON types, dynamic
 expressions, system variables, field references), and non-string field errors.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -146,7 +146,9 @@ LITERAL_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "date_field",
-        expression={"$getField": {"field": datetime(2024, 1, 1), "input": {"a": 1}}},
+        expression={
+            "$getField": {"field": datetime(2024, 1, 1, tzinfo=timezone.utc), "input": {"a": 1}}
+        },
         error_code=GETFIELD_FIELD_NOT_STRING_ERROR,
         msg="Should reject date field",
     ),
