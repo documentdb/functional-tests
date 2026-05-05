@@ -106,6 +106,13 @@ ARRAY_BEHAVIOR_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 1, "x": [1, 2]}],
         msg="$type: 4 should match array fields",
     ),
+    QueryTestCase(
+        id="array_of_arrays_element_matching_int",
+        filter={"x": {"$type": "int"}},
+        doc=[{"_id": 1, "x": [[1, 2]]}, {"_id": 2, "x": "hello"}],
+        expected=[],
+        msg="$type: 'int' should NOT match array-of-arrays — elements are arrays, not ints",
+    ),
 ]
 
 ARRAY_OF_TYPES_ARG_TESTS: list[QueryTestCase] = [
@@ -216,6 +223,13 @@ DOT_PATH_TESTS: list[QueryTestCase] = [
         ],
         expected=[{"_id": 1, "a": [{"b": "test"}, {"b": 1}]}],
         msg="$type on 'a.b' where a is array of objects should match via array traversal",
+    ),
+    QueryTestCase(
+        id="array_index_path_type_array",
+        filter={"a.0": {"$type": "array"}},
+        doc=[{"_id": 1, "a": [[1, 2], 3]}, {"_id": 2, "a": [1, 2]}],
+        expected=[{"_id": 1, "a": [[1, 2], 3]}],
+        msg="$type: 'array' with array index path 'a.0' should match when element is an array",
     ),
 ]
 
