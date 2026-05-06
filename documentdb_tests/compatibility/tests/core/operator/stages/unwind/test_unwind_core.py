@@ -73,6 +73,17 @@ UNWIND_CORE_TESTS: list[StageTestCase] = [
         ],
         msg="$unwind should preserve each element's type in a mixed-type array",
     ),
+    StageTestCase(
+        "core_shorthand_form",
+        docs=[{"_id": 1, "a": [1, 2, 3]}],
+        pipeline=[{"$unwind": "$a"}],
+        expected=[
+            {"_id": 1, "a": 1},
+            {"_id": 1, "a": 2},
+            {"_id": 1, "a": 3},
+        ],
+        msg="$unwind shorthand string form should behave identically to document form",
+    ),
 ]
 
 UNWIND_CORE_ALL_TESTS = UNWIND_CORE_TESTS + [
