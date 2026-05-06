@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from pymongo.collection import Collection
+from pymongo.operations import IndexModel
 
 from documentdb_tests.framework.test_case import BaseTestCase
 
@@ -17,6 +18,7 @@ from documentdb_tests.framework.test_case import BaseTestCase
 class StageTestCase(BaseTestCase):
     """Test case for pipeline stage tests."""
 
+    indexes: list[IndexModel] | None = None
     docs: list[dict[str, Any]] | None = None
     pipeline: list[dict[str, Any]] = field(default_factory=list)
     setup: Callable | None = None
@@ -35,3 +37,5 @@ def populate_collection(collection: Collection, test_case: StageTestCase) -> Non
     collection.database.create_collection(collection.name)
     if test_case.docs:
         collection.insert_many(test_case.docs)
+    if test_case.indexes:
+        collection.create_indexes(test_case.indexes)

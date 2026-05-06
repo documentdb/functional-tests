@@ -1,11 +1,10 @@
-"""Extended test case for $indexStats tests with target_collection and indexes."""
+"""Extended test case for $indexStats tests with target_collection."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
 from pymongo.collection import Collection
-from pymongo.operations import IndexModel
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
@@ -15,10 +14,9 @@ from documentdb_tests.framework.target_collection import TargetCollection
 
 @dataclass(frozen=True)
 class IndexStatsTestCase(StageTestCase):
-    """StageTestCase with declarative target_collection and indexes support."""
+    """StageTestCase with declarative target_collection support."""
 
     target_collection: TargetCollection = field(default_factory=TargetCollection)
-    indexes: list[IndexModel] | None = None
 
 
 def prepare_collection(collection: Collection, test_case: IndexStatsTestCase) -> Collection:
