@@ -60,8 +60,8 @@ class CommandTestCase(BaseTestCase):
     target_collection: TargetCollection = field(default_factory=TargetCollection)
     indexes: list[IndexModel] | None = None
     docs: list[dict[str, Any]] | None = None
-    command: dict[str, Any] | Callable[[CommandContext], dict[str, Any]] | None = None
-    expected: dict[str, Any] | Callable[[CommandContext], dict[str, Any]] | None = None
+    command: dict[str, Any] | Callable[..., dict[str, Any]] | None = None
+    expected: dict[str, Any] | Callable[..., dict[str, Any]] | None = None
 
     def prepare(self, db: Database, collection: Collection) -> Collection:
         """Resolve the target collection and apply indexes/docs.

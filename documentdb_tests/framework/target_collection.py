@@ -7,6 +7,7 @@ fixture name as a prefix to guarantee parallel-safe uniqueness.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -60,12 +61,17 @@ class CappedCollection(TargetCollection):
 
 @dataclass(frozen=True)
 class NamedCollection(TargetCollection):
-    """A collection with a custom name suffix."""
+    """A collection with a custom name suffix.
 
-    suffix: str = ""
+    suffix can be a static string or a callable (db_name, coll_name) -> str
+    for cases where the suffix depends on runtime values.
+    """
+
+    suffix: str | Callable[[str, str], str] = ""
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
-        name = f"{collection.name}{self.suffix}"
+        s = self.suffix(db.name, collection.name) if callable(self.suffix) else self.suffix
+        name = f"{collection.name}{s}"
         db.create_collection(name)
         return db[name]
 
@@ -114,3 +120,29 @@ class TimeseriesCollection(TargetCollection):
             ts_opts["granularity"] = self.granularity
         db.create_collection(name, timeseries=ts_opts)
         return db[name]
+
+
+@dataclass(frozen=True)
+class ClusteredCollection(TargetCollection):
+    """A user-created clustered collection."""
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        name = f"{collection.name}_clustered"
+        db.create_collection(name, clusteredIndex={"key": {"_id": 1}, "unique": True})
+        return db[name]
+
+
+@dataclass(frozen=True)
+class SystemBucketsCollection(TimeseriesCollection):
+    """The system.buckets collection, populated by creating a timeseries collection."""
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        name = f"{collection.name}_ts"
+        ts_opts: dict[str, Any] = {
+            "timeField": self.time_field,
+            "metaField": self.meta_field,
+        }
+        if self.granularity is not None:
+            ts_opts["granularity"] = self.granularity
+        db.create_collection(name, timeseries=ts_opts)
+        return db[f"system.buckets.{name}"]
