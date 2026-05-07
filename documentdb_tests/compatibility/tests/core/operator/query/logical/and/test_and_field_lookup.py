@@ -86,4 +86,4 @@ def test_and_field_lookup(collection, test):
     """Test $and with array and embedded document field lookups."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)

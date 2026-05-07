@@ -8,7 +8,7 @@ and respects type distinctions (e.g., bool vs int, null vs missing).
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Decimal128, Int64, ObjectId, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
     QueryTestCase,
@@ -130,6 +130,37 @@ TYPE_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 1, "val": b"\x01\x02"}],
         msg="$and matches Binary value",
     ),
+    QueryTestCase(
+        id="regex",
+        filter={"$and": [{"val": Regex("^hello")}]},
+        doc=[{"_id": 1, "val": "hello world"}, {"_id": 2, "val": "world"}],
+        expected=[{"_id": 1, "val": "hello world"}],
+        msg="$and matches Regex value",
+    ),
+    QueryTestCase(
+        id="minkey",
+        filter={"$and": [{"val": MinKey()}]},
+        doc=[{"_id": 1, "val": MinKey()}, {"_id": 2, "val": 1}],
+        expected=[{"_id": 1, "val": MinKey()}],
+        msg="$and matches MinKey value",
+    ),
+    QueryTestCase(
+        id="maxkey",
+        filter={"$and": [{"val": MaxKey()}]},
+        doc=[{"_id": 1, "val": MaxKey()}, {"_id": 2, "val": 1}],
+        expected=[{"_id": 1, "val": MaxKey()}],
+        msg="$and matches MaxKey value",
+    ),
+    QueryTestCase(
+        id="javascript_code",
+        filter={"$and": [{"val": Code("function() { return true; }")}]},
+        doc=[
+            {"_id": 1, "val": Code("function() { return true; }")},
+            {"_id": 2, "val": Code("function() { return false; }")},
+        ],
+        expected=[{"_id": 1, "val": Code("function() { return true; }")}],
+        msg="$and matches JavaScript Code value",
+    ),
 ]
 
 
@@ -204,6 +235,41 @@ BSON_DISTINCTION_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "val": 1}],
         expected=[],
         msg="null query does not match non-null field",
+    ),
+    QueryTestCase(
+        id="positive_zero_matches_negative_zero",
+        filter={"$and": [{"val": 0.0}]},
+        doc=[{"_id": 1, "val": -0.0}],
+        expected=[{"_id": 1, "val": -0.0}],
+        msg="0.0 matches -0.0 (numeric equivalence)",
+    ),
+    QueryTestCase(
+        id="negative_zero_matches_positive_zero",
+        filter={"$and": [{"val": -0.0}]},
+        doc=[{"_id": 1, "val": 0.0}],
+        expected=[{"_id": 1, "val": 0.0}],
+        msg="-0.0 matches 0.0 (numeric equivalence)",
+    ),
+    QueryTestCase(
+        id="negative_zero_matches_int_zero",
+        filter={"$and": [{"val": -0.0}]},
+        doc=[{"_id": 1, "val": 0}],
+        expected=[{"_id": 1, "val": 0}],
+        msg="-0.0 matches int 0 (numeric equivalence)",
+    ),
+    QueryTestCase(
+        id="int_zero_matches_negative_zero",
+        filter={"$and": [{"val": 0}]},
+        doc=[{"_id": 1, "val": -0.0}],
+        expected=[{"_id": 1, "val": -0.0}],
+        msg="int 0 matches -0.0 (numeric equivalence)",
+    ),
+    QueryTestCase(
+        id="decimal128_zero_matches_negative_zero",
+        filter={"$and": [{"val": Decimal128("0")}]},
+        doc=[{"_id": 1, "val": -0.0}],
+        expected=[{"_id": 1, "val": -0.0}],
+        msg="Decimal128('0') matches -0.0 (numeric equivalence)",
     ),
 ]
 

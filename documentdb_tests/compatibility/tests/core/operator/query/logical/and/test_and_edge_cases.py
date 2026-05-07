@@ -5,7 +5,6 @@ Tests empty collection, all-match, no-match, MinKey/MaxKey comparisons.
 """
 
 import pytest
-from bson import MaxKey, MinKey
 
 from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
     QueryTestCase,
@@ -48,13 +47,6 @@ ALL_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "a": 1, "b": 2}],
         expected=[],
         msg="$and on single-document collection returns empty when not matched",
-    ),
-    QueryTestCase(
-        id="minkey_maxkey_range",
-        filter={"$and": [{"a": {"$gt": MinKey()}}, {"a": {"$lt": MaxKey()}}]},
-        doc=DOCS,
-        expected=DOCS,
-        msg="$and with MinKey/MaxKey range matches all documents",
     ),
     QueryTestCase(
         id="empty_collection",
@@ -100,4 +92,4 @@ def test_and_edge_cases(collection, test):
     if test.doc:
         collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)

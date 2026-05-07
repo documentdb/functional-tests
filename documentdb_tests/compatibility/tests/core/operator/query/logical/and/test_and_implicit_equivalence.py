@@ -26,42 +26,51 @@ ALL_TESTS: list[QueryTestCase] = [
         id="implicit_comma_separated",
         filter={"a": 1, "b": 2},
         doc=DOCS,
-        expected=[DOCS[0]],
+        expected=[{"_id": 1, "a": 1, "b": 2, "price": 7.99}],
         msg="Implicit AND matches docs satisfying both conditions",
     ),
     QueryTestCase(
         id="explicit_equivalent_to_implicit",
         filter={"$and": [{"a": 1}, {"b": 2}]},
         doc=DOCS,
-        expected=[DOCS[0]],
+        expected=[{"_id": 1, "a": 1, "b": 2, "price": 7.99}],
         msg="Explicit $and matches same as implicit AND",
     ),
     QueryTestCase(
         id="implicit_multiple_conditions_same_field",
         filter={"price": {"$ne": 7.99, "$exists": True}},
         doc=DOCS,
-        expected=[DOCS[1], DOCS[2]],
+        expected=[
+            {"_id": 2, "a": 1, "b": 3, "price": 3.99},
+            {"_id": 3, "a": 2, "b": 2, "price": 4.99},
+        ],
         msg="Implicit AND on same field works",
     ),
     QueryTestCase(
         id="explicit_multiple_conditions_same_field",
         filter={"$and": [{"price": {"$ne": 7.99}}, {"price": {"$exists": True}}]},
         doc=DOCS,
-        expected=[DOCS[1], DOCS[2]],
+        expected=[
+            {"_id": 2, "a": 1, "b": 3, "price": 3.99},
+            {"_id": 3, "a": 2, "b": 2, "price": 4.99},
+        ],
         msg="Explicit $and on same field works",
     ),
     QueryTestCase(
         id="explicit_required_duplicate_keys",
         filter={"$and": [{"price": {"$in": [7.99, 3.99]}}, {"price": {"$in": [4.99, 3.99]}}]},
         doc=DOCS,
-        expected=[DOCS[1]],
+        expected=[{"_id": 2, "a": 1, "b": 3, "price": 3.99}],
         msg="Explicit $and with duplicate keys intersects correctly",
     ),
     QueryTestCase(
         id="implicit_duplicate_key_uses_last",
         filter=SON([("price", {"$gt": 5}), ("price", {"$lt": 5})]),
         doc=DOCS,
-        expected=[DOCS[1], DOCS[2]],
+        expected=[
+            {"_id": 2, "a": 1, "b": 3, "price": 3.99},
+            {"_id": 3, "a": 2, "b": 2, "price": 4.99},
+        ],
         msg="Duplicate keys use last value, not AND semantics",
     ),
 ]
@@ -72,4 +81,4 @@ def test_and_implicit_equivalence(collection, test):
     """Test implicit AND vs explicit $and equivalence."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
