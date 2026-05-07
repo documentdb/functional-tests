@@ -6,13 +6,13 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
-    ViewCollection,
-)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, IsType, NotExists
+from documentdb_tests.framework.target_collection import (
+    ViewCollection,
+)
 from documentdb_tests.framework.test_constants import INT64_ZERO
 
 # Property [Response Structure (nameOnly=false)]: each result document
