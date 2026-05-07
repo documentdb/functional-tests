@@ -1,0 +1,306 @@
+"""
+Tests for $and data type coverage and BSON type distinction.
+
+Tests that $and correctly matches documents with various BSON types
+and respects type distinctions (e.g., bool vs int, null vs missing).
+"""
+
+from datetime import datetime, timezone
+
+import pytest
+from bson import Binary, Decimal128, Int64, ObjectId, Timestamp
+
+from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
+    QueryTestCase,
+)
+from documentdb_tests.framework.assertions import assertSuccess, assertSuccessNaN
+from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_INFINITY,
+    DECIMAL128_NAN,
+    DECIMAL128_NEGATIVE_INFINITY,
+    FLOAT_INFINITY,
+    FLOAT_NAN,
+    FLOAT_NEGATIVE_INFINITY,
+)
+
+TYPE_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="int32",
+        filter={"$and": [{"val": 42}]},
+        doc=[{"_id": 1, "val": 42}, {"_id": 2, "val": 99}],
+        expected=[{"_id": 1, "val": 42}],
+        msg="$and matches int32 value",
+    ),
+    QueryTestCase(
+        id="int64",
+        filter={"$and": [{"val": Int64(123456789012345)}]},
+        doc=[{"_id": 1, "val": Int64(123456789012345)}, {"_id": 2, "val": 0}],
+        expected=[{"_id": 1, "val": Int64(123456789012345)}],
+        msg="$and matches int64 value",
+    ),
+    QueryTestCase(
+        id="double",
+        filter={"$and": [{"val": 3.14}]},
+        doc=[{"_id": 1, "val": 3.14}, {"_id": 2, "val": 2.71}],
+        expected=[{"_id": 1, "val": 3.14}],
+        msg="$and matches double value",
+    ),
+    QueryTestCase(
+        id="decimal128",
+        filter={"$and": [{"val": Decimal128("1.23")}]},
+        doc=[{"_id": 1, "val": Decimal128("1.23")}, {"_id": 2, "val": Decimal128("4.56")}],
+        expected=[{"_id": 1, "val": Decimal128("1.23")}],
+        msg="$and matches decimal128 value",
+    ),
+    QueryTestCase(
+        id="string",
+        filter={"$and": [{"val": "hello"}]},
+        doc=[{"_id": 1, "val": "hello"}, {"_id": 2, "val": "world"}],
+        expected=[{"_id": 1, "val": "hello"}],
+        msg="$and matches string value",
+    ),
+    QueryTestCase(
+        id="bool_true",
+        filter={"$and": [{"val": True}]},
+        doc=[{"_id": 1, "val": True}, {"_id": 2, "val": False}],
+        expected=[{"_id": 1, "val": True}],
+        msg="$and matches boolean true",
+    ),
+    QueryTestCase(
+        id="bool_false",
+        filter={"$and": [{"val": False}]},
+        doc=[{"_id": 1, "val": True}, {"_id": 2, "val": False}],
+        expected=[{"_id": 2, "val": False}],
+        msg="$and matches boolean false",
+    ),
+    QueryTestCase(
+        id="date",
+        filter={"$and": [{"val": datetime(2024, 1, 1, tzinfo=timezone.utc)}]},
+        doc=[
+            {"_id": 1, "val": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+            {"_id": 2, "val": datetime(2025, 1, 1, tzinfo=timezone.utc)},
+        ],
+        expected=[{"_id": 1, "val": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
+        msg="$and matches date value",
+    ),
+    QueryTestCase(
+        id="null",
+        filter={"$and": [{"val": None}]},
+        doc=[{"_id": 1, "val": None}, {"_id": 2, "val": 1}],
+        expected=[{"_id": 1, "val": None}],
+        msg="$and matches null value",
+    ),
+    QueryTestCase(
+        id="object",
+        filter={"$and": [{"val": {"x": 1}}]},
+        doc=[{"_id": 1, "val": {"x": 1}}, {"_id": 2, "val": {"x": 2}}],
+        expected=[{"_id": 1, "val": {"x": 1}}],
+        msg="$and matches embedded object",
+    ),
+    QueryTestCase(
+        id="array",
+        filter={"$and": [{"val": [1, 2, 3]}]},
+        doc=[{"_id": 1, "val": [1, 2, 3]}, {"_id": 2, "val": [4, 5]}],
+        expected=[{"_id": 1, "val": [1, 2, 3]}],
+        msg="$and matches array value",
+    ),
+    QueryTestCase(
+        id="objectid",
+        filter={"$and": [{"val": ObjectId("507f1f77bcf86cd799439011")}]},
+        doc=[
+            {"_id": 1, "val": ObjectId("507f1f77bcf86cd799439011")},
+            {"_id": 2, "val": ObjectId("507f1f77bcf86cd799439012")},
+        ],
+        expected=[{"_id": 1, "val": ObjectId("507f1f77bcf86cd799439011")}],
+        msg="$and matches ObjectId value",
+    ),
+    QueryTestCase(
+        id="timestamp",
+        filter={"$and": [{"val": Timestamp(1, 1)}]},
+        doc=[{"_id": 1, "val": Timestamp(1, 1)}, {"_id": 2, "val": Timestamp(2, 1)}],
+        expected=[{"_id": 1, "val": Timestamp(1, 1)}],
+        msg="$and matches Timestamp value",
+    ),
+    QueryTestCase(
+        id="binary",
+        filter={"$and": [{"val": Binary(b"\x01\x02")}]},
+        doc=[{"_id": 1, "val": Binary(b"\x01\x02")}, {"_id": 2, "val": Binary(b"\x03")}],
+        expected=[{"_id": 1, "val": b"\x01\x02"}],
+        msg="$and matches Binary value",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(TYPE_TESTS))
+def test_and_data_type(collection, test):
+    """Test $and matching with various BSON data types."""
+    collection.insert_many(test.doc)
+    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
+    assertSuccess(result, test.expected, msg=test.msg)
+
+
+BSON_DISTINCTION_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="false_not_zero",
+        filter={"$and": [{"val": False}]},
+        doc=[{"_id": 1, "val": 0}],
+        expected=[],
+        msg="bool false does not match int 0",
+    ),
+    QueryTestCase(
+        id="zero_not_false",
+        filter={"$and": [{"val": 0}]},
+        doc=[{"_id": 1, "val": False}],
+        expected=[],
+        msg="int 0 does not match bool false",
+    ),
+    QueryTestCase(
+        id="true_not_one",
+        filter={"$and": [{"val": True}]},
+        doc=[{"_id": 1, "val": 1}],
+        expected=[],
+        msg="bool true does not match int 1",
+    ),
+    QueryTestCase(
+        id="empty_string_not_null",
+        filter={"$and": [{"val": ""}]},
+        doc=[{"_id": 1, "val": None}],
+        expected=[],
+        msg="empty string does not match null",
+    ),
+    QueryTestCase(
+        id="numeric_equivalence_int_long",
+        filter={"$and": [{"val": 1}]},
+        doc=[{"_id": 1, "val": Int64(1)}],
+        expected=[{"_id": 1, "val": Int64(1)}],
+        msg="int 1 matches long 1 (numeric equivalence)",
+    ),
+    QueryTestCase(
+        id="numeric_equivalence_int_double",
+        filter={"$and": [{"val": 1.0}]},
+        doc=[{"_id": 1, "val": 1}],
+        expected=[{"_id": 1, "val": 1}],
+        msg="double 1.0 matches int 1 (numeric equivalence)",
+    ),
+    QueryTestCase(
+        id="numeric_equivalence_int_decimal128",
+        filter={"$and": [{"val": Decimal128("1")}]},
+        doc=[{"_id": 1, "val": 1}],
+        expected=[{"_id": 1, "val": 1}],
+        msg="Decimal128('1') matches int 1 (numeric equivalence)",
+    ),
+    QueryTestCase(
+        id="null_matches_missing",
+        filter={"$and": [{"val": None}]},
+        doc=[{"_id": 1}],
+        expected=[{"_id": 1}],
+        msg="null query matches document with missing field",
+    ),
+    QueryTestCase(
+        id="null_no_match_non_null",
+        filter={"$and": [{"val": None}]},
+        doc=[{"_id": 1, "val": 1}],
+        expected=[],
+        msg="null query does not match non-null field",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(BSON_DISTINCTION_TESTS))
+def test_and_bson_type_distinction(collection, test):
+    """Test $and respects BSON type distinctions."""
+    collection.insert_many(test.doc)
+    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
+    assertSuccess(result, test.expected, msg=test.msg)
+
+
+SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="float_infinity",
+        filter={"$and": [{"val": FLOAT_INFINITY}]},
+        doc=[{"_id": 1, "val": FLOAT_INFINITY}, {"_id": 2, "val": 1.0}],
+        expected=[{"_id": 1, "val": FLOAT_INFINITY}],
+        msg="$and matches float Infinity",
+    ),
+    QueryTestCase(
+        id="float_neg_infinity",
+        filter={"$and": [{"val": FLOAT_NEGATIVE_INFINITY}]},
+        doc=[{"_id": 1, "val": FLOAT_NEGATIVE_INFINITY}, {"_id": 2, "val": 1.0}],
+        expected=[{"_id": 1, "val": FLOAT_NEGATIVE_INFINITY}],
+        msg="$and matches float -Infinity",
+    ),
+    QueryTestCase(
+        id="decimal128_infinity",
+        filter={"$and": [{"val": DECIMAL128_INFINITY}]},
+        doc=[{"_id": 1, "val": DECIMAL128_INFINITY}, {"_id": 2, "val": Decimal128("1")}],
+        expected=[{"_id": 1, "val": DECIMAL128_INFINITY}],
+        msg="$and matches Decimal128 Infinity",
+    ),
+    QueryTestCase(
+        id="decimal128_neg_infinity",
+        filter={"$and": [{"val": DECIMAL128_NEGATIVE_INFINITY}]},
+        doc=[
+            {"_id": 1, "val": DECIMAL128_NEGATIVE_INFINITY},
+            {"_id": 2, "val": Decimal128("1")},
+        ],
+        expected=[{"_id": 1, "val": DECIMAL128_NEGATIVE_INFINITY}],
+        msg="$and matches Decimal128 -Infinity",
+    ),
+    QueryTestCase(
+        id="cross_type_infinity",
+        filter={"$and": [{"val": FLOAT_INFINITY}]},
+        doc=[{"_id": 1, "val": DECIMAL128_INFINITY}, {"_id": 2, "val": 1.0}],
+        expected=[{"_id": 1, "val": DECIMAL128_INFINITY}],
+        msg="Float Infinity matches Decimal128 Infinity (numeric equivalence)",
+    ),
+    QueryTestCase(
+        id="cross_type_neg_infinity",
+        filter={"$and": [{"val": FLOAT_NEGATIVE_INFINITY}]},
+        doc=[{"_id": 1, "val": DECIMAL128_NEGATIVE_INFINITY}, {"_id": 2, "val": 1.0}],
+        expected=[{"_id": 1, "val": DECIMAL128_NEGATIVE_INFINITY}],
+        msg="Float -Infinity matches Decimal128 -Infinity (numeric equivalence)",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(SPECIAL_VALUE_TESTS))
+def test_and_special_values(collection, test):
+    """Test $and with Infinity special values."""
+    collection.insert_many(test.doc)
+    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
+    assertSuccess(result, test.expected, msg=test.msg)
+
+
+NAN_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="float_nan",
+        filter={"$and": [{"val": FLOAT_NAN}]},
+        doc=[{"_id": 1, "val": FLOAT_NAN}, {"_id": 2, "val": 1.0}],
+        expected=[{"_id": 1, "val": FLOAT_NAN}],
+        msg="$and matches float NaN",
+    ),
+    QueryTestCase(
+        id="decimal128_nan",
+        filter={"$and": [{"val": DECIMAL128_NAN}]},
+        doc=[{"_id": 1, "val": DECIMAL128_NAN}, {"_id": 2, "val": Decimal128("1")}],
+        expected=[{"_id": 1, "val": DECIMAL128_NAN}],
+        msg="$and matches Decimal128 NaN",
+    ),
+    QueryTestCase(
+        id="cross_type_nan",
+        filter={"$and": [{"val": FLOAT_NAN}]},
+        doc=[{"_id": 1, "val": DECIMAL128_NAN}, {"_id": 2, "val": 1.0}],
+        expected=[{"_id": 1, "val": DECIMAL128_NAN}],
+        msg="Float NaN matches Decimal128 NaN",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(NAN_TESTS))
+def test_and_nan_values(collection, test):
+    """Test $and with NaN values."""
+    collection.insert_many(test.doc)
+    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
+    assertSuccessNaN(result, test.expected, msg=test.msg)
