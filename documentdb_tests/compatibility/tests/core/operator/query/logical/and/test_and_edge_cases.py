@@ -1,7 +1,8 @@
 """
 Tests for $and edge cases.
 
-Tests empty collection, all-match, no-match, single-document, and $exists behavior.
+Tests empty collection, all-match, no-match, single-document, $exists behavior,
+and nested $and nesting.
 """
 
 import pytest
@@ -82,6 +83,28 @@ ALL_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "a": 1, "b": 1}],
         expected=[],
         msg="$and with $exists:false does not match docs with field present",
+    ),
+    QueryTestCase(
+        id="nested_and",
+        filter={"$and": [{"$and": [{"a": 1}, {"b": 2}]}, {"c": 3}]},
+        doc=[
+            {"_id": 1, "a": 1, "b": 2, "c": 3},
+            {"_id": 2, "a": 2, "b": 2, "c": 3},
+            {"_id": 3, "a": 1, "b": 3, "c": 4},
+        ],
+        expected=[{"_id": 1, "a": 1, "b": 2, "c": 3}],
+        msg="Nested $and matches documents satisfying all inner and outer clauses",
+    ),
+    QueryTestCase(
+        id="three_level_nesting",
+        filter={"$and": [{"$and": [{"$and": [{"a": 1}]}, {"b": 2}]}, {"c": 3}]},
+        doc=[
+            {"_id": 1, "a": 1, "b": 2, "c": 3},
+            {"_id": 2, "a": 2, "b": 2, "c": 3},
+            {"_id": 3, "a": 1, "b": 3, "c": 4},
+        ],
+        expected=[{"_id": 1, "a": 1, "b": 2, "c": 3}],
+        msg="Three-level nested $and matches correctly",
     ),
 ]
 
