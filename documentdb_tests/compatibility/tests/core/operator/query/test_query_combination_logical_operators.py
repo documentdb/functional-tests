@@ -14,9 +14,9 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-ALL_TESTS: list[QueryTestCase] = [
+AND_TESTS: list[QueryTestCase] = [
     QueryTestCase(
-        id="with_not",
+        id="and_with_not",
         filter={"$and": [{"a": {"$not": {"$gt": 5}}}, {"b": 1}]},
         doc=[
             {"_id": 1, "a": 3, "b": 1},
@@ -27,7 +27,7 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="$and with $not matches docs where a <= 5 and b=1",
     ),
     QueryTestCase(
-        id="with_type",
+        id="and_with_type",
         filter={"$and": [{"val": {"$type": "int"}}, {"val": {"$gt": 0}}]},
         doc=[
             {"_id": 1, "val": 5},
@@ -38,7 +38,7 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="$and with $type matches docs where val is int and > 0",
     ),
     QueryTestCase(
-        id="with_elemMatch",
+        id="and_with_elemMatch",
         filter={"$and": [{"arr": {"$elemMatch": {"$gt": 1, "$lt": 5}}}, {"status": "A"}]},
         doc=[
             {"_id": 1, "arr": [1, 3, 7], "status": "A"},
@@ -49,7 +49,7 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="$and with $elemMatch matches docs with array element in range and status A",
     ),
     QueryTestCase(
-        id="with_all",
+        id="and_with_all",
         filter={"$and": [{"tags": {"$all": ["red", "blue"]}}, {"qty": {"$gt": 0}}]},
         doc=[
             {"_id": 1, "tags": ["red", "blue", "green"], "qty": 5},
@@ -60,7 +60,7 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="$and with $all matches docs with all tags and qty > 0",
     ),
     QueryTestCase(
-        id="with_size",
+        id="and_with_size",
         filter={"$and": [{"arr": {"$size": 3}}, {"status": "active"}]},
         doc=[
             {"_id": 1, "arr": [1, 2, 3], "status": "active"},
@@ -71,7 +71,7 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="$and with $size matches docs with array of size 3 and active status",
     ),
     QueryTestCase(
-        id="with_exists_both",
+        id="and_with_exists_both",
         filter={"$and": [{"a": {"$exists": True}}, {"b": {"$exists": True}}]},
         doc=[
             {"_id": 1, "a": 1, "b": 2},
@@ -82,7 +82,7 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="$and with $exists on both fields matches only docs with both present",
     ),
     QueryTestCase(
-        id="with_expr",
+        id="and_with_expr",
         filter={"$and": [{"$expr": {"$gt": ["$a", "$b"]}}, {"c": 1}]},
         doc=[
             {"_id": 1, "a": 5, "b": 3, "c": 1},
@@ -93,7 +93,7 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="$and with $expr matches doc where a > b and c=1",
     ),
     QueryTestCase(
-        id="with_expr_no_match",
+        id="and_with_expr_no_match",
         filter={"$and": [{"$expr": {"$gt": ["$a", "$b"]}}, {"c": 99}]},
         doc=[
             {"_id": 1, "a": 5, "b": 3, "c": 1},
@@ -104,7 +104,7 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="$and with $expr and unsatisfied clause returns empty",
     ),
     QueryTestCase(
-        id="with_expr_inside",
+        id="and_inside_expr",
         filter={"$expr": {"$and": [{"$gt": ["$a", 0]}, {"$lt": ["$a", 10]}]}},
         doc=[
             {"_id": 1, "a": 5, "b": 3, "c": 1},
@@ -119,15 +119,6 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="$and inside $expr matches all docs where 0 < a < 10",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_and_operator_combinations(collection, test):
-    """Test $and combined with other query operators."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
-
 
 OR_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -213,16 +204,21 @@ OR_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 1, "a": 1, "b": 1}, {"_id": 2, "a": 3, "b": 3}],
         msg="$or with $not matches docs where a <= 2 or b=3",
     ),
+    QueryTestCase(
+        id="or_inside_expr",
+        filter={"$expr": {"$or": [{"$gt": ["$a", 4]}, {"$eq": ["$c", 2]}]}},
+        doc=[
+            {"_id": 1, "a": 5, "b": 3, "c": 1},
+            {"_id": 2, "a": 1, "b": 3, "c": 2},
+            {"_id": 3, "a": 1, "b": 3, "c": 3},
+        ],
+        expected=[
+            {"_id": 1, "a": 5, "b": 3, "c": 1},
+            {"_id": 2, "a": 1, "b": 3, "c": 2},
+        ],
+        msg="$or inside $expr matches docs where a > 4 or c == 2",
+    ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(OR_TESTS))
-def test_or_operator_combinations(collection, test):
-    """Test $or combined with other query operators."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
-
 
 NOR_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -293,15 +289,6 @@ NOR_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-
-@pytest.mark.parametrize("test", pytest_params(NOR_TESTS))
-def test_nor_operator_combinations(collection, test):
-    """Test $nor combined with other query operators."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
-
-
 NOT_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="not_with_type",
@@ -370,15 +357,6 @@ NOT_TESTS: list[QueryTestCase] = [
         msg="$not with $regex matches docs where name does not start with A",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(NOT_TESTS))
-def test_not_operator_combinations(collection, test):
-    """Test $not combined with other query operators."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
-
 
 LOGICAL_COMBINATION_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -482,10 +460,12 @@ LOGICAL_COMBINATION_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+ALL_TESTS = AND_TESTS + OR_TESTS + NOR_TESTS + NOT_TESTS + LOGICAL_COMBINATION_TESTS
 
-@pytest.mark.parametrize("test", pytest_params(LOGICAL_COMBINATION_TESTS))
-def test_logical_operator_combinations(collection, test):
-    """Test logical operators combined with each other."""
+
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+def test_query_combination_logical_operators(collection, test):
+    """Test logical operators combined with other query operators."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
