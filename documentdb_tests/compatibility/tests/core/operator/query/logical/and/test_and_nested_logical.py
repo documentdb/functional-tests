@@ -1,7 +1,7 @@
 """
 Tests for nested $and with other logical operators.
 
-Tests nested $and, $and containing $or/$nor, and short-circuit behavior.
+Tests nested $and, $and containing $or/$nor, and $or containing $and.
 """
 
 import pytest

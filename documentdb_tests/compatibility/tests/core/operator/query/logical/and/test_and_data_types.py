@@ -2,7 +2,9 @@
 Tests for $and data type coverage and BSON type distinction.
 
 Tests that $and correctly matches documents with various BSON types
-and respects type distinctions (e.g., bool vs int, null vs missing).
+(including Regex, MinKey, MaxKey, Code), respects type distinctions
+(e.g., bool vs int, null vs missing, 0.0 vs -0.0), and handles
+special values (Infinity, NaN).
 """
 
 from datetime import datetime, timezone

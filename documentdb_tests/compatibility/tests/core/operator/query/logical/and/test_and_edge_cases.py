@@ -1,7 +1,7 @@
 """
 Tests for $and edge cases.
 
-Tests empty collection, all-match, no-match, MinKey/MaxKey comparisons.
+Tests empty collection, all-match, no-match, single-document, and $exists behavior.
 """
 
 import pytest
