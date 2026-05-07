@@ -7,7 +7,7 @@ fixture name as a prefix to guarantee parallel-safe uniqueness.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from pymongo.collection import Collection
@@ -59,6 +59,22 @@ class CappedCollection(TargetCollection):
 
 
 @dataclass(frozen=True)
+class CustomCollection(TargetCollection):
+    """A collection created with arbitrary options.
+
+    Pass any keyword arguments accepted by ``create`` as the ``options``
+    dict.
+    """
+
+    options: dict[str, Any] = field(default_factory=dict)
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        name = f"{collection.name}_custom"
+        db.command("create", name, **self.options)
+        return db[name]
+
+
+@dataclass(frozen=True)
 class NamedCollection(TargetCollection):
     """A collection with a custom name suffix."""
 
@@ -94,6 +110,21 @@ class ExistingDatabase(TargetCollection):
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
         return collection.database.client[self.db_name]["tmp"]
+
+
+@dataclass(frozen=True)
+class ViewChainCollection(TargetCollection):
+    """A chain of views on the fixture collection."""
+
+    depth: int = 1
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        source = collection.name
+        for i in range(1, self.depth + 1):
+            name = f"{collection.name}_chain_{i}"
+            db.command("create", name, viewOn=source, pipeline=[])
+            source = name
+        return db[source]
 
 
 @dataclass(frozen=True)
