@@ -217,10 +217,10 @@ BSON_DISTINCTION_TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="null_matches_missing",
-        filter={"$or": [{"val": None}]},
-        doc=[{"_id": 1}],
+        filter={"$or": [{"a": None}]},
+        doc=[{"_id": 1}, {"_id": 2, "a": 1}],
         expected=[{"_id": 1}],
-        msg="null query matches document with missing field",
+        msg="$or with null clause matches missing field",
     ),
     QueryTestCase(
         id="null_no_match_non_null",

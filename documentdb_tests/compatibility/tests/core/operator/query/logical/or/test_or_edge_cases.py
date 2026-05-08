@@ -51,13 +51,6 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="$or with null clause matches null field",
     ),
     QueryTestCase(
-        id="missing_field_matches_null",
-        filter={"$or": [{"a": None}, {"b": 1}]},
-        doc=[{"_id": 1}, {"_id": 2, "b": 1}, {"_id": 3, "a": 1}],
-        expected=[{"_id": 1}, {"_id": 2, "b": 1}],
-        msg="$or with null clause matches missing field",
-    ),
-    QueryTestCase(
         id="exists_true_matches",
         filter={"$or": [{"a": {"$exists": True}}, {"b": 1}]},
         doc=[{"_id": 1, "a": 1}, {"_id": 2, "b": 1}, {"_id": 3, "c": 1}],

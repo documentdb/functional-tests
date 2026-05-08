@@ -63,13 +63,6 @@ SUCCESS_TESTS: list[QueryTestCase] = [
         msg="$or with repeated identical clauses does not duplicate results",
     ),
     QueryTestCase(
-        id="mutually_exclusive",
-        filter={"$or": [{"a": 1}, {"a": 2}]},
-        doc=DOCS,
-        expected=DOCS,
-        msg="$or with mutually exclusive clauses matches union",
-    ),
-    QueryTestCase(
         id="large_array_100_expressions",
         filter={"$or": [{"a": 1}] * 100},
         doc=DOCS,
