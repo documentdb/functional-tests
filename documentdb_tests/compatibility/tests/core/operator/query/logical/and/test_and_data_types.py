@@ -15,7 +15,7 @@ from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Rege
 from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
     QueryTestCase,
 )
-from documentdb_tests.framework.assertions import assertSuccess, assertSuccessNaN
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
@@ -316,23 +316,12 @@ SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-ALL_TESTS = TYPE_TESTS + BSON_DISTINCTION_TESTS + SPECIAL_VALUE_TESTS
-
-
-@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_and_data_types(collection, test):
-    """Test $and data type coverage, BSON type distinctions, and special values."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg)
-
-
 NAN_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="float_nan",
         filter={"$and": [{"val": FLOAT_NAN}]},
         doc=[{"_id": 1, "val": FLOAT_NAN}, {"_id": 2, "val": 1.0}],
-        expected=[{"_id": 1, "val": FLOAT_NAN}],
+        expected=[{"_id": 1, "val": pytest.approx(FLOAT_NAN, nan_ok=True)}],
         msg="$and matches float NaN",
     ),
     QueryTestCase(
@@ -351,10 +340,12 @@ NAN_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+ALL_TESTS = TYPE_TESTS + BSON_DISTINCTION_TESTS + SPECIAL_VALUE_TESTS + NAN_TESTS
 
-@pytest.mark.parametrize("test", pytest_params(NAN_TESTS))
-def test_and_nan_values(collection, test):
-    """Test $and with NaN values."""
+
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+def test_and_data_types(collection, test):
+    """Test $and data type coverage, BSON type distinctions, and special values."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccessNaN(result, test.expected, msg=test.msg)
+    assertSuccess(result, test.expected, msg=test.msg)
