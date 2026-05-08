@@ -165,14 +165,6 @@ TYPE_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TYPE_TESTS))
-def test_or_data_type(collection, test):
-    """Test $or matching with various BSON data types."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg)
-
-
 BSON_DISTINCTION_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="false_not_zero",
@@ -261,14 +253,6 @@ BSON_DISTINCTION_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(BSON_DISTINCTION_TESTS))
-def test_or_bson_type_distinction(collection, test):
-    """Test $or respects BSON type distinctions."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg)
-
-
 SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="float_infinity",
@@ -304,9 +288,12 @@ SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(SPECIAL_VALUE_TESTS))
-def test_or_special_values(collection, test):
-    """Test $or with Infinity special values."""
+ALL_TESTS = TYPE_TESTS + BSON_DISTINCTION_TESTS + SPECIAL_VALUE_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+def test_or_data_types(collection, test):
+    """Test $or data type coverage, BSON type distinctions, and special values."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, msg=test.msg)

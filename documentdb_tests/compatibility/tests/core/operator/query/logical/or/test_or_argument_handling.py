@@ -80,14 +80,14 @@ SUCCESS_TESTS: list[QueryTestCase] = [
         msg="$or with 100 expressions does not hit a limit",
     ),
     QueryTestCase(
-        id="dedup_overlapping_clauses",
+        id="no_duplicate_results_overlapping_clauses",
         filter={"$or": [{"a": {"$gt": 0}}, {"a": {"$lt": 10}}]},
         doc=[{"_id": 1, "a": 5}],
         expected=[{"_id": 1, "a": 5}],
         msg="$or does not return duplicates when multiple clauses match same doc",
     ),
     QueryTestCase(
-        id="dedup_all_match_all",
+        id="no_duplicate_results_all_match_all",
         filter={"$or": [{"a": {"$gte": 1}}, {"b": {"$gte": 2}}]},
         doc=DOCS,
         expected=DOCS,
