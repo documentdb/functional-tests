@@ -142,6 +142,13 @@ ERROR_TESTS: list[QueryTestCase] = [
         error_code=BAD_VALUE_ERROR,
         msg="$and with unknown query operator errors",
     ),
+    QueryTestCase(
+        id="eager_evaluation_invalid_after_non_matching",
+        filter={"$and": [{"a": 99}, {"$invalidOp": 1}]},
+        expected=None,
+        error_code=BAD_VALUE_ERROR,
+        msg="$and eagerly validates all clauses even if earlier clause matches nothing",
+    ),
 ]
 
 
