@@ -327,6 +327,14 @@ KEY_REPRESENTATION_TESTS: list[IndexStatsTestCase] = [
         expected={"key": Eq({"$**": 1})},
         msg="Wildcard index key should use $** field path",
     ),
+    IndexStatsTestCase(
+        id="multikey_key",
+        indexes=[IndexModel([("arr", 1)])],
+        docs=[{"arr": [1, 2, 3]}],
+        pipeline=[{"$indexStats": {}}, {"$match": {"name": "arr_1"}}],
+        expected={"key": Eq({"arr": 1})},
+        msg="Multikey index key representation should be unchanged",
+    ),
 ]
 
 # Property [Index Options in Spec]: index options are reflected in the
