@@ -32,6 +32,8 @@ def populate_collection(collection: Collection, test_case: StageTestCase) -> Non
     - If ``docs=[...]``, collection is created and documents are inserted.
     """
     if test_case.docs is None:
+        if test_case.indexes:
+            raise ValueError("indexes requires docs to be defined")
         return
 
     collection.database.create_collection(collection.name)
