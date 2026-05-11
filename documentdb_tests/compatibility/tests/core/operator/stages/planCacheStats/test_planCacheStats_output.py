@@ -13,7 +13,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Exists, IsType, NotExists
+from documentdb_tests.framework.property_checks import Exists, Gte, IsType, NotExists
 from documentdb_tests.framework.target_collection import (
     CappedCollection,
     ViewCollection,
@@ -42,7 +42,8 @@ EMPTY_PLAN_CACHE_TESTS: list[StageTestCase] = [
 ]
 
 # Property [Output Document Structure]: each plan cache entry has the expected
-# field types, structure, and required fields.
+# field types, structure, and required fields. Multiple distinct query shapes
+# produce multiple cache entries.
 OUTPUT_STRUCTURE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "output_document_structure",
@@ -70,6 +71,18 @@ OUTPUT_STRUCTURE_TESTS: list[StageTestCase] = [
             "candidatePlanScores": Exists(),
         },
         msg="$planCacheStats output document structure",
+    ),
+    StageTestCase(
+        "multiple_distinct_query_shapes",
+        indexes=[IndexModel([("a", 1)]), IndexModel([("b", 1)])],
+        docs=[{"_id": i, "a": i, "b": i} for i in range(10)],
+        setup=lambda c: (
+            list(c.find({"a": 5, "b": 5})),
+            list(c.find({"a": {"$gt": 3}, "b": 1})),
+        ),
+        pipeline=[{"$planCacheStats": {}}, {"$count": "total"}],
+        expected={"total": Gte(2)},
+        msg="multiple distinct query shapes should produce multiple cache entries",
     ),
 ]
 
