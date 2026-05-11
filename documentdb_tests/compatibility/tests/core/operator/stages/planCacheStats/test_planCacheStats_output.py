@@ -30,6 +30,13 @@ EMPTY_PLAN_CACHE_TESTS: list[StageTestCase] = [
         msg="$planCacheStats on a freshly created collection should return empty",
     ),
     StageTestCase(
+        "empty_freshly_created_collection_allhosts_false",
+        docs=[],
+        pipeline=[{"$planCacheStats": {"allHosts": False}}],
+        expected=[],
+        msg="$planCacheStats with allHosts: false should return same as {}",
+    ),
+    StageTestCase(
         "empty_collection_with_documents_no_queries",
         docs=[{"_id": 1, "value": 10}],
         pipeline=[{"$planCacheStats": {}}],
