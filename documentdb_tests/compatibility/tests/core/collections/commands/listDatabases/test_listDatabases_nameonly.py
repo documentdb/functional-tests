@@ -44,7 +44,7 @@ from documentdb_tests.framework.test_constants import (
 # Property [nameOnly Response Structure]: when nameOnly is true, the
 # response contains only databases and ok, and each database entry
 # contains only the name field.
-name_only_success_TESTS: list[CommandTestCase] = [
+NAME_ONLY_SUCCESS_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         command={"listDatabases": 1, "nameOnly": True},
         expected=name_only_success,
@@ -387,7 +387,7 @@ PARAM_INTERACTION_NAMEONLY_FILTER_TESTS: list[CommandTestCase] = [
 ]
 
 NAMEONLY_TESTS: list[CommandTestCase] = (
-    name_only_success_TESTS
+    NAME_ONLY_SUCCESS_TESTS
     + NAME_ONLY_FALSY_TESTS
     + NAME_ONLY_TRUTHY_TESTS
     + NAME_ONLY_TYPE_ERROR_TESTS
