@@ -77,6 +77,36 @@ ALL_TESTS: list[QueryTestCase] = [
         msg="Nested $or matches documents satisfying any inner or outer clause",
     ),
     QueryTestCase(
+        id="clause_ordering_invariance",
+        filter={"$or": [{"b": 2}, {"a": 1}]},
+        doc=[
+            {"_id": 1, "a": 1},
+            {"_id": 2, "b": 2},
+            {"_id": 3, "c": 3},
+        ],
+        expected=[{"_id": 1, "a": 1}, {"_id": 2, "b": 2}],
+        msg="$or with reversed clause order produces same results",
+    ),
+    QueryTestCase(
+        id="top_level_filter_implicit_and",
+        filter={"x": 1, "$or": [{"a": 1}, {"b": 2}]},
+        doc=[
+            {"_id": 1, "x": 1, "a": 1},
+            {"_id": 2, "x": 1, "b": 2},
+            {"_id": 3, "x": 2, "a": 1},
+            {"_id": 4, "x": 1, "c": 3},
+        ],
+        expected=[{"_id": 1, "x": 1, "a": 1}, {"_id": 2, "x": 1, "b": 2}],
+        msg="$or combined with top-level field acts as implicit AND",
+    ),
+    QueryTestCase(
+        id="empty_string_field_name",
+        filter={"$or": [{"": 1}]},
+        doc=[{"_id": 1, "": 1}, {"_id": 2, "a": 1}],
+        expected=[{"_id": 1, "": 1}],
+        msg="$or with empty string field name matches doc with empty key",
+    ),
+    QueryTestCase(
         id="three_level_nesting",
         filter={"$or": [{"$or": [{"$or": [{"a": 1}]}, {"b": 2}]}, {"c": 3}]},
         doc=[

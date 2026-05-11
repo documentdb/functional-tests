@@ -78,6 +78,34 @@ ALL_TESTS: list[QueryTestCase] = [
         ],
         msg="$or with dot notation into array of objects",
     ),
+    QueryTestCase(
+        id="dot_notation_nested_array_index",
+        filter={"$or": [{"a.0.0": 1}]},
+        doc=[
+            {"_id": 1, "a": [[1, 2], [3, 4]]},
+            {"_id": 2, "a": [[5, 6], [7, 8]]},
+        ],
+        expected=[{"_id": 1, "a": [[1, 2], [3, 4]]}],
+        msg="$or with dot notation into nested array (a.0.0) matches first sub-array element",
+    ),
+    QueryTestCase(
+        id="missing_nested_field_no_match",
+        filter={"$or": [{"x.y.z": 1}]},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "x": {"y": 2}}],
+        expected=[],
+        msg="$or with dot path that doesn't exist in any doc returns empty",
+    ),
+    QueryTestCase(
+        id="dot_notation_into_null_intermediate",
+        filter={"$or": [{"a.b": 1}]},
+        doc=[
+            {"_id": 1, "a": None},
+            {"_id": 2, "a": 5},
+            {"_id": 3, "a": {"b": 1}},
+        ],
+        expected=[{"_id": 3, "a": {"b": 1}}],
+        msg="$or with dot notation where intermediate is null or scalar does not match",
+    ),
 ]
 
 

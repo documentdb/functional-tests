@@ -165,6 +165,87 @@ TYPE_TESTS: list[QueryTestCase] = [
 ]
 
 
+MIXED_TYPE_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="mixed_types_int_and_string",
+        filter={"$or": [{"val": 1}, {"val": "hello"}]},
+        doc=[
+            {"_id": 1, "val": 1},
+            {"_id": 2, "val": "hello"},
+            {"_id": 3, "val": 2},
+        ],
+        expected=[{"_id": 1, "val": 1}, {"_id": 2, "val": "hello"}],
+        msg="$or with mixed types (int and string) matches both",
+    ),
+    QueryTestCase(
+        id="mixed_types_int_and_bool",
+        filter={"$or": [{"val": 1}, {"val": True}]},
+        doc=[
+            {"_id": 1, "val": 1},
+            {"_id": 2, "val": True},
+            {"_id": 3, "val": 0},
+        ],
+        expected=[{"_id": 1, "val": 1}, {"_id": 2, "val": True}],
+        msg="$or with int and bool clauses matches each type independently",
+    ),
+    QueryTestCase(
+        id="mixed_types_int_and_null",
+        filter={"$or": [{"val": 1}, {"val": None}]},
+        doc=[
+            {"_id": 1, "val": 1},
+            {"_id": 2, "val": None},
+            {"_id": 3, "val": 2},
+        ],
+        expected=[{"_id": 1, "val": 1}, {"_id": 2, "val": None}],
+        msg="$or with int and null clauses matches both",
+    ),
+    QueryTestCase(
+        id="mixed_types_string_and_null",
+        filter={"$or": [{"val": "hello"}, {"val": None}]},
+        doc=[
+            {"_id": 1, "val": "hello"},
+            {"_id": 2, "val": None},
+            {"_id": 3, "val": "world"},
+        ],
+        expected=[{"_id": 1, "val": "hello"}, {"_id": 2, "val": None}],
+        msg="$or with string and null clauses matches both",
+    ),
+    QueryTestCase(
+        id="mixed_types_bool_and_null",
+        filter={"$or": [{"val": True}, {"val": None}]},
+        doc=[
+            {"_id": 1, "val": True},
+            {"_id": 2, "val": None},
+            {"_id": 3, "val": False},
+        ],
+        expected=[{"_id": 1, "val": True}, {"_id": 2, "val": None}],
+        msg="$or with bool and null clauses matches both",
+    ),
+    QueryTestCase(
+        id="mixed_types_object_and_array",
+        filter={"$or": [{"val": {"x": 1}}, {"val": [1, 2]}]},
+        doc=[
+            {"_id": 1, "val": {"x": 1}},
+            {"_id": 2, "val": [1, 2]},
+            {"_id": 3, "val": "other"},
+        ],
+        expected=[{"_id": 1, "val": {"x": 1}}, {"_id": 2, "val": [1, 2]}],
+        msg="$or with object and array clauses matches both container types",
+    ),
+    QueryTestCase(
+        id="mixed_types_three_types",
+        filter={"$or": [{"val": 1}, {"val": "hello"}, {"val": True}]},
+        doc=[
+            {"_id": 1, "val": 1},
+            {"_id": 2, "val": "hello"},
+            {"_id": 3, "val": True},
+            {"_id": 4, "val": 2},
+        ],
+        expected=[{"_id": 1, "val": 1}, {"_id": 2, "val": "hello"}, {"_id": 3, "val": True}],
+        msg="$or with three different types (int, string, bool) matches all three",
+    ),
+]
+
 BSON_DISTINCTION_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="false_not_zero",
@@ -313,7 +394,7 @@ NAN_TESTS: list[QueryTestCase] = [
 ]
 
 
-ALL_TESTS = TYPE_TESTS + BSON_DISTINCTION_TESTS + SPECIAL_VALUE_TESTS + NAN_TESTS
+ALL_TESTS = TYPE_TESTS + MIXED_TYPE_TESTS + BSON_DISTINCTION_TESTS + SPECIAL_VALUE_TESTS + NAN_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))

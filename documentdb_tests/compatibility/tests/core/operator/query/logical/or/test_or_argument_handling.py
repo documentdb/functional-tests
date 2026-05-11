@@ -73,6 +73,13 @@ SUCCESS_TESTS: list[QueryTestCase] = [
         msg="$or with 100 expressions does not hit a limit",
     ),
     QueryTestCase(
+        id="multi_field_clause_implicit_and",
+        filter={"$or": [{"a": 1, "b": 2}]},
+        doc=DOCS,
+        expected=[{"_id": 1, "a": 1, "b": 2, "c": 3, "d": 4, "e": 5}],
+        msg="Multi-field clause acts as implicit AND — only doc with a=1 AND b=2 matches",
+    ),
+    QueryTestCase(
         id="no_duplicate_results_overlapping_clauses",
         filter={"$or": [{"a": {"$gt": 0}}, {"a": {"$lt": 10}}]},
         doc=[{"_id": 1, "a": 5}],
