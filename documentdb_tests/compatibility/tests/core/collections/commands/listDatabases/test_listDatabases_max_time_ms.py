@@ -41,6 +41,12 @@ from documentdb_tests.framework.test_constants import (
 # including negative-zero representations.
 MAX_TIME_MS_ACCEPTED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
+        command={"listDatabases": 1, "maxTimeMS": None},
+        expected=basic_success,
+        msg="maxTimeMS null should be accepted with no time limit",
+        id="max_time_ms_null",
+    ),
+    CommandTestCase(
         command={"listDatabases": 1, "maxTimeMS": 1_000},
         expected=basic_success,
         msg="maxTimeMS with int32 should be accepted",
