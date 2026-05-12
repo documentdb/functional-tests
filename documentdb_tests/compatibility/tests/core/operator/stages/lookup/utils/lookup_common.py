@@ -18,6 +18,7 @@ FOREIGN = object()
 class LookupTestCase(StageTestCase):
     """Test case for $lookup stage tests with a foreign collection."""
 
+    foreign_indexes: list[Any] | None = None
     foreign_docs: list[dict[str, Any]] | None = None
 
 
@@ -44,6 +45,8 @@ def setup_lookup(
         db.create_collection(foreign_name)
         if test_case.foreign_docs:
             db[foreign_name].insert_many(test_case.foreign_docs)
+    if test_case.foreign_indexes:
+        db[foreign_name].create_indexes(test_case.foreign_indexes)
 
     try:
         yield foreign_name
