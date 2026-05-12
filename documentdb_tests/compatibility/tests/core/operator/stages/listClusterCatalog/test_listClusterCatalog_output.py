@@ -33,10 +33,10 @@ DEFAULT_FIELD_TESTS: list[ListClusterCatalogTestCase] = [
         expected={
             "ns": IsType("string"),
             "db": IsType("string"),
-            "type": Exists(),
-            "options": Exists(),
-            "info": Exists(),
-            "sharded": Exists(),
+            "type": IsType("string"),
+            "options": IsType("object"),
+            "info": IsType("object"),
+            "sharded": IsType("bool"),
         },
         msg="Regular collection should have all default fields",
     ),
@@ -143,7 +143,10 @@ OPTIONS_TESTS: list[ListClusterCatalogTestCase] = [
             options={"collation": {"locale": "en", "strength": 2}},
         ),
         pipeline=lambda ctx: [{"$listClusterCatalog": {}}, {"$match": {"ns": ctx.ns}}],
-        expected={"options.collation.locale": Eq("en"), "options.collation.strength": Eq(2)},
+        expected={
+            "options.collation.locale": Eq("en"),
+            "options.collation.strength": Eq(2),
+        },
         msg="Collection with collation should have collation in options",
     ),
     ListClusterCatalogTestCase(
@@ -295,6 +298,32 @@ OPTION_BEHAVIOR_TESTS: list[ListClusterCatalogTestCase] = [
     ),
 ]
 
+# Property [Sharded Field Value]: the sharded field reflects whether the
+# collection is sharded.
+SHARDED_FIELD_TESTS: list[ListClusterCatalogTestCase] = [
+    ListClusterCatalogTestCase(
+        id="sharded_regular_collection",
+        docs=[],
+        pipeline=lambda ctx: [{"$listClusterCatalog": {}}, {"$match": {"ns": ctx.ns}}],
+        expected={"sharded": Eq(False)},
+        msg="Unsharded regular collection should have sharded=false",
+    ),
+    ListClusterCatalogTestCase(
+        id="sharded_view",
+        target_collection=ViewCollection(),
+        pipeline=lambda ctx: [{"$listClusterCatalog": {}}, {"$match": {"ns": ctx.ns}}],
+        expected={"sharded": Eq(False)},
+        msg="View should have sharded=false",
+    ),
+    ListClusterCatalogTestCase(
+        id="sharded_timeseries",
+        target_collection=TimeseriesCollection(),
+        pipeline=lambda ctx: [{"$listClusterCatalog": {}}, {"$match": {"ns": ctx.ns}}],
+        expected={"sharded": Eq(False)},
+        msg="Unsharded timeseries collection should have sharded=false",
+    ),
+]
+
 # Property [Special Collection Names]: collections with special characters
 # in their names are listed correctly.
 SPECIAL_NAME_TESTS: list[ListClusterCatalogTestCase] = [
@@ -411,6 +440,7 @@ OUTPUT_TESTS: list[ListClusterCatalogTestCase] = (
     + OPTIONS_TESTS
     + NON_PERSISTED_OPTION_TESTS
     + OPTION_BEHAVIOR_TESTS
+    + SHARDED_FIELD_TESTS
     + SPECIAL_NAME_TESTS
     + SCOPE_TESTS
     + EMPTY_DOC_TESTS
