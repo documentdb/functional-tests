@@ -18,9 +18,7 @@ from documentdb_tests.framework import fixtures  # noqa: E402
 from documentdb_tests.framework.error_codes_validator import (  # noqa: E402
     validate_error_codes_sorted,
 )
-from documentdb_tests.framework.test_format_validator import (  # noqa: E402
-    validate_test_format,
-)
+from documentdb_tests.framework.test_format_validator import validate_test_format  # noqa: E402
 from documentdb_tests.framework.test_structure_validator import (  # noqa: E402
     validate_python_files_in_tests,
 )
@@ -169,6 +167,20 @@ def collection(database_client, request, worker_id):
 
     # Cleanup: drop collection
     fixtures.cleanup_collection(database_client, collection_name)
+
+
+@pytest.fixture(scope="function")
+def register_db_cleanup(engine_client):
+    """Provide a callback to register extra databases for post-test cleanup."""
+    names: list[str] = []
+
+    def register(db_name: str) -> None:
+        names.append(db_name)
+
+    yield register
+
+    for name in names:
+        fixtures.cleanup_database(engine_client, name)
 
 
 def pytest_collection_modifyitems(session, config, items):

@@ -71,6 +71,32 @@ class NamedCollection(TargetCollection):
 
 
 @dataclass(frozen=True)
+class TargetDatabase(TargetCollection):
+    """Run the command against a collection in a new database.
+
+    The fixture database name is used as a prefix to guarantee
+    parallel-safe uniqueness. The resulting database should be
+    registered for cleanup via the ``register_db_cleanup`` fixture.
+    """
+
+    suffix: str = ""
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        name = f"{db.name}_{self.suffix}"
+        return collection.database.client[name]["tmp"]
+
+
+@dataclass(frozen=True)
+class ExistingDatabase(TargetCollection):
+    """Run the command against a collection in an existing database."""
+
+    db_name: str = ""
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        return collection.database.client[self.db_name]["tmp"]
+
+
+@dataclass(frozen=True)
 class TimeseriesCollection(TargetCollection):
     """A time series collection."""
 

@@ -18,12 +18,12 @@ from documentdb_tests.framework.test_case import BaseTestCase
 
 @dataclass(frozen=True)
 class CommandContext:
-    """Runtime fixture values available to command test cases.
+    """Runtime context passed to command/expected callables.
 
     Attributes:
-        collection: The fixture collection name.
-        database: The fixture database name.
-        namespace: The fully qualified namespace (database.collection).
+        collection: The resolved collection name.
+        database: The resolved database name.
+        namespace: The full namespace string (``database.collection``).
     """
 
     collection: str
@@ -33,8 +33,8 @@ class CommandContext:
     @classmethod
     def from_collection(cls, collection: Collection) -> CommandContext:
         db = collection.database.name
-        coll = collection.name
-        return cls(collection=coll, database=db, namespace=f"{db}.{coll}")
+        coll_name = collection.name
+        return cls(collection=coll_name, database=db, namespace=f"{db}.{coll_name}")
 
 
 @dataclass(frozen=True)
@@ -64,12 +64,20 @@ class CommandTestCase(BaseTestCase):
     expected: dict[str, Any] | Callable[[CommandContext], dict[str, Any]] | None = None
 
     def prepare(self, db: Database, collection: Collection) -> Collection:
-        """Resolve the target collection and apply indexes/docs."""
+        """Resolve the target collection and apply indexes/docs.
+
+        - If ``docs=None``, the collection is not created and will not exist.
+        - If ``docs=[]``, the collection is explicitly created but left empty.
+        - If ``docs=[...]``, the collection is created and documents are inserted.
+        """
         collection = self.target_collection.resolve(db, collection)
         if self.indexes:
             collection.create_indexes(self.indexes)
-        if self.docs:
-            collection.insert_many(self.docs)
+        if self.docs is not None:
+            if collection.name not in collection.database.list_collection_names():
+                collection.database.create_collection(collection.name)
+            if self.docs:
+                collection.insert_many(self.docs)
         return collection
 
     def build_command(self, ctx: CommandContext) -> dict[str, Any]:
