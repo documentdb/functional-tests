@@ -8,7 +8,7 @@ Error 5159200: wrong argument count (0 or 2+ args)
 Error 17041: non-array argument at runtime (field resolves to non-array)
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, ObjectId, Regex, Timestamp
@@ -153,7 +153,7 @@ NON_ARRAY_FIELD_TESTS: list[AllElementsTrueTest] = [
     ),
     AllElementsTrueTest(
         "date_field",
-        document={"a": datetime(2017, 1, 1)},
+        document={"a": datetime(2017, 1, 1, tzinfo=timezone.utc)},
         error_code=ALL_ELEMENTS_TRUE_NON_ARRAY_ERROR,
         msg="Date field should error",
     ),

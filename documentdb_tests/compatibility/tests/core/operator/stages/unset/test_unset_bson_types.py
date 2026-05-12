@@ -234,7 +234,7 @@ UNSET_BSON_TYPE_PRESERVATION_TESTS: list[StageTestCase] = [
         "preserve_datetime",
         docs=[{"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc), "rm": 0}],
         pipeline=[{"$unset": "rm"}],
-        expected=[{"_id": 1, "v": datetime(2024, 1, 1)}],
+        expected=[{"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$unset should preserve a datetime field unchanged",
     ),
     StageTestCase(

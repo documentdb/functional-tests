@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -91,7 +91,7 @@ SAMPLE_SPEC_NOT_OBJECT_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "spec_bare_datetime",
         docs=[{"_id": 1}],
-        pipeline=[{"$sample": datetime(2023, 1, 1)}],
+        pipeline=[{"$sample": datetime(2023, 1, 1, tzinfo=timezone.utc)}],
         error_code=SAMPLE_SPEC_NOT_OBJECT_ERROR,
         msg="$sample should reject a bare datetime as stage argument",
     ),

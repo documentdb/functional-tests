@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -104,7 +104,7 @@ SAMPLE_TYPE_STRICTNESS_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "type_datetime",
         docs=[{"_id": 1}],
-        pipeline=[{"$sample": {"size": datetime(2023, 1, 1)}}],
+        pipeline=[{"$sample": {"size": datetime(2023, 1, 1, tzinfo=timezone.utc)}}],
         error_code=SAMPLE_SIZE_NOT_NUMERIC_ERROR,
         msg="$sample should reject datetime as size",
     ),

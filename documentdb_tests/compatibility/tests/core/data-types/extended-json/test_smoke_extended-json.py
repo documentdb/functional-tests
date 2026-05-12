@@ -1,10 +1,10 @@
 """
-Smoke test for mongodb-extended-json.
+Smoke test for extended-json.
 
-Tests basic MongoDB Extended JSON support for special types.
+Tests basic Extended JSON support for special types.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Decimal128
@@ -15,9 +15,9 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-def test_smoke_mongodb_extended_json(collection):
+def test_smoke_extended_json(collection):
     """Test basic Extended JSON type support."""
-    test_date = datetime(2024, 1, 1, 12, 0, 0)
+    test_date = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     test_decimal = Decimal128("123.45")
 
     collection.insert_many(
@@ -29,4 +29,4 @@ def test_smoke_mongodb_extended_json(collection):
     expected = [
         {"_id": 1, "date": test_date, "decimal": test_decimal, "int64": 9223372036854775807.0}
     ]
-    assertSuccess(result, expected, msg="Should support MongoDB Extended JSON types")
+    assertSuccess(result, expected, msg="Should support Extended JSON types")

@@ -4,7 +4,7 @@ Smoke test for $week expression.
 Tests basic $week expression functionality.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -16,7 +16,9 @@ pytestmark = pytest.mark.smoke
 
 def test_smoke_week(collection):
     """Test basic $week expression behavior."""
-    collection.insert_many([{"_id": 1, "date": datetime(2024, 1, 15, 10, 30, 45)}])
+    collection.insert_many(
+        [{"_id": 1, "date": datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc)}]
+    )
 
     result = execute_command(
         collection,

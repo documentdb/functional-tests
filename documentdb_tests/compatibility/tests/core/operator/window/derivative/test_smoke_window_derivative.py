@@ -4,7 +4,7 @@ Smoke test for $derivative window operator.
 Tests basic $derivative window operator functionality.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -18,9 +18,24 @@ def test_smoke_window_derivative(collection):
     """Test basic $derivative window operator behavior."""
     collection.insert_many(
         [
-            {"_id": 1, "partition": "A", "time": datetime(2021, 1, 1, 0, 0, 0), "value": 10},
-            {"_id": 2, "partition": "A", "time": datetime(2021, 1, 1, 0, 0, 1), "value": 20},
-            {"_id": 3, "partition": "A", "time": datetime(2021, 1, 1, 0, 0, 2), "value": 35},
+            {
+                "_id": 1,
+                "partition": "A",
+                "time": datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                "value": 10,
+            },
+            {
+                "_id": 2,
+                "partition": "A",
+                "time": datetime(2021, 1, 1, 0, 0, 1, tzinfo=timezone.utc),
+                "value": 20,
+            },
+            {
+                "_id": 3,
+                "partition": "A",
+                "time": datetime(2021, 1, 1, 0, 0, 2, tzinfo=timezone.utc),
+                "value": 35,
+            },
         ]
     )
 
@@ -50,21 +65,21 @@ def test_smoke_window_derivative(collection):
         {
             "_id": 1,
             "partition": "A",
-            "time": datetime(2021, 1, 1, 0, 0, 0),
+            "time": datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
             "value": 10,
             "rate": None,
         },
         {
             "_id": 2,
             "partition": "A",
-            "time": datetime(2021, 1, 1, 0, 0, 1),
+            "time": datetime(2021, 1, 1, 0, 0, 1, tzinfo=timezone.utc),
             "value": 20,
             "rate": 10.0,
         },
         {
             "_id": 3,
             "partition": "A",
-            "time": datetime(2021, 1, 1, 0, 0, 2),
+            "time": datetime(2021, 1, 1, 0, 0, 2, tzinfo=timezone.utc),
             "value": 35,
             "rate": 12.5,
         },

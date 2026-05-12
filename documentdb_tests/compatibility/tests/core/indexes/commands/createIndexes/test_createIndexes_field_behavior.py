@@ -4,7 +4,7 @@ Validates data type coverage for indexed field values, _id field index
 behavior, null/missing field handling, and special collections (capped).
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -40,7 +40,7 @@ FIELD_BEHAVIOR_TESTS: list[IndexTestCase] = [
     ),
     IndexTestCase(
         id="date_values",
-        doc=({"_id": 1, "a": datetime(2024, 1, 1)},),
+        doc=({"_id": 1, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)},),
         indexes=({"key": {"a": 1}, "name": "a_1"},),
         msg="Date values should be indexable",
     ),

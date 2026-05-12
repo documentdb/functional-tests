@@ -2,17 +2,25 @@
 Unified execution and assertion utilities for tests.
 """
 
+from datetime import timezone
 from typing import Any, Dict, Union
 
+from bson.codec_options import CodecOptions
 
-def execute_command(collection, command: Dict, codec_options=None) -> Union[Any, Exception]:
+TZ_AWARE_CODEC = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
+
+
+def execute_command(
+    collection, command: Dict, codec_options=TZ_AWARE_CODEC
+) -> Union[Any, Exception]:
     """
     Execute a DocumentDB command and return result or exception.
 
     Args:
         collection: DocumentDB collection
         command: Command to execute via runCommand
-        codec_options: Optional CodecOptions to verify timezone-aware datetime results
+        codec_options: CodecOptions for result decoding.
+            Defaults to UTC-aware datetime decoding.
 
     Returns:
         Result if successful, Exception if failed

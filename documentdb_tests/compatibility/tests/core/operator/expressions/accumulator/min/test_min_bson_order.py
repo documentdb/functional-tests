@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import (
@@ -78,15 +78,15 @@ MIN_BSON_ORDER_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "bson_boolean_vs_date",
         expression={"$min": ["$a", "$b"]},
-        doc={"a": True, "b": datetime(1970, 1, 1)},
+        doc={"a": True, "b": datetime(1970, 1, 1, tzinfo=timezone.utc)},
         expected=True,
         msg="$min should pick boolean over date per BSON order",
     ),
     ExpressionTestCase(
         "bson_date_vs_timestamp",
         expression={"$min": ["$a", "$b"]},
-        doc={"a": datetime(1970, 1, 1), "b": Timestamp(1, 1)},
-        expected=datetime(1970, 1, 1),
+        doc={"a": datetime(1970, 1, 1, tzinfo=timezone.utc), "b": Timestamp(1, 1)},
+        expected=datetime(1970, 1, 1, tzinfo=timezone.utc),
         msg="$min should pick date over timestamp per BSON order",
     ),
     ExpressionTestCase(
@@ -143,7 +143,7 @@ MIN_BSON_ORDER_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "bson_string_vs_date_reversed",
         expression={"$min": ["$a", "$b"]},
-        doc={"a": "zzz", "b": datetime(1970, 1, 1)},
+        doc={"a": "zzz", "b": datetime(1970, 1, 1, tzinfo=timezone.utc)},
         expected="zzz",
         msg="$min should pick string over date even when string is first",
     ),
