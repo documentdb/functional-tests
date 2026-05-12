@@ -296,6 +296,33 @@ OPTION_BEHAVIOR_TESTS: list[ListClusterCatalogTestCase] = [
         expected={"shards": NotExists()},
         msg="Omitting shards should not include shards field",
     ),
+    ListClusterCatalogTestCase(
+        id="bc_true",
+        docs=[],
+        pipeline=lambda ctx: [
+            {"$listClusterCatalog": {"balancingConfiguration": True}},
+            {"$match": {"ns": ctx.ns}},
+        ],
+        expected={"balancingConfiguration": IsType("object")},
+        msg="balancingConfiguration: true should include balancingConfiguration field as object",
+    ),
+    ListClusterCatalogTestCase(
+        id="bc_false",
+        docs=[],
+        pipeline=lambda ctx: [
+            {"$listClusterCatalog": {"balancingConfiguration": False}},
+            {"$match": {"ns": ctx.ns}},
+        ],
+        expected={"balancingConfiguration": NotExists()},
+        msg="balancingConfiguration: false should not include balancingConfiguration field",
+    ),
+    ListClusterCatalogTestCase(
+        id="bc_omitted",
+        docs=[],
+        pipeline=lambda ctx: [{"$listClusterCatalog": {}}, {"$match": {"ns": ctx.ns}}],
+        expected={"balancingConfiguration": NotExists()},
+        msg="Omitting balancingConfiguration should not include balancingConfiguration field",
+    ),
 ]
 
 # Property [Sharded Field Value]: the sharded field reflects whether the
