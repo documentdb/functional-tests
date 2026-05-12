@@ -1,14 +1,21 @@
 """Tests for compact command maxTimeMS behavior."""
 
+import uuid
+from datetime import datetime, timezone
+
 import pytest
-from bson import Decimal128, Int64
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, FAILED_TO_PARSE_ERROR
+from documentdb_tests.framework.error_codes import (
+    BAD_VALUE_ERROR,
+    FAILED_TO_PARSE_ERROR,
+    TYPE_MISMATCH_ERROR,
+)
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
@@ -269,8 +276,122 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [maxTimeMS Type Strictness]: non-numeric BSON types for
+# maxTimeMS produce a type mismatch error.
+COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "maxtimems_type_bool",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": True},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=bool should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_string",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": "hello"},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=string should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_array",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": [1]},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=array should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_object",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": {"a": 1}},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=object should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_objectid",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": ObjectId()},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=ObjectId should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_datetime",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "compact": ctx.collection,
+            "maxTimeMS": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        },
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=datetime should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_timestamp",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": Timestamp(1, 1)},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=Timestamp should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_binary",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": Binary(b"\x01")},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=Binary should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_binary_uuid",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "compact": ctx.collection,
+            "maxTimeMS": Binary(uuid.uuid4().bytes, 4),
+        },
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=Binary subtype 4 (UUID) should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_regex",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": Regex(".*")},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=Regex should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_code",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": Code("function(){}")},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=Code should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_code_with_scope",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "compact": ctx.collection,
+            "maxTimeMS": Code("function(){}", {"x": 1}),
+        },
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=CodeWithScope should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_minkey",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": MinKey()},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=MinKey should produce TYPE_MISMATCH_ERROR",
+    ),
+    CommandTestCase(
+        "maxtimems_type_maxkey",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": MaxKey()},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="maxTimeMS=MaxKey should produce TYPE_MISMATCH_ERROR",
+    ),
+]
+
 COMPACT_MAXTIMEMS_TESTS: list[CommandTestCase] = (
-    COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS + COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS
+    COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS
+    + COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS
+    + COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS
 )
 
 
