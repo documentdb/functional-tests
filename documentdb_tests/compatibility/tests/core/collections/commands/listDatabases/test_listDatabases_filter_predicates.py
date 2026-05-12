@@ -13,6 +13,7 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.error_codes import OVERFLOW_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Contains, Eq, Len, NotContains
@@ -310,6 +311,17 @@ FILTER_QUERY_PREDICATE_TESTS: list[CommandTestCase] = [
         expected={"ok": Eq(1.0), "databases": Contains("name", "admin")},
         msg="Nesting depth up to 99 levels should be accepted",
         id="filter_nesting_99",
+    ),
+    CommandTestCase(
+        command={
+            "listDatabases": 1,
+            "filter": functools.reduce(
+                lambda inner, _: {"$and": [inner]}, range(100), dict[str, Any]({"name": "admin"})
+            ),
+        },
+        error_code=OVERFLOW_ERROR,
+        msg="Nesting depth of 100 levels should be rejected",
+        id="filter_nesting_100_rejected",
     ),
 ]
 
