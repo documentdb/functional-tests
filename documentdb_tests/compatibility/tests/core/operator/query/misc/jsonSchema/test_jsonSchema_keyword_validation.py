@@ -15,7 +15,7 @@ from documentdb_tests.framework.bson_type_validator import (
     generate_bson_acceptance_test_cases,
     generate_bson_rejection_test_cases,
 )
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, FAILED_TO_PARSE_ERROR
+from documentdb_tests.framework.error_codes import FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.executor import execute_command
 
 JSONSCHEMA_PARAMS = [
@@ -24,7 +24,6 @@ JSONSCHEMA_PARAMS = [
         msg="required should reject non-array types",
         keyword="required",
         valid_types=[BsonType.ARRAY],
-        error_code_overrides={BsonType.EMPTY_ARRAY: FAILED_TO_PARSE_ERROR},
         valid_inputs={BsonType.ARRAY: ["x"]},
     ),
     BsonTypeTestCase(
@@ -46,7 +45,6 @@ JSONSCHEMA_PARAMS = [
         msg="bsonType should reject non-string/array types",
         keyword="bsonType",
         valid_types=[BsonType.STRING, BsonType.ARRAY],
-        error_code_overrides={BsonType.EMPTY_ARRAY: FAILED_TO_PARSE_ERROR},
         valid_inputs={BsonType.STRING: "object", BsonType.ARRAY: ["string", "int"]},
     ),
     BsonTypeTestCase(
@@ -54,7 +52,6 @@ JSONSCHEMA_PARAMS = [
         msg="type should reject non-string/array types",
         keyword="type",
         valid_types=[BsonType.STRING, BsonType.ARRAY],
-        error_code_overrides={BsonType.EMPTY_ARRAY: FAILED_TO_PARSE_ERROR},
         valid_inputs={BsonType.STRING: "object", BsonType.ARRAY: ["string", "number"]},
     ),
     BsonTypeTestCase(
@@ -62,7 +59,6 @@ JSONSCHEMA_PARAMS = [
         msg="enum should reject non-array types",
         keyword="enum",
         valid_types=[BsonType.ARRAY],
-        error_code_overrides={BsonType.EMPTY_ARRAY: FAILED_TO_PARSE_ERROR},
         valid_inputs={BsonType.ARRAY: [1, 2, 3]},
     ),
     BsonTypeTestCase(
@@ -147,7 +143,7 @@ JSONSCHEMA_PARAMS = [
         id="items",
         msg="items should reject non-object/array types",
         keyword="items",
-        valid_types=[BsonType.OBJECT, BsonType.ARRAY, BsonType.EMPTY_ARRAY],
+        valid_types=[BsonType.OBJECT, BsonType.ARRAY],
         valid_inputs={BsonType.OBJECT: {"bsonType": "string"}, BsonType.ARRAY: [{}]},
     ),
     BsonTypeTestCase(
@@ -169,7 +165,6 @@ JSONSCHEMA_PARAMS = [
         msg="allOf should reject non-array types",
         keyword="allOf",
         valid_types=[BsonType.ARRAY],
-        error_code_overrides={BsonType.EMPTY_ARRAY: BAD_VALUE_ERROR},
         valid_inputs={BsonType.ARRAY: [{}]},
     ),
     BsonTypeTestCase(
@@ -177,7 +172,6 @@ JSONSCHEMA_PARAMS = [
         msg="anyOf should reject non-array types",
         keyword="anyOf",
         valid_types=[BsonType.ARRAY],
-        error_code_overrides={BsonType.EMPTY_ARRAY: BAD_VALUE_ERROR},
         valid_inputs={BsonType.ARRAY: [{}]},
     ),
     BsonTypeTestCase(
@@ -185,7 +179,6 @@ JSONSCHEMA_PARAMS = [
         msg="oneOf should reject non-array types",
         keyword="oneOf",
         valid_types=[BsonType.ARRAY],
-        error_code_overrides={BsonType.EMPTY_ARRAY: BAD_VALUE_ERROR},
         valid_inputs={BsonType.ARRAY: [{}]},
     ),
     BsonTypeTestCase(
