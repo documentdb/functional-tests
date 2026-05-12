@@ -120,6 +120,13 @@ BSON_OPERATOR_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 2, "val": "world"}],
         msg="$not with $regex should return docs not matching the pattern",
     ),
+    QueryTestCase(
+        id="not_regex_no_match_returns_all",
+        filter={"title": {"$not": {"$regex": "^Z"}}},
+        doc=[{"_id": 1, "title": "Test"}, {"_id": 2, "title": "Hello"}],
+        expected=[{"_id": 1, "title": "Test"}, {"_id": 2, "title": "Hello"}],
+        msg="$not with non-matching regex should return all documents",
+    ),
 ]
 
 DATA_TYPE_TESTS: list[QueryTestCase] = [
@@ -129,13 +136,6 @@ DATA_TYPE_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "val": 3.14}],
         expected=[{"_id": 1, "val": 3.14}],
         msg="$not $gt:5 on double field 3.14 should return the doc",
-    ),
-    QueryTestCase(
-        id="not_with_string_field_regex",
-        filter={"val": {"$not": {"$regex": "^h"}}},
-        doc=[{"_id": 1, "val": "hello"}, {"_id": 2, "val": "world"}],
-        expected=[{"_id": 2, "val": "world"}],
-        msg="$not regex on string field should exclude matching docs",
     ),
     QueryTestCase(
         id="not_with_boolean_field",
