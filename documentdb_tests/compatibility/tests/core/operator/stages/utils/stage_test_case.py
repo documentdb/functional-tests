@@ -38,6 +38,8 @@ def populate_collection(collection: Collection, test_case: StageTestCase) -> Col
     Returns the resolved collection to run commands against.
     """
     if test_case.docs is None:
+        if test_case.indexes:
+            raise ValueError("indexes requires docs to be defined")
         return collection
 
     db = collection.database
