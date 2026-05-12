@@ -4,6 +4,17 @@
 
 ---
 
+## Global Rules
+
+- **No error precedence tests** — Don't test which error fires first when multiple params are invalid. Each error should be tested individually.
+- **One layer deep only** — Test the feature itself and one layer of composition.
+  - `$project` with expressions: one test per operator, no edge cases of the operator.
+  - `$lookup` sub-pipeline: verify stages are accepted/rejected, don't test the stage's full behavior inside the sub-pipeline.
+- **No engine-specific implementation details** — Don't test exact nesting limits (20 levels), pipeline stage limits (1000), or internal storage details (wiredTiger). These belong in engine-specific test suites, not compatibility tests.
+- **Tests belong in the feature's folder** — `$abs` type validation goes in `expressions/arithmetic/abs/`, not in `stages/project/`. Testing `$abs` inside `$project` is a `$project` context test (one simple case), not an `$abs` test.
+
+---
+
 ## Core Testing Principles
 
 ### 1. Data Type Coverage
@@ -254,7 +265,7 @@ For each invalid_type in [string, object, array, ...]:
 ### 11. Expression Operator in Pipeline Contexts
 **Rule**: Each expression operator must have one test case in each pipeline context. When generating tests for an operator (e.g., `$add`), create one test case per context in the corresponding stage/feature folder.
 
-**Does NOT apply to**: query/filter predicate operators (`$mod`, `$regex`, `$in`, `$exists`, `$type`, `$gt`, `$lt`, etc.). These operators are tested via `find()` and command filter parameters, not via aggregation pipeline stages.
+**Does NOT apply to**: query operators (i.e., operators under `operators/query/`). These are tested via `find()` and command filter parameters, not via aggregation pipeline stages.
 
 **Pipeline Contexts** (one test case per operator per context):
 - In `core/operator/aggregation/stages/project`: `{$project: {result: {$op: "$field"}}}`
@@ -393,7 +404,7 @@ For each invalid_type in [string, object, array, ...]:
 ### 17. $expr Coverage in Filter/Query Contexts
 **Rule**: Any command or stage that accepts a query/filter expression must include `$expr` tests.
 
-**Applies to**: expression operators only. Query predicate operators (e.g., `$mod`, `$regex`, `$in`, `$gt`) do not need `$expr` tests — they are tested directly in their query/filter form.
+**Applies to**: expression operators only. Query operators (under `operators/query/`) do not need `$expr` tests — they are tested directly in their query/filter form.
 
 **Commands with a filter parameter**:
 - `find`, `update`, `delete`, `findAndModify`, `count`, `distinct`
@@ -434,12 +445,12 @@ For any DocumentDB feature, ensure coverage of:
 - [ ] **Pipeline stage core semantics**: primary operation, empty input, non-existent collection, sole stage (if pipeline stage)
 - [ ] **Pipeline stage parameter validation**: accepted types, rejected values, stage shape, parse-time validation (if pipeline stage)
 - [ ] **Pipeline stage document handling**: pass-through preservation or output shape verification (if pipeline stage)
-- [ ] **Pipeline contexts**: one test case per operator per context — $project, $addFields, $match+$expr, $group (if expression operator — NOT query predicate operators)
+- [ ] **Pipeline contexts**: one test case per operator per context — $project, $addFields, $match+$expr, $group (if expression operator — NOT query operators)
 - [ ] **Collection command core behavior**: success response, non-existent collection, empty collection (if collection command)
 - [ ] **Collection command argument validation**: name type/value, options, unrecognized fields (if collection command)
 - [ ] **Collection command response structure**: all response fields and types verified (if collection command)
 - [ ] **Collection command variants**: behavior across collection types — regular, capped, views (if collection command)
-- [ ] **$expr in filter/query contexts**: commands with filter (find, update, delete, findAndModify, count, distinct), commands with query (listCollections, listDatabases), stages ($match, $lookup subpipeline) (if expression operator — NOT query predicate operators)
+- [ ] **$expr in filter/query contexts**: commands with filter (find, update, delete, findAndModify, count, distinct), commands with query (listCollections, listDatabases), stages ($match, $lookup subpipeline) (if expression operator — NOT query operators)
 - [ ] **System variables**: $$ROOT, $$CURRENT, $$REMOVE, $let — only if official documentation says supported
 - [ ] **Negative zero**: `DOUBLE_NEGATIVE_ZERO` and `DECIMAL128_NEGATIVE_ZERO` behavior (if numeric operator)
 - [ ] **Double precision boundaries**: `DOUBLE_NEAR_MAX`, `DOUBLE_MIN_SUBNORMAL`, `DOUBLE_NEAR_MIN` (if accepts double)
