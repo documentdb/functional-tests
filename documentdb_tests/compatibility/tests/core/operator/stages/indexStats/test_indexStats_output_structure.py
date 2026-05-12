@@ -6,9 +6,9 @@ import pytest
 from pymongo.collection import Collection
 from pymongo.operations import IndexModel
 
-from documentdb_tests.compatibility.tests.core.operator.stages.indexStats.utils.indexStats_test_case import (  # noqa: E501
-    IndexStatsTestCase,
-    prepare_collection,
+from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
+    StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -18,8 +18,8 @@ from documentdb_tests.framework.test_constants import INT64_ZERO
 
 # Property [Top-Level Fields]: each output document contains the documented
 # top-level fields with correct types and no _id.
-OUTPUT_TOP_LEVEL_FIELDS_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+OUTPUT_TOP_LEVEL_FIELDS_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="default_index_field_types",
         docs=[],
         pipeline=[{"$indexStats": {}}, {"$match": {"name": "_id_"}}],
@@ -33,7 +33,7 @@ OUTPUT_TOP_LEVEL_FIELDS_TESTS: list[IndexStatsTestCase] = [
         },
         msg="Default index output should have correct top-level field types and no _id",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="user_index_field_types",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -52,8 +52,8 @@ OUTPUT_TOP_LEVEL_FIELDS_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Key Direction Type]: index key direction values are int32, not
 # int64.
-OUTPUT_KEY_DIRECTION_TYPE_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+OUTPUT_KEY_DIRECTION_TYPE_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="single_key_direction_is_int",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -61,7 +61,7 @@ OUTPUT_KEY_DIRECTION_TYPE_TESTS: list[IndexStatsTestCase] = [
         expected={"key.a": Eq(1)},
         msg="Single index key direction should be int, not long",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="compound_key_directions_are_int",
         indexes=[IndexModel([("a", 1), ("b", -1)])],
         docs=[],
@@ -69,7 +69,7 @@ OUTPUT_KEY_DIRECTION_TYPE_TESTS: list[IndexStatsTestCase] = [
         expected={"key.a": Eq(1), "key.b": Eq(-1)},
         msg="Compound index key directions should be int, not long",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="id_key_direction_is_int",
         docs=[],
         pipeline=[{"$indexStats": {}}, {"$match": {"name": "_id_"}}],
@@ -80,15 +80,15 @@ OUTPUT_KEY_DIRECTION_TYPE_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Absent Fields]: conditional fields are absent when their
 # conditions are not met and present when they are.
-OUTPUT_ABSENT_FIELDS_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+OUTPUT_ABSENT_FIELDS_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="shard_absent_non_sharded",
         docs=[],
         pipeline=[{"$indexStats": {}}, {"$match": {"name": "_id_"}}],
         expected={"shard": NotExists()},
         msg="shard field should be absent on non-sharded topology",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="building_absent_completed_index",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -96,7 +96,7 @@ OUTPUT_ABSENT_FIELDS_TESTS: list[IndexStatsTestCase] = [
         expected={"building": NotExists()},
         msg="building field should be absent for completed indexes",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="hidden_absent_when_not_hidden",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -108,8 +108,8 @@ OUTPUT_ABSENT_FIELDS_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Default Index Names]: each index type produces the expected
 # auto-generated name.
-DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+DEFAULT_INDEX_NAME_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="single_field_default_name",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -117,7 +117,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("a_1")},
         msg="Single-field index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="compound_default_name",
         indexes=[IndexModel([("a", 1), ("b", -1)])],
         docs=[],
@@ -125,7 +125,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("a_1_b_-1")},
         msg="Compound index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="text_default_name",
         indexes=[IndexModel([("a", "text")])],
         docs=[],
@@ -133,7 +133,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("a_text")},
         msg="Text index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="2d_default_name",
         indexes=[IndexModel([("loc", "2d")])],
         docs=[],
@@ -141,7 +141,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("loc_2d")},
         msg="2d index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="2dsphere_default_name",
         indexes=[IndexModel([("geo", "2dsphere")])],
         docs=[],
@@ -149,7 +149,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("geo_2dsphere")},
         msg="2dsphere index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="wildcard_default_name",
         indexes=[IndexModel([("$**", 1)])],
         docs=[],
@@ -157,7 +157,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("$**_1")},
         msg="Wildcard index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="hashed_default_name",
         indexes=[IndexModel([("a", "hashed")])],
         docs=[],
@@ -165,7 +165,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("a_hashed")},
         msg="Hashed index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="unique_default_name",
         indexes=[IndexModel([("a", 1)], unique=True)],
         docs=[],
@@ -173,7 +173,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("a_1")},
         msg="Unique index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="sparse_default_name",
         indexes=[IndexModel([("a", 1)], sparse=True)],
         docs=[],
@@ -181,7 +181,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("a_1")},
         msg="Sparse index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="ttl_default_name",
         indexes=[IndexModel([("ts", 1)], expireAfterSeconds=3600)],
         docs=[],
@@ -189,7 +189,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("ts_1")},
         msg="TTL index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="partial_filter_default_name",
         indexes=[IndexModel([("a", 1)], partialFilterExpression={"a": {"$gt": 0}})],
         docs=[],
@@ -197,7 +197,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("a_1")},
         msg="Partial filter index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="collation_default_name",
         indexes=[IndexModel([("a", 1)], collation={"locale": "en", "strength": 2})],
         docs=[],
@@ -205,7 +205,7 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("a_1")},
         msg="Collation index should have default name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="hidden_default_name",
         indexes=[IndexModel([("a", 1)], hidden=True)],
         docs=[],
@@ -217,8 +217,8 @@ DEFAULT_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Custom Index Names]: indexes with custom names including
 # special characters are reported correctly.
-CUSTOM_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+CUSTOM_INDEX_NAME_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="custom_name",
         indexes=[IndexModel([("a", 1)], name="my_custom_name")],
         docs=[],
@@ -226,7 +226,7 @@ CUSTOM_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("my_custom_name")},
         msg="Custom-named index should be reported",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="unicode_name",
         indexes=[IndexModel([("a", 1)], name="\u00edndice_\u65e5\u672c\u8a9e")],
         docs=[],
@@ -234,7 +234,7 @@ CUSTOM_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("\u00edndice_\u65e5\u672c\u8a9e")},
         msg="Unicode-named index should be reported",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="long_name",
         indexes=[IndexModel([("a", 1)], name="x" * 100)],
         docs=[],
@@ -242,7 +242,7 @@ CUSTOM_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("x" * 100)},
         msg="Long-named index should be reported",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="name_with_spaces",
         indexes=[IndexModel([("a", 1)], name="my index name")],
         docs=[],
@@ -250,7 +250,7 @@ CUSTOM_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("my index name")},
         msg="Index name with spaces should be reported",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="name_with_dots",
         indexes=[IndexModel([("a", 1)], name="a.b.c")],
         docs=[],
@@ -258,7 +258,7 @@ CUSTOM_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("a.b.c")},
         msg="Index name with dots should be reported",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="name_with_dollar",
         indexes=[IndexModel([("a", 1)], name="$special")],
         docs=[],
@@ -266,7 +266,7 @@ CUSTOM_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
         expected={"name": Eq("$special")},
         msg="Index name with dollar sign should be reported",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="name_with_emoji",
         indexes=[IndexModel([("a", 1)], name="\U0001f600\U0001f680")],
         docs=[],
@@ -278,8 +278,8 @@ CUSTOM_INDEX_NAME_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Key Representation]: the key field correctly represents the
 # index key specification for each index type.
-KEY_REPRESENTATION_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+KEY_REPRESENTATION_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="compound_key",
         indexes=[IndexModel([("a", 1), ("b", -1)])],
         docs=[],
@@ -287,7 +287,7 @@ KEY_REPRESENTATION_TESTS: list[IndexStatsTestCase] = [
         expected={"key": Eq({"a": 1, "b": -1})},
         msg="Compound index key should reflect all fields and directions",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="text_key",
         indexes=[IndexModel([("a", "text")])],
         docs=[],
@@ -295,7 +295,7 @@ KEY_REPRESENTATION_TESTS: list[IndexStatsTestCase] = [
         expected={"key": Eq({"_fts": "text", "_ftsx": 1})},
         msg="Text index key should use _fts/_ftsx representation",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="2d_key",
         indexes=[IndexModel([("loc", "2d")])],
         docs=[],
@@ -303,7 +303,7 @@ KEY_REPRESENTATION_TESTS: list[IndexStatsTestCase] = [
         expected={"key": Eq({"loc": "2d"})},
         msg="2d index key should use string value",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="2dsphere_key",
         indexes=[IndexModel([("geo", "2dsphere")])],
         docs=[],
@@ -311,7 +311,7 @@ KEY_REPRESENTATION_TESTS: list[IndexStatsTestCase] = [
         expected={"key": Eq({"geo": "2dsphere"})},
         msg="2dsphere index key should use string value",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="hashed_key",
         indexes=[IndexModel([("a", "hashed")])],
         docs=[],
@@ -319,7 +319,7 @@ KEY_REPRESENTATION_TESTS: list[IndexStatsTestCase] = [
         expected={"key": Eq({"a": "hashed"})},
         msg="Hashed index key should use string value",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="wildcard_key",
         indexes=[IndexModel([("$**", 1)])],
         docs=[],
@@ -327,7 +327,7 @@ KEY_REPRESENTATION_TESTS: list[IndexStatsTestCase] = [
         expected={"key": Eq({"$**": 1})},
         msg="Wildcard index key should use $** field path",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="multikey_key",
         indexes=[IndexModel([("arr", 1)])],
         docs=[{"arr": [1, 2, 3]}],
@@ -339,8 +339,8 @@ KEY_REPRESENTATION_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Index Options in Spec]: index options are reflected in the
 # spec document.
-INDEX_OPTIONS_IN_SPEC_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+INDEX_OPTIONS_IN_SPEC_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="2d_options_in_spec",
         indexes=[IndexModel([("loc", "2d")], bits=20, min=-100, max=100, name="loc_2d_opts")],
         docs=[],
@@ -352,7 +352,7 @@ INDEX_OPTIONS_IN_SPEC_TESTS: list[IndexStatsTestCase] = [
         },
         msg="2d explicit options (bits, min, max) should appear in spec",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="wildcard_projection_in_spec",
         indexes=[IndexModel([("$**", 1)], wildcardProjection={"a": 1}, name="wc_proj")],
         docs=[],
@@ -360,7 +360,7 @@ INDEX_OPTIONS_IN_SPEC_TESTS: list[IndexStatsTestCase] = [
         expected={"spec.wildcardProjection": Eq({"a": 1})},
         msg="Wildcard index with wildcardProjection should include it in spec",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="field_path_wildcard_no_projection",
         indexes=[IndexModel([("a.$**", 1)], name="fp_wc")],
         docs=[],
@@ -368,7 +368,7 @@ INDEX_OPTIONS_IN_SPEC_TESTS: list[IndexStatsTestCase] = [
         expected={"spec.wildcardProjection": NotExists()},
         msg="Field-path wildcard should not include wildcardProjection in spec",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="unique_option_in_spec",
         indexes=[IndexModel([("a", 1)], unique=True, name="a_unique")],
         docs=[],
@@ -376,7 +376,7 @@ INDEX_OPTIONS_IN_SPEC_TESTS: list[IndexStatsTestCase] = [
         expected={"spec.unique": Eq(True)},
         msg="Unique option should be in spec",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="sparse_option_in_spec",
         indexes=[IndexModel([("a", 1)], sparse=True, name="a_sparse")],
         docs=[],
@@ -384,7 +384,7 @@ INDEX_OPTIONS_IN_SPEC_TESTS: list[IndexStatsTestCase] = [
         expected={"spec.sparse": Eq(True)},
         msg="Sparse option should be in spec",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="ttl_expire_in_spec",
         indexes=[IndexModel([("ts", 1)], expireAfterSeconds=3600, name="ts_ttl")],
         docs=[],
@@ -392,7 +392,7 @@ INDEX_OPTIONS_IN_SPEC_TESTS: list[IndexStatsTestCase] = [
         expected={"spec.expireAfterSeconds": Eq(3600)},
         msg="TTL expireAfterSeconds should be in spec",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="collation_in_spec",
         indexes=[
             IndexModel([("a", 1)], collation={"locale": "en", "strength": 2}, name="a_collation")
@@ -402,7 +402,7 @@ INDEX_OPTIONS_IN_SPEC_TESTS: list[IndexStatsTestCase] = [
         expected={"spec.collation": Exists()},
         msg="Collation option should be in spec",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="partial_filter_in_spec",
         indexes=[
             IndexModel([("a", 1)], partialFilterExpression={"a": {"$gt": 0}}, name="a_partial")
@@ -412,7 +412,7 @@ INDEX_OPTIONS_IN_SPEC_TESTS: list[IndexStatsTestCase] = [
         expected={"spec.partialFilterExpression": Eq({"a": {"$gt": 0}})},
         msg="partialFilterExpression should be in spec",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="hidden_option_in_spec",
         indexes=[IndexModel([("a", 1)], hidden=True)],
         docs=[],
@@ -435,9 +435,9 @@ OUTPUT_STRUCTURE_TESTS = (
 
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(OUTPUT_STRUCTURE_TESTS))
-def test_indexStats_output_structure(collection: Collection, test_case: IndexStatsTestCase):
+def test_indexStats_output_structure(collection: Collection, test_case: StageTestCase):
     """Test $indexStats output document structure."""
-    coll = prepare_collection(collection, test_case)
+    coll = populate_collection(collection, test_case)
     result = execute_command(
         coll,
         {

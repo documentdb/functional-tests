@@ -6,9 +6,9 @@ import pytest
 from pymongo.collection import Collection
 from pymongo.operations import IndexModel
 
-from documentdb_tests.compatibility.tests.core.operator.stages.indexStats.utils.indexStats_test_case import (  # noqa: E501
-    IndexStatsTestCase,
-    prepare_collection,
+from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
+    StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -16,8 +16,8 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Gte
 
 # Property [Ops Increment]: accesses.ops increments after index usage.
-OPS_INCREMENT_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+OPS_INCREMENT_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="ops_increments_after_find",
         indexes=[IndexModel([("a", 1)])],
         docs=[{"a": 1}, {"a": 2}, {"a": 3}],
@@ -31,9 +31,9 @@ OPS_INCREMENT_TESTS: list[IndexStatsTestCase] = [
 
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(OPS_INCREMENT_TESTS))
-def test_indexStats_ops_counter(collection: Collection, test_case: IndexStatsTestCase):
+def test_indexStats_ops_counter(collection: Collection, test_case: StageTestCase):
     """Test $indexStats accesses.ops counter increments after index usage."""
-    coll = prepare_collection(collection, test_case)
+    coll = populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(coll)
     result = execute_command(

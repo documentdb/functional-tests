@@ -6,9 +6,9 @@ import pytest
 from pymongo.collection import Collection
 from pymongo.operations import IndexModel
 
-from documentdb_tests.compatibility.tests.core.operator.stages.indexStats.utils.indexStats_test_case import (  # noqa: E501
-    IndexStatsTestCase,
-    prepare_collection,
+from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
+    StageTestCase,
+    populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
@@ -20,8 +20,8 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [First Stage]: $indexStats succeeds when it is the first stage
 # in a pipeline.
-FIRST_STAGE_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+FIRST_STAGE_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="first_stage_succeeds",
         docs=[],
         pipeline=[
@@ -32,7 +32,7 @@ FIRST_STAGE_TESTS: list[IndexStatsTestCase] = [
         expected=[{"name": "_id_"}],
         msg="$indexStats as the first stage should succeed",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="all_indexes_returned",
         indexes=[IndexModel([("a", 1)]), IndexModel([("b", -1)])],
         docs=[],
@@ -52,57 +52,57 @@ FIRST_STAGE_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Not First Position]: $indexStats must be the first stage in a
 # pipeline.
-NOT_FIRST_POSITION_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+NOT_FIRST_POSITION_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="after_match",
         docs=[],
         pipeline=[{"$match": {}}, {"$indexStats": {}}],
         error_code=NOT_FIRST_STAGE_ERROR,
         msg="$indexStats after $match should fail",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="after_project",
         docs=[],
         pipeline=[{"$project": {"a": 1}}, {"$indexStats": {}}],
         error_code=NOT_FIRST_STAGE_ERROR,
         msg="$indexStats after $project should fail",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="after_add_fields",
         docs=[],
         pipeline=[{"$addFields": {"a": 1}}, {"$indexStats": {}}],
         error_code=NOT_FIRST_STAGE_ERROR,
         msg="$indexStats after $addFields should fail",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="after_limit",
         docs=[],
         pipeline=[{"$limit": 1}, {"$indexStats": {}}],
         error_code=NOT_FIRST_STAGE_ERROR,
         msg="$indexStats after $limit should fail",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="after_unwind",
         docs=[],
         pipeline=[{"$unwind": "$a"}, {"$indexStats": {}}],
         error_code=NOT_FIRST_STAGE_ERROR,
         msg="$indexStats after $unwind should fail",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="two_index_stats",
         docs=[],
         pipeline=[{"$indexStats": {}}, {"$indexStats": {}}],
         error_code=NOT_FIRST_STAGE_ERROR,
         msg="Second $indexStats in same pipeline should fail",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="coll_stats_then_index_stats",
         docs=[],
         pipeline=[{"$collStats": {"count": {}}}, {"$indexStats": {}}],
         error_code=NOT_FIRST_STAGE_ERROR,
         msg="$indexStats after $collStats should fail",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="index_stats_then_coll_stats",
         docs=[],
         pipeline=[{"$indexStats": {}}, {"$collStats": {"count": {}}}],
@@ -112,8 +112,8 @@ NOT_FIRST_POSITION_TESTS: list[IndexStatsTestCase] = [
 ]
 
 # Property [Facet Restriction]: $indexStats is not allowed inside $facet.
-FACET_RESTRICTION_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+FACET_RESTRICTION_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="inside_facet",
         docs=[],
         pipeline=[{"$facet": {"a": [{"$indexStats": {}}]}}],
@@ -124,8 +124,8 @@ FACET_RESTRICTION_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Match Filtering]: $match after $indexStats filters index
 # documents by field values.
-MATCH_FILTERING_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+MATCH_FILTERING_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="match_by_name",
         indexes=[IndexModel([("a", 1)]), IndexModel([("b", -1)])],
         docs=[],
@@ -137,7 +137,7 @@ MATCH_FILTERING_TESTS: list[IndexStatsTestCase] = [
         expected=[{"name": "a_1"}],
         msg="$match should filter indexStats output by name",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="match_by_key_field",
         indexes=[IndexModel([("x", 1)]), IndexModel([("y", -1)])],
         docs=[],
@@ -149,7 +149,7 @@ MATCH_FILTERING_TESTS: list[IndexStatsTestCase] = [
         expected=[{"name": "y_-1"}],
         msg="$match should filter by nested key field",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="match_no_results",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -161,7 +161,7 @@ MATCH_FILTERING_TESTS: list[IndexStatsTestCase] = [
         expected=[],
         msg="$match with no matching index should return empty",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="match_regex",
         indexes=[IndexModel([("field_one", 1)]), IndexModel([("field_two", -1)])],
         docs=[],
@@ -177,8 +177,8 @@ MATCH_FILTERING_TESTS: list[IndexStatsTestCase] = [
 ]
 
 # Property [Sort Ordering]: $sort after $indexStats orders index documents.
-SORT_ORDERING_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+SORT_ORDERING_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="sort_by_name_ascending",
         indexes=[IndexModel([("c", 1)]), IndexModel([("a", 1)]), IndexModel([("b", 1)])],
         docs=[],
@@ -191,7 +191,7 @@ SORT_ORDERING_TESTS: list[IndexStatsTestCase] = [
         expected=[{"name": "a_1"}, {"name": "b_1"}, {"name": "c_1"}],
         msg="$sort ascending should order indexes alphabetically",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="sort_by_name_descending",
         indexes=[IndexModel([("a", 1)]), IndexModel([("b", 1)]), IndexModel([("c", 1)])],
         docs=[],
@@ -208,8 +208,8 @@ SORT_ORDERING_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Project Reshaping]: $project after $indexStats reshapes output
 # documents.
-PROJECT_RESHAPING_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+PROJECT_RESHAPING_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="project_inclusion",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -221,7 +221,7 @@ PROJECT_RESHAPING_TESTS: list[IndexStatsTestCase] = [
         expected=[{"name": "a_1", "key": {"a": 1}}],
         msg="$project inclusion should keep only specified fields",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="project_exclusion",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -233,7 +233,7 @@ PROJECT_RESHAPING_TESTS: list[IndexStatsTestCase] = [
         expected=[{"name": "a_1", "key": {"a": 1}}],
         msg="$project exclusion should remove specified fields",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="project_computed_field",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -255,8 +255,8 @@ PROJECT_RESHAPING_TESTS: list[IndexStatsTestCase] = [
 
 # Property [AddFields Augmentation]: $addFields after $indexStats adds
 # computed fields to index documents.
-ADD_FIELDS_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+ADD_FIELDS_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="add_fields_constant",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -269,7 +269,7 @@ ADD_FIELDS_TESTS: list[IndexStatsTestCase] = [
         expected=[{"name": "a_1", "isUserIndex": True}],
         msg="$addFields should augment indexStats documents with constants",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="add_fields_expression",
         indexes=[IndexModel([("a", 1), ("b", -1)])],
         docs=[],
@@ -286,8 +286,8 @@ ADD_FIELDS_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Group Aggregation]: $group after $indexStats aggregates across
 # index documents.
-GROUP_AGGREGATION_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+GROUP_AGGREGATION_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="group_count_all",
         indexes=[IndexModel([("a", 1)]), IndexModel([("b", 1)])],
         docs=[],
@@ -299,7 +299,7 @@ GROUP_AGGREGATION_TESTS: list[IndexStatsTestCase] = [
         expected=[{"count": 3}],  # _id_ + a_1 + b_1
         msg="$group should count all indexes including _id",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="group_collect_names",
         indexes=[IndexModel([("a", 1)]), IndexModel([("b", 1)])],
         docs=[],
@@ -316,8 +316,8 @@ GROUP_AGGREGATION_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Limit and Skip]: $limit and $skip after $indexStats control
 # result pagination.
-LIMIT_SKIP_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+LIMIT_SKIP_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="limit_one",
         indexes=[IndexModel([("a", 1)]), IndexModel([("b", 1)])],
         docs=[],
@@ -330,7 +330,7 @@ LIMIT_SKIP_TESTS: list[IndexStatsTestCase] = [
         expected=[{"name": "_id_"}],
         msg="$limit should restrict number of index documents returned",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="skip_one",
         indexes=[IndexModel([("a", 1)]), IndexModel([("b", 1)])],
         docs=[],
@@ -343,7 +343,7 @@ LIMIT_SKIP_TESTS: list[IndexStatsTestCase] = [
         expected=[{"name": "a_1"}, {"name": "b_1"}],
         msg="$skip should skip index documents",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="skip_and_limit",
         indexes=[
             IndexModel([("a", 1)]),
@@ -365,8 +365,8 @@ LIMIT_SKIP_TESTS: list[IndexStatsTestCase] = [
 
 # Property [Unwind on Key]: $unwind after $indexStats can expand compound
 # key fields into separate documents.
-UNWIND_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+UNWIND_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="unwind_key_array",
         indexes=[IndexModel([("a", 1), ("b", -1)])],
         docs=[],
@@ -387,8 +387,8 @@ UNWIND_TESTS: list[IndexStatsTestCase] = [
 
 # Property [ReplaceRoot]: $replaceRoot after $indexStats can promote
 # nested fields to top level.
-REPLACE_ROOT_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+REPLACE_ROOT_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="replace_root_with_spec",
         indexes=[IndexModel([("a", 1)])],
         docs=[],
@@ -404,8 +404,8 @@ REPLACE_ROOT_TESTS: list[IndexStatsTestCase] = [
 ]
 
 # Property [Count]: $count after $indexStats counts index documents.
-COUNT_TESTS: list[IndexStatsTestCase] = [
-    IndexStatsTestCase(
+COUNT_TESTS: list[StageTestCase] = [
+    StageTestCase(
         id="count_all_indexes",
         indexes=[IndexModel([("a", 1)]), IndexModel([("b", 1)])],
         docs=[],
@@ -416,7 +416,7 @@ COUNT_TESTS: list[IndexStatsTestCase] = [
         expected=[{"totalIndexes": 3}],  # _id_ + a_1 + b_1
         msg="$count should return total number of indexes",
     ),
-    IndexStatsTestCase(
+    StageTestCase(
         id="count_after_match",
         indexes=[
             IndexModel([("x", 1)]),
@@ -452,9 +452,9 @@ ALL_POSITION_TESTS = (
 
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(ALL_POSITION_TESTS))
-def test_indexStats_position(collection: Collection, test_case: IndexStatsTestCase):
+def test_indexStats_position(collection: Collection, test_case: StageTestCase):
     """Test $indexStats pipeline position requirements."""
-    coll = prepare_collection(collection, test_case)
+    coll = populate_collection(collection, test_case)
     result = execute_command(
         coll,
         {
