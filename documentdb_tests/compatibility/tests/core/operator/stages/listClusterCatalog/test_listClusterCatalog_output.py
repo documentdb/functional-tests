@@ -303,8 +303,8 @@ OPTION_BEHAVIOR_TESTS: list[ListClusterCatalogTestCase] = [
             {"$listClusterCatalog": {"balancingConfiguration": True}},
             {"$match": {"ns": ctx.ns}},
         ],
-        expected={"balancingConfiguration": IsType("object")},
-        msg="balancingConfiguration: true should include balancingConfiguration field as object",
+        expected={"balancingConfiguration": NotExists()},
+        msg="balancingConfiguration: true on non-sharded deployment omits field",
     ),
     ListClusterCatalogTestCase(
         id="bc_false",
