@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
     CommandContext,
@@ -17,13 +17,72 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_HALF,
     DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ONE_AND_HALF,
     DECIMAL128_ZERO,
     DOUBLE_HALF,
     DOUBLE_NEGATIVE_ZERO,
     DOUBLE_ZERO,
+    INT32_MAX,
     INT64_MIN,
     INT64_ZERO,
 )
+
+# Property [freeSpaceTargetMB Acceptance]: freeSpaceTargetMB accepts valid
+# numeric values >= 1 across all numeric BSON types.
+COMPACT_FREESPACE_TARGET_MB_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "freespace_accept_int32_one",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": 1},
+        expected={"bytesFreed": 0, "ok": 1.0},
+        msg="freeSpaceTargetMB=1 as int32 should be accepted",
+    ),
+    CommandTestCase(
+        "freespace_accept_int64_one",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": Int64(1)},
+        expected={"bytesFreed": 0, "ok": 1.0},
+        msg="freeSpaceTargetMB=1 as Int64 should be accepted",
+    ),
+    CommandTestCase(
+        "freespace_accept_double_one",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": 1.0},
+        expected={"bytesFreed": 0, "ok": 1.0},
+        msg="freeSpaceTargetMB=1.0 as double should be accepted",
+    ),
+    CommandTestCase(
+        "freespace_accept_decimal128_one",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": Decimal128("1")},
+        expected={"bytesFreed": 0, "ok": 1.0},
+        msg="freeSpaceTargetMB=1 as Decimal128 should be accepted",
+    ),
+    CommandTestCase(
+        "freespace_accept_int32_max",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": INT32_MAX},
+        expected={"bytesFreed": 0, "ok": 1.0},
+        msg="freeSpaceTargetMB=INT32_MAX should be accepted",
+    ),
+    CommandTestCase(
+        "freespace_accept_double_fractional",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": 1.5},
+        expected={"bytesFreed": 0, "ok": 1.0},
+        msg="freeSpaceTargetMB=1.5 as double should be accepted",
+    ),
+    CommandTestCase(
+        "freespace_accept_decimal128_fractional",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "compact": ctx.collection,
+            "freeSpaceTargetMB": DECIMAL128_ONE_AND_HALF,
+        },
+        expected={"bytesFreed": 0, "ok": 1.0},
+        msg="freeSpaceTargetMB=Decimal128(1.5) should be accepted",
+    ),
+]
 
 # Property [freeSpaceTargetMB Type Strictness]: non-numeric BSON types
 # for freeSpaceTargetMB produce a type mismatch error; null is accepted
@@ -245,7 +304,8 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
 ]
 
 COMPACT_FREESPACE_TESTS: list[CommandTestCase] = (
-    COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS
+    COMPACT_FREESPACE_TARGET_MB_ACCEPTANCE_TESTS
+    + COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS
     + COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS
 )
 
