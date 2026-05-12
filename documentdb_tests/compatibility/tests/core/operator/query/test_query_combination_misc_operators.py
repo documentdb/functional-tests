@@ -66,6 +66,13 @@ MOD_COMBINATION_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 1, "a": [1, 3, 5]}],
         msg="$elemMatch with $mod should match if any element satisfies",
     ),
+    QueryTestCase(
+        id="not_mod_non_numeric_field",
+        filter={"val": {"$not": {"$mod": [2, 0]}}},
+        doc=[{"_id": 1, "val": "hello"}, {"_id": 2, "val": 4}],
+        expected=[{"_id": 1, "val": "hello"}],
+        msg="$not $mod on non-numeric field should return doc (doesn't match $mod)",
+    ),
 ]
 
 

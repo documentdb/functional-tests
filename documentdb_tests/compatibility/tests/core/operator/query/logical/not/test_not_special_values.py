@@ -7,7 +7,7 @@ interactions, and $eq null semantics.
 """
 
 import pytest
-from bson import Decimal128
+from bson import Decimal128, MinKey
 
 from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
     QueryTestCase,
@@ -125,6 +125,20 @@ SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
         doc=[],
         expected=[],
         msg="$not on empty collection should return empty result",
+    ),
+    QueryTestCase(
+        id="not_eq_single_element_array_vs_scalar",
+        filter={"val": {"$not": {"$eq": 5}}},
+        doc=[{"_id": 1, "val": 5}, {"_id": 2, "val": [5]}, {"_id": 3, "val": 10}],
+        expected=[{"_id": 3, "val": 10}],
+        msg="$not $eq:5 should exclude both scalar 5 and single-element array [5]",
+    ),
+    QueryTestCase(
+        id="not_gt_minkey_returns_nothing",
+        filter={"val": {"$not": {"$gt": MinKey()}}},
+        doc=[{"_id": 1, "val": 1}, {"_id": 2, "val": "hello"}, {"_id": 3, "other": 1}],
+        expected=[],
+        msg="$not $gt:MinKey returns nothing — all values (including missing) are > MinKey",
     ),
 ]
 

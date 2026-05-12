@@ -242,6 +242,13 @@ DATA_TYPE_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 2, "val": 5}],
         msg="$not $type:javascript should exclude JavaScript Code docs",
     ),
+    QueryTestCase(
+        id="not_type_multiple",
+        filter={"val": {"$not": {"$type": ["string", "int"]}}},
+        doc=[{"_id": 1, "val": "hello"}, {"_id": 2, "val": 42}, {"_id": 3, "val": 3.14}],
+        expected=[{"_id": 3, "val": 3.14}],
+        msg="$not $type with multiple types should return docs matching neither type",
+    ),
 ]
 
 NUMERIC_EQUIVALENCE_TESTS: list[QueryTestCase] = [
@@ -289,6 +296,13 @@ BSON_TYPE_DISTINCTION_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "val": None}, {"_id": 2, "other": 1}, {"_id": 3, "val": 5}],
         expected=[{"_id": 3, "val": 5}],
         msg="$not $eq:null should exclude both null and missing docs",
+    ),
+    QueryTestCase(
+        id="not_gt_cross_type_comparison",
+        filter={"val": {"$not": {"$gt": "string"}}},
+        doc=[{"_id": 1, "val": 5}, {"_id": 2, "val": "zebra"}],
+        expected=[{"_id": 1, "val": 5}],
+        msg="$not $gt:string on numeric field returns numeric doc (type bracketing)",
     ),
 ]
 
