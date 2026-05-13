@@ -1,8 +1,9 @@
 """
-Tests for $mod query operator combinations.
+Tests for misc query operator combinations.
 
-Covers $mod combined with logical operators ($not, $and, $or, $nor),
-comparison operators ($gt), and array operators ($elemMatch).
+Covers $mod and $type combined with logical operators ($not, $and, $or,
+$nor), comparison operators ($gt, $in, $nin), $regex, and array
+operators ($elemMatch).
 """
 
 import pytest
@@ -68,10 +69,85 @@ MOD_COMBINATION_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+TYPE_COMBINATION_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="not_type_string_excludes_string",
+        filter={"x": {"$not": {"$type": "string"}}},
+        doc=[{"_id": 1, "x": "hello"}, {"_id": 2, "x": 42}, {"_id": 3, "x": None}],
+        expected=[{"_id": 2, "x": 42}, {"_id": 3, "x": None}],
+        msg="$not $type: 'string' should match docs where field is NOT string",
+    ),
+    QueryTestCase(
+        id="type_int_with_gt",
+        filter={"x": {"$type": "int", "$gt": 5}},
+        doc=[{"_id": 1, "x": 3}, {"_id": 2, "x": 10}, {"_id": 3, "x": "hello"}],
+        expected=[{"_id": 2, "x": 10}],
+        msg="$type: 'int' + $gt: 5 should match int fields > 5",
+    ),
+    QueryTestCase(
+        id="elemMatch_type_string",
+        filter={"x": {"$elemMatch": {"$type": "string"}}},
+        doc=[{"_id": 1, "x": [1, "a", True]}, {"_id": 2, "x": [1, 2]}],
+        expected=[{"_id": 1, "x": [1, "a", True]}],
+        msg="$elemMatch with $type: 'string' should match array with string element",
+    ),
+    QueryTestCase(
+        id="or_type_string_or_int",
+        filter={"$or": [{"x": {"$type": "string"}}, {"x": {"$type": "int"}}]},
+        doc=[{"_id": 1, "x": "hello"}, {"_id": 2, "x": 42}, {"_id": 3, "x": 1.5}],
+        expected=[{"_id": 1, "x": "hello"}, {"_id": 2, "x": 42}],
+        msg="$or with $type: 'string' and $type: 'int' should match either type",
+    ),
+    QueryTestCase(
+        id="nor_type_string",
+        filter={"$nor": [{"x": {"$type": "string"}}]},
+        doc=[{"_id": 1, "x": "hello"}, {"_id": 2, "x": 42}, {"_id": 3, "x": 1.5}],
+        expected=[{"_id": 2, "x": 42}, {"_id": 3, "x": 1.5}],
+        msg="$nor with $type: 'string' should exclude string fields",
+    ),
+    QueryTestCase(
+        id="and_impossible_string_and_int",
+        filter={"$and": [{"x": {"$type": "string"}}, {"x": {"$type": "int"}}]},
+        doc=[{"_id": 1, "x": "hello"}, {"_id": 2, "x": 42}],
+        expected=[],
+        msg="$and with $type: 'string' and $type: 'int' should return no results",
+    ),
+    QueryTestCase(
+        id="not_type_missing_field",
+        filter={"x": {"$not": {"$type": "string"}}},
+        doc=[{"_id": 1, "y": "hello"}, {"_id": 2, "x": 42}],
+        expected=[{"_id": 1, "y": "hello"}, {"_id": 2, "x": 42}],
+        msg="$not $type on missing field should match",
+    ),
+    QueryTestCase(
+        id="type_string_with_regex",
+        filter={"x": {"$type": "string", "$regex": "^he"}},
+        doc=[{"_id": 1, "x": "hello"}, {"_id": 2, "x": "world"}, {"_id": 3, "x": 42}],
+        expected=[{"_id": 1, "x": "hello"}],
+        msg="$type: 'string' + $regex should match strings matching pattern",
+    ),
+    QueryTestCase(
+        id="type_int_with_in",
+        filter={"x": {"$type": "int", "$in": [1, 3, "hello"]}},
+        doc=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}, {"_id": 3, "x": "hello"}],
+        expected=[{"_id": 1, "x": 1}],
+        msg="$type: 'int' + $in should match only int values in the list",
+    ),
+    QueryTestCase(
+        id="type_string_with_nin",
+        filter={"x": {"$type": "string", "$nin": ["hello"]}},
+        doc=[{"_id": 1, "x": "hello"}, {"_id": 2, "x": "world"}, {"_id": 3, "x": 42}],
+        expected=[{"_id": 2, "x": "world"}],
+        msg="$type: 'string' + $nin should match strings not in the list",
+    ),
+]
 
-@pytest.mark.parametrize("test", pytest_params(MOD_COMBINATION_TESTS))
-def test_query_combination_misc_mod(collection, test):
-    """Parametrized test for $mod operator combinations."""
+ALL_TESTS = MOD_COMBINATION_TESTS + TYPE_COMBINATION_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+def test_query_combination_misc(collection, test):
+    """Parametrized test for $mod and $type operator combinations."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, ignore_doc_order=True, msg=test.msg)
