@@ -8,7 +8,7 @@ and BSON type distinction (false vs 0, true vs 1, null vs missing).
 from datetime import datetime, timezone
 
 import pytest
-from bson import Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
     QueryTestCase,
@@ -131,6 +131,19 @@ BSON_TYPE_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+BSON_TYPE_CODE_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="javascript_code",
+        filter={"$nor": [{"val": Code("function() { return 1; }")}]},
+        doc=[
+            {"_id": 1, "val": Code("function() { return 1; }")},
+            {"_id": 2, "val": Code("function() { return 2; }")},
+        ],
+        expected=[{"_id": 2, "val": Code("function() { return 2; }")}],
+        msg="$nor should exclude docs matching JavaScript Code value",
+    ),
+]
+
 BSON_TYPE_BINARY_REGEX_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="binary",
@@ -218,6 +231,7 @@ BSON_TYPE_DISTINCTION_TESTS: list[QueryTestCase] = [
 
 ALL_TESTS = (
     BSON_TYPE_TESTS
+    + BSON_TYPE_CODE_TESTS
     + BSON_TYPE_BINARY_REGEX_TESTS
     + NUMERIC_EQUIVALENCE_TESTS
     + BSON_TYPE_DISTINCTION_TESTS

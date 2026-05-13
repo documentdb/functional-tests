@@ -29,6 +29,13 @@ NULL_MISSING_TESTS: list[QueryTestCase] = [
         msg="$nor with null condition excludes docs with val=null AND missing field docs",
     ),
     QueryTestCase(
+        id="type_null_excludes_null_and_missing",
+        filter={"$nor": [{"val": {"$type": "null"}}]},
+        doc=[{"_id": 1, "val": None}, {"_id": 2, "val": 5}, {"_id": 3, "other": 1}],
+        expected=[{"_id": 2, "val": 5}, {"_id": 3, "other": 1}],
+        msg="$nor with $type null excludes docs where val is null but not missing-field docs",
+    ),
+    QueryTestCase(
         id="null_field_with_gt_operator",
         filter={"$nor": [{"val": {"$gt": 5}}]},
         doc=[{"_id": 1, "val": None}, {"_id": 2, "val": 10}, {"_id": 3, "val": 3}],

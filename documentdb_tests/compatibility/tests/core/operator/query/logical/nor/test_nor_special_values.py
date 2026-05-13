@@ -45,6 +45,18 @@ SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
         msg="$nor with 0 should exclude docs with -0.0 (negative zero equals zero)",
     ),
     QueryTestCase(
+        id="nan_included_when_filtering_numbers",
+        filter={"$nor": [{"val": 5}, {"val": 10}]},
+        doc=[
+            {"_id": 1, "val": float("nan")},
+            {"_id": 2, "val": 5},
+            {"_id": 3, "val": 10},
+            {"_id": 4, "val": 20},
+        ],
+        expected=[{"_id": 1, "val": float("nan")}, {"_id": 4, "val": 20}],
+        msg="$nor filtering numeric values should include NaN doc (NaN != any number)",
+    ),
+    QueryTestCase(
         id="decimal128_nan",
         filter={"$nor": [{"val": Decimal128("NaN")}]},
         doc=[{"_id": 1, "val": Decimal128("NaN")}, {"_id": 2, "val": Decimal128("5")}],
