@@ -402,4 +402,4 @@ def test_or_data_types(collection, test):
     """Test $or data type coverage, BSON type distinctions, and special values."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
