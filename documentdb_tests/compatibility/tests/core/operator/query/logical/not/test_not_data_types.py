@@ -127,6 +127,13 @@ BSON_OPERATOR_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 1, "title": "Test"}, {"_id": 2, "title": "Hello"}],
         msg="$not with non-matching regex should return all documents",
     ),
+    QueryTestCase(
+        id="not_with_multiple_operators_gt_lt",
+        filter={"val": {"$not": {"$gt": 5, "$lt": 20}}},
+        doc=[{"_id": 1, "val": 3}, {"_id": 2, "val": 10}, {"_id": 3, "val": 25}],
+        expected=[{"_id": 1, "val": 3}, {"_id": 3, "val": 25}],
+        msg="$not with multiple operators ($gt and $lt) should negate the compound condition",
+    ),
 ]
 
 DATA_TYPE_TESTS: list[QueryTestCase] = [
