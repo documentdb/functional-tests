@@ -106,6 +106,29 @@ ARGUMENT_HANDLING_TESTS: list[QueryTestCase] = [
         msg="Polygon with strictwinding CRS should behave like default for small polygon",
     ),
     QueryTestCase(
+        id="geometry_polygon_with_strictwinding_crs_clockwise",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-10, -10], [-10, 10], [10, 10], [10, -10], [-10, -10]]],
+                        "crs": {
+                            "type": "name",
+                            "properties": {"name": "urn:x-mongodb:crs:strictwinding:EPSG:4326"},
+                        },
+                    }
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [50, 50]}},
+        ],
+        expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [50, 50]}}],
+        msg="Clockwise polygon with strictwinding CRS should match complement",
+    ),
+    QueryTestCase(
         id="geometry_polygon_with_epsg4326_crs",
         filter={
             "loc": {
