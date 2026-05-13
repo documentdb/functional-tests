@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
+from enum import Enum
 
-from bson import Decimal128, Int64, ObjectId, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.datetime_ms import DatetimeMS
 
 # Int32 boundary values
@@ -188,3 +189,48 @@ OID_EPOCH = ObjectId("000000000000000000000000")
 OID_MAX_SIGNED32 = ObjectId("7fffffff0000000000000000")
 OID_MIN_SIGNED32 = ObjectId("800000000000000000000000")
 OID_MAX_UNSIGNED32 = ObjectId("ffffffff0000000000000000")
+
+
+# BSON type identifiers
+class BsonType(Enum):
+    """BSON type identifiers."""
+
+    DOUBLE = "double"
+    STRING = "string"
+    OBJECT = "object"
+    ARRAY = "array"
+    BIN_DATA = "bin_data"
+    OBJECT_ID = "object_id"
+    BOOL = "bool"
+    DATE = "date"
+    NULL = "null"
+    REGEX = "regex"
+    JAVASCRIPT = "javascript"
+    INT = "int"
+    TIMESTAMP = "timestamp"
+    LONG = "long"
+    DECIMAL = "decimal"
+    MIN_KEY = "min_key"
+    MAX_KEY = "max_key"
+
+
+# Representative sample value for each BSON type
+BSON_TYPE_SAMPLES = {
+    BsonType.DOUBLE: 3.14,
+    BsonType.STRING: "hello",
+    BsonType.OBJECT: {"key": "value"},
+    BsonType.ARRAY: ["a", "b", "c"],
+    BsonType.BIN_DATA: Binary(b"\x00\x01\x02"),
+    BsonType.OBJECT_ID: OID_EPOCH,
+    BsonType.BOOL: True,
+    BsonType.DATE: DATE_EPOCH,
+    BsonType.NULL: None,
+    BsonType.REGEX: Regex("^abc", "i"),
+    BsonType.JAVASCRIPT: Code("function(){}"),
+    BsonType.INT: INT32_MAX,
+    BsonType.TIMESTAMP: TS_EPOCH,
+    BsonType.LONG: INT64_MAX,
+    BsonType.DECIMAL: DECIMAL128_HALF,
+    BsonType.MIN_KEY: MinKey(),
+    BsonType.MAX_KEY: MaxKey(),
+}

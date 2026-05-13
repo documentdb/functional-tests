@@ -99,6 +99,19 @@ def _format_exception_error(result: Exception) -> str:
     )
 
 
+def assertNotError(result: Union[Any, Exception], msg: Optional[str] = None):
+    """Assert that the command did not return an error.
+
+    Only checks that the result is not an Exception. Does not validate
+    the actual result value.
+    """
+    if isinstance(result, Exception):
+        fail_msg = f"Expected success but got error: {result}"
+        if msg:
+            fail_msg = f"[{msg}] {fail_msg}"
+        raise AssertionError(fail_msg)
+
+
 def assertSuccess(
     result: Union[Any, Exception],
     expected: Any,
