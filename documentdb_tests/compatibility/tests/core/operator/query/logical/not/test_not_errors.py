@@ -79,6 +79,13 @@ ALL_TESTS: list[QueryTestCase] = [
         error_code=BAD_VALUE_ERROR,
         msg="$not with $where inside should return BadValue error",
     ),
+    QueryTestCase(
+        id="not_with_non_operator_key",
+        filter={"val": {"$not": {"plain_key": "value"}}},
+        doc=[{"_id": 1, "val": 5}],
+        error_code=BAD_VALUE_ERROR,
+        msg="$not with non-operator key object should return BadValue error",
+    ),
 ]
 
 
