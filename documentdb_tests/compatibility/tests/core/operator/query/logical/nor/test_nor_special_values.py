@@ -53,7 +53,10 @@ SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
             {"_id": 3, "val": 10},
             {"_id": 4, "val": 20},
         ],
-        expected=[{"_id": 1, "val": float("nan")}, {"_id": 4, "val": 20}],
+        expected=[
+            {"_id": 1, "val": pytest.approx(float("nan"), nan_ok=True)},
+            {"_id": 4, "val": 20},
+        ],
         msg="$nor filtering numeric values should include NaN doc (NaN != any number)",
     ),
     QueryTestCase(
