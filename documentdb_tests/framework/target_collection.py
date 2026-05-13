@@ -22,15 +22,29 @@ class TargetCollection:
     def resolve(self, db: Database, collection: Collection) -> Collection:
         return collection
 
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        """Return the collection where docs and indexes should be inserted."""
+        return resolved
+
 
 @dataclass(frozen=True)
 class ViewCollection(TargetCollection):
-    """A view on the fixture collection."""
+    """A view on the fixture collection.
+
+    Pass any extra keyword arguments accepted by the ``create`` command
+    (e.g. ``pipeline``, ``collation``) via the ``options`` dict.
+    """
+
+    options: dict[str, Any] = field(default_factory=dict)
+    suffix: str = "_view"
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
-        view_name = f"{collection.name}_view"
-        db.command("create", view_name, viewOn=collection.name, pipeline=[])
+        view_name = f"{collection.name}{self.suffix}"
+        db.command("create", view_name, viewOn=collection.name, **self.options)
         return db[view_name]
+
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source
 
 
 @dataclass(frozen=True)
@@ -132,6 +146,9 @@ class ViewChainCollection(TargetCollection):
             source = name
         return db[source]
 
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source
+
 
 @dataclass(frozen=True)
 class ExistingCollection(TargetCollection):
@@ -182,19 +199,22 @@ class SystemBucketsCollection(TimeseriesCollection):
         return db[f"system.buckets.{name}"]
 
 
-@dataclass(frozen=True)
-class ViewWithPipelineCollection(TargetCollection):
+def ViewWithPipelineCollection() -> ViewCollection:
     """A view on the fixture collection with a non-empty pipeline."""
+    return ViewCollection(options={"pipeline": [{"$match": {"x": 1}}]}, suffix="_vpipe")
+
+
+@dataclass(frozen=True)
+class OrphanedViewCollection(TargetCollection):
+    """A view whose source collection does not exist."""
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
-        view_name = f"{collection.name}_vpipe"
-        db.command(
-            "create",
-            view_name,
-            viewOn=collection.name,
-            pipeline=[{"$match": {"x": 1}}],
-        )
+        view_name = f"{collection.name}_orphan"
+        db.command("create", view_name, viewOn="nonexistent_source")
         return db[view_name]
+
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source
 
 
 @dataclass(frozen=True)
