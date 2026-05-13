@@ -2,7 +2,7 @@
 Tests for $nor query operator argument handling.
 
 Covers valid array argument variations: single expression, multiple expressions,
-many expressions, and empty object in array.
+many expressions, empty object in array, and multiple fields in a single expression.
 """
 
 import pytest
@@ -39,6 +39,47 @@ VALID_ARRAY_TESTS: list[QueryTestCase] = [
         msg="$nor with many expressions should return docs failing all",
     ),
     QueryTestCase(
+        id="all_docs_match_at_least_one",
+        filter={"$nor": [{"a": 1}, {"a": 2}]},
+        doc=[
+            {"_id": 1, "a": 1, "b": 1},
+            {"_id": 2, "a": 1, "b": 2},
+            {"_id": 3, "a": 2, "b": 1},
+            {"_id": 4, "a": 2, "b": 2},
+        ],
+        expected=[],
+        msg="$nor should return empty when all docs match at least one condition",
+    ),
+    QueryTestCase(
+        id="no_docs_match_any",
+        filter={"$nor": [{"a": 99}, {"b": 99}]},
+        doc=[
+            {"_id": 1, "a": 1, "b": 1},
+            {"_id": 2, "a": 1, "b": 2},
+            {"_id": 3, "a": 2, "b": 1},
+            {"_id": 4, "a": 2, "b": 2},
+        ],
+        expected=[
+            {"_id": 1, "a": 1, "b": 1},
+            {"_id": 2, "a": 1, "b": 2},
+            {"_id": 3, "a": 2, "b": 1},
+            {"_id": 4, "a": 2, "b": 2},
+        ],
+        msg="$nor should return all docs when none match any condition",
+    ),
+    QueryTestCase(
+        id="duplicate_expressions",
+        filter={"$nor": [{"a": 1}, {"a": 1}]},
+        doc=[
+            {"_id": 1, "a": 1, "b": 1},
+            {"_id": 2, "a": 1, "b": 2},
+            {"_id": 3, "a": 2, "b": 1},
+            {"_id": 4, "a": 2, "b": 2},
+        ],
+        expected=[{"_id": 3, "a": 2, "b": 1}, {"_id": 4, "a": 2, "b": 2}],
+        msg="$nor with duplicate expressions should behave same as single",
+    ),
+    QueryTestCase(
         id="empty_object_in_array",
         filter={"$nor": [{}]},
         doc=DOCS,
@@ -47,7 +88,45 @@ VALID_ARRAY_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-ALL_TESTS = VALID_ARRAY_TESTS
+MULTIPLE_FIELDS_IN_EXPRESSION_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="implicit_and_in_expression",
+        filter={"$nor": [{"a": 1, "b": 2}]},
+        doc=[
+            {"_id": 1, "a": 1, "b": 1},
+            {"_id": 2, "a": 1, "b": 2},
+            {"_id": 3, "a": 2, "b": 1},
+            {"_id": 4, "a": 2, "b": 2},
+        ],
+        expected=[
+            {"_id": 1, "a": 1, "b": 1},
+            {"_id": 3, "a": 2, "b": 1},
+            {"_id": 4, "a": 2, "b": 2},
+        ],
+        msg="$nor with multiple fields in one expression is implicit AND within",
+    ),
+    QueryTestCase(
+        id="overlapping_field_conditions",
+        filter={"$nor": [{"a": {"$gt": 5}}, {"a": {"$lt": 2}}]},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "a": 3}, {"_id": 3, "a": 7}],
+        expected=[{"_id": 2, "a": 3}],
+        msg="$nor with overlapping conditions returns docs in the gap",
+    ),
+    QueryTestCase(
+        id="conflicting_operators_same_field",
+        filter={"$nor": [{"val": {"$gt": 10}}, {"val": {"$lt": 5}}, {"val": {"$eq": 7}}]},
+        doc=[
+            {"_id": 1, "val": 3},
+            {"_id": 2, "val": 7},
+            {"_id": 3, "val": 8},
+            {"_id": 4, "val": 12},
+        ],
+        expected=[{"_id": 3, "val": 8}],
+        msg="$nor with conflicting operators on same field returns docs failing all",
+    ),
+]
+
+ALL_TESTS = VALID_ARRAY_TESTS + MULTIPLE_FIELDS_IN_EXPRESSION_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
