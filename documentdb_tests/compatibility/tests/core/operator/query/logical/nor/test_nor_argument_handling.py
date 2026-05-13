@@ -126,7 +126,28 @@ MULTIPLE_FIELDS_IN_EXPRESSION_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-ALL_TESTS = VALID_ARRAY_TESTS + MULTIPLE_FIELDS_IN_EXPRESSION_TESTS
+CLAUSE_BEHAVIOR_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="clause_ordering_invariance",
+        filter={"$nor": [{"b": 1}, {"a": 1}]},
+        doc=[{"_id": 1, "a": 1, "b": 2}, {"_id": 2, "a": 2, "b": 1}, {"_id": 3, "a": 2, "b": 2}],
+        expected=[{"_id": 3, "a": 2, "b": 2}],
+        msg="$nor with clauses in different order should produce identical results",
+    ),
+    QueryTestCase(
+        id="combined_with_top_level_filter",
+        filter={"x": 1, "$nor": [{"a": 1}, {"b": 2}]},
+        doc=[
+            {"_id": 1, "x": 1, "a": 1, "b": 1},
+            {"_id": 2, "x": 1, "a": 2, "b": 1},
+            {"_id": 3, "x": 2, "a": 2, "b": 1},
+        ],
+        expected=[{"_id": 2, "x": 1, "a": 2, "b": 1}],
+        msg="$nor combined with top-level field filter applies implicit AND",
+    ),
+]
+
+ALL_TESTS = VALID_ARRAY_TESTS + MULTIPLE_FIELDS_IN_EXPRESSION_TESTS + CLAUSE_BEHAVIOR_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))

@@ -98,6 +98,20 @@ EDGE_CASE_TESTS: list[QueryTestCase] = [
         msg="$nor with deeply nested field path should work correctly",
     ),
     QueryTestCase(
+        id="missing_dot_path",
+        filter={"$nor": [{"x.y.z": 1}]},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "a": 2}],
+        expected=[{"_id": 1, "a": 1}, {"_id": 2, "a": 2}],
+        msg="$nor with non-existent dot path should return all docs (none match)",
+    ),
+    QueryTestCase(
+        id="empty_string_field_name",
+        filter={"$nor": [{"": 1}]},
+        doc=[{"_id": 1, "": 1, "a": 2}, {"_id": 2, "": 2, "a": 1}],
+        expected=[{"_id": 2, "": 2, "a": 1}],
+        msg="$nor with empty string field name should match docs where '' field equals value",
+    ),
+    QueryTestCase(
         id="large_number_of_expressions",
         filter={"$nor": [{"a": i} for i in range(50)]},
         doc=[{"_id": 1, "a": 99}, {"_id": 2, "a": 5}],

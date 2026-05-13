@@ -83,6 +83,16 @@ ARRAY_FIELD_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 2, "tags": ["a", "c"]}],
         msg="$nor with $all should exclude docs where array contains all specified elements",
     ),
+    QueryTestCase(
+        id="dot_notation_array_of_arrays",
+        filter={"$nor": [{"a.0.0": 1}]},
+        doc=[
+            {"_id": 1, "a": [[1, 2], [3, 4]]},
+            {"_id": 2, "a": [[5, 6], [7, 8]]},
+        ],
+        expected=[{"_id": 2, "a": [[5, 6], [7, 8]]}],
+        msg="$nor with dot notation into array of arrays should exclude matching docs",
+    ),
 ]
 
 ALL_TESTS = ARRAY_FIELD_TESTS

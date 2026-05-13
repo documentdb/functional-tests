@@ -229,12 +229,27 @@ BSON_TYPE_DISTINCTION_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+MIXED_TYPE_CLAUSE_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="mixed_types_in_clauses",
+        filter={"$nor": [{"val": 1}, {"val": "hello"}]},
+        doc=[
+            {"_id": 1, "val": 1},
+            {"_id": 2, "val": "hello"},
+            {"_id": 3, "val": True},
+        ],
+        expected=[{"_id": 3, "val": True}],
+        msg="$nor with mixed types in clauses should exclude each matching type",
+    ),
+]
+
 ALL_TESTS = (
     BSON_TYPE_TESTS
     + BSON_TYPE_CODE_TESTS
     + BSON_TYPE_BINARY_REGEX_TESTS
     + NUMERIC_EQUIVALENCE_TESTS
     + BSON_TYPE_DISTINCTION_TESTS
+    + MIXED_TYPE_CLAUSE_TESTS
 )
 
 

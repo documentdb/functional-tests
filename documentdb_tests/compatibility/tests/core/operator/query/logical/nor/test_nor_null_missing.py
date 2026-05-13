@@ -49,6 +49,17 @@ NULL_MISSING_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 1, "val": None}, {"_id": 3, "val": 3}],
         msg="$nor with $gt — docs with val=null are returned (null doesn't satisfy $gt)",
     ),
+    QueryTestCase(
+        id="dot_notation_into_null_intermediate",
+        filter={"$nor": [{"a.b": 1}]},
+        doc=[
+            {"_id": 1, "a": None},
+            {"_id": 2, "a": 5},
+            {"_id": 3, "a": {"b": 1}},
+        ],
+        expected=[{"_id": 1, "a": None}, {"_id": 2, "a": 5}],
+        msg="$nor with dot notation where intermediate is null or scalar returns those docs",
+    ),
 ]
 
 EXISTS_INTERACTION_TESTS: list[QueryTestCase] = [
