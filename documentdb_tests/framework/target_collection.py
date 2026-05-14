@@ -8,7 +8,7 @@ fixture name as a prefix to guarantee parallel-safe uniqueness.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from pymongo.collection import Collection
@@ -41,6 +41,22 @@ class SystemViewsCollection(ViewCollection):
         view_name = f"{collection.name}_view"
         db.command("create", view_name, viewOn=collection.name, pipeline=[])
         return db["system.views"]
+
+
+@dataclass(frozen=True)
+class CustomCollection(TargetCollection):
+    """A collection created with arbitrary options.
+
+    Pass any keyword arguments accepted by ``create`` as the ``options``
+    dict.
+    """
+
+    options: dict[str, Any] = field(default_factory=dict)
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        name = f"{collection.name}_custom"
+        db.command("create", name, **self.options)
+        return db[name]
 
 
 @dataclass(frozen=True)

@@ -8,6 +8,7 @@ import pytest
 
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.test_constants import DOUBLE_ZERO
 
 pytestmark = pytest.mark.smoke
 
@@ -40,5 +41,7 @@ def test_smoke_geoNear(collection):
         },
     )
 
-    expected = [{"_id": 1, "location": {"type": "Point", "coordinates": [0, 0]}, "distance": 0.0}]
+    expected = [
+        {"_id": 1, "location": {"type": "Point", "coordinates": [0, 0]}, "distance": DOUBLE_ZERO}
+    ]
     assertSuccess(result, expected, msg="Should support $geoNear stage")
