@@ -3,7 +3,8 @@ Tests for $nor query operator with array fields.
 
 Covers element matching in arrays, nested array paths, empty arrays,
 arrays of objects with dot notation, $elemMatch and $all on arrays,
-null elements in arrays, and multi-element clause matching.
+null elements in arrays, mixed scalar and array values, and multi-element
+clause matching.
 """
 
 import pytest
@@ -106,6 +107,18 @@ ARRAY_FIELD_TESTS: list[QueryTestCase] = [
         ],
         expected=[{"_id": 2, "val": [2, 3]}, {"_id": 4, "val": [10, 20]}],
         msg="$nor should exclude doc when different array elements match different clauses",
+    ),
+    QueryTestCase(
+        id="mixed_scalar_and_array_same_field",
+        filter={"$nor": [{"val": 2}]},
+        doc=[
+            {"_id": 1, "val": 2},
+            {"_id": 2, "val": [1, 2, 3]},
+            {"_id": 3, "val": 5},
+            {"_id": 4, "val": [4, 5, 6]},
+        ],
+        expected=[{"_id": 3, "val": 5}, {"_id": 4, "val": [4, 5, 6]}],
+        msg="$nor should exclude docs whether matching value is a scalar or array element",
     ),
     QueryTestCase(
         id="dot_notation_array_of_arrays",
