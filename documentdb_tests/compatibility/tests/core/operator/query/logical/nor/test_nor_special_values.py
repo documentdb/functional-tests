@@ -14,26 +14,33 @@ from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_c
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_INFINITY,
+    DECIMAL128_NAN,
+    FLOAT_INFINITY,
+    FLOAT_NAN,
+    FLOAT_NEGATIVE_INFINITY,
+)
 
 SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="nan_excluded_by_nan_match",
-        filter={"$nor": [{"val": float("nan")}]},
-        doc=[{"_id": 1, "val": float("nan")}, {"_id": 2, "val": 5}],
+        filter={"$nor": [{"val": FLOAT_NAN}]},
+        doc=[{"_id": 1, "val": FLOAT_NAN}, {"_id": 2, "val": 5}],
         expected=[{"_id": 2, "val": 5}],
         msg="$nor with NaN should exclude docs with NaN value",
     ),
     QueryTestCase(
         id="infinity_excluded_by_gt",
         filter={"$nor": [{"val": {"$gt": 1000000}}]},
-        doc=[{"_id": 1, "val": float("inf")}, {"_id": 2, "val": 100}],
+        doc=[{"_id": 1, "val": FLOAT_INFINITY}, {"_id": 2, "val": 100}],
         expected=[{"_id": 2, "val": 100}],
         msg="$nor with $gt should exclude Infinity (Infinity > any number)",
     ),
     QueryTestCase(
         id="negative_infinity_excluded_by_lt",
         filter={"$nor": [{"val": {"$lt": -1000000}}]},
-        doc=[{"_id": 1, "val": float("-inf")}, {"_id": 2, "val": -100}],
+        doc=[{"_id": 1, "val": FLOAT_NEGATIVE_INFINITY}, {"_id": 2, "val": -100}],
         expected=[{"_id": 2, "val": -100}],
         msg="$nor with $lt should exclude -Infinity (-Infinity < any number)",
     ),
@@ -48,28 +55,28 @@ SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
         id="nan_included_when_filtering_numbers",
         filter={"$nor": [{"val": 5}, {"val": 10}]},
         doc=[
-            {"_id": 1, "val": float("nan")},
+            {"_id": 1, "val": FLOAT_NAN},
             {"_id": 2, "val": 5},
             {"_id": 3, "val": 10},
             {"_id": 4, "val": 20},
         ],
         expected=[
-            {"_id": 1, "val": pytest.approx(float("nan"), nan_ok=True)},
+            {"_id": 1, "val": pytest.approx(FLOAT_NAN, nan_ok=True)},
             {"_id": 4, "val": 20},
         ],
         msg="$nor filtering numeric values should include NaN doc (NaN != any number)",
     ),
     QueryTestCase(
         id="decimal128_nan",
-        filter={"$nor": [{"val": Decimal128("NaN")}]},
-        doc=[{"_id": 1, "val": Decimal128("NaN")}, {"_id": 2, "val": Decimal128("5")}],
+        filter={"$nor": [{"val": DECIMAL128_NAN}]},
+        doc=[{"_id": 1, "val": DECIMAL128_NAN}, {"_id": 2, "val": Decimal128("5")}],
         expected=[{"_id": 2, "val": Decimal128("5")}],
         msg="$nor with Decimal128 NaN should exclude matching docs",
     ),
     QueryTestCase(
         id="decimal128_infinity",
-        filter={"$nor": [{"val": Decimal128("Infinity")}]},
-        doc=[{"_id": 1, "val": Decimal128("Infinity")}, {"_id": 2, "val": Decimal128("5")}],
+        filter={"$nor": [{"val": DECIMAL128_INFINITY}]},
+        doc=[{"_id": 1, "val": DECIMAL128_INFINITY}, {"_id": 2, "val": Decimal128("5")}],
         expected=[{"_id": 2, "val": Decimal128("5")}],
         msg="$nor with Decimal128 Infinity should exclude matching docs",
     ),
