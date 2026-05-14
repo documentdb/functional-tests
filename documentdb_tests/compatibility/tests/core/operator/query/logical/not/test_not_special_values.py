@@ -164,13 +164,6 @@ NULL_MISSING_TESTS: list[QueryTestCase] = [
         msg="$not $gt should include docs where field is missing",
     ),
     QueryTestCase(
-        id="not_exists_true",
-        filter={"val": {"$not": {"$exists": True}}},
-        doc=DOCS_WITH_NULL_AND_MISSING,
-        expected=[{"_id": 3, "other": 10}],
-        msg="$not $exists:true should return docs where field does NOT exist",
-    ),
-    QueryTestCase(
         id="not_exists_false",
         filter={"val": {"$not": {"$exists": False}}},
         doc=DOCS_WITH_NULL_AND_MISSING,
@@ -197,6 +190,17 @@ NULL_MISSING_TESTS: list[QueryTestCase] = [
         doc=DOCS_WITH_NULL_AND_MISSING,
         expected=[{"_id": 1, "val": 5}, {"_id": 3, "other": 10}],
         msg="$not $type:null should return non-null docs (includes missing)",
+    ),
+    QueryTestCase(
+        id="not_regex_includes_missing",
+        filter={"val": {"$not": {"$regex": "^hello"}}},
+        doc=[
+            {"_id": 1, "val": "hello world"},
+            {"_id": 2, "val": "goodbye"},
+            {"_id": 3, "other": 10},
+        ],
+        expected=[{"_id": 2, "val": "goodbye"}, {"_id": 3, "other": 10}],
+        msg="$not $regex should include docs where field is missing (missing doesn't match regex)",
     ),
     QueryTestCase(
         id="exists_true_equivalent_to_not_exists_false",

@@ -79,11 +79,18 @@ BSON_OPERATOR_TESTS: list[QueryTestCase] = [
         msg="$not with $nin (double negation) should return docs where val in list",
     ),
     QueryTestCase(
+        id="nested_not_double_negation",
+        filter={"val": {"$not": {"$not": {"$gt": 5}}}},
+        doc=DOCS,
+        expected=[{"_id": 2, "val": 15}, {"_id": 3, "val": 25}],
+        msg="$not $not $gt (double negation) should be equivalent to $gt",
+    ),
+    QueryTestCase(
         id="not_with_exists_true",
         filter={"val": {"$not": {"$exists": True}}},
-        doc=[{"_id": 1, "val": 5}, {"_id": 2, "other": 10}],
-        expected=[{"_id": 2, "other": 10}],
-        msg="$not with $exists:true should return docs where field does not exist",
+        doc=[{"_id": 1, "val": 5}, {"_id": 2, "val": None}, {"_id": 3, "other": 10}],
+        expected=[{"_id": 3, "other": 10}],
+        msg="$not $exists:true should return docs where field does NOT exist",
     ),
     QueryTestCase(
         id="not_with_type",
@@ -296,13 +303,6 @@ BSON_TYPE_DISTINCTION_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "val": True}, {"_id": 2, "val": 1}],
         expected=[{"_id": 2, "val": 1}],
         msg="$not $eq:true should return 1 but not true (type distinction)",
-    ),
-    QueryTestCase(
-        id="null_vs_missing_not_eq_null",
-        filter={"val": {"$not": {"$eq": None}}},
-        doc=[{"_id": 1, "val": None}, {"_id": 2, "other": 1}, {"_id": 3, "val": 5}],
-        expected=[{"_id": 3, "val": 5}],
-        msg="$not $eq:null should exclude both null and missing docs",
     ),
     QueryTestCase(
         id="not_gt_cross_type_comparison",

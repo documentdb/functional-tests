@@ -1,8 +1,8 @@
 """
 Tests for $not query operator with array fields and array operators.
 
-Covers $not with $elemMatch, $size, $all, $in/$nin on arrays,
-and element-wise matching behavior on array fields.
+Covers $not with $elemMatch, $all, $in on arrays, element-wise matching
+behavior on array fields, and dot notation access to array elements.
 """
 
 import pytest
@@ -59,6 +59,17 @@ ARRAY_OPERATOR_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "val": [1, 2, 3]}, {"_id": 2, "val": [5, 6, 7]}],
         expected=[{"_id": 2, "val": [5, 6, 7]}],
         msg="$not $in on array field should exclude docs with any matching element",
+    ),
+    QueryTestCase(
+        id="not_all_on_array_field",
+        filter={"tags": {"$not": {"$all": ["a", "b"]}}},
+        doc=[
+            {"_id": 1, "tags": ["a", "b", "c"]},
+            {"_id": 2, "tags": ["a", "d"]},
+            {"_id": 3, "tags": ["x", "y"]},
+        ],
+        expected=[{"_id": 2, "tags": ["a", "d"]}, {"_id": 3, "tags": ["x", "y"]}],
+        msg="$not $all should return docs that do NOT contain all specified elements",
     ),
     QueryTestCase(
         id="not_elemMatch_compound",
