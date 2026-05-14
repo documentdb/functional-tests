@@ -88,6 +88,33 @@ VALIDATE_DB_METADATA_API_VERSION_TESTS: list[CommandTestCase] = [
         msg="validateDBMetadata deprecationErrors alone should produce no errors",
     ),
     CommandTestCase(
+        "api_version_1_deprecation_errors_false",
+        indexes=[IndexModel([("field", "text")], name="field_text")],
+        docs=[],
+        command=lambda ctx: {
+            "validateDBMetadata": 1,
+            "apiParameters": {
+                "version": "1",
+                "strict": True,
+                "deprecationErrors": False,
+            },
+            "db": ctx.database,
+            "collection": ctx.collection,
+        },
+        expected=lambda ctx: {
+            "ok": 1.0,
+            "apiVersionErrors": [
+                {
+                    "ns": ctx.namespace,
+                    "code": API_STRICT_ERROR,
+                    "codeName": "APIStrictError",
+                    "errmsg": "The index with name field_text is not allowed in API version 1.",
+                }
+            ],
+        },
+        msg="validateDBMetadata deprecationErrors false should not suppress strict errors",
+    ),
+    CommandTestCase(
         "api_version_1_both_omitted",
         indexes=[IndexModel([("field", "text")], name="field_text")],
         docs=[],
