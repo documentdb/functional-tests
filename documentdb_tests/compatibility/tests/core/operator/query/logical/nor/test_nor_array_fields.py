@@ -2,7 +2,8 @@
 Tests for $nor query operator with array fields.
 
 Covers element matching in arrays, nested array paths, empty arrays,
-arrays of objects with dot notation, and $elemMatch on arrays of objects.
+arrays of objects with dot notation, $elemMatch and $all on arrays,
+null elements in arrays, and multi-element clause matching.
 """
 
 import pytest
@@ -82,6 +83,29 @@ ARRAY_FIELD_TESTS: list[QueryTestCase] = [
         ],
         expected=[{"_id": 2, "tags": ["a", "c"]}],
         msg="$nor with $all should exclude docs where array contains all specified elements",
+    ),
+    QueryTestCase(
+        id="array_containing_null",
+        filter={"$nor": [{"val": None}]},
+        doc=[
+            {"_id": 1, "val": [1, None, 3]},
+            {"_id": 2, "val": [1, 2, 3]},
+            {"_id": 3, "val": [None]},
+        ],
+        expected=[{"_id": 2, "val": [1, 2, 3]}],
+        msg="$nor with null should exclude docs where array contains null element",
+    ),
+    QueryTestCase(
+        id="multiple_elements_match_different_clauses",
+        filter={"$nor": [{"val": 1}, {"val": 5}]},
+        doc=[
+            {"_id": 1, "val": [1, 5, 10]},
+            {"_id": 2, "val": [2, 3]},
+            {"_id": 3, "val": [5, 6]},
+            {"_id": 4, "val": [10, 20]},
+        ],
+        expected=[{"_id": 2, "val": [2, 3]}, {"_id": 4, "val": [10, 20]}],
+        msg="$nor should exclude doc when different array elements match different clauses",
     ),
     QueryTestCase(
         id="dot_notation_array_of_arrays",

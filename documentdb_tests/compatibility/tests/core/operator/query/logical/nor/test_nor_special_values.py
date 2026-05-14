@@ -2,7 +2,8 @@
 Tests for $nor query operator with special values and edge cases.
 
 Covers NaN, Infinity, -Infinity, negative zero, Decimal128 special values,
-empty collections, non-existent fields, and deeply nested field paths.
+empty collections, non-existent fields, deeply nested field paths,
+and edge-case field names.
 """
 
 import pytest

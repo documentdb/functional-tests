@@ -2,7 +2,8 @@
 Tests for $nor query operator data type coverage.
 
 Covers BSON type matching, numeric equivalence across types,
-and BSON type distinction (false vs 0, true vs 1, null vs missing).
+BSON type distinction (false vs 0, true vs 1, null vs missing),
+and mixed types across clauses.
 """
 
 from datetime import datetime, timezone
@@ -79,13 +80,6 @@ BSON_TYPE_TESTS: list[QueryTestCase] = [
         ],
         expected=[{"_id": 2, "val": datetime(2024, 6, 1, tzinfo=timezone.utc)}],
         msg="$nor should exclude docs matching date value",
-    ),
-    QueryTestCase(
-        id="null",
-        filter={"$nor": [{"val": None}]},
-        doc=[{"_id": 1, "val": None}, {"_id": 2, "val": 5}],
-        expected=[{"_id": 2, "val": 5}],
-        msg="$nor should exclude docs matching null value",
     ),
     QueryTestCase(
         id="int32",
@@ -212,13 +206,6 @@ BSON_TYPE_DISTINCTION_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "val": True}, {"_id": 2, "val": 1}],
         expected=[{"_id": 2, "val": 1}],
         msg="$nor with true should NOT exclude docs with val=1 (type distinction)",
-    ),
-    QueryTestCase(
-        id="null_matches_missing",
-        filter={"$nor": [{"val": None}]},
-        doc=[{"_id": 1, "val": None}, {"_id": 2, "other": 1}, {"_id": 3, "val": 5}],
-        expected=[{"_id": 3, "val": 5}],
-        msg="$nor with null excludes both null and missing field docs",
     ),
     QueryTestCase(
         id="empty_string_not_equal_to_null",

@@ -2,7 +2,8 @@
 Tests for $nor query operator argument handling.
 
 Covers valid array argument variations: single expression, multiple expressions,
-many expressions, empty object in array, and multiple fields in a single expression.
+many expressions, empty object in array, multiple fields in a single expression,
+and clause behavior (ordering invariance, nested double negation, combined filters).
 """
 
 import pytest
@@ -133,6 +134,17 @@ CLAUSE_BEHAVIOR_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "a": 1, "b": 2}, {"_id": 2, "a": 2, "b": 1}, {"_id": 3, "a": 2, "b": 2}],
         expected=[{"_id": 3, "a": 2, "b": 2}],
         msg="$nor with clauses in different order should produce identical results",
+    ),
+    QueryTestCase(
+        id="nested_nor_double_negation",
+        filter={"$nor": [{"$nor": [{"a": 1}, {"b": 1}]}]},
+        doc=[
+            {"_id": 1, "a": 1, "b": 2},
+            {"_id": 2, "a": 2, "b": 1},
+            {"_id": 3, "a": 2, "b": 2},
+        ],
+        expected=[{"_id": 1, "a": 1, "b": 2}, {"_id": 2, "a": 2, "b": 1}],
+        msg="$nor inside $nor (double negation) should be equivalent to $or",
     ),
     QueryTestCase(
         id="combined_with_top_level_filter",
