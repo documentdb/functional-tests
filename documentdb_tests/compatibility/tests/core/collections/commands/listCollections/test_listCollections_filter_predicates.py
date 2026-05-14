@@ -7,7 +7,11 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
+from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Contains, Eq, Len, NotContains
+from documentdb_tests.framework.target_collection import (
     CappedCollection,
     CollatedCollection,
     TimeseriesCollection,
@@ -15,10 +19,6 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.target
     ViewCollection,
     ViewWithPipelineCollection,
 )
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.executor import execute_command
-from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Contains, Eq, Len, NotContains
 
 # Property [Filter Basic Predicate]: the filter field accepts a query
 # predicate document that restricts the result set to matching

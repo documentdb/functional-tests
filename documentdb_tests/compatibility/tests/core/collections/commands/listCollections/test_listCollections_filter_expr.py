@@ -6,14 +6,14 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
-    ViewWithPipelineCollection,
-)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import SIZE_NOT_ARRAY_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Contains, Eq, Len, NotContains
+from documentdb_tests.framework.target_collection import (
+    ViewWithPipelineCollection,
+)
 
 # Property [Filter $expr]: $expr can access output fields and
 # supports aggregation expressions ($eq, $gt, $type, $ifNull, $size,
