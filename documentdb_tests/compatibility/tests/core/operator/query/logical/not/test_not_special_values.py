@@ -15,26 +15,35 @@ from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_c
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_INFINITY,
+    DECIMAL128_NAN,
+    DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ZERO,
+    FLOAT_INFINITY,
+    FLOAT_NAN,
+    FLOAT_NEGATIVE_INFINITY,
+)
 
 SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="not_eq_nan",
-        filter={"val": {"$not": {"$eq": float("nan")}}},
-        doc=[{"_id": 1, "val": float("nan")}, {"_id": 2, "val": 5}],
+        filter={"val": {"$not": {"$eq": FLOAT_NAN}}},
+        doc=[{"_id": 1, "val": FLOAT_NAN}, {"_id": 2, "val": 5}],
         expected=[{"_id": 2, "val": 5}],
         msg="$not $eq:NaN should NOT return NaN doc (NaN == NaN in matching)",
     ),
     QueryTestCase(
         id="not_gt_infinity",
         filter={"val": {"$not": {"$gt": 999999}}},
-        doc=[{"_id": 1, "val": float("inf")}, {"_id": 2, "val": 5}],
+        doc=[{"_id": 1, "val": FLOAT_INFINITY}, {"_id": 2, "val": 5}],
         expected=[{"_id": 2, "val": 5}],
         msg="$not $gt:999999 should NOT return Infinity doc",
     ),
     QueryTestCase(
         id="not_lt_neg_infinity",
         filter={"val": {"$not": {"$lt": -999999}}},
-        doc=[{"_id": 1, "val": float("-inf")}, {"_id": 2, "val": 5}],
+        doc=[{"_id": 1, "val": FLOAT_NEGATIVE_INFINITY}, {"_id": 2, "val": 5}],
         expected=[{"_id": 2, "val": 5}],
         msg="$not $lt:-999999 should NOT return -Infinity doc",
     ),
@@ -100,22 +109,22 @@ SPECIAL_VALUE_TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="not_with_decimal128_nan",
-        filter={"val": {"$not": {"$eq": Decimal128("NaN")}}},
-        doc=[{"_id": 1, "val": Decimal128("NaN")}, {"_id": 2, "val": Decimal128("5")}],
+        filter={"val": {"$not": {"$eq": DECIMAL128_NAN}}},
+        doc=[{"_id": 1, "val": DECIMAL128_NAN}, {"_id": 2, "val": Decimal128("5")}],
         expected=[{"_id": 2, "val": Decimal128("5")}],
         msg="$not $eq:Decimal128 NaN should exclude Decimal128 NaN docs (NaN==NaN in matching)",
     ),
     QueryTestCase(
         id="not_with_decimal128_infinity",
         filter={"val": {"$not": {"$gt": Decimal128("999999")}}},
-        doc=[{"_id": 1, "val": Decimal128("Infinity")}, {"_id": 2, "val": Decimal128("5")}],
+        doc=[{"_id": 1, "val": DECIMAL128_INFINITY}, {"_id": 2, "val": Decimal128("5")}],
         expected=[{"_id": 2, "val": Decimal128("5")}],
         msg="$not $gt on Decimal128 Infinity should exclude it",
     ),
     QueryTestCase(
         id="not_with_decimal128_negative_zero",
-        filter={"val": {"$not": {"$eq": Decimal128("0")}}},
-        doc=[{"_id": 1, "val": Decimal128("-0")}, {"_id": 2, "val": Decimal128("5")}],
+        filter={"val": {"$not": {"$eq": DECIMAL128_ZERO}}},
+        doc=[{"_id": 1, "val": DECIMAL128_NEGATIVE_ZERO}, {"_id": 2, "val": Decimal128("5")}],
         expected=[{"_id": 2, "val": Decimal128("5")}],
         msg="$not $eq:0 on Decimal128 -0 — negative zero equals zero in matching so excluded",
     ),
