@@ -22,6 +22,10 @@ class TargetCollection:
     def resolve(self, db: Database, collection: Collection) -> Collection:
         return collection
 
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        """Return the collection where docs and indexes should be inserted."""
+        return resolved
+
 
 @dataclass(frozen=True)
 class ViewCollection(TargetCollection):
@@ -31,6 +35,9 @@ class ViewCollection(TargetCollection):
         view_name = f"{collection.name}_view"
         db.command("create", view_name, viewOn=collection.name, pipeline=[])
         return db[view_name]
+
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source
 
 
 @dataclass(frozen=True)
@@ -57,6 +64,23 @@ class CustomCollection(TargetCollection):
         name = f"{collection.name}_custom"
         db.command("create", name, **self.options)
         return db[name]
+
+
+@dataclass(frozen=True)
+class ViewOnCustomCollection(TargetCollection):
+    """A view on a custom collection created with arbitrary options."""
+
+    source_options: dict[str, Any] = field(default_factory=dict)
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        src_name = f"{collection.name}_custom_src"
+        db.command("create", src_name, **self.source_options)
+        view_name = f"{collection.name}_custom_view"
+        db.command("create", view_name, viewOn=src_name, pipeline=[])
+        return db[view_name]
+
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source.database[f"{source.name}_custom_src"]
 
 
 @dataclass(frozen=True)
@@ -132,6 +156,9 @@ class ViewChainCollection(TargetCollection):
             source = name
         return db[source]
 
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source
+
 
 @dataclass(frozen=True)
 class ExistingCollection(TargetCollection):
@@ -195,6 +222,9 @@ class ViewWithPipelineCollection(TargetCollection):
             pipeline=[{"$match": {"x": 1}}],
         )
         return db[view_name]
+
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source
 
 
 @dataclass(frozen=True)
