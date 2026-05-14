@@ -16,7 +16,7 @@ from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     FAILED_TO_PARSE_ERROR,
-    INVALID_REGEX_PATTERN_ERROR,
+    REGEX_COMPILE_ERROR,
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -128,7 +128,7 @@ INVALID_SCHEMA_CONSTRUCT_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="construct_pattern_invalid_regex",
         filter={"$jsonSchema": {"properties": {"x": {"pattern": "[invalid"}}}},
-        error_code=INVALID_REGEX_PATTERN_ERROR,
+        error_code=REGEX_COMPILE_ERROR,
         msg="pattern with invalid regex should error",
     ),
     QueryTestCase(

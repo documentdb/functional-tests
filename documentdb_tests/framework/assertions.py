@@ -389,27 +389,29 @@ def assertProperties(
         raise AssertionError(_format_exception_error(result))
 
     if raw_res:
-        doc = result
+        docs = [result]
     else:
         docs = result["cursor"]["firstBatch"]
         if not docs:
             prefix = f" {msg}" if msg else ""
             raise AssertionError(f"[NO_DOCUMENTS]{prefix} Expected at least one document")
-        doc = docs[0]
     failures: list[str] = []
 
-    def _run_checks(checks: dict[str, Any], prefix: str = "") -> None:
-        for path, check in checks.items():
-            full_path = f"{prefix}.{path}" if prefix else path
-            if isinstance(check, dict):
-                _run_checks(check, full_path)
-            else:
-                actual = _walk_path(doc, full_path)
-                err = check.check(actual, full_path)
-                if err:
-                    failures.append(err)
+    for i, doc in enumerate(docs):
+        doc_prefix = f"doc[{i}]: " if len(docs) > 1 else ""
 
-    _run_checks(checks)
+        def _run_checks(checks: dict[str, Any], prefix: str = "") -> None:
+            for path, check in checks.items():
+                full_path = f"{prefix}.{path}" if prefix else path
+                if isinstance(check, dict):
+                    _run_checks(check, full_path)
+                else:
+                    actual = _walk_path(doc, full_path)
+                    err = check.check(actual, full_path)
+                    if err:
+                        failures.append(f"{doc_prefix}{err}")
+
+        _run_checks(checks)
 
     if failures:
         prefix = f" {msg}" if msg else ""
