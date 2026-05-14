@@ -409,6 +409,17 @@ NAMESPACE_BYTE_LIMIT_TESTS: list[CommandTestCase] = [
         expected={"ok": 1.0},
         msg="4-byte UTF-8 chars at exactly 255 byte namespace should succeed",
     ),
+    CommandTestCase(
+        "dest_at_limit",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "cloneCollectionAsCapped": ctx.collection,
+            "toCollection": "x" * (255 - len(ctx.database.encode()) - 1),
+            "size": 100_000,
+        },
+        expected={"ok": 1.0},
+        msg="destination namespace at exactly 255 bytes should succeed",
+    ),
 ]
 
 NAMESPACE_TESTS: list[CommandTestCase] = (
