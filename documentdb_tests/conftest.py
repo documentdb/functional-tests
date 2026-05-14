@@ -57,7 +57,7 @@ def pytest_configure(config):
 
 
 def pytest_runtest_setup(item):
-    """Apply engine-specific xfail markers."""
+    """Apply engine-specific xfail and xcrash markers."""
     for marker in item.iter_markers("engine_xfail"):
         if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
             item.add_marker(
@@ -66,6 +66,9 @@ def pytest_runtest_setup(item):
                     raises=marker.kwargs.get("raises", AssertionError),
                 )
             )
+    for marker in item.iter_markers("engine_xcrash"):
+        if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
+            pytest.skip(marker.kwargs.get("reason", "crashes the server"))
 
 
 @pytest.fixture(scope="session")

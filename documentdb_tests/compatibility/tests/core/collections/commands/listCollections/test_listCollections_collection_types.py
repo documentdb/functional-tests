@@ -7,7 +7,11 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
+from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq, Exists, IsType, NotExists
+from documentdb_tests.framework.target_collection import (
     CappedCollection,
     ChangeStreamPreAndPostImagesCollection,
     ClusteredCollection,
@@ -21,10 +25,6 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.target
     ViewCollection,
     ViewWithPipelineCollection,
 )
-from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.executor import execute_command
-from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq, Exists, IsType, NotExists
 
 # Property [Regular Collection Output]: regular collections have type
 # "collection", empty options, info with readOnly=false and uuid
