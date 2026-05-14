@@ -6,6 +6,7 @@ import pytest
 from bson import (
     Binary,
     Code,
+    Decimal128,
     Int64,
     MaxKey,
     MinKey,
@@ -46,6 +47,55 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NEGATIVE_NAN,
     INT64_MAX,
 )
+
+# Property [Size Numeric Type Acceptance]: positive numeric values
+# of int32, int64, double, and Decimal128 are accepted.
+SIZE_NUMERIC_TYPE_SUCCESS_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "int32",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "cloneCollectionAsCapped": ctx.collection,
+            "toCollection": f"{ctx.collection}_capped",
+            "size": 4096,
+        },
+        expected={"ok": 1.0},
+        msg="int32 size should succeed",
+    ),
+    CommandTestCase(
+        "int64",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "cloneCollectionAsCapped": ctx.collection,
+            "toCollection": f"{ctx.collection}_capped",
+            "size": Int64(4096),
+        },
+        expected={"ok": 1.0},
+        msg="int64 size should succeed",
+    ),
+    CommandTestCase(
+        "double",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "cloneCollectionAsCapped": ctx.collection,
+            "toCollection": f"{ctx.collection}_capped",
+            "size": 4096.0,
+        },
+        expected={"ok": 1.0},
+        msg="double size should succeed",
+    ),
+    CommandTestCase(
+        "decimal128",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "cloneCollectionAsCapped": ctx.collection,
+            "toCollection": f"{ctx.collection}_capped",
+            "size": Decimal128("4096"),
+        },
+        expected={"ok": 1.0},
+        msg="Decimal128 size should succeed",
+    ),
+]
 
 # Property [Size Upper Bound Success]: the maximum accepted size is
 # 1 PiB (1,125,899,906,842,624 bytes), inclusive.
@@ -507,7 +557,8 @@ SIZE_INVALID_NUMERIC_TESTS: list[CommandTestCase] = [
 ]
 
 SIZE_TESTS: list[CommandTestCase] = (
-    SIZE_UPPER_BOUND_SUCCESS_TESTS
+    SIZE_NUMERIC_TYPE_SUCCESS_TESTS
+    + SIZE_UPPER_BOUND_SUCCESS_TESTS
     + SIZE_BAD_VALUE_ERROR_TESTS
     + SIZE_TYPE_ERROR_TESTS
     + SIZE_INVALID_NUMERIC_TESTS
