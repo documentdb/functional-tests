@@ -75,22 +75,6 @@ class CappedCollection(TargetCollection):
 
 
 @dataclass(frozen=True)
-class CustomCollection(TargetCollection):
-    """A collection created with arbitrary options.
-
-    Pass any keyword arguments accepted by ``create`` as the ``options``
-    dict.
-    """
-
-    options: dict[str, Any] = field(default_factory=dict)
-
-    def resolve(self, db: Database, collection: Collection) -> Collection:
-        name = f"{collection.name}_custom"
-        db.command("create", name, **self.options)
-        return db[name]
-
-
-@dataclass(frozen=True)
 class NamedCollection(TargetCollection):
     """A collection with a custom name suffix."""
 

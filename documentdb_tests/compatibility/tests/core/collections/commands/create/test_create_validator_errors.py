@@ -26,9 +26,9 @@ from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     FAILED_TO_PARSE_ERROR,
     INVALID_OPTIONS_ERROR,
-    INVALID_REGEX_PATTERN_ERROR,
     NEAR_NOT_ALLOWED_ERROR,
     OVERFLOW_ERROR,
+    REGEX_COMPILE_ERROR,
     TYPE_MISMATCH_ERROR,
     UNRECOGNIZED_EXPRESSION_ERROR,
 )
@@ -190,7 +190,7 @@ CREATE_VALIDATOR_JSON_SCHEMA_ERROR_TESTS: list[CommandTestCase] = [
 ]
 
 # Property [Validator Regex Pattern Limit]: a regex pattern exceeding
-# 16384 bytes in the validator produces INVALID_REGEX_PATTERN_ERROR.
+# 16384 bytes in the validator produces REGEX_COMPILE_ERROR.
 CREATE_VALIDATOR_REGEX_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         id="validator_regex_pattern_too_long",
@@ -198,7 +198,7 @@ CREATE_VALIDATOR_REGEX_ERROR_TESTS: list[CommandTestCase] = [
             "create": f"{ctx.collection}_custom",
             "validator": {"x": {"$regex": "a" * 16_385}},
         },
-        error_code=INVALID_REGEX_PATTERN_ERROR,
+        error_code=REGEX_COMPILE_ERROR,
         msg="Regex pattern > 16384 bytes in validator should fail",
     ),
 ]
