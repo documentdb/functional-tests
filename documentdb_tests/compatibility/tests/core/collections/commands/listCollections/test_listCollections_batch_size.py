@@ -10,14 +10,14 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
-    ExtraCollections,
-)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Len, Ne
+from documentdb_tests.framework.target_collection import (
+    ExtraCollections,
+)
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_HALF,
     DECIMAL128_INFINITY,
