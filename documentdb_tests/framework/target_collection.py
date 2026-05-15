@@ -134,6 +134,19 @@ class ViewChainCollection(TargetCollection):
 
 
 @dataclass(frozen=True)
+class ExistingCollection(TargetCollection):
+    """A collection with an exact name (not derived from the fixture).
+
+    Analogous to ExistingDatabase but for collection names.
+    """
+
+    name: str = ""
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        return db[self.name]
+
+
+@dataclass(frozen=True)
 class TimeseriesCollection(TargetCollection):
     """A time series collection."""
 
@@ -303,3 +316,29 @@ class ExtraCollections(TargetCollection):
         for i in range(self.count):
             db.create_collection(f"{collection.name}_extra_{i}")
         return collection
+
+
+@dataclass(frozen=True)
+class SiblingCollection:
+    """Describes an additional collection to create alongside the source.
+
+    The collection is named ``{fixture_name}{suffix}`` and created with
+    the specified options. Documents are inserted if provided.
+    """
+
+    suffix: str = "_target"
+    view_on_source: bool = False
+    timeseries_field: str | None = None
+    docs: list[dict[str, Any]] | None = None
+
+    def create(self, db: Database, collection: Collection) -> None:
+        """Create the sibling collection."""
+        name = f"{collection.name}{self.suffix}"
+        if self.view_on_source:
+            db.create_collection(name, viewOn=collection.name, pipeline=[])
+        elif self.timeseries_field:
+            db.create_collection(name, timeseries={"timeField": self.timeseries_field})
+        else:
+            db.create_collection(name)
+        if self.docs:
+            db[name].insert_many(self.docs)
