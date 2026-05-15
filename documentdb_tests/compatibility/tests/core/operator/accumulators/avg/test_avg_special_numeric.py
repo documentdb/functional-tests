@@ -1,7 +1,7 @@
 """
 Tests for $avg accumulator special numeric value handling in $group context.
 
-Covers NaN propagation, Infinity dominance, and cross-type interactions
+Covers NaN behavior, Infinity behavior, and cross-type interactions
 for both double and Decimal128 types.
 """
 
@@ -26,32 +26,32 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NEGATIVE_INFINITY,
 )
 
-# Property [NaN Propagation]: NaN is numeric and propagates to the result;
-# NaN dominates Infinity and cross-type NaN promotes to Decimal128.
-AVG_NAN_PROPAGATION_TESTS: list[AccumulatorTestCase] = [
+# Property [NaN]: NaN is numeric and produces NaN in the result;
+# NaN with Infinity produces NaN; cross-type NaN promotes to Decimal128.
+AVG_NAN_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "nan_propagates",
+        "nan_with_finite",
         docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": float("nan")}, {"_id": 2, "v": 30}],
         pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
         expected=[{"_id": None, "avg": pytest.approx(math.nan, nan_ok=True)}],
-        msg="NaN in group should propagate to result",
+        msg="NaN among finite values should produce NaN result",
     ),
     AccumulatorTestCase(
         "all_nan",
         docs=[{"_id": 0, "v": float("nan")}, {"_id": 1, "v": float("nan")}],
         pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
         expected=[{"_id": None, "avg": pytest.approx(math.nan, nan_ok=True)}],
-        msg="All NaN in group should return NaN",
+        msg="All NaN values should return NaN",
     ),
     AccumulatorTestCase(
-        "nan_dominates_infinity",
+        "nan_with_infinity",
         docs=[{"_id": 0, "v": float("nan")}, {"_id": 1, "v": FLOAT_INFINITY}],
         pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
         expected=[{"_id": None, "avg": pytest.approx(math.nan, nan_ok=True)}],
-        msg="NaN should dominate Infinity in group",
+        msg="NaN with Infinity should produce NaN",
     ),
     AccumulatorTestCase(
-        "decimal128_nan",
+        "decimal128_nan_with_finite",
         docs=[
             {"_id": 0, "v": Decimal128("10")},
             {"_id": 1, "v": DECIMAL128_NAN},
@@ -59,83 +59,81 @@ AVG_NAN_PROPAGATION_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
         expected=[{"_id": None, "avg": DECIMAL128_NAN}],
-        msg="Decimal128 NaN in group should propagate",
+        msg="Decimal128 NaN among finite values should produce Decimal128 NaN",
     ),
     AccumulatorTestCase(
-        "decimal128_nan_over_infinity",
+        "decimal128_nan_with_infinity",
         docs=[{"v": DECIMAL128_NAN}, {"v": DECIMAL128_INFINITY}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$avg": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
         expected=[{"result": Decimal128("NaN")}],
-        msg="$avg should return Decimal128 NaN when group contains Decimal128 NaN and Infinity",
+        msg="Decimal128 NaN with Decimal128 Infinity should produce Decimal128 NaN",
     ),
     AccumulatorTestCase(
         "cross_type_nan",
         docs=[{"_id": 0, "v": float("nan")}, {"_id": 1, "v": Decimal128("5")}],
         pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
         expected=[{"_id": None, "avg": DECIMAL128_NAN}],
-        msg="double NaN + Decimal128 should return Decimal128 NaN",
+        msg="double NaN with Decimal128 should return Decimal128 NaN",
     ),
 ]
 
-# Property [Infinity]: Infinity dominates finite values, and
-# Infinity + -Infinity cancels to NaN.
+# Property [Infinity]: Infinity with finite values produces Infinity;
+# Infinity with -Infinity produces NaN.
 AVG_INFINITY_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "infinity",
+        "infinity_with_finite",
         docs=[{"_id": 0, "v": FLOAT_INFINITY}, {"_id": 1, "v": 10}],
         pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
         expected=[{"_id": None, "avg": FLOAT_INFINITY}],
-        msg="Infinity in group should propagate",
+        msg="Infinity with finite value should produce Infinity",
     ),
     AccumulatorTestCase(
-        "negative_infinity",
+        "negative_infinity_with_finite",
         docs=[{"_id": 0, "v": FLOAT_NEGATIVE_INFINITY}, {"_id": 1, "v": 10}],
         pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
         expected=[{"_id": None, "avg": FLOAT_NEGATIVE_INFINITY}],
-        msg="-Infinity in group should propagate",
+        msg="-Infinity with finite value should produce -Infinity",
     ),
     AccumulatorTestCase(
-        "inf_neg_inf_cancel",
+        "inf_and_neg_inf",
         docs=[{"_id": 0, "v": FLOAT_INFINITY}, {"_id": 1, "v": FLOAT_NEGATIVE_INFINITY}],
         pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
         expected=[{"_id": None, "avg": pytest.approx(math.nan, nan_ok=True)}],
-        msg="Infinity + -Infinity in group should return NaN",
+        msg="Infinity with -Infinity should produce NaN",
     ),
     AccumulatorTestCase(
-        "decimal128_infinity",
+        "decimal128_infinity_with_finite",
         docs=[{"_id": 0, "v": DECIMAL128_INFINITY}, {"_id": 1, "v": Decimal128("10")}],
         pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
         expected=[{"_id": None, "avg": DECIMAL128_INFINITY}],
-        msg="Decimal128 Infinity in group should propagate",
+        msg="Decimal128 Infinity with finite value should produce Decimal128 Infinity",
     ),
     AccumulatorTestCase(
-        "decimal128_neg_infinity_dominates",
+        "decimal128_neg_infinity_with_finite",
         docs=[{"v": DECIMAL128_NEGATIVE_INFINITY}, {"v": Decimal128("5")}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$avg": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
         expected=[{"result": DECIMAL128_NEGATIVE_INFINITY}],
-        msg="$avg should return Decimal128 -Infinity when Decimal128 -Infinity dominates",
+        msg="Decimal128 -Infinity with finite value should produce Decimal128 -Infinity",
     ),
     AccumulatorTestCase(
-        "decimal128_inf_neg_inf_cancel",
+        "decimal128_inf_and_neg_inf",
         docs=[
             {"_id": 0, "v": DECIMAL128_INFINITY},
             {"_id": 1, "v": DECIMAL128_NEGATIVE_INFINITY},
         ],
         pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
         expected=[{"_id": None, "avg": DECIMAL128_NAN}],
-        msg="Decimal128 Inf + -Inf in group should return Decimal128 NaN",
+        msg="Decimal128 Infinity with -Infinity should produce Decimal128 NaN",
     ),
 ]
 
-AVG_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = (
-    AVG_NAN_PROPAGATION_TESTS + AVG_INFINITY_TESTS
-)
+AVG_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = AVG_NAN_TESTS + AVG_INFINITY_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_SPECIAL_NUMERIC_TESTS))
