@@ -61,7 +61,7 @@ class CommandTestCase(BaseTestCase):
     indexes: list[IndexModel] | None = None
     docs: list[dict[str, Any]] | None = None
     command: dict[str, Any] | Callable[..., dict[str, Any]] | None = None
-    expected: dict[str, Any] | Callable[..., dict[str, Any]] | None = None
+    expected: dict[str, Any] | list[dict[str, Any]] | Callable[..., dict[str, Any]] | None = None
 
     def prepare(self, db: Database, collection: Collection) -> Collection:
         """Resolve the target collection and apply indexes/docs.
@@ -88,8 +88,8 @@ class CommandTestCase(BaseTestCase):
             return self.command
         return self.command(ctx)
 
-    def build_expected(self, ctx: CommandContext) -> dict[str, Any] | None:
+    def build_expected(self, ctx: CommandContext) -> dict[str, Any] | list[dict[str, Any]] | None:
         """Resolve expected from a callable or plain value."""
-        if self.expected is None or isinstance(self.expected, dict):
+        if self.expected is None or isinstance(self.expected, (dict, list)):
             return self.expected
         return self.expected(ctx)
