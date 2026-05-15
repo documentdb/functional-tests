@@ -1,4 +1,4 @@
-"""Tests for $out stage - namespace and pipeline position errors."""
+"""Tests for $out stage - namespace, pipeline position, and nesting errors."""
 
 from __future__ import annotations
 
@@ -323,7 +323,7 @@ OUT_NESTED_PIPELINE_RESTRICTION_ERROR_TESTS: list[OutTestCase] = [
 # object, timeField/metaField/granularity accept only string, and
 
 
-OUT_NAMESPACE_ERROR_TESTS = (
+OUT_PIPELINE_ERROR_TESTS = (
     OUT_COLLECTION_NAME_VALIDATION_ERROR_TESTS
     + OUT_DATABASE_NAME_VALIDATION_ERROR_TESTS
     + OUT_RESTRICTED_DATABASE_ERROR_TESTS
@@ -333,7 +333,7 @@ OUT_NAMESPACE_ERROR_TESTS = (
 
 
 @pytest.mark.aggregate
-@pytest.mark.parametrize("test_case", pytest_params(OUT_NAMESPACE_ERROR_TESTS))
+@pytest.mark.parametrize("test_case", pytest_params(OUT_PIPELINE_ERROR_TESTS))
 def test_out_error(collection, test_case: OutTestCase):
     """Test $out rejects invalid configurations with the expected error code."""
     populate_collection(collection, test_case)
