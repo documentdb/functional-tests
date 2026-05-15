@@ -130,6 +130,27 @@ ARRAY_FIELD_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 2, "a": [[5, 6], [7, 8]]}],
         msg="$nor with dot notation into array of arrays should exclude matching docs",
     ),
+    QueryTestCase(
+        id="elemMatch_with_nested_nor",
+        filter={
+            "$nor": [
+                {"items": {"$elemMatch": {"$nor": [{"qty": {"$gt": 5}}, {"price": {"$lt": 3}}]}}}
+            ]
+        },
+        doc=[
+            {"_id": 1, "items": [{"qty": 2, "price": 5}]},
+            {"_id": 2, "items": [{"qty": 10, "price": 5}]},
+            {"_id": 3, "items": [{"qty": 2, "price": 1}]},
+            {"_id": 4, "items": [{"qty": 10, "price": 1}]},
+        ],
+        expected=[
+            {"_id": 2, "items": [{"qty": 10, "price": 5}]},
+            {"_id": 3, "items": [{"qty": 2, "price": 1}]},
+            {"_id": 4, "items": [{"qty": 10, "price": 1}]},
+        ],
+        msg="$nor with $elemMatch containing nested $nor should exclude docs where an element "
+        "satisfies neither condition (qty<=5 AND price>=3)",
+    ),
 ]
 
 ALL_TESTS = ARRAY_FIELD_TESTS
