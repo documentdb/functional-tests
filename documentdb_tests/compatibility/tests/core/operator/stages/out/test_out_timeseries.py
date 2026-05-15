@@ -395,11 +395,11 @@ def test_out_timeseries(collection, test_case: OutTestCase):
     )
     result = execute_command(
         collection,
-        {"listCollections": 1, "filter": {"name": test_case.target_coll}},
+        {"listCollections": 1, "filter": {"name": test_case.resolve_target_coll(collection)}},
     )
     raw_doc = cast(dict, result)["cursor"]["firstBatch"][0]
     expected_info: dict[str, Any] = {
-        "name": test_case.target_coll,
+        "name": test_case.resolve_target_coll(collection),
         "type": test_case.expected_type,
         "options": test_case.expected_options,
         "info": raw_doc["info"],
@@ -443,12 +443,16 @@ def test_out_timeseries_cross_db(collection, test_case: OutTestCase):
     try:
         execute_command(
             collection,
-            {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+            {
+                "aggregate": collection.name,
+                "pipeline": [test_case.build_out_stage(collection)],
+                "cursor": {},
+            },
         )
         result = execute_command(
-            client[test_case.target_db][test_case.target_coll],
+            client[test_case.target_db][test_case.resolve_target_coll(collection)],
             {
-                "find": test_case.target_coll,
+                "find": test_case.resolve_target_coll(collection),
                 "filter": {},
                 "projection": {"_id": 0},
             },
@@ -519,7 +523,7 @@ def test_out_timeseries_datetime_acceptance(collection, test_case: OutTestCase):
     result = execute_command(
         collection,
         {
-            "find": test_case.target_coll,
+            "find": test_case.resolve_target_coll(collection),
             "filter": {},
             "projection": {"_id": 0, "ts": 1, "v": 1},
         },
@@ -537,8 +541,10 @@ OUT_TIMESERIES_EXISTING_TESTS: list[OutTestCase] = [
         target_coll="ts_existing_target",
         out_spec={"timeseries": {"timeField": "ts"}},
         setup=lambda c: (
-            c.database.drop_collection("ts_existing_target"),
-            c.database.command({"create": "ts_existing_target", "timeseries": {"timeField": "ts"}}),
+            c.database.drop_collection(f"{c.name}_ts_existing_target"),
+            c.database.command(
+                {"create": f"{c.name}_ts_existing_target", "timeseries": {"timeField": "ts"}}
+            ),
         ),
         expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
         msg=(
@@ -551,8 +557,10 @@ OUT_TIMESERIES_EXISTING_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
         target_coll="ts_existing_target",
         setup=lambda c: (
-            c.database.drop_collection("ts_existing_target"),
-            c.database.command({"create": "ts_existing_target", "timeseries": {"timeField": "ts"}}),
+            c.database.drop_collection(f"{c.name}_ts_existing_target"),
+            c.database.command(
+                {"create": f"{c.name}_ts_existing_target", "timeseries": {"timeField": "ts"}}
+            ),
         ),
         expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
         msg=(
@@ -566,8 +574,10 @@ OUT_TIMESERIES_EXISTING_TESTS: list[OutTestCase] = [
         target_coll="ts_existing_target",
         out_spec={},
         setup=lambda c: (
-            c.database.drop_collection("ts_existing_target"),
-            c.database.command({"create": "ts_existing_target", "timeseries": {"timeField": "ts"}}),
+            c.database.drop_collection(f"{c.name}_ts_existing_target"),
+            c.database.command(
+                {"create": f"{c.name}_ts_existing_target", "timeseries": {"timeField": "ts"}}
+            ),
         ),
         expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
         msg=(
@@ -593,7 +603,7 @@ def test_out_timeseries_existing(collection, test_case: OutTestCase):
     result = execute_command(
         collection,
         {
-            "find": test_case.target_coll,
+            "find": test_case.resolve_target_coll(collection),
             "filter": {},
             "projection": {"_id": 0, "ts": 1, "value": 1},
         },

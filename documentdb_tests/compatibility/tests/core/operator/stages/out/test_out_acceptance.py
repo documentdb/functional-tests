@@ -240,6 +240,7 @@ OUT_ACCEPTANCE_TESTS = (
 def test_out_acceptance(collection, test_case: OutTestCase):
     """Test $out writes results and creates the correct collection type."""
     populate_collection(collection, test_case)
+    target = test_case.resolve_target_coll(collection)
     out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
@@ -247,11 +248,11 @@ def test_out_acceptance(collection, test_case: OutTestCase):
     )
     result = execute_command(
         collection,
-        {"listCollections": 1, "filter": {"name": test_case.target_coll}},
+        {"listCollections": 1, "filter": {"name": target}},
     )
     raw_doc = cast(dict, result)["cursor"]["firstBatch"][0]
     expected_info: dict[str, Any] = {
-        "name": test_case.target_coll,
+        "name": target,
         "type": test_case.expected_type,
         "options": test_case.expected_options,
         "info": raw_doc["info"],
@@ -268,12 +269,11 @@ OUT_VIEW_SOURCE_SUCCESS_TESTS: list[OutTestCase] = [
         "view_source_out",
         docs=[{"_id": 1, "value": 10}],
         target_coll="view_source_out_target",
-        pipeline=[{"$out": "view_source_out_target"}],
         setup=lambda c: (
-            c.database.drop_collection("good_view_for_out"),
+            c.database.drop_collection(f"{c.name}_good_view_for_out"),
             c.database.command(
                 {
-                    "create": "good_view_for_out",
+                    "create": f"{c.name}_good_view_for_out",
                     "viewOn": c.name,
                     "pipeline": [{"$match": {"_id": 1}}],
                 }
@@ -293,17 +293,19 @@ def test_out_from_view_source_succeeds(collection, test_case: OutTestCase):
     if test_case.setup:
         test_case.setup(collection)
     db = collection.database
+    view_name = f"{collection.name}_good_view_for_out"
+    target = test_case.resolve_target_coll(collection)
     execute_command(
-        db["good_view_for_out"],
+        db[view_name],
         {
-            "aggregate": "good_view_for_out",
-            "pipeline": test_case.pipeline,
+            "aggregate": view_name,
+            "pipeline": [{"$out": target}],
             "cursor": {},
         },
     )
     result = execute_command(
         collection,
-        {"find": test_case.target_coll, "filter": {}},
+        {"find": target, "filter": {}},
     )
     assertResult(result, expected=test_case.expected, msg=test_case.msg)
 
@@ -316,7 +318,6 @@ OUT_AGGREGATION_OPTION_SUCCESS_TESTS: list[OutTestCase] = [
         "agg_opts_collation",
         docs=[{"_id": 1, "value": 10}],
         target_coll="agg_opts_target",
-        pipeline=[{"$out": "agg_opts_target"}],
         out_spec={"collation": {"locale": "en", "strength": 2}},
         msg="$out should succeed with aggregation option collation",
     ),
@@ -324,7 +325,6 @@ OUT_AGGREGATION_OPTION_SUCCESS_TESTS: list[OutTestCase] = [
         "agg_opts_hint",
         docs=[{"_id": 1, "value": 10}],
         target_coll="agg_opts_target",
-        pipeline=[{"$out": "agg_opts_target"}],
         out_spec={"hint": "_id_"},
         msg="$out should succeed with aggregation option hint",
     ),
@@ -332,7 +332,6 @@ OUT_AGGREGATION_OPTION_SUCCESS_TESTS: list[OutTestCase] = [
         "agg_opts_max_time_ms",
         docs=[{"_id": 1, "value": 10}],
         target_coll="agg_opts_target",
-        pipeline=[{"$out": "agg_opts_target"}],
         out_spec={"maxTimeMS": 60_000},
         msg="$out should succeed with aggregation option maxTimeMS",
     ),
@@ -340,7 +339,6 @@ OUT_AGGREGATION_OPTION_SUCCESS_TESTS: list[OutTestCase] = [
         "agg_opts_allow_disk_use",
         docs=[{"_id": 1, "value": 10}],
         target_coll="agg_opts_target",
-        pipeline=[{"$out": "agg_opts_target"}],
         out_spec={"allowDiskUse": True},
         msg="$out should succeed with aggregation option allowDiskUse",
     ),
@@ -348,7 +346,6 @@ OUT_AGGREGATION_OPTION_SUCCESS_TESTS: list[OutTestCase] = [
         "agg_opts_bypass_doc_validation",
         docs=[{"_id": 1, "value": 10}],
         target_coll="agg_opts_target",
-        pipeline=[{"$out": "agg_opts_target"}],
         out_spec={"bypassDocumentValidation": True},
         msg="$out should succeed with aggregation option bypassDocumentValidation",
     ),
@@ -360,11 +357,12 @@ OUT_AGGREGATION_OPTION_SUCCESS_TESTS: list[OutTestCase] = [
 def test_out_aggregation_options(collection, test_case: OutTestCase):
     """Test $out succeeds with standard aggregation options."""
     populate_collection(collection, test_case)
+    target = test_case.resolve_target_coll(collection)
     result = execute_command(
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": test_case.pipeline,
+            "pipeline": [{"$out": target}],
             "cursor": {},
             **test_case.out_spec,
         },
@@ -383,7 +381,6 @@ OUT_READ_CONCERN_ACCEPTANCE_TESTS: list[OutTestCase] = [
         "rc_majority",
         docs=[{"_id": 1, "value": 10}],
         target_coll="rc_majority_target",
-        pipeline=[{"$out": "rc_majority_target"}],
         out_spec={"readConcern": "majority"},
         msg="$out should succeed with readConcern level 'majority'",
     ),
@@ -391,7 +388,6 @@ OUT_READ_CONCERN_ACCEPTANCE_TESTS: list[OutTestCase] = [
         "rc_local",
         docs=[{"_id": 1, "value": 10}],
         target_coll="rc_local_target",
-        pipeline=[{"$out": "rc_local_target"}],
         out_spec={"readConcern": "local"},
         msg="$out should succeed with readConcern level 'local'",
     ),
@@ -399,7 +395,6 @@ OUT_READ_CONCERN_ACCEPTANCE_TESTS: list[OutTestCase] = [
         "rc_available",
         docs=[{"_id": 1, "value": 10}],
         target_coll="rc_available_target",
-        pipeline=[{"$out": "rc_available_target"}],
         out_spec={"readConcern": "available"},
         msg="$out should succeed with readConcern level 'available'",
     ),
@@ -411,11 +406,12 @@ OUT_READ_CONCERN_ACCEPTANCE_TESTS: list[OutTestCase] = [
 def test_out_read_concern_acceptance(collection, test_case: OutTestCase):
     """Test $out succeeds with non-linearizable read concern levels."""
     populate_collection(collection, test_case)
+    target = test_case.resolve_target_coll(collection)
     result = execute_command(
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": test_case.pipeline,
+            "pipeline": [{"$out": target}],
             "cursor": {},
             "readConcern": {"level": test_case.out_spec["readConcern"]},
         },
@@ -435,13 +431,12 @@ OUT_SCHEMA_VALIDATION_SUCCESS_TESTS: list[OutTestCase] = [
         "schema_val_warn",
         docs=[{"_id": 1, "value": "not_a_number"}],
         target_coll="schema_val_warn_target",
-        pipeline=[{"$out": "schema_val_warn_target"}],
         out_spec={"bypassDocumentValidation": False},
         setup=lambda c: (
-            c.database.drop_collection("schema_val_warn_target"),
+            c.database.drop_collection(f"{c.name}_schema_val_warn_target"),
             c.database.command(
                 {
-                    "create": "schema_val_warn_target",
+                    "create": f"{c.name}_schema_val_warn_target",
                     "validator": {
                         "$jsonSchema": {
                             "bsonType": "object",
@@ -460,13 +455,12 @@ OUT_SCHEMA_VALIDATION_SUCCESS_TESTS: list[OutTestCase] = [
         "schema_val_bypass",
         docs=[{"_id": 1, "value": "not_a_number"}],
         target_coll="schema_val_bypass_target",
-        pipeline=[{"$out": "schema_val_bypass_target"}],
         out_spec={"bypassDocumentValidation": True},
         setup=lambda c: (
-            c.database.drop_collection("schema_val_bypass_target"),
+            c.database.drop_collection(f"{c.name}_schema_val_bypass_target"),
             c.database.command(
                 {
-                    "create": "schema_val_bypass_target",
+                    "create": f"{c.name}_schema_val_bypass_target",
                     "validator": {
                         "$jsonSchema": {
                             "bsonType": "object",
@@ -491,9 +485,10 @@ def test_out_schema_validation_success(collection, test_case: OutTestCase):
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
+    target = test_case.resolve_target_coll(collection)
     cmd: dict[str, Any] = {
         "aggregate": collection.name,
-        "pipeline": test_case.pipeline,
+        "pipeline": [{"$out": target}],
         "cursor": {},
     }
     if test_case.out_spec["bypassDocumentValidation"]:
@@ -501,7 +496,7 @@ def test_out_schema_validation_success(collection, test_case: OutTestCase):
     execute_command(collection, cmd)
     result = execute_command(
         collection,
-        {"find": test_case.target_coll, "filter": {}, "projection": {"_id": 1, "value": 1}},
+        {"find": target, "filter": {}, "projection": {"_id": 1, "value": 1}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
@@ -514,11 +509,6 @@ OUT_INDEX_NONEXISTENT_TARGET_NOT_CREATED_TESTS: list[OutTestCase] = [
         "idx_nonexist_not_created",
         docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
         target_coll="idx_nonexist_target",
-        pipeline=[
-            {"$unset": "_id"},
-            {"$addFields": {"_id": "same"}},
-            {"$out": "idx_nonexist_target"},
-        ],
         expected=[],
         msg="$out should not create the target collection when a unique index violation occurs",
     ),
@@ -530,13 +520,19 @@ OUT_INDEX_NONEXISTENT_TARGET_NOT_CREATED_TESTS: list[OutTestCase] = [
 def test_out_unique_violation_nonexistent_target_not_created(collection, test_case: OutTestCase):
     """Test $out does not create the target when a unique index violation occurs."""
     populate_collection(collection, test_case)
-    collection.database.drop_collection(test_case.target_coll)
+    target = test_case.resolve_target_coll(collection)
+    collection.database.drop_collection(target)
+    pipeline = [
+        {"$unset": "_id"},
+        {"$addFields": {"_id": "same"}},
+        {"$out": target},
+    ]
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
     result = execute_command(
         collection,
-        {"listCollections": 1, "filter": {"name": test_case.target_coll}},
+        {"listCollections": 1, "filter": {"name": target}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)

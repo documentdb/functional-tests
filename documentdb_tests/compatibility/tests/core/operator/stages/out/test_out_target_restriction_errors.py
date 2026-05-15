@@ -41,8 +41,10 @@ OUT_TARGET_RESTRICTION_ERROR_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "value": 10}],
         target_coll="capped_out_target",
         setup=lambda c: (
-            c.database.drop_collection("capped_out_target"),
-            c.database.create_collection("capped_out_target", capped=True, size=1_048_576),
+            c.database.drop_collection(f"{c.name}_capped_out_target"),
+            c.database.create_collection(
+                f"{c.name}_capped_out_target", capped=True, size=1_048_576
+            ),
         ),
         msg="$out should reject writing to a capped collection",
         error_code=OUT_CAPPED_COLLECTION_ERROR,
@@ -52,8 +54,10 @@ OUT_TARGET_RESTRICTION_ERROR_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "value": 10}],
         target_coll="view_out_target",
         setup=lambda c: (
-            c.database.drop_collection("view_out_target"),
-            c.database.command({"create": "view_out_target", "viewOn": c.name, "pipeline": []}),
+            c.database.drop_collection(f"{c.name}_view_out_target"),
+            c.database.command(
+                {"create": f"{c.name}_view_out_target", "viewOn": c.name, "pipeline": []}
+            ),
         ),
         msg="$out should reject writing to a view",
         error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
@@ -64,8 +68,10 @@ OUT_TARGET_RESTRICTION_ERROR_TESTS: list[OutTestCase] = [
         target_coll="view_ts_out_target",
         out_spec={"timeseries": {"timeField": "ts"}},
         setup=lambda c: (
-            c.database.drop_collection("view_ts_out_target"),
-            c.database.command({"create": "view_ts_out_target", "viewOn": c.name, "pipeline": []}),
+            c.database.drop_collection(f"{c.name}_view_ts_out_target"),
+            c.database.command(
+                {"create": f"{c.name}_view_ts_out_target", "viewOn": c.name, "pipeline": []}
+            ),
         ),
         msg=(
             "$out to a view with timeseries options should produce a timeseries"
@@ -87,8 +93,8 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
         target_coll="ts_to_regular_target",
         out_spec={"timeseries": {"timeField": "ts"}},
         setup=lambda c: (
-            c.database.drop_collection("ts_to_regular_target"),
-            c.database.create_collection("ts_to_regular_target"),
+            c.database.drop_collection(f"{c.name}_ts_to_regular_target"),
+            c.database.create_collection(f"{c.name}_ts_to_regular_target"),
         ),
         msg=(
             "$out with timeseries options to an existing regular collection"
@@ -102,8 +108,10 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
         target_coll="ts_mismatch_target",
         out_spec={"timeseries": {"timeField": "other"}},
         setup=lambda c: (
-            c.database.drop_collection("ts_mismatch_target"),
-            c.database.command({"create": "ts_mismatch_target", "timeseries": {"timeField": "ts"}}),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
+            c.database.command(
+                {"create": f"{c.name}_ts_mismatch_target", "timeseries": {"timeField": "ts"}}
+            ),
         ),
         msg=(
             "$out with mismatched timeseries options to an existing time series"
@@ -117,8 +125,10 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
         target_coll="ts_mismatch_target",
         out_spec={"timeseries": {"timeField": "ts", "metaField": "m"}},
         setup=lambda c: (
-            c.database.drop_collection("ts_mismatch_target"),
-            c.database.command({"create": "ts_mismatch_target", "timeseries": {"timeField": "ts"}}),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
+            c.database.command(
+                {"create": f"{c.name}_ts_mismatch_target", "timeseries": {"timeField": "ts"}}
+            ),
         ),
         msg=(
             "$out with mismatched timeseries options to an existing time series"
@@ -132,10 +142,10 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
         target_coll="ts_mismatch_target",
         out_spec={"timeseries": {"timeField": "ts", "metaField": "other"}},
         setup=lambda c: (
-            c.database.drop_collection("ts_mismatch_target"),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
             c.database.command(
                 {
-                    "create": "ts_mismatch_target",
+                    "create": f"{c.name}_ts_mismatch_target",
                     "timeseries": {"timeField": "ts", "metaField": "m"},
                 }
             ),
@@ -152,10 +162,10 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
         target_coll="ts_mismatch_target",
         out_spec={"timeseries": {"timeField": "ts", "granularity": "hours"}},
         setup=lambda c: (
-            c.database.drop_collection("ts_mismatch_target"),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
             c.database.command(
                 {
-                    "create": "ts_mismatch_target",
+                    "create": f"{c.name}_ts_mismatch_target",
                     "timeseries": {"timeField": "ts", "granularity": "seconds"},
                 }
             ),
@@ -172,10 +182,10 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
         target_coll="ts_mismatch_target",
         out_spec={"timeseries": {"timeField": "ts", "granularity": "hours"}},
         setup=lambda c: (
-            c.database.drop_collection("ts_mismatch_target"),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
             c.database.command(
                 {
-                    "create": "ts_mismatch_target",
+                    "create": f"{c.name}_ts_mismatch_target",
                     "timeseries": {
                         "timeField": "ts",
                         "bucketMaxSpanSeconds": 100,
@@ -202,10 +212,10 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
             }
         },
         setup=lambda c: (
-            c.database.drop_collection("ts_mismatch_target"),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
             c.database.command(
                 {
-                    "create": "ts_mismatch_target",
+                    "create": f"{c.name}_ts_mismatch_target",
                     "timeseries": {
                         "timeField": "ts",
                         "bucketMaxSpanSeconds": 100,
@@ -232,10 +242,10 @@ OUT_INDEX_CONSTRAINT_ERROR_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 1}],
         target_coll="idx_unique_target",
         setup=lambda c: (
-            c.database["idx_unique_target"].insert_many(
+            c.database[f"{c.name}_idx_unique_target"].insert_many(
                 [{"_id": 90, "x": 90}, {"_id": 91, "x": 91}]
             ),
-            c.database["idx_unique_target"].create_index("x", unique=True),
+            c.database[f"{c.name}_idx_unique_target"].create_index("x", unique=True),
         ),
         msg="$out should produce a duplicate key error on unique index violation",
         error_code=DUPLICATE_KEY_ERROR,
@@ -245,8 +255,10 @@ OUT_INDEX_CONSTRAINT_ERROR_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "a": 1, "b": 2}, {"_id": 2, "a": 1, "b": 2}],
         target_coll="idx_compound_target",
         setup=lambda c: (
-            c.database["idx_compound_target"].insert_one({"_id": 99, "a": 99, "b": 99}),
-            c.database["idx_compound_target"].create_index([("a", 1), ("b", 1)], unique=True),
+            c.database[f"{c.name}_idx_compound_target"].insert_one({"_id": 99, "a": 99, "b": 99}),
+            c.database[f"{c.name}_idx_compound_target"].create_index(
+                [("a", 1), ("b", 1)], unique=True
+            ),
         ),
         msg="$out should produce a duplicate key error on compound unique index violation",
         error_code=DUPLICATE_KEY_ERROR,
@@ -258,7 +270,6 @@ OUT_INDEX_CONSTRAINT_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {"$unset": "_id"},
             {"$addFields": {"_id": "same"}},
-            {"$out": "idx_dup_id_target"},
         ],
         msg="$out should produce a duplicate key error when output contains duplicate _id values",
         error_code=DUPLICATE_KEY_ERROR,
@@ -272,9 +283,6 @@ OUT_READ_CONCERN_ERROR_TESTS: list[OutTestCase] = [
         "rc_linearizable",
         docs=[{"_id": 1, "value": 10}],
         target_coll="rc_linearizable_target",
-        pipeline=[
-            {"$out": "rc_linearizable_target"},
-        ],
         msg="$out should reject linearizable read concern",
         error_code=INVALID_OPTIONS_ERROR,
     ),
@@ -295,10 +303,7 @@ def test_out_target_restriction_error(collection, test_case: OutTestCase):
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
-    if test_case.pipeline:
-        pipeline = test_case.pipeline
-    else:
-        pipeline = [test_case.build_out_stage(collection)]
+    pipeline = list(test_case.pipeline or []) + [test_case.build_out_stage(collection)]
     result = execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
@@ -311,11 +316,12 @@ def test_out_target_restriction_error(collection, test_case: OutTestCase):
 def test_out_read_concern_error(collection, test_case: OutTestCase):
     """Test $out rejects invalid read concern levels."""
     populate_collection(collection, test_case)
+    pipeline = [test_case.build_out_stage(collection)]
     result = execute_command(
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": test_case.pipeline,
+            "pipeline": pipeline,
             "cursor": {},
             "readConcern": {"level": "linearizable"},
         },
@@ -329,7 +335,7 @@ OUT_VIEW_DEFINITION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "view_def_out",
         docs=[{"_id": 1, "value": 10}],
-        pipeline=[{"$out": "target"}],
+        target_coll="view_def_target",
         error_code=OPTION_NOT_SUPPORTED_ON_VIEW_ERROR,
         msg="$out in a view definition should produce an invalid view pipeline error",
     ),
@@ -341,12 +347,13 @@ OUT_VIEW_DEFINITION_ERROR_TESTS: list[OutTestCase] = [
 def test_out_in_view_definition_error(collection, test_case: OutTestCase):
     """Test $out in a view definition is rejected."""
     populate_collection(collection, test_case)
+    pipeline = [test_case.build_out_stage(collection)]
     result = execute_command(
         collection,
         {
-            "create": "bad_view",
+            "create": f"{collection.name}_bad_view",
             "viewOn": collection.name,
-            "pipeline": test_case.pipeline,
+            "pipeline": pipeline,
         },
     )
     assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
@@ -361,12 +368,11 @@ OUT_SCHEMA_VALIDATION_ERROR_TESTS: list[OutTestCase] = [
         "schema_val_err",
         docs=[{"_id": 1, "value": "not_a_number"}],
         target_coll="schema_val_error_target",
-        pipeline=[{"$out": "schema_val_error_target"}],
         setup=lambda c: (
-            c.database.drop_collection("schema_val_error_target"),
+            c.database.drop_collection(f"{c.name}_schema_val_error_target"),
             c.database.command(
                 {
-                    "create": "schema_val_error_target",
+                    "create": f"{c.name}_schema_val_error_target",
                     "validator": {
                         "$jsonSchema": {
                             "bsonType": "object",
@@ -377,7 +383,7 @@ OUT_SCHEMA_VALIDATION_ERROR_TESTS: list[OutTestCase] = [
                     "validationAction": "error",
                 }
             ),
-            c.database["schema_val_error_target"].insert_one({"_id": 99, "value": 42}),
+            c.database[f"{c.name}_schema_val_error_target"].insert_one({"_id": 99, "value": 42}),
         ),
         error_code=DOCUMENT_VALIDATION_FAILURE_ERROR,
         expected=[{"_id": 99, "value": 42}],
@@ -393,9 +399,10 @@ def test_out_schema_validation_error(collection, test_case):
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
+    pipeline = [test_case.build_out_stage(collection)]
     result = execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
 
@@ -407,13 +414,15 @@ def test_out_schema_validation_error_unchanged(collection, test_case: OutTestCas
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
+    pipeline = [test_case.build_out_stage(collection)]
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
+    target = test_case.resolve_target_coll(collection)
     result = execute_command(
         collection,
-        {"find": test_case.target_coll, "filter": {}, "projection": {"_id": 1, "value": 1}},
+        {"find": target, "filter": {}, "projection": {"_id": 1, "value": 1}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
@@ -424,7 +433,7 @@ OUT_TRANSACTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "transaction_out",
         docs=[{"_id": 1, "value": 10}],
-        pipeline=[{"$out": "txn_target"}],
+        target_coll="txn_target",
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="$out inside a transaction should produce an error",
     ),
@@ -436,12 +445,13 @@ OUT_TRANSACTION_ERROR_TESTS: list[OutTestCase] = [
 def test_out_transaction_error(collection, test_case: OutTestCase):
     """Test $out inside a transaction produces an error."""
     populate_collection(collection, test_case)
+    pipeline = [test_case.build_out_stage(collection)]
     # Verify the pipeline works outside a transaction first.
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
-    command = {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}}
+    command = {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}}
     client = collection.database.client
     with client.start_session() as session:
         session.start_transaction()
