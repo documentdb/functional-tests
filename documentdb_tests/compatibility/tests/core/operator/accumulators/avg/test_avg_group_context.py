@@ -2,7 +2,8 @@
 Tests for $avg accumulator in $group context.
 
 Covers numeric equivalence in grouping, single/empty groups,
-precision edge cases, multiple groups, and comparison with $sum.
+precision edge cases, multiple groups, comparison with $sum,
+and expression argument handling.
 """
 
 from __future__ import annotations
@@ -129,6 +130,16 @@ SINGLE_EMPTY_GROUP_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"_id": None, "avg": 20.0}],
         msg="$avg with _id: null should average entire collection",
+    ),
+    AccumulatorTestCase(
+        id="single_document_int64",
+        docs=[{"v": Int64(42)}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 42.0}],
+        msg="$avg should return the value as double for a single int64 document",
     ),
 ]
 
@@ -292,12 +303,38 @@ COMPARISON_WITH_RELATED_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Expression Arguments]: $avg accepts any expression as its operand,
+# evaluating it per-document before accumulation.
+EXPRESSION_ARGS_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        id="expr_constant_literal",
+        docs=[{"x": 1}, {"x": 2}, {"x": 3}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": 5}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 5.0}],
+        msg="$avg should return the constant value when expression is a numeric literal",
+    ),
+    AccumulatorTestCase(
+        id="expr_nested_add",
+        docs=[{"a": 2, "b": 3}, {"a": 4, "b": 6}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": {"$add": ["$a", "$b"]}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 7.5}],
+        msg="$avg should evaluate nested $add expression per-document before averaging",
+    ),
+]
+
 AVG_GROUP_CONTEXT_TESTS: list[AccumulatorTestCase] = (
     NUMERIC_EQUIVALENCE_TESTS
     + SINGLE_EMPTY_GROUP_TESTS
     + PRECISION_EDGE_TESTS
     + MULTIPLE_GROUPS_TESTS
     + COMPARISON_WITH_RELATED_TESTS
+    + EXPRESSION_ARGS_TESTS
 )
 
 

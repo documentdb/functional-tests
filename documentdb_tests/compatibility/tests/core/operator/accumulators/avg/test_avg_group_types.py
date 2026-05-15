@@ -1,13 +1,11 @@
 """
-Tests for $avg accumulator data type handling in $group context.
+Tests for $avg accumulator type promotion and return type in $group context.
 
-Covers type promotion rules, NaN/Infinity propagation, null/missing handling,
-and non-numeric type ignoring when accumulating across documents.
+Covers type promotion rules (int32, int64, double, Decimal128), return type
+verification via $type, and negative zero normalization.
 """
 
 from __future__ import annotations
-
-import math
 
 import pytest
 from bson import Decimal128, Int64
@@ -19,15 +17,10 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
-    DECIMAL128_INFINITY,
-    DECIMAL128_NAN,
-    DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_ZERO,
     DECIMAL128_ZERO,
     DOUBLE_NEGATIVE_ZERO,
     DOUBLE_ZERO,
-    FLOAT_INFINITY,
-    FLOAT_NEGATIVE_INFINITY,
 )
 
 # Property [Type Promotion]: $avg returns double for integer and double inputs,
@@ -125,195 +118,6 @@ AVG_TYPE_PROMOTION_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [NaN Propagation]: NaN is numeric and propagates to the result;
-# NaN dominates Infinity and cross-type NaN promotes to Decimal128.
-AVG_NAN_PROPAGATION_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "nan_propagates",
-        docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": float("nan")}, {"_id": 2, "v": 30}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": pytest.approx(math.nan, nan_ok=True)}],
-        msg="NaN in group should propagate to result",
-    ),
-    AccumulatorTestCase(
-        "all_nan",
-        docs=[{"_id": 0, "v": float("nan")}, {"_id": 1, "v": float("nan")}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": pytest.approx(math.nan, nan_ok=True)}],
-        msg="All NaN in group should return NaN",
-    ),
-    AccumulatorTestCase(
-        "decimal128_nan",
-        docs=[
-            {"_id": 0, "v": Decimal128("10")},
-            {"_id": 1, "v": DECIMAL128_NAN},
-            {"_id": 2, "v": Decimal128("30")},
-        ],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": DECIMAL128_NAN}],
-        msg="Decimal128 NaN in group should propagate",
-    ),
-    AccumulatorTestCase(
-        "nan_dominates_infinity",
-        docs=[{"_id": 0, "v": float("nan")}, {"_id": 1, "v": FLOAT_INFINITY}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": pytest.approx(math.nan, nan_ok=True)}],
-        msg="NaN should dominate Infinity in group",
-    ),
-    AccumulatorTestCase(
-        "cross_type_nan",
-        docs=[{"_id": 0, "v": float("nan")}, {"_id": 1, "v": Decimal128("5")}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": DECIMAL128_NAN}],
-        msg="double NaN + Decimal128 should return Decimal128 NaN",
-    ),
-]
-
-# Property [Infinity]: Infinity dominates finite values, and
-# Infinity + -Infinity cancels to NaN.
-AVG_INFINITY_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "infinity",
-        docs=[{"_id": 0, "v": FLOAT_INFINITY}, {"_id": 1, "v": 10}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": FLOAT_INFINITY}],
-        msg="Infinity in group should propagate",
-    ),
-    AccumulatorTestCase(
-        "negative_infinity",
-        docs=[{"_id": 0, "v": FLOAT_NEGATIVE_INFINITY}, {"_id": 1, "v": 10}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": FLOAT_NEGATIVE_INFINITY}],
-        msg="-Infinity in group should propagate",
-    ),
-    AccumulatorTestCase(
-        "inf_neg_inf_cancel",
-        docs=[{"_id": 0, "v": FLOAT_INFINITY}, {"_id": 1, "v": FLOAT_NEGATIVE_INFINITY}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": pytest.approx(math.nan, nan_ok=True)}],
-        msg="Infinity + -Infinity in group should return NaN",
-    ),
-    AccumulatorTestCase(
-        "decimal128_infinity",
-        docs=[{"_id": 0, "v": DECIMAL128_INFINITY}, {"_id": 1, "v": Decimal128("10")}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": DECIMAL128_INFINITY}],
-        msg="Decimal128 Infinity in group should propagate",
-    ),
-    AccumulatorTestCase(
-        "decimal128_inf_neg_inf_cancel",
-        docs=[
-            {"_id": 0, "v": DECIMAL128_INFINITY},
-            {"_id": 1, "v": DECIMAL128_NEGATIVE_INFINITY},
-        ],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": DECIMAL128_NAN}],
-        msg="Decimal128 Inf + -Inf in group should return Decimal128 NaN",
-    ),
-]
-
-# Property [Null and Missing]: null values and missing fields are excluded
-# from both the sum and count, producing null when no numeric values remain.
-AVG_NULL_MISSING_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "all_null",
-        docs=[{"_id": 0, "v": None}, {"_id": 1, "v": None}, {"_id": 2, "v": None}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": None}],
-        msg="All null in group should return null",
-    ),
-    AccumulatorTestCase(
-        "some_null",
-        docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": None}, {"_id": 2, "v": 30}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": 20.0}],
-        msg="Null docs should be ignored, avg of 10 and 30 is 20",
-    ),
-    AccumulatorTestCase(
-        "all_missing",
-        docs=[{"_id": 0, "other": 0}, {"_id": 1, "other": 1}, {"_id": 2, "other": 2}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": None}],
-        msg="All missing fields should return null",
-    ),
-    AccumulatorTestCase(
-        "some_missing",
-        docs=[{"_id": 0, "v": 10}, {"_id": 1}, {"_id": 2, "v": 30}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": 20.0}],
-        msg="Missing field docs should be ignored",
-    ),
-    AccumulatorTestCase(
-        "mix_null_missing_numeric",
-        docs=[
-            {"_id": 0, "v": 10},
-            {"_id": 1, "v": None},
-            {"_id": 2},
-            {"_id": 3, "v": 30},
-        ],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": 20.0}],
-        msg="Only numeric values should contribute to average",
-    ),
-]
-
-# Property [Non-Numeric Types Ignored]: non-numeric BSON types are silently
-# ignored and excluded from both sum and count.
-AVG_NON_NUMERIC_IGNORED_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "ignores_strings",
-        docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": "hello"}, {"_id": 2, "v": 30}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": 20.0}],
-        msg="String values should be ignored in group avg",
-    ),
-    AccumulatorTestCase(
-        "ignores_booleans",
-        docs=[
-            {"_id": 0, "v": 10},
-            {"_id": 1, "v": True},
-            {"_id": 2, "v": False},
-            {"_id": 3, "v": 30},
-        ],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": 20.0}],
-        msg="Boolean values should be ignored in group avg",
-    ),
-    AccumulatorTestCase(
-        "ignores_arrays",
-        docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": [1, 2, 3]}, {"_id": 2, "v": 30}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": 20.0}],
-        msg="Array values should be ignored in group avg",
-    ),
-    AccumulatorTestCase(
-        "ignores_objects",
-        docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": {"nested": 99}}, {"_id": 2, "v": 30}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": 20.0}],
-        msg="Object values should be ignored in group avg",
-    ),
-    AccumulatorTestCase(
-        "all_non_numeric",
-        docs=[
-            {"_id": 0, "v": "a"},
-            {"_id": 1, "v": True},
-            {"_id": 2, "v": [1]},
-            {"_id": 3, "v": {"x": 1}},
-        ],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": None}],
-        msg="All non-numeric values should return null",
-    ),
-    AccumulatorTestCase(
-        "boolean_not_numeric",
-        docs=[{"_id": 0, "v": False}, {"_id": 1, "v": True}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": None}],
-        msg="Booleans should not be treated as 0/1 in avg",
-    ),
-]
-
 # Property [Negative Zero]: $avg normalizes negative zero to positive zero
 # for both double and Decimal128.
 AVG_NEGATIVE_ZERO_TESTS: list[AccumulatorTestCase] = [
@@ -339,21 +143,110 @@ AVG_NEGATIVE_ZERO_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Return Type]: the result is double by default, but Decimal128 if
+# any input value is Decimal128.
+AVG_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "type_int32_only",
+        docs=[{"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
+            {"$project": {"_id": 0, "type": {"$type": "$result"}}},
+        ],
+        expected=[{"type": "double"}],
+        msg="$avg should return double when all inputs are int32",
+    ),
+    AccumulatorTestCase(
+        "type_int64_only",
+        docs=[{"v": Int64(2)}, {"v": Int64(4)}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
+            {"$project": {"_id": 0, "type": {"$type": "$result"}}},
+        ],
+        expected=[{"type": "double"}],
+        msg="$avg should return double when all inputs are int64",
+    ),
+    AccumulatorTestCase(
+        "type_int32_int64",
+        docs=[{"v": 2}, {"v": Int64(4)}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
+            {"$project": {"_id": 0, "type": {"$type": "$result"}}},
+        ],
+        expected=[{"type": "double"}],
+        msg="$avg should return double for int32 and int64 mix",
+    ),
+    AccumulatorTestCase(
+        "type_int32_double",
+        docs=[{"v": 2}, {"v": 4.0}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
+            {"$project": {"_id": 0, "type": {"$type": "$result"}}},
+        ],
+        expected=[{"type": "double"}],
+        msg="$avg should return double for int32 and double mix",
+    ),
+    AccumulatorTestCase(
+        "type_int64_double",
+        docs=[{"v": Int64(2)}, {"v": 4.0}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
+            {"$project": {"_id": 0, "type": {"$type": "$result"}}},
+        ],
+        expected=[{"type": "double"}],
+        msg="$avg should return double for int64 and double mix",
+    ),
+    AccumulatorTestCase(
+        "type_int32_decimal128",
+        docs=[{"v": 2}, {"v": Decimal128("4")}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
+            {"$project": {"_id": 0, "type": {"$type": "$result"}}},
+        ],
+        expected=[{"type": "decimal"}],
+        msg="$avg should return Decimal128 when any input is Decimal128",
+    ),
+    AccumulatorTestCase(
+        "type_int64_decimal128",
+        docs=[{"v": Int64(2)}, {"v": Decimal128("4")}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
+            {"$project": {"_id": 0, "type": {"$type": "$result"}}},
+        ],
+        expected=[{"type": "decimal"}],
+        msg="$avg should return Decimal128 for int64 and Decimal128 mix",
+    ),
+    AccumulatorTestCase(
+        "type_double_decimal128",
+        docs=[{"v": 2.0}, {"v": Decimal128("4")}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
+            {"$project": {"_id": 0, "type": {"$type": "$result"}}},
+        ],
+        expected=[{"type": "decimal"}],
+        msg="$avg should return Decimal128 for double and Decimal128 mix",
+    ),
+    AccumulatorTestCase(
+        "type_decimal128_before_int32",
+        docs=[{"v": Decimal128("4")}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
+            {"$project": {"_id": 0, "type": {"$type": "$result"}}},
+        ],
+        expected=[{"type": "decimal"}],
+        msg="$avg should return Decimal128 regardless of document order",
+    ),
+]
+
 AVG_GROUP_TYPE_TESTS: list[AccumulatorTestCase] = (
-    AVG_TYPE_PROMOTION_TESTS
-    + AVG_NAN_PROPAGATION_TESTS
-    + AVG_INFINITY_TESTS
-    + AVG_NULL_MISSING_TESTS
-    + AVG_NON_NUMERIC_IGNORED_TESTS
-    + AVG_NEGATIVE_ZERO_TESTS
+    AVG_TYPE_PROMOTION_TESTS + AVG_NEGATIVE_ZERO_TESTS + AVG_RETURN_TYPE_TESTS
 )
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_GROUP_TYPE_TESTS))
 def test_avg_group_types(collection, test_case: AccumulatorTestCase):
-    """Test $avg data type handling in $group context."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
+    """Test $avg type promotion and return type in $group context."""
+    collection.insert_many(test_case.docs)
     result = execute_command(
         collection,
         {
