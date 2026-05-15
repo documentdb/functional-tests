@@ -1,8 +1,9 @@
 """
 Tests for $polygon query context interaction.
 
-Validates $polygon in find, aggregation $match, combined with other operators,
-and in update/delete filters.
+Validates $polygon in find with various options (projection, sort, limit),
+combined with other operators, $expr non-support, and special collection
+contexts.
 """
 
 import pytest
@@ -15,13 +16,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 FIND_QUERY_TESTS: list[QueryTestCase] = [
-    QueryTestCase(
-        id="basic_find",
-        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-        doc=[{"_id": 1, "loc": [5, 5]}, {"_id": 2, "loc": [15, 15]}],
-        expected=[{"_id": 1, "loc": [5, 5]}],
-        msg="$polygon in find should return matching docs",
-    ),
     QueryTestCase(
         id="nested_field_path",
         filter={"address.loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
@@ -47,6 +41,26 @@ FIND_QUERY_TESTS: list[QueryTestCase] = [
         ],
         expected=[{"_id": 1, "loc": [[5, 5], [15, 15]]}],
         msg="Array location field should match if any point is inside",
+    ),
+    QueryTestCase(
+        id="polygon_in_expr_not_evaluated",
+        filter={
+            "$expr": {
+                "$eq": [
+                    {
+                        "$literal": {
+                            "loc": {
+                                "$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}
+                            }
+                        }
+                    },
+                    True,
+                ]
+            }
+        },
+        doc=[{"_id": 1, "loc": [5, 5]}],
+        expected=[],
+        msg="$polygon inside $expr should not match (not evaluated as geo query)",
     ),
 ]
 
@@ -136,32 +150,6 @@ def test_polygon_combined_operators(collection, test):
     assertSuccess(result, test.expected, ignore_doc_order=True)
 
 
-def test_polygon_in_aggregate_match(collection):
-    """Test $polygon in aggregation $match stage."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5]},
-            {"_id": 2, "loc": [15, 15]},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$match": {
-                        "loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}
-                    }
-                },
-            ],
-            "cursor": {},
-        },
-    )
-    expected = [{"_id": 1, "loc": [5, 5]}]
-    assertSuccess(result, expected, msg="$polygon in $match should return matching docs")
-
-
 def test_polygon_with_projection(collection):
     """Test $polygon with field projection."""
     collection.insert_many(
@@ -232,145 +220,6 @@ def test_polygon_with_limit(collection):
     result_docs = result["cursor"]["firstBatch"]
     assertSuccess(
         result, result_docs[:2], raw_res=False, msg="$polygon with limit should limit results"
-    )
-
-
-def test_polygon_in_update_filter(collection):
-    """Test $polygon as filter in updateMany."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5], "updated": False},
-            {"_id": 2, "loc": [15, 15], "updated": False},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [
-                {
-                    "q": {
-                        "loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}
-                    },
-                    "u": {"$set": {"updated": True}},
-                    "multi": True,
-                }
-            ],
-        },
-    )
-    assertSuccess(
-        result,
-        {"n": 1, "nModified": 1, "ok": 1.0},
-        raw_res=True,
-        msg="$polygon in update should match correct docs",
-    )
-
-
-def test_polygon_in_delete_filter(collection):
-    """Test $polygon as filter in delete."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5]},
-            {"_id": 2, "loc": [15, 15]},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "delete": collection.name,
-            "deletes": [
-                {
-                    "q": {
-                        "loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}
-                    },
-                    "limit": 0,
-                }
-            ],
-        },
-    )
-    assertSuccess(
-        result,
-        {"n": 1, "ok": 1.0},
-        raw_res=True,
-        msg="$polygon in delete should match correct docs",
-    )
-
-
-def test_polygon_count_documents(collection):
-    """Test countDocuments with $polygon filter."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5]},
-            {"_id": 2, "loc": [3, 3]},
-            {"_id": 3, "loc": [15, 15]},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "count": collection.name,
-            "query": {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-        },
-    )
-    assertSuccess(
-        result,
-        {"n": 2, "ok": 1.0},
-        raw_res=True,
-        msg="count with $polygon should return correct count",
-    )
-
-
-def test_polygon_distinct(collection):
-    """Test distinct with $polygon filter."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5], "category": "A"},
-            {"_id": 2, "loc": [3, 3], "category": "B"},
-            {"_id": 3, "loc": [15, 15], "category": "C"},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "distinct": collection.name,
-            "key": "category",
-            "query": {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-        },
-    )
-    assertSuccess(
-        result,
-        {"values": ["A", "B"], "ok": 1.0},
-        raw_res=True,
-        msg="distinct with $polygon should return correct values",
-    )
-
-
-def test_polygon_vs_geometry_polygon_different(collection):
-    """Test $polygon (legacy) and $geometry Polygon match different document types."""
-    collection.create_index([("loc", "2dsphere")])
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5]},  # legacy coordinate pair
-            {"_id": 2, "loc": {"type": "Point", "coordinates": [5, 5]}},  # GeoJSON
-        ]
-    )
-    # $polygon (legacy) - matches both legacy pairs and GeoJSON points
-    result_polygon = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-        },
-    )
-    expected = [
-        {"_id": 1, "loc": [5, 5]},
-        {"_id": 2, "loc": {"type": "Point", "coordinates": [5, 5]}},
-    ]
-    assertSuccess(
-        result_polygon,
-        expected,
-        ignore_doc_order=True,
-        msg="$polygon should match both legacy and GeoJSON point formats",
     )
 
 

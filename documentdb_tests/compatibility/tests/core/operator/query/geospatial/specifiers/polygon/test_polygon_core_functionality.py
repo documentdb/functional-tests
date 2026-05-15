@@ -2,7 +2,8 @@
 Tests for $polygon core geometric behavior.
 
 Validates valid point counts, point containment, concave polygon shapes,
-winding order invariance, implicit closure, and coordinate conventions.
+winding order invariance, implicit and explicit closure, coordinate
+behavior, and planar geometry.
 """
 
 import pytest
@@ -37,15 +38,6 @@ VALID_POINT_COUNT_TESTS: list[QueryTestCase] = [
         msg="$polygon with 5 points (pentagon) should succeed",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(VALID_POINT_COUNT_TESTS))
-def test_polygon_valid_point_counts(collection, test):
-    """Test $polygon succeeds with 3 or more points."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected)
-
 
 POINT_CONTAINMENT_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -94,42 +86,15 @@ POINT_CONTAINMENT_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-
-@pytest.mark.parametrize("test", pytest_params(POINT_CONTAINMENT_TESTS))
-def test_polygon_point_containment(collection, test):
-    """Test $polygon correctly identifies points inside/outside polygon."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, ignore_doc_order=True)
-
-
-def test_polygon_winding_order_invariance(collection):
-    """Test $polygon produces same results regardless of winding order."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5]},
-            {"_id": 2, "loc": [15, 15]},
-        ]
-    )
-    # Clockwise
-    result_cw = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {"loc": {"$geoWithin": {"$polygon": [[0, 0], [10, 0], [10, 10], [0, 10]]}}},
-        },
-    )
-    # Counter-clockwise (verify it also succeeds)
-    execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-        },
-    )
-    expected = [{"_id": 1, "loc": [5, 5]}]
-    assertSuccess(result_cw, expected, msg="Clockwise winding should match point inside")
-
+WINDING_ORDER_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="counter_clockwise_winding",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [10, 0], [10, 10], [0, 10]]}}},
+        doc=[{"_id": 1, "loc": [5, 5]}, {"_id": 2, "loc": [15, 15]}],
+        expected=[{"_id": 1, "loc": [5, 5]}],
+        msg="CCW winding should produce same results as CW",
+    ),
+]
 
 CLOSURE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -147,15 +112,6 @@ CLOSURE_TESTS: list[QueryTestCase] = [
         msg="Explicitly closed polygon should produce same results as implicit",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(CLOSURE_TESTS))
-def test_polygon_closure(collection, test):
-    """Test $polygon implicit and explicit polygon closure."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected)
-
 
 COORDINATE_BEHAVIOR_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -187,15 +143,6 @@ COORDINATE_BEHAVIOR_TESTS: list[QueryTestCase] = [
         msg="$polygon accepts only exterior ring, no holes syntax",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(COORDINATE_BEHAVIOR_TESTS))
-def test_polygon_coordinate_behavior(collection, test):
-    """Test $polygon with various coordinate ranges and conventions."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected)
-
 
 PLANAR_GEOMETRY_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -232,10 +179,19 @@ PLANAR_GEOMETRY_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+CORE_FUNCTIONALITY_TESTS: list[QueryTestCase] = (
+    VALID_POINT_COUNT_TESTS
+    + POINT_CONTAINMENT_TESTS
+    + WINDING_ORDER_TESTS
+    + CLOSURE_TESTS
+    + COORDINATE_BEHAVIOR_TESTS
+    + PLANAR_GEOMETRY_TESTS
+)
 
-@pytest.mark.parametrize("test", pytest_params(PLANAR_GEOMETRY_TESTS))
-def test_polygon_planar_geometry(collection, test):
-    """Test $polygon uses planar (flat) geometry."""
+
+@pytest.mark.parametrize("test", pytest_params(CORE_FUNCTIONALITY_TESTS))
+def test_polygon_core(collection, test):
+    """Test $polygon core geometric behavior."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, ignore_doc_order=True)

@@ -1,9 +1,12 @@
 """
 Tests for $polygon edge cases.
 
-Validates degenerate polygons, boundary coordinates, special numeric values,
-self-intersecting polygons, and duplicate points.
+Validates degenerate polygons, boundary coordinates, boundary inclusion
+(points on edges and vertices), self-intersecting polygons, duplicate
+points, and large point counts.
 """
+
+import math
 
 import pytest
 
@@ -13,6 +16,12 @@ from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_c
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+
+# 100-point polygon approximating a circle of radius 50 centered at (50, 50)
+_CIRCLE_POINTS = [
+    [50 + 50 * math.cos(2 * math.pi * i / 100), 50 + 50 * math.sin(2 * math.pi * i / 100)]
+    for i in range(100)
+]
 
 DEGENERATE_POLYGON_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -64,14 +73,6 @@ DEGENERATE_POLYGON_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(DEGENERATE_POLYGON_TESTS))
-def test_polygon_degenerate_cases(collection, test):
-    """Test $polygon with degenerate polygon shapes."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, ignore_doc_order=True)
-
-
 BOUNDARY_COORDINATE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="coordinates_at_zero",
@@ -114,36 +115,57 @@ BOUNDARY_COORDINATE_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(BOUNDARY_COORDINATE_TESTS))
-def test_polygon_boundary_coordinates(collection, test):
-    """Test $polygon with boundary coordinate values."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, ignore_doc_order=True)
+BOUNDARY_INCLUSION_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="point_on_polygon_edge",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[
+            {"_id": 1, "loc": [5, 0]},  # midpoint of bottom edge
+            {"_id": 2, "loc": [5, 5]},  # inside
+            {"_id": 3, "loc": [15, 15]},  # outside
+        ],
+        expected=[{"_id": 1, "loc": [5, 0]}, {"_id": 2, "loc": [5, 5]}],
+        msg="Point on polygon edge should match",
+    ),
+    QueryTestCase(
+        id="point_on_polygon_vertex",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[
+            {"_id": 1, "loc": [0, 0]},  # on vertex
+            {"_id": 2, "loc": [5, 5]},  # inside
+            {"_id": 3, "loc": [15, 15]},  # outside
+        ],
+        expected=[{"_id": 1, "loc": [0, 0]}, {"_id": 2, "loc": [5, 5]}],
+        msg="Point on polygon vertex should match",
+    ),
+]
 
-
-def test_polygon_large_point_count(collection):
-    """Test $polygon with many points approximating a circle."""
-    import math
-
-    # Generate 100-point polygon approximating a circle of radius 50 centered at (50, 50)
-    points = []
-    for i in range(100):
-        angle = 2 * math.pi * i / 100
-        x = 50 + 50 * math.cos(angle)
-        y = 50 + 50 * math.sin(angle)
-        points.append([x, y])
-
-    collection.insert_many(
-        [
+LARGE_POINT_COUNT_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="large_point_count",
+        filter={"loc": {"$geoWithin": {"$polygon": _CIRCLE_POINTS}}},
+        doc=[
             {"_id": 1, "loc": [50, 50]},  # center - inside
             {"_id": 2, "loc": [50, 75]},  # inside
             {"_id": 3, "loc": [50, 110]},  # outside
-        ]
-    )
-    result = execute_command(
-        collection,
-        {"find": collection.name, "filter": {"loc": {"$geoWithin": {"$polygon": points}}}},
-    )
-    expected = [{"_id": 1, "loc": [50, 50]}, {"_id": 2, "loc": [50, 75]}]
-    assertSuccess(result, expected, ignore_doc_order=True, msg="Many-point polygon should work")
+        ],
+        expected=[{"_id": 1, "loc": [50, 50]}, {"_id": 2, "loc": [50, 75]}],
+        msg="Many-point polygon should work",
+    ),
+]
+
+
+EDGE_CASE_TESTS: list[QueryTestCase] = (
+    DEGENERATE_POLYGON_TESTS
+    + BOUNDARY_COORDINATE_TESTS
+    + BOUNDARY_INCLUSION_TESTS
+    + LARGE_POINT_COUNT_TESTS
+)
+
+
+@pytest.mark.parametrize("test", pytest_params(EDGE_CASE_TESTS))
+def test_polygon_edge_cases(collection, test):
+    """Test $polygon edge cases."""
+    collection.insert_many(test.doc)
+    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
+    assertSuccess(result, test.expected, ignore_doc_order=True)

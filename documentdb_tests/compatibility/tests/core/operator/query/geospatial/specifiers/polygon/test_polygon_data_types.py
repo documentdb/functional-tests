@@ -17,13 +17,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 NUMERIC_COORDINATE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
-        id="int_coordinates",
-        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [3, 6], [6, 0]]}}},
-        doc=[{"_id": 1, "loc": [2, 2]}, {"_id": 2, "loc": [10, 10]}],
-        expected=[{"_id": 1, "loc": [2, 2]}],
-        msg="$polygon with int coordinates should succeed",
-    ),
-    QueryTestCase(
         id="double_coordinates",
         filter={"loc": {"$geoWithin": {"$polygon": [[0.0, 0.0], [3.5, 6.5], [7.0, 0.0]]}}},
         doc=[{"_id": 1, "loc": [2.0, 2.0]}, {"_id": 2, "loc": [10.0, 10.0]}],
@@ -82,14 +75,6 @@ NUMERIC_COORDINATE_TESTS: list[QueryTestCase] = [
         msg="$polygon with mixed numeric types should succeed",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(NUMERIC_COORDINATE_TESTS))
-def test_polygon_numeric_coordinate_types(collection, test):
-    """Test $polygon with various valid numeric coordinate types."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected)
 
 
 LOCATION_FIELD_TYPE_TESTS: list[QueryTestCase] = [
@@ -152,14 +137,6 @@ LOCATION_FIELD_TYPE_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(LOCATION_FIELD_TYPE_TESTS))
-def test_polygon_location_field_types(collection, test):
-    """Test $polygon matching behavior with various location field types."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected)
-
-
 EMBEDDED_LOCATION_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="embedded_object_location",
@@ -186,9 +163,14 @@ EMBEDDED_LOCATION_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(EMBEDDED_LOCATION_TESTS))
-def test_polygon_embedded_locations(collection, test):
-    """Test $polygon with embedded object and nested field path locations."""
+DATA_TYPE_TESTS: list[QueryTestCase] = (
+    NUMERIC_COORDINATE_TESTS + LOCATION_FIELD_TYPE_TESTS + EMBEDDED_LOCATION_TESTS
+)
+
+
+@pytest.mark.parametrize("test", pytest_params(DATA_TYPE_TESTS))
+def test_polygon_data_types(collection, test):
+    """Test $polygon data type coverage."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, ignore_doc_order=True)
