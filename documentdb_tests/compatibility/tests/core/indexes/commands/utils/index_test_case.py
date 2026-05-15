@@ -41,3 +41,18 @@ class IndexTestCase(BaseTestCase):
     invalid_input: Optional[Any] = None
     input: Optional[Any] = None
     command_options: Optional[dict] = None
+
+
+@dataclass(frozen=True)
+class IndexQueryTestCase(IndexTestCase):
+    """Test case for index query behavior tests.
+
+    Attributes:
+        filter: Query filter for find command.
+        collation: Collation to use on the query.
+        sort: Optional sort specification.
+    """
+
+    filter: Optional[dict] = None
+    collation: Optional[dict] = None
+    sort: Optional[dict] = None
