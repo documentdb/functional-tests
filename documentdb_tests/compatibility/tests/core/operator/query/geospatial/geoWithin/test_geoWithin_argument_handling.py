@@ -177,7 +177,7 @@ NULL_MISSING_TESTS: list[QueryTestCase] = [
 
 DOCUMENT_TYPE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
-        id="unsorted_results",
+        id="multiple_points_within",
         filter={"loc": {"$geoWithin": POLYGON}},
         doc=[
             {"_id": 1, "loc": {"type": "Point", "coordinates": [9, 9]}},
@@ -189,7 +189,7 @@ DOCUMENT_TYPE_TESTS: list[QueryTestCase] = [
             {"_id": 2, "loc": {"type": "Point", "coordinates": [1, 1]}},
             {"_id": 3, "loc": {"type": "Point", "coordinates": [5, 5]}},
         ],
-        msg="Results are not sorted by distance — all within should be returned",
+        msg="All points within polygon should be returned",
     ),
     QueryTestCase(
         id="array_of_geojson_points",

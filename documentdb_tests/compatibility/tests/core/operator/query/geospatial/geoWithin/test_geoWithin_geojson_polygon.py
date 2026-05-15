@@ -47,6 +47,24 @@ POLYGON_EDGE_CASE_TESTS: list[QueryTestCase] = [
         msg="Correct [longitude, latitude] order should return correct results",
     ),
     QueryTestCase(
+        id="swapped_lon_lat_should_not_match",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[39, 4], [41, 4], [41, 6], [39, 6], [39, 4]]],
+                    }
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [5, 40]}},
+        ],
+        expected=[],
+        msg="Point with swapped [lat, lon] order should NOT match the polygon",
+    ),
+    QueryTestCase(
         id="point_at_null_island",
         filter={
             "loc": {

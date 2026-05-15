@@ -1,5 +1,6 @@
 """
-Tests for $geoWithin interaction with logical operators ($and, $or, $not, $nor).
+Tests for combinations of geospatial query operators with logical ($and, $or, $not, $nor)
+and array ($elemMatch) operators.
 """
 
 import pytest

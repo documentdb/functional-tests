@@ -7,7 +7,7 @@ value with expected error codes and accepts valid BSON types without error.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertNotError
+from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.bson_type_validator import (
     BsonType,
     BsonTypeTestCase,
@@ -24,6 +24,7 @@ GEOWITHIN_PARAMS = [
         keyword="$geometry",
         valid_types=[BsonType.OBJECT],
         default_error_code=BAD_VALUE_ERROR,
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
         valid_inputs={
             BsonType.OBJECT: {
                 "type": "Polygon",
@@ -37,6 +38,7 @@ GEOWITHIN_PARAMS = [
         keyword="$box",
         valid_types=[BsonType.ARRAY],
         default_error_code=BAD_VALUE_ERROR,
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
         valid_inputs={BsonType.ARRAY: [[-10, -10], [10, 10]]},
     ),
     BsonTypeTestCase(
@@ -45,7 +47,8 @@ GEOWITHIN_PARAMS = [
         keyword="$polygon",
         valid_types=[BsonType.ARRAY],
         default_error_code=BAD_VALUE_ERROR,
-        valid_inputs={BsonType.ARRAY: [[0, 0], [10, 0], [10, 10]]},
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        valid_inputs={BsonType.ARRAY: [[-10, -10], [10, -10], [10, 10], [-10, 10]]},
     ),
     BsonTypeTestCase(
         id="center",
@@ -53,6 +56,7 @@ GEOWITHIN_PARAMS = [
         keyword="$center",
         valid_types=[BsonType.ARRAY],
         default_error_code=BAD_VALUE_ERROR,
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
         valid_inputs={BsonType.ARRAY: [[0, 0], 10]},
     ),
     BsonTypeTestCase(
@@ -61,6 +65,7 @@ GEOWITHIN_PARAMS = [
         keyword="$centerSphere",
         valid_types=[BsonType.ARRAY],
         default_error_code=BAD_VALUE_ERROR,
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
         valid_inputs={BsonType.ARRAY: [[0, 0], 0.5]},
     ),
 ]
@@ -87,7 +92,8 @@ ACCEPTANCE_CASES = generate_bson_acceptance_test_cases(GEOWITHIN_PARAMS)
     ACCEPTANCE_CASES,
 )
 def test_geoWithin_bson_type_accepted(collection, bson_type, sample_value, spec):
-    """Test $geoWithin shape operators accept valid BSON types."""
+    """Test $geoWithin shape operators accept valid BSON types and return matching docs."""
+    collection.insert_many(spec.expected)
     query_filter = {"loc": {"$geoWithin": {spec.keyword: sample_value}}}
     result = execute_command(collection, {"find": collection.name, "filter": query_filter})
-    assertNotError(result, msg=f"{spec.keyword} should accept {bson_type.value}")
+    assertSuccess(result, spec.expected, msg=f"{spec.keyword} should accept {bson_type.value}")
