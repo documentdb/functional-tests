@@ -5,27 +5,135 @@ Validates $polygon in find, aggregation $match, combined with other operators,
 and in update/delete filters.
 """
 
+import pytest
+
+from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
+    QueryTestCase,
+)
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+
+FIND_QUERY_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="basic_find",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[{"_id": 1, "loc": [5, 5]}, {"_id": 2, "loc": [15, 15]}],
+        expected=[{"_id": 1, "loc": [5, 5]}],
+        msg="$polygon in find should return matching docs",
+    ),
+    QueryTestCase(
+        id="nested_field_path",
+        filter={"address.loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[
+            {"_id": 1, "address": {"loc": [5, 5]}},
+            {"_id": 2, "address": {"loc": [15, 15]}},
+        ],
+        expected=[{"_id": 1, "address": {"loc": [5, 5]}}],
+        msg="$polygon on nested field should work",
+    ),
+    QueryTestCase(
+        id="empty_collection",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        expected=[],
+        msg="$polygon on empty collection should return empty result",
+    ),
+    QueryTestCase(
+        id="array_location_field",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[
+            {"_id": 1, "loc": [[5, 5], [15, 15]]},
+            {"_id": 2, "loc": [[20, 20]]},
+        ],
+        expected=[{"_id": 1, "loc": [[5, 5], [15, 15]]}],
+        msg="Array location field should match if any point is inside",
+    ),
+]
 
 
-def test_polygon_in_find(collection):
-    """Test $polygon in basic find query."""
-    collection.insert_many(
-        [
+@pytest.mark.parametrize("test", pytest_params(FIND_QUERY_TESTS))
+def test_polygon_find_queries(collection, test):
+    """Test $polygon in various find query contexts."""
+    if test.doc:
+        collection.insert_many(test.doc)
+    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
+    assertSuccess(result, test.expected)
+
+
+COMBINED_OPERATOR_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="with_and",
+        filter={
+            "$and": [
+                {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+                {"status": "active"},
+            ]
+        },
+        doc=[
+            {"_id": 1, "loc": [5, 5], "status": "active"},
+            {"_id": 2, "loc": [5, 5], "status": "inactive"},
+            {"_id": 3, "loc": [15, 15], "status": "active"},
+        ],
+        expected=[{"_id": 1, "loc": [5, 5], "status": "active"}],
+        msg="$polygon with $and should filter correctly",
+    ),
+    QueryTestCase(
+        id="with_or",
+        filter={
+            "$or": [
+                {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+                {"loc": {"$geoWithin": {"$polygon": [[20, 20], [20, 30], [30, 30], [30, 20]]}}},
+            ]
+        },
+        doc=[
             {"_id": 1, "loc": [5, 5]},
             {"_id": 2, "loc": [15, 15]},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+            {"_id": 3, "loc": [25, 25]},
+        ],
+        expected=[{"_id": 1, "loc": [5, 5]}, {"_id": 3, "loc": [25, 25]}],
+        msg="$polygon with $or should match either polygon",
+    ),
+    QueryTestCase(
+        id="with_box_via_or",
+        filter={
+            "$or": [
+                {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+                {"loc": {"$geoWithin": {"$box": [[20, 20], [30, 30]]}}},
+            ]
         },
-    )
-    expected = [{"_id": 1, "loc": [5, 5]}]
-    assertSuccess(result, expected, msg="$polygon in find should return matching docs")
+        doc=[
+            {"_id": 1, "loc": [5, 5]},
+            {"_id": 2, "loc": [25, 25]},
+            {"_id": 3, "loc": [50, 50]},
+        ],
+        expected=[{"_id": 1, "loc": [5, 5]}, {"_id": 2, "loc": [25, 25]}],
+        msg="$polygon and $box via $or should both work",
+    ),
+    QueryTestCase(
+        id="with_center_via_or",
+        filter={
+            "$or": [
+                {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+                {"loc": {"$geoWithin": {"$center": [[25, 25], 2]}}},
+            ]
+        },
+        doc=[
+            {"_id": 1, "loc": [5, 5]},
+            {"_id": 2, "loc": [25, 25]},
+            {"_id": 3, "loc": [50, 50]},
+        ],
+        expected=[{"_id": 1, "loc": [5, 5]}, {"_id": 2, "loc": [25, 25]}],
+        msg="$polygon and $center via $or should both work",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(COMBINED_OPERATOR_TESTS))
+def test_polygon_combined_operators(collection, test):
+    """Test $polygon combined with other query operators."""
+    collection.insert_many(test.doc)
+    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
+    assertSuccess(result, test.expected, ignore_doc_order=True)
 
 
 def test_polygon_in_aggregate_match(collection):
@@ -52,58 +160,6 @@ def test_polygon_in_aggregate_match(collection):
     )
     expected = [{"_id": 1, "loc": [5, 5]}]
     assertSuccess(result, expected, msg="$polygon in $match should return matching docs")
-
-
-def test_polygon_combined_with_and(collection):
-    """Test $polygon combined with $and operator."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5], "status": "active"},
-            {"_id": 2, "loc": [5, 5], "status": "inactive"},
-            {"_id": 3, "loc": [15, 15], "status": "active"},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {
-                "$and": [
-                    {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-                    {"status": "active"},
-                ]
-            },
-        },
-    )
-    expected = [{"_id": 1, "loc": [5, 5], "status": "active"}]
-    assertSuccess(result, expected, msg="$polygon with $and should filter correctly")
-
-
-def test_polygon_combined_with_or(collection):
-    """Test $polygon combined with $or operator."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5]},
-            {"_id": 2, "loc": [15, 15]},
-            {"_id": 3, "loc": [25, 25]},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {
-                "$or": [
-                    {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-                    {"loc": {"$geoWithin": {"$polygon": [[20, 20], [20, 30], [30, 30], [30, 20]]}}},
-                ]
-            },
-        },
-    )
-    expected = [{"_id": 1, "loc": [5, 5]}, {"_id": 3, "loc": [25, 25]}]
-    assertSuccess(
-        result, expected, ignore_doc_order=True, msg="$polygon with $or should match either polygon"
-    )
 
 
 def test_polygon_with_projection(collection):
@@ -289,93 +345,6 @@ def test_polygon_distinct(collection):
     )
 
 
-def test_polygon_nested_field_path(collection):
-    """Test $polygon on nested field path."""
-    collection.insert_many(
-        [
-            {"_id": 1, "address": {"loc": [5, 5]}},
-            {"_id": 2, "address": {"loc": [15, 15]}},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {
-                "address.loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}
-            },
-        },
-    )
-    expected = [{"_id": 1, "address": {"loc": [5, 5]}}]
-    assertSuccess(result, expected, msg="$polygon on nested field should work")
-
-
-def test_polygon_empty_collection(collection):
-    """Test $polygon on empty collection returns empty result."""
-    result = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-        },
-    )
-    assertSuccess(result, [], msg="$polygon on empty collection should return empty result")
-
-
-def test_polygon_combined_with_box_via_or(collection):
-    """Test $polygon combined with $box in same query via $or."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5]},
-            {"_id": 2, "loc": [25, 25]},
-            {"_id": 3, "loc": [50, 50]},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {
-                "$or": [
-                    {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-                    {"loc": {"$geoWithin": {"$box": [[20, 20], [30, 30]]}}},
-                ]
-            },
-        },
-    )
-    expected = [{"_id": 1, "loc": [5, 5]}, {"_id": 2, "loc": [25, 25]}]
-    assertSuccess(
-        result, expected, ignore_doc_order=True, msg="$polygon and $box via $or should both work"
-    )
-
-
-def test_polygon_combined_with_center_via_or(collection):
-    """Test $polygon combined with $center in same query via $or."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [5, 5]},
-            {"_id": 2, "loc": [25, 25]},
-            {"_id": 3, "loc": [50, 50]},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {
-                "$or": [
-                    {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-                    {"loc": {"$geoWithin": {"$center": [[25, 25], 2]}}},
-                ]
-            },
-        },
-    )
-    expected = [{"_id": 1, "loc": [5, 5]}, {"_id": 2, "loc": [25, 25]}]
-    assertSuccess(
-        result, expected, ignore_doc_order=True, msg="$polygon and $center via $or should both work"
-    )
-
-
 def test_polygon_vs_geometry_polygon_different(collection):
     """Test $polygon (legacy) and $geometry Polygon match different document types."""
     collection.create_index([("loc", "2dsphere")])
@@ -403,26 +372,6 @@ def test_polygon_vs_geometry_polygon_different(collection):
         ignore_doc_order=True,
         msg="$polygon should match both legacy and GeoJSON point formats",
     )
-
-
-def test_polygon_on_array_location_field(collection):
-    """Test $polygon on field that is an array of coordinate pairs."""
-    collection.insert_many(
-        [
-            {"_id": 1, "loc": [[5, 5], [15, 15]]},
-            {"_id": 2, "loc": [[20, 20]]},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
-        },
-    )
-    # Array of coordinate pairs matches if any sub-pair is inside the polygon
-    expected = [{"_id": 1, "loc": [[5, 5], [15, 15]]}]
-    assertSuccess(result, expected, msg="Array location field should match if any point is inside")
 
 
 def test_polygon_on_capped_collection(database_client):
