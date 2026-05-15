@@ -30,10 +30,12 @@ from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
 VALIDATE_DB_METADATA_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"comment_{tid}",
-        command={
+        command=lambda ctx, v=val: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
-            "comment": val,
+            "db": ctx.database,
+            "collection": ctx.collection,
+            "comment": v,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
         msg=f"validateDBMetadata should accept {tid} comment",
