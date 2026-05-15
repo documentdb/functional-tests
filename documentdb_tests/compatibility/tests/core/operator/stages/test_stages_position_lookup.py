@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from pymongo.operations import IndexModel
 
 from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.lookup_common import (
     FOREIGN,
@@ -13,6 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.look
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import DOUBLE_ZERO
 
 # Property [Pipeline Position]: $lookup produces correct results when
 # composed with other stage types at different pipeline positions.
@@ -369,6 +371,44 @@ LOOKUP_PIPELINE_POSITION_TESTS: list[LookupTestCase] = [
         ],
         expected=[{"_id": 1, "top_x": 5}],
         msg="sub-pipeline $lookup with $sort/$limit then $project should return top match",
+    ),
+    LookupTestCase(
+        "geoNear_in_lookup_subpipeline",
+        docs=[{"_id": 1}],
+        foreign_indexes=[IndexModel([("loc", "2dsphere")])],
+        foreign_docs=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "pipeline": [
+                        {
+                            "$geoNear": {
+                                "near": {"type": "Point", "coordinates": [0, 0]},
+                                "distanceField": "dist",
+                                "spherical": True,
+                            }
+                        },
+                    ],
+                    "as": "nearby",
+                }
+            },
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "nearby": [
+                    {
+                        "_id": 1,
+                        "loc": {"type": "Point", "coordinates": [0, 0]},
+                        "dist": DOUBLE_ZERO,
+                    },
+                ],
+            },
+        ],
+        msg="$geoNear should be allowed as the first stage in a $lookup sub-pipeline",
     ),
 ]
 
