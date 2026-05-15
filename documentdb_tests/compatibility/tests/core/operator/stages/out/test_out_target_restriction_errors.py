@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import cast
 
 import pytest
 
@@ -389,7 +388,7 @@ OUT_SCHEMA_VALIDATION_ERROR_TESTS: list[OutTestCase] = [
 
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(OUT_SCHEMA_VALIDATION_ERROR_TESTS))
-def test_out_schema_validation_error(collection, test_case: OutTestCase):
+def test_out_schema_validation_error(collection, test_case):
     """Test $out fails with document validation failure when validationAction is error."""
     populate_collection(collection, test_case)
     if test_case.setup:
@@ -398,7 +397,7 @@ def test_out_schema_validation_error(collection, test_case: OutTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
-    assertFailureCode(result, cast(int, test_case.error_code), msg=test_case.msg)
+    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
 
 
 @pytest.mark.aggregate
