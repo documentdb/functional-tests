@@ -88,6 +88,7 @@ def test_out_database_name_acceptance(collection, test_case: OutTestCase):
     """Test $out accepts various character classes as database names."""
     populate_collection(collection, test_case)
     db_name = test_case.target_db  # type: ignore[arg-type]
+    target_coll_name = test_case.resolve_target_coll(collection)
     client = collection.database.client
     client.drop_database(db_name)
     try:
@@ -98,15 +99,15 @@ def test_out_database_name_acceptance(collection, test_case: OutTestCase):
         )
         target_db = client[db_name]
         result = execute_command(
-            target_db[test_case.target_coll],
-            {"listCollections": 1, "filter": {"name": test_case.target_coll}},
+            target_db[target_coll_name],
+            {"listCollections": 1, "filter": {"name": target_coll_name}},
         )
         raw_doc = cast(dict, result)["cursor"]["firstBatch"][0]
         assertSuccess(
             result,
             [
                 {
-                    "name": test_case.target_coll,
+                    "name": target_coll_name,
                     "type": "collection",
                     "options": {},
                     "info": raw_doc["info"],
@@ -134,7 +135,6 @@ OUT_FIND_AFTER_OUT_TESTS: list[OutTestCase] = [
         "new_collection_created",
         docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
         target_coll="creation_new_target",
-        pipeline=[{"$out": "creation_new_target"}],
         expected=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
         msg="$out should create a new collection when the target does not exist",
     ),
@@ -142,8 +142,9 @@ OUT_FIND_AFTER_OUT_TESTS: list[OutTestCase] = [
         "empty_pipeline_empties_existing_collection",
         docs=[],
         target_coll="creation_emptied_target",
-        pipeline=[{"$out": "creation_emptied_target"}],
-        setup=lambda c: c.database["creation_emptied_target"].insert_one({"_id": 99, "old": True}),
+        setup=lambda c: c.database[f"{c.name}_creation_emptied_target"].insert_one(
+            {"_id": 99, "old": True}
+        ),
         expected=[],
         msg="$out with no documents should empty an existing collection",
     ),
@@ -151,8 +152,7 @@ OUT_FIND_AFTER_OUT_TESTS: list[OutTestCase] = [
         "replacement_atomic",
         docs=[{"_id": 10, "new": True}, {"_id": 20, "new": True}],
         target_coll="replacement_atomic_target",
-        pipeline=[{"$out": "replacement_atomic_target"}],
-        setup=lambda c: c.database["replacement_atomic_target"].insert_many(
+        setup=lambda c: c.database[f"{c.name}_replacement_atomic_target"].insert_many(
             [{"_id": 1, "old": True}, {"_id": 2, "old": True}]
         ),
         expected=[{"_id": 10, "new": True}, {"_id": 20, "new": True}],
@@ -162,12 +162,11 @@ OUT_FIND_AFTER_OUT_TESTS: list[OutTestCase] = [
         "failure_rollback_docs",
         docs=[{"_id": 10, "x": 1}, {"_id": 20, "x": 1}],
         target_coll="replacement_fail_target",
-        pipeline=[{"$out": "replacement_fail_target"}],
         setup=lambda c: (
-            c.database["replacement_fail_target"].insert_many(
+            c.database[f"{c.name}_replacement_fail_target"].insert_many(
                 [{"_id": 1, "x": 1}, {"_id": 2, "x": 2}]
             ),
-            c.database["replacement_fail_target"].create_index("x", unique=True),
+            c.database[f"{c.name}_replacement_fail_target"].create_index("x", unique=True),
         ),
         expected=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
         msg="$out failure should leave pre-existing documents unchanged",
@@ -182,13 +181,15 @@ def test_out_find_after_out(collection, test_case: OutTestCase):
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
+    out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
+    target_coll_name = test_case.resolve_target_coll(collection)
     result = execute_command(
         collection,
-        {"find": test_case.target_coll, "filter": {}, "sort": {"_id": 1}},
+        {"find": target_coll_name, "filter": {}, "sort": {"_id": 1}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
@@ -196,7 +197,7 @@ def test_out_find_after_out(collection, test_case: OutTestCase):
 @pytest.mark.aggregate
 def test_out_empty_pipeline_creates_collection(collection):
     """Test $out with no documents creates an empty collection."""
-    target_coll = "creation_empty_target"
+    target_coll = f"{collection.name}_creation_empty_target"
     execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": [{"$out": target_coll}], "cursor": {}},
@@ -225,7 +226,7 @@ def test_out_database_creation(collection):
     db = collection.database
     client = db.client
     cross_db_name = db.name + "_cross"
-    target_coll_name = "creation_cross_db_target"
+    target_coll_name = f"{collection.name}_creation_cross_db_target"
     client.drop_database(cross_db_name)
     try:
         execute_command(
@@ -295,10 +296,11 @@ OUT_INDEX_AFTER_OUT_TESTS: list[OutTestCase] = [
         "replacement_preserves_indexes",
         docs=[{"_id": 10, "x": 100}, {"_id": 20, "x": 200}],
         target_coll="replacement_idx_target",
-        pipeline=[{"$out": "replacement_idx_target"}],
         setup=lambda c: (
-            c.database["replacement_idx_target"].insert_one({"_id": 1, "x": 1}),
-            c.database["replacement_idx_target"].create_index("x", name="x_idx", unique=True),
+            c.database[f"{c.name}_replacement_idx_target"].insert_one({"_id": 1, "x": 1}),
+            c.database[f"{c.name}_replacement_idx_target"].create_index(
+                "x", name="x_idx", unique=True
+            ),
         ),
         expected=[
             {"v": 2, "key": {"_id": 1}, "name": "_id_"},
@@ -310,12 +312,11 @@ OUT_INDEX_AFTER_OUT_TESTS: list[OutTestCase] = [
         "failure_rollback_indexes",
         docs=[{"_id": 10, "x": 1}, {"_id": 20, "x": 1}],
         target_coll="replacement_fail_target",
-        pipeline=[{"$out": "replacement_fail_target"}],
         setup=lambda c: (
-            c.database["replacement_fail_target"].insert_many(
+            c.database[f"{c.name}_replacement_fail_target"].insert_many(
                 [{"_id": 1, "x": 1}, {"_id": 2, "x": 2}]
             ),
-            c.database["replacement_fail_target"].create_index("x", unique=True),
+            c.database[f"{c.name}_replacement_fail_target"].create_index("x", unique=True),
         ),
         expected=[
             {"v": 2, "key": {"_id": 1}, "name": "_id_"},
@@ -333,13 +334,15 @@ def test_out_index_after_out(collection, test_case: OutTestCase):
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
+    out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
+    target_coll_name = test_case.resolve_target_coll(collection)
     result = execute_command(
         collection,
-        {"listIndexes": test_case.target_coll},
+        {"listIndexes": target_coll_name},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg, ignore_doc_order=True)
 
@@ -353,6 +356,7 @@ def test_out_temp_collection_observed(collection):
     """Test $out uses a temporary collection during execution."""
     collection.insert_many([{"_id": i, "value": i} for i in range(10_000)])
     db = collection.database
+    target_coll = f"{collection.name}_creation_temp_target"
 
     found_tmp: list[str] = []
     stop = threading.Event()
@@ -375,7 +379,7 @@ def test_out_temp_collection_observed(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$out": "creation_temp_target"}],
+            "pipeline": [{"$out": target_coll}],
             "cursor": {},
         },
     )
@@ -396,6 +400,7 @@ def test_out_temp_collection_cleaned_up(collection):
     """Test $out cleans up the temporary collection after completion."""
     collection.insert_many([{"_id": i, "value": i} for i in range(10_000)])
     db = collection.database
+    target_coll = f"{collection.name}_creation_temp_target"
 
     found_tmp: list[str] = []
     stop = threading.Event()
@@ -418,7 +423,7 @@ def test_out_temp_collection_cleaned_up(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$out": "creation_temp_target"}],
+            "pipeline": [{"$out": target_coll}],
             "cursor": {},
         },
     )

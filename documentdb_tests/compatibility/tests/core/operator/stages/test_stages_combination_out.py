@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.stages.out.utils.out_test_helpers import (
+    OutTestCase,
+)
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
-    StageTestCase,
     populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
@@ -17,8 +19,8 @@ from documentdb_tests.framework.parametrize import pytest_params
 # output, $group aggregates, $sort/$limit/$skip paginate, $unwind expands
 # arrays, $addFields enriches, $replaceRoot restructures, $redact prunes,
 # $lookup joins, and $unionWith merges collections.
-OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
-    StageTestCase(
+OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
+    OutTestCase(
         "match_equality",
         docs=[
             {"_id": 1, "status": "active", "val": 10},
@@ -27,15 +29,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$match": {"status": "active"}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": 1, "status": "active", "val": 10},
             {"_id": 3, "status": "active", "val": 30},
         ],
         msg="$out should write only the documents that pass the $match filter",
     ),
-    StageTestCase(
+    OutTestCase(
         "match_comparison",
         docs=[
             {"_id": 1, "val": 5},
@@ -44,15 +46,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$match": {"val": {"$gte": 15}}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": 2, "val": 15},
             {"_id": 3, "val": 25},
         ],
         msg="$out should write documents matching a comparison $match filter",
     ),
-    StageTestCase(
+    OutTestCase(
         "match_no_results",
         docs=[
             {"_id": 1, "val": 10},
@@ -60,12 +62,12 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$match": {"val": {"$gt": 100}}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[],
         msg="$out should create an empty collection when $match filters all documents",
     ),
-    StageTestCase(
+    OutTestCase(
         "project_inclusion",
         docs=[
             {"_id": 1, "a": 1, "b": 2, "c": 3},
@@ -73,15 +75,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$project": {"a": 1, "b": 1}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": 1, "a": 1, "b": 2},
             {"_id": 2, "a": 4, "b": 5},
         ],
         msg="$out should write only the fields kept by an inclusion $project",
     ),
-    StageTestCase(
+    OutTestCase(
         "project_computed",
         docs=[
             {"_id": 1, "x": 10},
@@ -89,15 +91,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$project": {"doubled": {"$multiply": ["$x", 2]}}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": 1, "doubled": 20},
             {"_id": 2, "doubled": 40},
         ],
         msg="$out should write computed fields from a $project stage",
     ),
-    StageTestCase(
+    OutTestCase(
         "group_sum",
         docs=[
             {"_id": 1, "cat": "a", "val": 10},
@@ -106,15 +108,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": "$cat", "total": {"$sum": "$val"}}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": "a", "total": 30},
             {"_id": "b", "total": 30},
         ],
         msg="$out should write $group $sum results to the target collection",
     ),
-    StageTestCase(
+    OutTestCase(
         "group_count",
         docs=[
             {"_id": 1, "cat": "x"},
@@ -123,15 +125,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": "$cat", "n": {"$sum": 1}}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": "x", "n": 2},
             {"_id": "y", "n": 1},
         ],
         msg="$out should write $group count results to the target collection",
     ),
-    StageTestCase(
+    OutTestCase(
         "sort_limit_top_n",
         docs=[
             {"_id": 1, "val": 50},
@@ -143,8 +145,8 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$sort": {"val": -1}},
             {"$limit": 3},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": 1, "val": 50},
             {"_id": 3, "val": 40},
@@ -152,7 +154,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write the top-N sorted documents after $sort and $limit",
     ),
-    StageTestCase(
+    OutTestCase(
         "skip_limit_page",
         docs=[
             {"_id": 1, "val": 10},
@@ -165,15 +167,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"$sort": {"_id": 1}},
             {"$skip": 1},
             {"$limit": 2},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": 2, "val": 20},
             {"_id": 3, "val": 30},
         ],
         msg="$out should write the paginated window from $skip and $limit",
     ),
-    StageTestCase(
+    OutTestCase(
         "unwind_group_tag_count",
         docs=[
             {"_id": 1, "tags": ["a", "b"]},
@@ -183,8 +185,8 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$unwind": "$tags"},
             {"$group": {"_id": "$tags", "count": {"$sum": 1}}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": "a", "count": 2},
             {"_id": "b", "count": 2},
@@ -192,7 +194,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write unwound-then-grouped tag counts to the target collection",
     ),
-    StageTestCase(
+    OutTestCase(
         "addfields_computed",
         docs=[
             {"_id": 1, "price": 100, "qty": 3},
@@ -200,15 +202,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$addFields": {"total": {"$multiply": ["$price", "$qty"]}}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": 1, "price": 100, "qty": 3, "total": 300},
             {"_id": 2, "price": 200, "qty": 1, "total": 200},
         ],
         msg="$out should write documents enriched by $addFields to the target collection",
     ),
-    StageTestCase(
+    OutTestCase(
         "replaceroot_nested",
         docs=[
             {"_id": 1, "inner": {"a": 10, "b": 20}},
@@ -217,15 +219,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$replaceRoot": {"newRoot": "$inner"}},
             {"$addFields": {"_id": "$a"}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": 10, "a": 10, "b": 20},
             {"_id": 30, "a": 30, "b": 40},
         ],
         msg="$out should write the new root structure after $replaceRoot",
     ),
-    StageTestCase(
+    OutTestCase(
         "redact_keep_prune",
         docs=[
             {"_id": 1, "level": 1, "data": "public"},
@@ -242,69 +244,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
                     }
                 }
             },
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": 1, "level": 1, "data": "public"},
             {"_id": 3, "level": 2, "data": "internal"},
         ],
         msg="$out should write only documents kept by $redact",
     ),
-    StageTestCase(
-        "lookup_equality",
-        docs=[
-            {"_id": 1, "ref": 1},
-            {"_id": 2, "ref": 2},
-        ],
-        setup=lambda c: c.database["integration_foreign"].insert_many(
-            [
-                {"_id": 1, "label": "first"},
-                {"_id": 2, "label": "second"},
-            ]
-        ),
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": "integration_foreign",
-                    "localField": "ref",
-                    "foreignField": "_id",
-                    "as": "joined",
-                }
-            },
-            {"$project": {"ref": 1, "label": {"$arrayElemAt": ["$joined.label", 0]}}},
-            {"$out": "integration_out"},
-        ],
-        expected=[
-            {"_id": 1, "ref": 1, "label": "first"},
-            {"_id": 2, "ref": 2, "label": "second"},
-        ],
-        msg="$out should write $lookup-joined documents to the target collection",
-    ),
-    StageTestCase(
-        "unionwith_merge",
-        docs=[
-            {"_id": 1, "source": "main"},
-            {"_id": 2, "source": "main"},
-        ],
-        setup=lambda c: c.database["integration_foreign"].insert_many(
-            [
-                {"_id": 3, "source": "other"},
-                {"_id": 4, "source": "other"},
-            ]
-        ),
-        pipeline=[
-            {"$unionWith": {"coll": "integration_foreign"}},
-            {"$out": "integration_out"},
-        ],
-        expected=[
-            {"_id": 1, "source": "main"},
-            {"_id": 2, "source": "main"},
-            {"_id": 3, "source": "other"},
-            {"_id": 4, "source": "other"},
-        ],
-        msg="$out should write $unionWith-merged documents to the target collection",
-    ),
-    StageTestCase(
+    OutTestCase(
         "match_group_sort_out",
         docs=[
             {"_id": 1, "dept": "eng", "salary": 100},
@@ -317,8 +265,8 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"$match": {"salary": {"$gte": 90}}},
             {"$group": {"_id": "$dept", "avg_salary": {"$avg": "$salary"}}},
             {"$sort": {"avg_salary": -1}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": "eng", "avg_salary": 125.0},
             {"_id": "hr", "avg_salary": 90.0},
@@ -326,7 +274,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write correctly after $match, $group, and $sort combined",
     ),
-    StageTestCase(
+    OutTestCase(
         "project_addfields_match_out",
         docs=[
             {"_id": 1, "price": 50, "qty": 4},
@@ -337,8 +285,8 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"$project": {"price": 1, "qty": 1}},
             {"$addFields": {"revenue": {"$multiply": ["$price", "$qty"]}}},
             {"$match": {"revenue": {"$gte": 200}}},
-            {"$out": "integration_out"},
         ],
+        target_coll="integration_out",
         expected=[
             {"_id": 1, "price": 50, "qty": 4, "revenue": 200},
             {"_id": 2, "price": 30, "qty": 10, "revenue": 300},
@@ -350,19 +298,21 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
 
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(OUT_PIPELINE_INTEGRATION_TESTS))
-def test_out_pipeline_integration(collection, test_case: StageTestCase):
+def test_out_pipeline_integration(collection, test_case: OutTestCase):
     """Test $out pipeline integration with other stages."""
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
     db = collection.database
+    target = test_case.resolve_target_coll(collection)
+    pipeline = list(test_case.pipeline) + [test_case.build_out_stage(collection)]
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
     result = execute_command(
         collection,
-        {"find": "integration_out", "filter": {}, "sort": {"_id": 1}},
+        {"find": target, "filter": {}, "sort": {"_id": 1}},
     )
     assertResult(
         result,
@@ -370,5 +320,78 @@ def test_out_pipeline_integration(collection, test_case: StageTestCase):
         error_code=test_case.error_code,
         msg=test_case.msg,
     )
-    db.drop_collection("integration_out")
-    db.drop_collection("integration_foreign")
+    db.drop_collection(target)
+
+
+@pytest.mark.aggregate
+def test_out_lookup_equality(collection):
+    """Test $out after $lookup with equality join."""
+    db = collection.database
+    foreign_name = f"{collection.name}_integration_foreign"
+    out_name = f"{collection.name}_integration_out"
+    collection.insert_many([{"_id": 1, "ref": 1}, {"_id": 2, "ref": 2}])
+    db[foreign_name].insert_many([{"_id": 1, "label": "first"}, {"_id": 2, "label": "second"}])
+    pipeline = [
+        {
+            "$lookup": {
+                "from": foreign_name,
+                "localField": "ref",
+                "foreignField": "_id",
+                "as": "joined",
+            }
+        },
+        {"$project": {"ref": 1, "label": {"$arrayElemAt": ["$joined.label", 0]}}},
+        {"$out": out_name},
+    ]
+    execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
+    )
+    result = execute_command(
+        collection,
+        {"find": out_name, "filter": {}, "sort": {"_id": 1}},
+    )
+    assertResult(
+        result,
+        expected=[
+            {"_id": 1, "ref": 1, "label": "first"},
+            {"_id": 2, "ref": 2, "label": "second"},
+        ],
+        msg="$out should write $lookup-joined documents to the target collection",
+    )
+    db.drop_collection(out_name)
+    db.drop_collection(foreign_name)
+
+
+@pytest.mark.aggregate
+def test_out_unionwith_merge(collection):
+    """Test $out after $unionWith merging two collections."""
+    db = collection.database
+    foreign_name = f"{collection.name}_integration_foreign"
+    out_name = f"{collection.name}_integration_out"
+    collection.insert_many([{"_id": 1, "source": "main"}, {"_id": 2, "source": "main"}])
+    db[foreign_name].insert_many([{"_id": 3, "source": "other"}, {"_id": 4, "source": "other"}])
+    pipeline = [
+        {"$unionWith": {"coll": foreign_name}},
+        {"$out": out_name},
+    ]
+    execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
+    )
+    result = execute_command(
+        collection,
+        {"find": out_name, "filter": {}, "sort": {"_id": 1}},
+    )
+    assertResult(
+        result,
+        expected=[
+            {"_id": 1, "source": "main"},
+            {"_id": 2, "source": "main"},
+            {"_id": 3, "source": "other"},
+            {"_id": 4, "source": "other"},
+        ],
+        msg="$out should write $unionWith-merged documents to the target collection",
+    )
+    db.drop_collection(out_name)
+    db.drop_collection(foreign_name)

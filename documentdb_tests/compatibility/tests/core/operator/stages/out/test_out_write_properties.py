@@ -38,7 +38,7 @@ OUT_AUTO_GENERATED_ID_TESTS: list[OutTestCase] = [
         "auto_id",
         docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
         target_coll="write_auto_id_target",
-        pipeline=[{"$unset": "_id"}, {"$out": "write_auto_id_target"}],
+        pipeline=[{"$unset": "_id"}],
         expected=2,
         msg="$out should auto-generate ObjectId _id when _id is removed",
     ),
@@ -50,15 +50,17 @@ OUT_AUTO_GENERATED_ID_TESTS: list[OutTestCase] = [
 def test_out_auto_generated_id(collection, test_case: OutTestCase):
     """Test $out auto-generates ObjectId _id when _id is removed."""
     populate_collection(collection, test_case)
+    target = test_case.resolve_target_coll(collection)
+    pipeline = test_case.pipeline + [{"$out": target}]
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
     # Filter by _id type to confirm auto-generated ObjectIds.
     result = execute_command(
         collection,
         {
-            "aggregate": test_case.target_coll,
+            "aggregate": target,
             "pipeline": [
                 {"$match": {"_id": {"$type": "objectId"}}},
                 {"$count": "n"},
@@ -76,7 +78,6 @@ OUT_EMPTY_CURSOR_TESTS: list[OutTestCase] = [
         "empty_cursor",
         docs=[{"_id": 1, "value": 10}],
         target_coll="write_cursor_target",
-        pipeline=[{"$out": "write_cursor_target"}],
         expected=[],
         msg="$out aggregation cursor should return an empty result list",
     ),
@@ -88,9 +89,10 @@ OUT_EMPTY_CURSOR_TESTS: list[OutTestCase] = [
 def test_out_empty_cursor(collection, test_case: OutTestCase):
     """Test $out returns an empty cursor result."""
     populate_collection(collection, test_case)
+    out_stage = test_case.build_out_stage(collection)
     result = execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
@@ -102,7 +104,6 @@ OUT_EXPLAIN_NO_WRITE_TESTS: list[OutTestCase] = [
         "explain_no_write",
         docs=[{"_id": 1, "value": 10}],
         target_coll="write_explain_target",
-        pipeline=[{"$out": "write_explain_target"}],
         expected=[],
         msg="explain with $out should not create the target collection",
     ),
@@ -114,18 +115,20 @@ OUT_EXPLAIN_NO_WRITE_TESTS: list[OutTestCase] = [
 def test_out_explain_no_write(collection, test_case: OutTestCase):
     """Test explain with $out does not create or modify the target collection."""
     populate_collection(collection, test_case)
+    target = test_case.resolve_target_coll(collection)
+    out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": test_case.pipeline,
+            "pipeline": [out_stage],
             "cursor": {},
             "explain": True,
         },
     )
     result = execute_command(
         collection,
-        {"listCollections": 1, "filter": {"name": test_case.target_coll}},
+        {"listCollections": 1, "filter": {"name": target}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
@@ -135,8 +138,7 @@ OUT_EXPLAIN_NO_MODIFY_TESTS: list[OutTestCase] = [
         "explain_no_modify",
         docs=[{"_id": 10, "new": True}],
         target_coll="write_explain_existing_target",
-        pipeline=[{"$out": "write_explain_existing_target"}],
-        setup=lambda c: c.database["write_explain_existing_target"].insert_many(
+        setup=lambda c: c.database[f"{c.name}_write_explain_existing_target"].insert_many(
             [{"_id": 1, "old": True}, {"_id": 2, "old": True}]
         ),
         expected=[{"_id": 1, "old": True}, {"_id": 2, "old": True}],
@@ -152,18 +154,20 @@ def test_out_explain_no_modify(collection, test_case: OutTestCase):
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
+    target = test_case.resolve_target_coll(collection)
+    out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": test_case.pipeline,
+            "pipeline": [out_stage],
             "cursor": {},
             "explain": True,
         },
     )
     result = execute_command(
         collection,
-        {"find": test_case.target_coll, "filter": {}, "sort": {"_id": 1}},
+        {"find": target, "filter": {}, "sort": {"_id": 1}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
@@ -175,7 +179,6 @@ OUT_IDEMPOTENT_TESTS: list[OutTestCase] = [
         "idempotent",
         docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
         target_coll="write_idempotent_target",
-        pipeline=[{"$out": "write_idempotent_target"}],
         expected=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
         msg="$out should produce the same result when run twice to the same target",
     ),
@@ -187,17 +190,19 @@ OUT_IDEMPOTENT_TESTS: list[OutTestCase] = [
 def test_out_idempotent(collection, test_case: OutTestCase):
     """Test $out is idempotent when run twice to the same target."""
     populate_collection(collection, test_case)
+    target = test_case.resolve_target_coll(collection)
+    out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
     result = execute_command(
         collection,
-        {"find": test_case.target_coll, "filter": {}, "sort": {"_id": 1}},
+        {"find": target, "filter": {}, "sort": {"_id": 1}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
@@ -230,7 +235,6 @@ OUT_BSON_ROUND_TRIP_TESTS: list[OutTestCase] = [
             }
         ],
         target_coll="write_bson_target",
-        pipeline=[{"$out": "write_bson_target"}],
         msg="all BSON types should round-trip through $out without modification",
     ),
 ]
@@ -241,9 +245,11 @@ OUT_BSON_ROUND_TRIP_TESTS: list[OutTestCase] = [
 def test_out_bson_round_trip(collection, test_case: OutTestCase):
     """Test all BSON types round-trip through $out without modification."""
     populate_collection(collection, test_case)
+    target = test_case.resolve_target_coll(collection)
+    out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
     source_result = execute_command(
         collection,
@@ -251,7 +257,7 @@ def test_out_bson_round_trip(collection, test_case: OutTestCase):
     )
     target_result = execute_command(
         collection,
-        {"find": test_case.target_coll, "filter": {}},
+        {"find": target, "filter": {}},
     )
     assertSuccess(
         target_result,
@@ -267,7 +273,6 @@ OUT_LARGE_DOCUMENT_TESTS: list[OutTestCase] = [
         "large_doc",
         docs=[{"_id": 1, "data": "x" * (15 * 1_024 * 1_024)}],
         target_coll="write_large_target",
-        pipeline=[{"$out": "write_large_target"}],
         expected=[{"_id": 1}],
         msg="$out should successfully write a 15 MB document",
     ),
@@ -279,13 +284,15 @@ OUT_LARGE_DOCUMENT_TESTS: list[OutTestCase] = [
 def test_out_large_document(collection, test_case: OutTestCase):
     """Test $out writes documents up to 15 MB successfully."""
     populate_collection(collection, test_case)
+    target = test_case.resolve_target_coll(collection)
+    out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
     result = execute_command(
         collection,
-        {"find": test_case.target_coll, "filter": {}, "projection": {"_id": 1}},
+        {"find": target, "filter": {}, "projection": {"_id": 1}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
