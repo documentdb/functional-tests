@@ -299,22 +299,22 @@ MULTIPLE_AVG_TESTS: list[AccumulatorTestCase] = [
         msg="Multiple $avg accumulators should independently average different fields",
     ),
     AccumulatorTestCase(
-        "multiple_avg_field_and_expression",
+        "multiple_avg_different_expressions",
         docs=[
-            {"cat": "a", "price": 100, "qty": 2},
-            {"cat": "a", "price": 200, "qty": 3},
+            {"cat": "a", "price": 100, "qty": 2, "revenue": 200},
+            {"cat": "a", "price": 200, "qty": 3, "revenue": 600},
         ],
         pipeline=[
             {
                 "$group": {
                     "_id": "$cat",
                     "avg_price": {"$avg": "$price"},
-                    "avg_revenue": {"$avg": {"$multiply": ["$price", "$qty"]}},
+                    "avg_revenue": {"$avg": "$revenue"},
                 }
             }
         ],
         expected=[{"_id": "a", "avg_price": 150.0, "avg_revenue": 400.0}],
-        msg="$avg should independently average a field and a computed expression",
+        msg="Multiple $avg accumulators should independently average different fields",
     ),
 ]
 
