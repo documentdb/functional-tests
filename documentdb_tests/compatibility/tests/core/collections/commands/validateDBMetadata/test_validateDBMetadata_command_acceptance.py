@@ -30,7 +30,12 @@ from documentdb_tests.framework.parametrize import pytest_params
 VALIDATE_DB_METADATA_FIELD_VALUE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"value_{tid}",
-        command={"validateDBMetadata": val, "apiParameters": {"version": "1", "strict": True}},
+        command=lambda ctx, v=val: {
+            "validateDBMetadata": v,
+            "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
+        },
         expected={"ok": 1.0, "apiVersionErrors": []},
         msg=f"validateDBMetadata should accept {tid} value",
     )
@@ -65,6 +70,7 @@ VALIDATE_DB_METADATA_NULL_SUCCESS_TESTS: list[CommandTestCase] = [
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
             "db": None,
+            "collection": ctx.collection,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
         msg="validateDBMetadata should succeed when db is null",
@@ -74,6 +80,7 @@ VALIDATE_DB_METADATA_NULL_SUCCESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
             "collection": None,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -84,6 +91,8 @@ VALIDATE_DB_METADATA_NULL_SUCCESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "maxTimeMS": None,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -94,6 +103,8 @@ VALIDATE_DB_METADATA_NULL_SUCCESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "readConcern": None,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -104,6 +115,8 @@ VALIDATE_DB_METADATA_NULL_SUCCESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "writeConcern": None,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
