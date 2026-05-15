@@ -13,7 +13,7 @@ Covers behavior that is identical regardless of operator:
 """
 
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -373,7 +373,7 @@ _INVALID_FIELD_TYPE_TEMPLATES = [
     QueryTestCase(
         id="date_field_skipped",
         filter=1,
-        doc=[{"_id": 1, "a": datetime(2024, 1, 1)}],
+        doc=[{"_id": 1, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         expected=[],
         msg="Date field silently skipped",
     ),

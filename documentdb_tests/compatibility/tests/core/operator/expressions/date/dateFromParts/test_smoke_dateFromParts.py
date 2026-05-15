@@ -4,7 +4,7 @@ Smoke test for $dateFromParts expression.
 Tests basic $dateFromParts expression functionality.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -35,5 +35,5 @@ def test_smoke_dateFromParts(collection):
         },
     )
 
-    expected = [{"_id": 1, "date": datetime(2024, 1, 15, 0, 0, 0)}]
+    expected = [{"_id": 1, "date": datetime(2024, 1, 15, 0, 0, 0, tzinfo=timezone.utc)}]
     assertSuccess(result, expected, msg="Should support $dateFromParts expression")

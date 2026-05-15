@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from enum import Enum
 
-from bson import Decimal128, Int64, ObjectId, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.datetime_ms import DatetimeMS
 
 # Int32 boundary values
@@ -61,7 +62,6 @@ DECIMAL128_INFINITY = Decimal128("Infinity")
 DECIMAL128_MAX = Decimal128("9.999999999999999999999999999999999E+6144")
 DECIMAL128_LARGE_EXPONENT = Decimal128("1E+6144")
 DECIMAL128_SMALL_EXPONENT = Decimal128("1E-6143")
-DECIMAL128_MIN_POSITIVE = Decimal128("1E-6176")
 DECIMAL128_TRAILING_ZERO = Decimal128("1.0")
 DECIMAL128_MANY_TRAILING_ZEROS = Decimal128("1.00000000000000000000000000000000")
 DECIMAL128_MAX_COEFFICIENT = Decimal128("9999999999999999999999999999999999")
@@ -164,13 +164,13 @@ NUMERIC = NUMERIC_DECIMAL128 + NUMERIC_FLOAT + NUMERIC_INT32 + NUMERIC_INT64 + N
 NOT_A_NUMBER = [FLOAT_NAN, DECIMAL128_NAN]
 
 # Date constants
-DATE_EPOCH = datetime(1970, 1, 1, 0, 0, 0)
-DATE_BEFORE_EPOCH = datetime(1969, 12, 31, 23, 59, 59, 999000)
-DATE_Y2K = datetime(2000, 1, 1, 0, 0, 0)
-DATE_YEAR_1 = datetime(1, 1, 1, 0, 0, 0)
-DATE_YEAR_9999 = datetime(9999, 12, 31, 23, 59, 59, 999000)
-DATE_YEAR_1900 = datetime(1900, 1, 1, 0, 0, 0)
-DATE_LEAP_FEB29 = datetime(2000, 2, 29, 0, 0, 0)
+DATE_EPOCH = datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+DATE_BEFORE_EPOCH = datetime(1969, 12, 31, 23, 59, 59, 999000, tzinfo=timezone.utc)
+DATE_Y2K = datetime(2000, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+DATE_YEAR_1 = datetime(1, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+DATE_YEAR_9999 = datetime(9999, 12, 31, 23, 59, 59, 999000, tzinfo=timezone.utc)
+DATE_YEAR_1900 = datetime(1900, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+DATE_LEAP_FEB29 = datetime(2000, 2, 29, 0, 0, 0, tzinfo=timezone.utc)
 
 # DatetimeMS constants
 DATE_MS_EPOCH = DatetimeMS(0)
@@ -189,3 +189,48 @@ OID_EPOCH = ObjectId("000000000000000000000000")
 OID_MAX_SIGNED32 = ObjectId("7fffffff0000000000000000")
 OID_MIN_SIGNED32 = ObjectId("800000000000000000000000")
 OID_MAX_UNSIGNED32 = ObjectId("ffffffff0000000000000000")
+
+
+# BSON type identifiers
+class BsonType(Enum):
+    """BSON type identifiers."""
+
+    DOUBLE = "double"
+    STRING = "string"
+    OBJECT = "object"
+    ARRAY = "array"
+    BIN_DATA = "bin_data"
+    OBJECT_ID = "object_id"
+    BOOL = "bool"
+    DATE = "date"
+    NULL = "null"
+    REGEX = "regex"
+    JAVASCRIPT = "javascript"
+    INT = "int"
+    TIMESTAMP = "timestamp"
+    LONG = "long"
+    DECIMAL = "decimal"
+    MIN_KEY = "min_key"
+    MAX_KEY = "max_key"
+
+
+# Representative sample value for each BSON type
+BSON_TYPE_SAMPLES = {
+    BsonType.DOUBLE: 3.14,
+    BsonType.STRING: "hello",
+    BsonType.OBJECT: {"key": "value"},
+    BsonType.ARRAY: ["a", "b", "c"],
+    BsonType.BIN_DATA: Binary(b"\x00\x01\x02"),
+    BsonType.OBJECT_ID: OID_EPOCH,
+    BsonType.BOOL: True,
+    BsonType.DATE: DATE_EPOCH,
+    BsonType.NULL: None,
+    BsonType.REGEX: Regex("^abc", "i"),
+    BsonType.JAVASCRIPT: Code("function(){}"),
+    BsonType.INT: INT32_MAX,
+    BsonType.TIMESTAMP: TS_EPOCH,
+    BsonType.LONG: INT64_MAX,
+    BsonType.DECIMAL: DECIMAL128_HALF,
+    BsonType.MIN_KEY: MinKey(),
+    BsonType.MAX_KEY: MaxKey(),
+}

@@ -18,9 +18,7 @@ from documentdb_tests.framework import fixtures  # noqa: E402
 from documentdb_tests.framework.error_codes_validator import (  # noqa: E402
     validate_error_codes_sorted,
 )
-from documentdb_tests.framework.test_format_validator import (  # noqa: E402
-    validate_test_format,
-)
+from documentdb_tests.framework.test_format_validator import validate_test_format  # noqa: E402
 from documentdb_tests.framework.test_structure_validator import (  # noqa: E402
     validate_python_files_in_tests,
 )
@@ -59,7 +57,7 @@ def pytest_configure(config):
 
 
 def pytest_runtest_setup(item):
-    """Apply engine-specific xfail markers."""
+    """Apply engine-specific xfail and xcrash markers."""
     for marker in item.iter_markers("engine_xfail"):
         if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
             item.add_marker(
@@ -68,6 +66,9 @@ def pytest_runtest_setup(item):
                     raises=marker.kwargs.get("raises", AssertionError),
                 )
             )
+    for marker in item.iter_markers("engine_xcrash"):
+        if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
+            pytest.skip(marker.kwargs.get("reason", "crashes the server"))
 
 
 @pytest.fixture(scope="session")
@@ -171,6 +172,20 @@ def collection(database_client, request, worker_id):
     fixtures.cleanup_collection(database_client, collection_name)
 
 
+@pytest.fixture(scope="function")
+def register_db_cleanup(engine_client):
+    """Provide a callback to register extra databases for post-test cleanup."""
+    names: list[str] = []
+
+    def register(db_name: str) -> None:
+        names.append(db_name)
+
+    yield register
+
+    for name in names:
+        fixtures.cleanup_database(engine_client, name)
+
+
 def pytest_collection_modifyitems(session, config, items):
     """
     Combined pytest hook to validate test structure, format, and framework invariants.
@@ -179,7 +194,28 @@ def pytest_collection_modifyitems(session, config, items):
     'no_parallel' to prevent interference. Run these separately with:
         pytest -m no_parallel -p no:xdist
     Or run them manually with: pytest -m no_parallel -p no:xdist
+
+    Tests marked 'replica_set' are skipped when the server is not a replica set member.
     """
+    # Skip replica_set tests when not connected to a replica set
+    conn_str = getattr(config, "connection_string", "") or ""
+    try:
+        from pymongo import MongoClient
+
+        client = MongoClient(conn_str, serverSelectionTimeoutMS=5000, directConnection=True)
+        is_replica_set = bool(client.admin.command("hello").get("setName"))
+        client.close()
+    except Exception:
+        is_replica_set = False
+    if not is_replica_set:
+        for item in items:
+            if item.get_closest_marker("replica_set"):
+                item.add_marker(
+                    pytest.mark.skip(
+                        reason="requires replica set " "(server is not a replica set member)"
+                    )
+                )
+
     # Deselect no_parallel tests when running under xdist
     is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")
     if is_xdist:

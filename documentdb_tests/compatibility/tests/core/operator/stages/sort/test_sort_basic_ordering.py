@@ -145,8 +145,8 @@ SORT_ASC_DESC_TESTS: list[StageTestCase] = [
         ],
         pipeline=[{"$sort": {"v": 1}}],
         expected=[
-            {"_id": 1, "v": datetime(2024, 1, 1)},
-            {"_id": 2, "v": datetime(2025, 1, 1)},
+            {"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+            {"_id": 2, "v": datetime(2025, 1, 1, tzinfo=timezone.utc)},
         ],
         msg="$sort with order 1 should sort datetimes in ascending order",
     ),
@@ -158,8 +158,8 @@ SORT_ASC_DESC_TESTS: list[StageTestCase] = [
         ],
         pipeline=[{"$sort": {"v": -1}}],
         expected=[
-            {"_id": 2, "v": datetime(2025, 1, 1)},
-            {"_id": 1, "v": datetime(2024, 1, 1)},
+            {"_id": 2, "v": datetime(2025, 1, 1, tzinfo=timezone.utc)},
+            {"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         ],
         msg="$sort with order -1 should sort datetimes in descending order",
     ),
@@ -322,8 +322,8 @@ SORT_EQUAL_VALUE_TESTS: list[StageTestCase] = [
         ],
         pipeline=[{"$sort": {"v": 1, "_id": 1}}],
         expected=[
-            {"_id": 1, "v": datetime(2024, 1, 1)},
-            {"_id": 2, "v": datetime(2024, 1, 1)},
+            {"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+            {"_id": 2, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         ],
         msg="$sort should handle equal datetime values with _id tiebreaker",
     ),

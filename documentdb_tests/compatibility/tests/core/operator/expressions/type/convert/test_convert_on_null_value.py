@@ -92,7 +92,7 @@ _ON_NULL_VARY_VALUE_PATTERNS: list[ConvertTest] = [
         input=_PLACEHOLDER,
         to="int",
         on_null=datetime(2024, 6, 15, tzinfo=timezone.utc),
-        expected=datetime(2024, 6, 15),
+        expected=datetime(2024, 6, 15, tzinfo=timezone.utc),
         msg="$convert onNull should return date as-is ({prefix} input)",
     ),
     ConvertTest(

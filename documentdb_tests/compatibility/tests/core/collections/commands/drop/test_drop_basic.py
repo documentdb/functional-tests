@@ -4,12 +4,12 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.target_collection import (
-    NamedCollection,
-)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.target_collection import (
+    NamedCollection,
+)
 
 # Property [Basic Drop Response]: drop returns ok:1 with expected fields
 # for various collection states.

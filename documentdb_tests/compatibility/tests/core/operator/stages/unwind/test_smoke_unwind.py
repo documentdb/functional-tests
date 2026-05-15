@@ -18,7 +18,7 @@ def test_smoke_unwind(collection):
 
     result = execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": [{"$unwind": "$items"}], "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [{"$unwind": {"path": "$items"}}], "cursor": {}},
     )
 
     expected = [{"_id": 1, "items": "A"}, {"_id": 1, "items": "B"}, {"_id": 2, "items": "C"}]

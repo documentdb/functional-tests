@@ -70,8 +70,8 @@ SETUNION_DATETIME_TESTS: list[ExpressionTestCase] = [
             ]
         },
         expected=[
-            datetime(2024, 1, 1),
-            datetime(2025, 1, 1),
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+            datetime(2025, 1, 1, tzinfo=timezone.utc),
         ],
         msg="$setUnion should deduplicate identical datetime values",
     ),
@@ -305,7 +305,7 @@ _ALL_BSON_ELEMENTS = [
     {"key": "val"},
     [1, 2],
     ObjectId("507f1f77bcf86cd799439011"),
-    datetime(2024, 1, 1),
+    datetime(2024, 1, 1, tzinfo=timezone.utc),
     Timestamp(1, 1),
     b"\x01\x02\x03",
     Regex("abc", 2),
