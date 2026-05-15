@@ -119,6 +119,21 @@ class ExistingDatabase(TargetCollection):
 
 
 @dataclass(frozen=True)
+class ViewChainCollection(TargetCollection):
+    """A chain of views on the fixture collection."""
+
+    depth: int = 1
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        source = collection.name
+        for i in range(1, self.depth + 1):
+            name = f"{collection.name}_chain_{i}"
+            db.command("create", name, viewOn=source, pipeline=[])
+            source = name
+        return db[source]
+
+
+@dataclass(frozen=True)
 class TimeseriesCollection(TargetCollection):
     """A time series collection."""
 
