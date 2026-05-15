@@ -57,7 +57,7 @@ def pytest_configure(config):
 
 
 def pytest_runtest_setup(item):
-    """Apply engine-specific xfail markers."""
+    """Apply engine-specific xfail and xcrash markers."""
     for marker in item.iter_markers("engine_xfail"):
         if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
             item.add_marker(
@@ -66,6 +66,9 @@ def pytest_runtest_setup(item):
                     raises=marker.kwargs.get("raises", AssertionError),
                 )
             )
+    for marker in item.iter_markers("engine_xcrash"):
+        if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
+            pytest.skip(marker.kwargs.get("reason", "crashes the server"))
 
 
 @pytest.fixture(scope="session")
@@ -171,16 +174,27 @@ def collection(database_client, request, worker_id):
 
 @pytest.fixture(scope="function")
 def register_db_cleanup(engine_client):
-    """Provide a callback to register extra databases for post-test cleanup."""
+    """Provide a callback to register extra databases or namespaces for post-test cleanup.
+
+    Accepts either a bare database name (drops the entire database) or a
+    dot-separated namespace like "db.collection" (drops only that collection).
+    """
     names: list[str] = []
 
-    def register(db_name: str) -> None:
-        names.append(db_name)
+    def register(db_or_namespace: str) -> None:
+        names.append(db_or_namespace)
 
     yield register
 
     for name in names:
-        fixtures.cleanup_database(engine_client, name)
+        if "." in name:
+            db, coll = name.split(".", 1)
+            try:
+                engine_client[db].drop_collection(coll)
+            except Exception:
+                pass
+        else:
+            fixtures.cleanup_database(engine_client, name)
 
 
 def pytest_collection_modifyitems(session, config, items):
