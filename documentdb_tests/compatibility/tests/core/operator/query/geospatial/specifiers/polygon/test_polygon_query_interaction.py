@@ -65,15 +65,6 @@ FIND_QUERY_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(FIND_QUERY_TESTS))
-def test_polygon_find_queries(collection, test):
-    """Test $polygon in various find query contexts."""
-    if test.doc:
-        collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected)
-
-
 COMBINED_OPERATOR_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="with_and",
@@ -142,10 +133,14 @@ COMBINED_OPERATOR_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(COMBINED_OPERATOR_TESTS))
-def test_polygon_combined_operators(collection, test):
-    """Test $polygon combined with other query operators."""
-    collection.insert_many(test.doc)
+QUERY_INTERACTION_TESTS: list[QueryTestCase] = FIND_QUERY_TESTS + COMBINED_OPERATOR_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(QUERY_INTERACTION_TESTS))
+def test_polygon_query_interaction(collection, test):
+    """Test $polygon query interaction."""
+    if test.doc:
+        collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, ignore_doc_order=True)
 

@@ -1,12 +1,15 @@
 """
 Tests for $polygon data type coverage.
 
-Validates numeric types in coordinates, document location field types,
-and embedded object and nested field path behavior.
+Validates numeric types in coordinates, matching location field types,
+non-matching location field types, and embedded object and nested field
+path behavior.
 """
 
+from datetime import datetime, timezone
+
 import pytest
-from bson import Decimal128, Int64
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
     QueryTestCase,
@@ -14,6 +17,7 @@ from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_c
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import FLOAT_INFINITY, FLOAT_NAN
 
 NUMERIC_COORDINATE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -99,6 +103,9 @@ LOCATION_FIELD_TYPE_TESTS: list[QueryTestCase] = [
         ],
         msg="$polygon matches both GeoJSON points and legacy coordinate pairs",
     ),
+]
+
+NON_MATCHING_FIELD_TYPE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="null_location_no_match",
         filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
@@ -134,6 +141,79 @@ LOCATION_FIELD_TYPE_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 2, "loc": [5, 5]}],
         msg="Boolean location field should not match",
     ),
+    QueryTestCase(
+        id="nan_location_no_match",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[{"_id": 1, "loc": [FLOAT_NAN, FLOAT_NAN]}, {"_id": 2, "loc": [5, 5]}],
+        expected=[{"_id": 2, "loc": [5, 5]}],
+        msg="NaN location field should not match",
+    ),
+    QueryTestCase(
+        id="infinity_location_no_match",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[{"_id": 1, "loc": [FLOAT_INFINITY, FLOAT_INFINITY]}, {"_id": 2, "loc": [5, 5]}],
+        expected=[{"_id": 2, "loc": [5, 5]}],
+        msg="Infinity location field should not match",
+    ),
+    QueryTestCase(
+        id="javascript_location_no_match",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[{"_id": 1, "loc": Code("function() {}")}, {"_id": 2, "loc": [5, 5]}],
+        expected=[{"_id": 2, "loc": [5, 5]}],
+        msg="JavaScript location field should not match",
+    ),
+    QueryTestCase(
+        id="binary_location_no_match",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[{"_id": 1, "loc": Binary(b"\x00")}, {"_id": 2, "loc": [5, 5]}],
+        expected=[{"_id": 2, "loc": [5, 5]}],
+        msg="Binary location field should not match",
+    ),
+    QueryTestCase(
+        id="objectid_location_no_match",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[{"_id": 1, "loc": ObjectId()}, {"_id": 2, "loc": [5, 5]}],
+        expected=[{"_id": 2, "loc": [5, 5]}],
+        msg="ObjectId location field should not match",
+    ),
+    QueryTestCase(
+        id="date_location_no_match",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[
+            {"_id": 1, "loc": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+            {"_id": 2, "loc": [5, 5]},
+        ],
+        expected=[{"_id": 2, "loc": [5, 5]}],
+        msg="Date location field should not match",
+    ),
+    QueryTestCase(
+        id="regex_location_no_match",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[{"_id": 1, "loc": Regex(".*")}, {"_id": 2, "loc": [5, 5]}],
+        expected=[{"_id": 2, "loc": [5, 5]}],
+        msg="Regex location field should not match",
+    ),
+    QueryTestCase(
+        id="timestamp_location_no_match",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[{"_id": 1, "loc": Timestamp(0, 0)}, {"_id": 2, "loc": [5, 5]}],
+        expected=[{"_id": 2, "loc": [5, 5]}],
+        msg="Timestamp location field should not match",
+    ),
+    QueryTestCase(
+        id="minkey_location_no_match",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[{"_id": 1, "loc": MinKey()}, {"_id": 2, "loc": [5, 5]}],
+        expected=[{"_id": 2, "loc": [5, 5]}],
+        msg="MinKey location field should not match",
+    ),
+    QueryTestCase(
+        id="maxkey_location_no_match",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[{"_id": 1, "loc": MaxKey()}, {"_id": 2, "loc": [5, 5]}],
+        expected=[{"_id": 2, "loc": [5, 5]}],
+        msg="MaxKey location field should not match",
+    ),
 ]
 
 
@@ -164,7 +244,10 @@ EMBEDDED_LOCATION_TESTS: list[QueryTestCase] = [
 
 
 DATA_TYPE_TESTS: list[QueryTestCase] = (
-    NUMERIC_COORDINATE_TESTS + LOCATION_FIELD_TYPE_TESTS + EMBEDDED_LOCATION_TESTS
+    NUMERIC_COORDINATE_TESTS
+    + LOCATION_FIELD_TYPE_TESTS
+    + NON_MATCHING_FIELD_TYPE_TESTS
+    + EMBEDDED_LOCATION_TESTS
 )
 
 
