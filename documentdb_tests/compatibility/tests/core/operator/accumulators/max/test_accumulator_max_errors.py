@@ -249,7 +249,7 @@ def test_accumulator_max_expression_errors(collection, test_case):
         collection.insert_many(test_case.docs)
     result = execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
 
@@ -261,6 +261,6 @@ def test_accumulator_max_arity_errors(collection, test_case):
         collection.insert_many(test_case.docs)
     result = execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
