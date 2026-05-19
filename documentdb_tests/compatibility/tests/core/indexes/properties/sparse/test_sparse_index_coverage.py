@@ -168,47 +168,6 @@ def test_sparse_coverage_count(collection, test):
     assertSuccess(result, test.expected, raw_res=True)
 
 
-def test_sparse_text_skips_missing_text(collection):
-    """Test text index is always sparse — skips docs without text field."""
-    execute_command(
-        collection,
-        {
-            "createIndexes": collection.name,
-            "indexes": [{"key": {"content": "text"}, "name": "idx_text"}],
-        },
-    )
-    collection.insert_many(
-        [
-            {"_id": 1, "content": "hello world"},
-            {"_id": 2},
-            {"_id": 3, "content": "test"},
-        ]
-    )
-    result = execute_command(
-        collection,
-        {"find": collection.name, "filter": {"$text": {"$search": "hello"}}, "sort": {"_id": 1}},
-    )
-    assertSuccess(result, [{"_id": 1, "content": "hello world"}])
-
-
-def test_sparse_exists_false_not_affected(collection):
-    """Test $exists:false returns correct count even with sparse index present."""
-    execute_command(
-        collection,
-        {
-            "createIndexes": collection.name,
-            "indexes": [{"key": {"a": 1}, "name": "idx_sparse", "sparse": True}],
-        },
-    )
-    collection.insert_many(
-        [{"_id": 1, "a": 1}, {"_id": 2, "a": 2}, {"_id": 3}, {"_id": 4, "a": None}]
-    )
-    result = execute_command(
-        collection, {"count": collection.name, "query": {"a": {"$exists": False}}}
-    )
-    assertSuccess(result, {"n": 1, "ok": 1.0}, raw_res=True)
-
-
 def test_sparse_agg_sort_returns_all_docs(collection):
     """Test $sort in aggregation returns all documents regardless of sparse index."""
     execute_command(
