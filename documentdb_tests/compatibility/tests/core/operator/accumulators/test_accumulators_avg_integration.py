@@ -360,7 +360,7 @@ def test_accumulators_avg_integration(collection, test_case: AccumulatorTestCase
         collection.insert_many(test_case.docs)
     result = execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertResult(
         result,
