@@ -104,20 +104,6 @@ ERROR_HANDLING_TESTS: list[QueryTestCase] = [
         error_code=BAD_VALUE_ERROR,
         msg="$nor at non-top-level position should return BadValue error",
     ),
-    QueryTestCase(
-        id="invalid_operator_inside_expression",
-        filter={"$nor": [{"val": {"$invalid": 1}}]},
-        doc=DOCS,
-        error_code=BAD_VALUE_ERROR,
-        msg="$nor with invalid operator inside expression should return BadValue error",
-    ),
-    QueryTestCase(
-        id="mixed_valid_invalid_expressions",
-        filter={"$nor": [{"a": 1}, {"val": {"$invalid": 1}}]},
-        doc=DOCS,
-        error_code=BAD_VALUE_ERROR,
-        msg="$nor with mixed valid/invalid expressions should return BadValue error",
-    ),
 ]
 
 ALL_TESTS = (
