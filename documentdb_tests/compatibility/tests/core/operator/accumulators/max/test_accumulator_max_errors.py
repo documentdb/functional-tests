@@ -4,11 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.operator.accumulators.max.utils.max_helpers import (
-    bucket_auto_max,
-    bucket_max,
-    group_max,
-)
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
 )
@@ -36,21 +31,30 @@ MAX_EXPRESSION_ERROR_GROUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "error_toInt_invalid_group",
         docs=[{"v": "not_a_number"}],
-        pipeline=group_max({"$toInt": "$v"}),
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": {"$toInt": "$v"}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=CONVERSION_FAILURE_ERROR,
         msg="$max should propagate conversion error from $toInt sub-expression in $group",
     ),
     AccumulatorTestCase(
         "error_divide_by_zero_group",
         docs=[{"v": 10}],
-        pipeline=group_max({"$divide": ["$v", 0]}),
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": {"$divide": ["$v", 0]}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=DIVIDE_BY_ZERO_V2_ERROR,
         msg="$max should propagate divide-by-zero error in $group",
     ),
     AccumulatorTestCase(
         "error_mod_by_zero_group",
         docs=[{"v": 10}],
-        pipeline=group_max({"$mod": ["$v", 0]}),
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": {"$mod": ["$v", 0]}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=MODULO_BY_ZERO_V2_ERROR,
         msg="$max should propagate mod-by-zero error in $group",
     ),
@@ -60,21 +64,48 @@ MAX_EXPRESSION_ERROR_BUCKET_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "error_toInt_invalid_bucket",
         docs=[{"v": "not_a_number"}],
-        pipeline=bucket_max({"$toInt": "$v"}),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": {"$toInt": "$v"}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=CONVERSION_FAILURE_ERROR,
         msg="$max should propagate conversion error from $toInt sub-expression in $bucket",
     ),
     AccumulatorTestCase(
         "error_divide_by_zero_bucket",
         docs=[{"v": 10}],
-        pipeline=bucket_max({"$divide": ["$v", 0]}),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": {"$divide": ["$v", 0]}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=DIVIDE_BY_ZERO_V2_ERROR,
         msg="$max should propagate divide-by-zero error in $bucket",
     ),
     AccumulatorTestCase(
         "error_mod_by_zero_bucket",
         docs=[{"v": 10}],
-        pipeline=bucket_max({"$mod": ["$v", 0]}),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": {"$mod": ["$v", 0]}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=MODULO_BY_ZERO_V2_ERROR,
         msg="$max should propagate mod-by-zero error in $bucket",
     ),
@@ -85,21 +116,48 @@ MAX_EXPRESSION_ERROR_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "error_toInt_invalid_bucket_auto",
         docs=[{"v": "not_a_number"}],
-        pipeline=bucket_auto_max({"$toInt": "$v"}),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": {"$toInt": "$v"}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=CONVERSION_FAILURE_ERROR,
         msg="$max should propagate conversion error from $toInt in $bucketAuto",
     ),
     AccumulatorTestCase(
         "error_divide_by_zero_bucket_auto",
         docs=[{"v": 10}],
-        pipeline=bucket_auto_max({"$divide": ["$v", 0]}),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": {"$divide": ["$v", 0]}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=BAD_VALUE_ERROR,
         msg="$max should propagate divide-by-zero error in $bucketAuto (wrapped as BAD_VALUE)",
     ),
     AccumulatorTestCase(
         "error_mod_by_zero_bucket_auto",
         docs=[{"v": 10}],
-        pipeline=bucket_auto_max({"$mod": ["$v", 0]}),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": {"$mod": ["$v", 0]}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=MODULO_ZERO_REMAINDER_ERROR,
         msg="$max should propagate mod-by-zero error in $bucketAuto (wrapped as 16610)",
     ),
@@ -122,35 +180,50 @@ MAX_ARITY_ERROR_GROUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "arity_empty_array_group",
         docs=[{"v": 1}],
-        pipeline=group_max([]),
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": []}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject empty array in accumulator context ($group)",
     ),
     AccumulatorTestCase(
         "arity_single_element_array_group",
         docs=[{"v": 1}],
-        pipeline=group_max([1]),
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": [1]}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject single-element literal array in accumulator context ($group)",
     ),
     AccumulatorTestCase(
         "arity_single_field_ref_array_group",
         docs=[{"v": 1}],
-        pipeline=group_max(["$v"]),
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": ["$v"]}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject single field ref in array in accumulator context ($group)",
     ),
     AccumulatorTestCase(
         "arity_multi_element_array_group",
         docs=[{"v": 1}],
-        pipeline=group_max([1, 2, 3]),
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": [1, 2, 3]}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject multi-element array in accumulator context ($group)",
     ),
     AccumulatorTestCase(
         "arity_multi_key_expression_object_group",
         docs=[{"v": 1}],
-        pipeline=group_max({"$add": [1, 2], "$multiply": [3, 4]}),
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": {"$add": [1, 2], "$multiply": [3, 4]}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
         msg="$max should reject multi-key expression object ($group)",
     ),
@@ -160,35 +233,80 @@ MAX_ARITY_ERROR_BUCKET_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "arity_empty_array_bucket",
         docs=[{"v": 1}],
-        pipeline=bucket_max([]),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": []}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject empty array in accumulator context ($bucket)",
     ),
     AccumulatorTestCase(
         "arity_single_element_array_bucket",
         docs=[{"v": 1}],
-        pipeline=bucket_max([1]),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": [1]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject single-element literal array in accumulator context ($bucket)",
     ),
     AccumulatorTestCase(
         "arity_single_field_ref_array_bucket",
         docs=[{"v": 1}],
-        pipeline=bucket_max(["$v"]),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": ["$v"]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject single field ref in array in accumulator context ($bucket)",
     ),
     AccumulatorTestCase(
         "arity_multi_element_array_bucket",
         docs=[{"v": 1}],
-        pipeline=bucket_max([1, 2, 3]),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": [1, 2, 3]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject multi-element array in accumulator context ($bucket)",
     ),
     AccumulatorTestCase(
         "arity_multi_key_expression_object_bucket",
         docs=[{"v": 1}],
-        pipeline=bucket_max({"$add": [1, 2], "$multiply": [3, 4]}),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": {"$add": [1, 2], "$multiply": [3, 4]}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
         msg="$max should reject multi-key expression object ($bucket)",
     ),
@@ -198,35 +316,80 @@ MAX_ARITY_ERROR_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "arity_empty_array_bucket_auto",
         docs=[{"v": 1}],
-        pipeline=bucket_auto_max([]),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": []}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject empty array in accumulator context ($bucketAuto)",
     ),
     AccumulatorTestCase(
         "arity_single_element_array_bucket_auto",
         docs=[{"v": 1}],
-        pipeline=bucket_auto_max([1]),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": [1]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject single-element literal array in accumulator context ($bucketAuto)",
     ),
     AccumulatorTestCase(
         "arity_single_field_ref_array_bucket_auto",
         docs=[{"v": 1}],
-        pipeline=bucket_auto_max(["$v"]),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": ["$v"]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject single field ref in array in accumulator context ($bucketAuto)",
     ),
     AccumulatorTestCase(
         "arity_multi_element_array_bucket_auto",
         docs=[{"v": 1}],
-        pipeline=bucket_auto_max([1, 2, 3]),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": [1, 2, 3]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
         msg="$max should reject multi-element array in accumulator context ($bucketAuto)",
     ),
     AccumulatorTestCase(
         "arity_multi_key_expression_object_bucket_auto",
         docs=[{"v": 1}],
-        pipeline=bucket_auto_max({"$add": [1, 2], "$multiply": [3, 4]}),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": {"$add": [1, 2], "$multiply": [3, 4]}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         error_code=EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
         msg="$max should reject multi-key expression object ($bucketAuto)",
     ),

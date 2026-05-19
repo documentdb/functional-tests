@@ -4,10 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.operator.accumulators.max.utils.max_helpers import (
-    bucket_auto_max,
-    bucket_max,
-)
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
 )
@@ -32,49 +28,112 @@ MAX_BUCKET_SMOKE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "bucket_null_all",
         docs=[{"v": None}, {"v": None}],
-        pipeline=bucket_max("$v"),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": None}],
         msg="$max via $bucket should return null when all values are null",
     ),
     AccumulatorTestCase(
         "bucket_numeric_basic",
         docs=[{"v": 10}, {"v": 30}, {"v": 20}],
-        pipeline=bucket_max("$v"),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 30}],
         msg="$max via $bucket should return the largest int32 value",
     ),
     AccumulatorTestCase(
         "bucket_string_basic",
         docs=[{"v": "abc"}, {"v": "abd"}],
-        pipeline=bucket_max("$v"),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": "abd"}],
         msg="$max via $bucket should pick the lexicographically larger string",
     ),
     AccumulatorTestCase(
         "bucket_nan_vs_positive",
         docs=[{"v": FLOAT_NAN}, {"v": 5}],
-        pipeline=bucket_max("$v"),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 5}],
         msg="$max via $bucket should pick positive number over NaN",
     ),
     AccumulatorTestCase(
         "bucket_infinity",
         docs=[{"v": FLOAT_INFINITY}, {"v": INT32_MAX}],
-        pipeline=bucket_max("$v"),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": FLOAT_INFINITY}],
         msg="$max via $bucket should pick Infinity over INT32_MAX",
     ),
     AccumulatorTestCase(
         "bucket_boundary_int64",
         docs=[{"v": INT64_MAX}, {"v": INT64_MIN}],
-        pipeline=bucket_max("$v"),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": INT64_MAX}],
         msg="$max via $bucket should pick INT64_MAX over INT64_MIN",
     ),
     AccumulatorTestCase(
         "bucket_edge_single_doc",
         docs=[{"v": 42}],
-        pipeline=bucket_max("$v"),
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 42}],
         msg="$max via $bucket should handle single document",
     ),
@@ -91,49 +150,112 @@ MAX_BUCKET_AUTO_SMOKE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "bucket_auto_null_all",
         docs=[{"v": None}, {"v": None}],
-        pipeline=bucket_auto_max("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": None}],
         msg="$max via $bucketAuto should return null when all values are null",
     ),
     AccumulatorTestCase(
         "bucket_auto_numeric_basic",
         docs=[{"v": 10}, {"v": 30}, {"v": 20}],
-        pipeline=bucket_auto_max("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 30}],
         msg="$max via $bucketAuto should return the largest int32 value",
     ),
     AccumulatorTestCase(
         "bucket_auto_string_basic",
         docs=[{"v": "abc"}, {"v": "abd"}],
-        pipeline=bucket_auto_max("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": "abd"}],
         msg="$max via $bucketAuto should pick the lexicographically larger string",
     ),
     AccumulatorTestCase(
         "bucket_auto_nan_vs_positive",
         docs=[{"v": FLOAT_NAN}, {"v": 5}],
-        pipeline=bucket_auto_max("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 5}],
         msg="$max via $bucketAuto should pick positive number over NaN",
     ),
     AccumulatorTestCase(
         "bucket_auto_infinity",
         docs=[{"v": FLOAT_INFINITY}, {"v": INT32_MAX}],
-        pipeline=bucket_auto_max("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": FLOAT_INFINITY}],
         msg="$max via $bucketAuto should pick Infinity over INT32_MAX",
     ),
     AccumulatorTestCase(
         "bucket_auto_boundary_int64",
         docs=[{"v": INT64_MAX}, {"v": INT64_MIN}],
-        pipeline=bucket_auto_max("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": INT64_MAX}],
         msg="$max via $bucketAuto should pick INT64_MAX over INT64_MIN",
     ),
     AccumulatorTestCase(
         "bucket_auto_edge_single_doc",
         docs=[{"v": 42}],
-        pipeline=bucket_auto_max("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 42}],
         msg="$max via $bucketAuto should handle single document",
     ),
