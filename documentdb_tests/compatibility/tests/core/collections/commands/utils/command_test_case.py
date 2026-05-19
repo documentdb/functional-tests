@@ -11,6 +11,7 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 
 from documentdb_tests.framework.target_collection import (
+    SiblingCollection,
     TargetCollection,
 )
 from documentdb_tests.framework.test_case import BaseTestCase
@@ -24,17 +25,25 @@ class CommandContext:
         collection: The resolved collection name.
         database: The resolved database name.
         namespace: The full namespace string (``database.collection``).
+        uuids: Mapping of collection names to their server-assigned UUIDs.
     """
 
     collection: str
     database: str
     namespace: str
+    uuids: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_collection(cls, collection: Collection) -> CommandContext:
-        db = collection.database.name
+        db_obj = collection.database
+        db = db_obj.name
         coll_name = collection.name
-        return cls(collection=coll_name, database=db, namespace=f"{db}.{coll_name}")
+        uuids = {}
+        for info in db_obj.list_collections():
+            coll_info = info.get("info", {})
+            if "uuid" in coll_info:
+                uuids[info["name"]] = coll_info["uuid"]
+        return cls(collection=coll_name, database=db, namespace=f"{db}.{coll_name}", uuids=uuids)
 
 
 @dataclass(frozen=True)
@@ -58,6 +67,7 @@ class CommandTestCase(BaseTestCase):
     """
 
     target_collection: TargetCollection = field(default_factory=TargetCollection)
+    siblings: list[SiblingCollection] | None = None
     indexes: list[IndexModel] | None = None
     docs: list[dict[str, Any]] | None = None
     command: dict[str, Any] | Callable[..., dict[str, Any]] | None = None
@@ -78,6 +88,9 @@ class CommandTestCase(BaseTestCase):
                 collection.database.create_collection(collection.name)
             if self.docs:
                 collection.insert_many(self.docs)
+        if self.siblings:
+            for sibling in self.siblings:
+                sibling.create(db, collection)
         return collection
 
     def build_command(self, ctx: CommandContext) -> dict[str, Any]:
