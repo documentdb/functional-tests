@@ -162,13 +162,18 @@ LAST_ERROR_TESTS = (
 )
 
 
-@pytest.mark.parametrize("test_case", pytest_params(LAST_ERROR_TESTS))
-def test_last_errors(collection, test_case: AccumulatorTestCase):
-    """Test $last error cases."""
+def _run(collection, test_case: AccumulatorTestCase):
+    """Insert docs and execute the pipeline."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
-    result = execute_command(
+    return execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
     )
+
+
+@pytest.mark.parametrize("test_case", pytest_params(LAST_ERROR_TESTS))
+def test_last_errors(collection, test_case: AccumulatorTestCase):
+    """Test $last error cases."""
+    result = _run(collection, test_case)
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)

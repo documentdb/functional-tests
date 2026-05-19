@@ -159,17 +159,18 @@ LAST_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
 ]
 
 
+def _run(collection, test_case: AccumulatorTestCase):
+    """Insert docs and execute the pipeline."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    return execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+
+
 @pytest.mark.parametrize("test_case", pytest_params(LAST_RETURN_TYPE_TESTS))
 def test_last_group_types(collection, test_case: AccumulatorTestCase):
     """Test $last return type preservation via $type projection."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": test_case.pipeline,
-            "cursor": {},
-        },
-    )
+    result = _run(collection, test_case)
     assertResult(result, expected=test_case.expected, msg=test_case.msg)

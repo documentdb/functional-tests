@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from datetime import datetime, timezone
 
 import pytest
@@ -20,7 +21,7 @@ from bson import (
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertSuccess, assertSuccessNaN
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
@@ -39,10 +40,6 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-# ---------------------------------------------------------------------------
-# Pipeline helpers
-# ---------------------------------------------------------------------------
-
 
 def _group_last(acc):
     """Build a $sort + $group pipeline for $last."""
@@ -52,10 +49,6 @@ def _group_last(acc):
         {"$project": {"_id": 0, "result": 1}},
     ]
 
-
-# ---------------------------------------------------------------------------
-# Property lists
-# ---------------------------------------------------------------------------
 
 # Property [BSON Type Passthrough]: $last returns the last value in a group
 # unchanged, preserving its exact BSON type without coercion.
@@ -341,13 +334,12 @@ LAST_SORT_ORDER_TESTS: list[AccumulatorTestCase] = [
 
 # Property [Special Numeric Passthrough]: $last passes through special numeric
 # values (NaN, Infinity, negative zero) without transformation.
-# NaN tests are separated because they require assertSuccessNaN for comparison.
-LAST_NAN_TESTS: list[AccumulatorTestCase] = [
+LAST_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "nan_double",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": FLOAT_NAN}],
         pipeline=_group_last("$v"),
-        expected=[{"result": FLOAT_NAN}],
+        expected=[{"result": pytest.approx(math.nan, nan_ok=True)}],
         msg="$last should return double NaN unchanged",
     ),
     AccumulatorTestCase(
@@ -357,9 +349,6 @@ LAST_NAN_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": Decimal128("NaN")}],
         msg="$last should return Decimal128 NaN unchanged",
     ),
-]
-
-LAST_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "inf_double",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": FLOAT_INFINITY}],
@@ -658,10 +647,3 @@ def test_accumulator_last(collection, test_case: AccumulatorTestCase):
     """Test $last accumulator success cases."""
     result = _run(collection, test_case)
     assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(LAST_NAN_TESTS))
-def test_accumulator_last_nan(collection, test_case: AccumulatorTestCase):
-    """Test $last accumulator NaN passthrough (requires NaN-aware comparison)."""
-    result = _run(collection, test_case)
-    assertSuccessNaN(result, test_case.expected, msg=test_case.msg)
