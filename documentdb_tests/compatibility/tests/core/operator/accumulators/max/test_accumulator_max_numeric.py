@@ -386,7 +386,7 @@ MAX_BOUNDARY_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$max": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
-        expected=[{"result": DOUBLE_PRECISION_LOSS}],
+        expected=[{"result": Int64(DOUBLE_PRECISION_LOSS)}],
         msg="$max should pick DOUBLE_PRECISION_LOSS over "
         "DOUBLE_MAX_SAFE_INTEGER at precision boundary",
     ),
@@ -623,24 +623,13 @@ MAX_NUMERIC_SUCCESS_TESTS = (
     + MAX_BOUNDARY_TESTS
     + MAX_NEGZERO_TESTS
     + MAX_DECIMAL_PRECISION_TESTS
+    + MAX_RETURN_TYPE_TESTS
 )
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MAX_NUMERIC_SUCCESS_TESTS))
 def test_accumulator_max_numeric(collection, test_case: AccumulatorTestCase):
-    """Test $max accumulator numeric edge cases via $group."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(MAX_RETURN_TYPE_TESTS))
-def test_accumulator_max_return_type(collection, test_case: AccumulatorTestCase):
-    """Test $max return type preservation."""
+    """Test $max accumulator numeric edge cases and return type preservation via $group."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(

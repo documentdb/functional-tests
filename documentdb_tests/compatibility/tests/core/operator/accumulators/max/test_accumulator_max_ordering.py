@@ -218,14 +218,14 @@ MAX_STRING_TESTS: list[AccumulatorTestCase] = [
         msg="$max should compare strings containing null bytes correctly",
     ),
     AccumulatorTestCase(
-        "string_unicode_no_normalization",
+        "string_unicode_precomposed_over_decomposed",
         docs=[{"v": "\u00e9"}, {"v": "e\u0301"}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$max": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
-        expected=[{"result": "e\u0301"}],
-        msg="$max should distinguish precomposed and decomposed unicode (no normalization)",
+        expected=[{"result": "\u00e9"}],
+        msg="$max should pick precomposed \\u00e9 (0xC3A9) over decomposed e\\u0301 (0x65CC81)",
     ),
     AccumulatorTestCase(
         "string_4byte_utf8",

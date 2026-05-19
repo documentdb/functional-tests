@@ -401,25 +401,15 @@ MAX_ARITY_ERROR_TESTS = (
 
 
 # ===========================================================================
-# Test functions
+# Combined error tests and test function
 # ===========================================================================
 
-
-@pytest.mark.parametrize("test_case", pytest_params(MAX_EXPRESSION_ERROR_TESTS))
-def test_accumulator_max_expression_errors(collection, test_case):
-    """Test $max expression error propagation."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
+MAX_ERROR_TESTS = MAX_EXPRESSION_ERROR_TESTS + MAX_ARITY_ERROR_TESTS
 
 
-@pytest.mark.parametrize("test_case", pytest_params(MAX_ARITY_ERROR_TESTS))
-def test_accumulator_max_arity_errors(collection, test_case):
-    """Test $max arity rejection across all three stages."""
+@pytest.mark.parametrize("test_case", pytest_params(MAX_ERROR_TESTS))
+def test_accumulator_max_errors(collection, test_case):
+    """Test $max accumulator error cases: expression errors and arity rejection."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(
