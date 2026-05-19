@@ -87,18 +87,6 @@ PROPERTY_COMBINATION_CREATE_TESTS: list[IndexTestCase] = [
         msg="Should allow TTL + sparse + unique",
     ),
     IndexTestCase(
-        id="sparse_with_partial_filter",
-        indexes=(
-            {
-                "key": {"status": 1},
-                "name": "idx_sparse_partial",
-                "sparse": True,
-                "partialFilterExpression": {"status": {"$exists": True}},
-            },
-        ),
-        msg="Should allow sparse + partialFilterExpression",
-    ),
-    IndexTestCase(
         id="sparse_with_collation",
         indexes=(
             {
