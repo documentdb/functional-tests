@@ -2,8 +2,8 @@
 Tests for $polygon query context interaction.
 
 Validates $polygon in find with various options (projection, sort, limit),
-combined with other operators, $expr non-support, and special collection
-contexts.
+combined with other operators ($not, $and, $or, $box, $center),
+$expr non-support, and special collection contexts.
 """
 
 import pytest
@@ -66,6 +66,22 @@ FIND_QUERY_TESTS: list[QueryTestCase] = [
 
 
 COMBINED_OPERATOR_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="with_not",
+        filter={
+            "loc": {"$not": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}}
+        },
+        doc=[
+            {"_id": 1, "loc": [5, 5]},
+            {"_id": 2, "loc": [15, 15]},
+            {"_id": 3, "loc": [25, 25]},
+        ],
+        expected=[
+            {"_id": 2, "loc": [15, 15]},
+            {"_id": 3, "loc": [25, 25]},
+        ],
+        msg="$not with $polygon should return points outside the polygon",
+    ),
     QueryTestCase(
         id="with_and",
         filter={

@@ -138,6 +138,29 @@ BOUNDARY_INCLUSION_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 1, "loc": [0, 0]}, {"_id": 2, "loc": [5, 5]}],
         msg="Point on polygon vertex should match",
     ),
+    QueryTestCase(
+        id="point_on_diagonal_edge",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [10, 10], [10, 0]]}}},
+        doc=[
+            {"_id": 1, "loc": [5, 5]},  # midpoint of hypotenuse [0,0]->[10,10]
+            {"_id": 2, "loc": [3, 3]},  # on hypotenuse
+            {"_id": 3, "loc": [5, 1]},  # inside triangle
+            {"_id": 4, "loc": [0, 10]},  # outside
+        ],
+        expected=[{"_id": 3, "loc": [5, 1]}],
+        msg="Point on non-axis-aligned (diagonal) edge is not included",
+    ),
+    QueryTestCase(
+        id="point_collinear_beyond_segment",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [10, 10], [10, 0]]}}},
+        doc=[
+            {"_id": 1, "loc": [15, 15]},  # collinear with [0,0]->[10,10] but beyond
+            {"_id": 2, "loc": [-5, -5]},  # collinear but before start
+            {"_id": 3, "loc": [5, 1]},  # inside triangle
+        ],
+        expected=[{"_id": 3, "loc": [5, 1]}],
+        msg="Point collinear with edge but beyond segment should not match",
+    ),
 ]
 
 LARGE_POINT_COUNT_TESTS: list[QueryTestCase] = [

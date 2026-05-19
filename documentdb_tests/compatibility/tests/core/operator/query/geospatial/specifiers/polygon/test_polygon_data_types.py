@@ -230,6 +230,20 @@ EMBEDDED_LOCATION_TESTS: list[QueryTestCase] = [
         msg="Embedded object {x,y} format should match like coordinate pair",
     ),
     QueryTestCase(
+        id="embedded_doc_non_xy_keys",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+        doc=[
+            {"_id": 1, "loc": {"a": 5, "b": 5}},
+            {"_id": 2, "loc": [5, 5]},
+            {"_id": 3, "loc": [15, 15]},
+        ],
+        expected=[
+            {"_id": 1, "loc": {"a": 5, "b": 5}},
+            {"_id": 2, "loc": [5, 5]},
+        ],
+        msg="Embedded doc with non-x/y keys uses first two fields as x/y",
+    ),
+    QueryTestCase(
         id="nested_field_missing_intermediate",
         filter={"address.loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
         doc=[

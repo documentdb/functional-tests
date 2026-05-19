@@ -18,7 +18,11 @@ from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import FLOAT_INFINITY, FLOAT_NAN
+from documentdb_tests.framework.test_constants import (
+    FLOAT_INFINITY,
+    FLOAT_NAN,
+    FLOAT_NEGATIVE_INFINITY,
+)
 
 INVALID_OPERATOR_USAGE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -135,6 +139,18 @@ INVALID_POINT_FORMAT_TESTS: list[QueryTestCase] = [
         error_code=BAD_VALUE_ERROR,
         msg="$polygon with single-coordinate points should error",
     ),
+    QueryTestCase(
+        id="three_element_points",
+        filter={"loc": {"$geoWithin": {"$polygon": [[0, 0, 0], [1, 1, 1], [2, 0, 0]]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$polygon with 3-element coordinate points should error",
+    ),
+    QueryTestCase(
+        id="empty_sub_arrays_as_points",
+        filter={"loc": {"$geoWithin": {"$polygon": [[], [], []]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$polygon with empty sub-arrays as points should error",
+    ),
 ]
 
 
@@ -204,6 +220,22 @@ INVALID_COORDINATE_TYPE_TESTS: list[QueryTestCase] = [
         filter={"loc": {"$geoWithin": {"$polygon": [[FLOAT_INFINITY, 0], [1, 1], [2, 0]]}}},
         error_code=BAD_VALUE_ERROR,
         msg="Infinity in coordinate should error",
+    ),
+    QueryTestCase(
+        id="negative_infinity_in_coordinate",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$polygon": [
+                        [FLOAT_NEGATIVE_INFINITY, 0],
+                        [1, 1],
+                        [2, 0],
+                    ]
+                }
+            }
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="Negative infinity in coordinate should error",
     ),
     QueryTestCase(
         id="object_in_coordinate",
