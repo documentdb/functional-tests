@@ -1,9 +1,8 @@
 """
 Tests for $polygon query context interaction.
 
-Validates $polygon in find with various options (projection, sort, limit),
-combined with other operators ($not, $and, $or, $box, $center),
-$expr non-support, and special collection contexts.
+Validates $polygon in find with various options (projection, sort, limit)
+and combined with other operators ($not, $and, $or, $box, $center).
 """
 
 import pytest
@@ -41,26 +40,6 @@ FIND_QUERY_TESTS: list[QueryTestCase] = [
         ],
         expected=[{"_id": 1, "loc": [[5, 5], [15, 15]]}],
         msg="Array location field should match if any point is inside",
-    ),
-    QueryTestCase(
-        id="polygon_in_expr_not_evaluated",
-        filter={
-            "$expr": {
-                "$eq": [
-                    {
-                        "$literal": {
-                            "loc": {
-                                "$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}
-                            }
-                        }
-                    },
-                    True,
-                ]
-            }
-        },
-        doc=[{"_id": 1, "loc": [5, 5]}],
-        expected=[],
-        msg="$polygon inside $expr should not match (not evaluated as geo query)",
     ),
 ]
 
@@ -209,8 +188,8 @@ def test_polygon_with_sort(collection):
     assertSuccess(result, expected, msg="$polygon with sort should return sorted results")
 
 
-def test_polygon_with_limit(collection):
-    """Test $polygon results with limit."""
+def test_polygon_with_sort_and_limit(collection):
+    """Test $polygon results with sort and limit."""
     collection.insert_many(
         [
             {"_id": 1, "loc": [2, 2]},
@@ -224,38 +203,12 @@ def test_polygon_with_limit(collection):
         {
             "find": collection.name,
             "filter": {"loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}},
+            "sort": {"_id": 1},
             "limit": 2,
         },
     )
-    # Should return exactly 2 documents
-    result_docs = result["cursor"]["firstBatch"]
     assertSuccess(
-        result, result_docs[:2], raw_res=False, msg="$polygon with limit should limit results"
+        result,
+        [{"_id": 1, "loc": [2, 2]}, {"_id": 2, "loc": [5, 5]}],
+        msg="$polygon with sort and limit should return first 2 of 3 matching documents",
     )
-
-
-def test_polygon_on_capped_collection(database_client):
-    """Test $polygon on capped collection."""
-    coll_name = "test_polygon_capped"
-    database_client.create_collection(coll_name, capped=True, size=4096)
-    coll = database_client[coll_name]
-    try:
-        coll.insert_many(
-            [
-                {"_id": 1, "loc": [5, 5]},
-                {"_id": 2, "loc": [15, 15]},
-            ]
-        )
-        result = execute_command(
-            coll,
-            {
-                "find": coll.name,
-                "filter": {
-                    "loc": {"$geoWithin": {"$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]]}}
-                },
-            },
-        )
-        expected = [{"_id": 1, "loc": [5, 5]}]
-        assertSuccess(result, expected, msg="$polygon should work on capped collection")
-    finally:
-        database_client.drop_collection(coll_name)

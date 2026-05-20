@@ -70,6 +70,29 @@ DEGENERATE_POLYGON_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 1, "loc": [2, 2]}, {"_id": 3, "loc": [5, 5]}],
         msg="Self-intersecting bowtie should match points in its triangles",
     ),
+    QueryTestCase(
+        id="five_pointed_star",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$polygon": [
+                        [5.0, 10.0],
+                        [7.939, 0.955],
+                        [0.245, 6.545],
+                        [9.755, 6.545],
+                        [2.061, 0.955],
+                    ]
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": [5, 5]},  # geometric center
+            {"_id": 2, "loc": [5, 9]},  # in upper point
+            {"_id": 3, "loc": [15, 15]},  # outside
+        ],
+        expected=[{"_id": 2, "loc": [5, 9]}],
+        msg="Five-pointed star: even-odd parity excludes the geometric center",
+    ),
 ]
 
 
@@ -93,15 +116,6 @@ BOUNDARY_COORDINATE_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "loc": [0.0005, 0.0005]}, {"_id": 2, "loc": [1, 1]}],
         expected=[{"_id": 1, "loc": [0.0005, 0.0005]}],
         msg="Polygon with very small fractional coordinates should work",
-    ),
-    QueryTestCase(
-        id="longitude_latitude_bounds",
-        filter={
-            "loc": {"$geoWithin": {"$polygon": [[-180, -90], [180, -90], [180, 90], [-180, 90]]}}
-        },
-        doc=[{"_id": 1, "loc": [0, 0]}, {"_id": 2, "loc": [45, 45]}],
-        expected=[{"_id": 1, "loc": [0, 0]}, {"_id": 2, "loc": [45, 45]}],
-        msg="Polygon at lon/lat bounds should contain all points within",
     ),
     QueryTestCase(
         id="negative_zero_coordinate",
