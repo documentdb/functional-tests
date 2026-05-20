@@ -93,7 +93,7 @@ def test_polygon_dense_grid_triangle(collection):
             doc_id += 1
     collection.insert_many(docs)
 
-    # Triangle
+    # Triangle: vertices [4,4], [6,4], [5,6]
     result = execute_command(
         collection,
         {
@@ -101,6 +101,22 @@ def test_polygon_dense_grid_triangle(collection):
             "filter": {"loc": {"$geoWithin": {"$polygon": [[4, 4], [6, 4], [5, 6]]}}},
         },
     )
-    # Verify it returns results without error (exact count depends on boundary inclusion)
-    result_docs = result["cursor"]["firstBatch"]
-    assertSuccess(result, result_docs, msg="Triangle on dense grid should not error")
+    assertSuccess(
+        result,
+        [
+            {"_id": 169, "loc": [4.0, 4.0]},
+            {"_id": 189, "loc": [4.5, 4.0]},
+            {"_id": 190, "loc": [4.5, 4.5]},
+            {"_id": 209, "loc": [5.0, 4.0]},
+            {"_id": 210, "loc": [5.0, 4.5]},
+            {"_id": 211, "loc": [5.0, 5.0]},
+            {"_id": 212, "loc": [5.0, 5.5]},
+            {"_id": 213, "loc": [5.0, 6.0]},
+            {"_id": 229, "loc": [5.5, 4.0]},
+            {"_id": 230, "loc": [5.5, 4.5]},
+            {"_id": 231, "loc": [5.5, 5.0]},
+            {"_id": 249, "loc": [6.0, 4.0]},
+        ],
+        ignore_doc_order=True,
+        msg="Triangle on dense grid should return 12 points (interior + boundary)",
+    )
