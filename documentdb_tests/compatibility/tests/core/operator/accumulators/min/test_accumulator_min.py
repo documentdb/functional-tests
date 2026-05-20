@@ -1756,6 +1756,13 @@ MIN_DECIMAL_TRAILING_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
 # MinKey returned directly in $group.
 MIN_BSON_SERIALIZATION_GROUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
+        "bson_regex_vs_code_group",
+        docs=[{"v": Regex("zzz")}, {"v": Code("a")}],
+        pipeline=_group_min("$v"),
+        expected=[{"_id": None, "result": Regex("zzz")}],
+        msg="$min in $group should return Regex as Regex object (Regex < Code)",
+    ),
+    AccumulatorTestCase(
         "bson_code_vs_maxkey_group",
         docs=[{"v": Code("zzz")}, {"v": MaxKey()}],
         pipeline=_group_min("$v"),
@@ -1781,6 +1788,13 @@ MIN_BSON_SERIALIZATION_GROUP_TESTS: list[AccumulatorTestCase] = [
 # Property [BSON Serialization — $bucketAuto]: Code without scope returned as Code object,
 # MinKey returned directly.
 MIN_BSON_SERIALIZATION_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "bson_regex_vs_code_bucket_auto",
+        docs=[{"v": Regex("zzz")}, {"v": Code("a")}],
+        pipeline=_bucket_auto_min("$v"),
+        expected=[{"_id": {"min": 0, "max": 0}, "result": Regex("zzz")}],
+        msg="$min in $bucketAuto should return Regex as Regex object (Regex < Code)",
+    ),
     AccumulatorTestCase(
         "bson_code_vs_maxkey_bucket_auto",
         docs=[{"v": Code("zzz")}, {"v": MaxKey()}],
@@ -1847,7 +1861,7 @@ def test_accumulator_min_group(collection, test_case: AccumulatorTestCase):
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MIN_GROUP_ERROR_TESTS))
-def test_accumulator_min_group_errors(collection, test_case: AccumulatorTestCase):
+def test_accumulator_min_group_errors(collection, test_case):
     """Test $min accumulator error cases with $group."""
     result = _run_accumulator(collection, test_case)
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
@@ -1868,7 +1882,7 @@ def test_accumulator_min_bucket_smoke(collection, test_case: AccumulatorTestCase
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MIN_BUCKET_SMOKE_ERROR_TESTS))
-def test_accumulator_min_bucket_smoke_errors(collection, test_case: AccumulatorTestCase):
+def test_accumulator_min_bucket_smoke_errors(collection, test_case):
     """Test $min accumulator errors in $bucket context."""
     result = _run_accumulator(collection, test_case)
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
@@ -1882,7 +1896,7 @@ def test_accumulator_min_bucket_auto_smoke(collection, test_case: AccumulatorTes
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MIN_BUCKET_AUTO_SMOKE_ERROR_TESTS))
-def test_accumulator_min_bucket_auto_smoke_errors(collection, test_case: AccumulatorTestCase):
+def test_accumulator_min_bucket_auto_smoke_errors(collection, test_case):
     """Test $min accumulator errors in $bucketAuto context."""
     result = _run_accumulator(collection, test_case)
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
@@ -1973,7 +1987,7 @@ def test_accumulator_min_bson_serialization_bucket_auto(collection, test_case: A
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MIN_EXPRESSION_ERROR_BUCKET_AUTO_TESTS))
-def test_accumulator_min_expression_errors_bucket_auto(collection, test_case: AccumulatorTestCase):
+def test_accumulator_min_expression_errors_bucket_auto(collection, test_case):
     """Test $min expression error codes in $bucketAuto."""
     result = _run_accumulator(collection, test_case)
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
