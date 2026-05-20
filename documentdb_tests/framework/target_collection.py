@@ -11,6 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from pymongo import IndexModel
 from pymongo.collection import Collection
 from pymongo.database import Database
 
@@ -22,15 +23,29 @@ class TargetCollection:
     def resolve(self, db: Database, collection: Collection) -> Collection:
         return collection
 
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        """Return the collection where docs and indexes should be inserted."""
+        return resolved
+
 
 @dataclass(frozen=True)
 class ViewCollection(TargetCollection):
-    """A view on the fixture collection."""
+    """A view on the fixture collection.
+
+    Pass any extra keyword arguments accepted by the ``create`` command
+    (e.g. ``pipeline``, ``collation``) via the ``options`` dict.
+    """
+
+    options: dict[str, Any] = field(default_factory=dict)
+    suffix: str = "_view"
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
-        view_name = f"{collection.name}_view"
-        db.command("create", view_name, viewOn=collection.name, pipeline=[])
+        view_name = f"{collection.name}{self.suffix}"
+        db.command("create", view_name, viewOn=collection.name, **self.options)
         return db[view_name]
+
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source
 
 
 @dataclass(frozen=True)
@@ -132,6 +147,9 @@ class ViewChainCollection(TargetCollection):
             source = name
         return db[source]
 
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source
+
 
 @dataclass(frozen=True)
 class ExistingCollection(TargetCollection):
@@ -182,19 +200,9 @@ class SystemBucketsCollection(TimeseriesCollection):
         return db[f"system.buckets.{name}"]
 
 
-@dataclass(frozen=True)
-class ViewWithPipelineCollection(TargetCollection):
+def ViewWithPipelineCollection() -> ViewCollection:
     """A view on the fixture collection with a non-empty pipeline."""
-
-    def resolve(self, db: Database, collection: Collection) -> Collection:
-        view_name = f"{collection.name}_vpipe"
-        db.command(
-            "create",
-            view_name,
-            viewOn=collection.name,
-            pipeline=[{"$match": {"x": 1}}],
-        )
-        return db[view_name]
+    return ViewCollection(options={"pipeline": [{"$match": {"x": 1}}]}, suffix="_vpipe")
 
 
 @dataclass(frozen=True)
@@ -319,6 +327,30 @@ class ExtraCollections(TargetCollection):
 
 
 @dataclass(frozen=True)
+class ViewOnCustomCollection(TargetCollection):
+    """A view on a source collection created with custom options.
+
+    Creates the source collection with ``source_options`` then creates
+    a view on it.
+    """
+
+    source_options: dict[str, Any] = field(default_factory=dict)
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        source_name = f"{collection.name}_source"
+        db.command("create", source_name, **self.source_options)
+        view_name = f"{collection.name}_view"
+        db.command("create", view_name, viewOn=source_name, pipeline=[])
+        return db[view_name]
+
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        """Insert docs into the underlying source collection."""
+        db = source.database
+        source_name = f"{source.name}_source"
+        return db[source_name]
+
+
+@dataclass(frozen=True)
 class SiblingCollection:
     """Describes an additional collection to create alongside the source.
 
@@ -329,6 +361,8 @@ class SiblingCollection:
     suffix: str = "_target"
     view_on_source: bool = False
     timeseries_field: str | None = None
+    collation: dict[str, Any] | None = None
+    indexes: list[IndexModel] | None = None
     docs: list[dict[str, Any]] | None = None
 
     def create(self, db: Database, collection: Collection) -> None:
@@ -338,7 +372,11 @@ class SiblingCollection:
             db.create_collection(name, viewOn=collection.name, pipeline=[])
         elif self.timeseries_field:
             db.create_collection(name, timeseries={"timeField": self.timeseries_field})
+        elif self.collation:
+            db.create_collection(name, collation=self.collation)
         else:
             db.create_collection(name)
+        if self.indexes:
+            db[name].create_indexes(self.indexes)
         if self.docs:
             db[name].insert_many(self.docs)
