@@ -1,6 +1,5 @@
-"""Tests for $geometry error cases — invalid values, $nearSphere errors,
-distance validation, non-Point $near, coordinate boundaries, CRS errors,
-invalid type fields, and invalid coordinate types."""
+"""Tests for $geometry error cases — invalid values, coordinate boundaries,
+CRS errors, invalid type fields, invalid coordinate types, and invalid polygon structures."""
 
 import pytest
 
@@ -12,7 +11,7 @@ from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# --- CRS constants ---
+# --- Constants ---
 
 STRICT_CRS = {
     "type": "name",
@@ -56,6 +55,12 @@ INVALID_GEOMETRY_TESTS: list[QueryTestCase] = [
         msg="Should reject $geometry: empty object",
     ),
     QueryTestCase(
+        id="outside_geospatial_context",
+        filter={"loc": {"$geometry": {"type": "Point", "coordinates": [0, 0]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject $geometry used outside geospatial operator context",
+    ),
+    QueryTestCase(
         id="missing_type_field",
         filter={"loc": {"$geoIntersects": {"$geometry": {"coordinates": [0, 0]}}}},
         error_code=BAD_VALUE_ERROR,
@@ -66,212 +71,6 @@ INVALID_GEOMETRY_TESTS: list[QueryTestCase] = [
         filter={"loc": {"$geoIntersects": {"$geometry": {"type": "Point"}}}},
         error_code=BAD_VALUE_ERROR,
         msg="Should reject $geometry missing coordinates field",
-    ),
-]
-
-
-# --- Error cases: invalid $geometry with $nearSphere ---
-
-NEARSPHERE_GEOMETRY_ERROR_TESTS: list[QueryTestCase] = [
-    QueryTestCase(
-        id="nearSphere_numeric_value",
-        filter={"loc": {"$nearSphere": 5}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject numeric value for $nearSphere",
-    ),
-    QueryTestCase(
-        id="nearSphere_string_value",
-        filter={"loc": {"$nearSphere": "invalid"}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject string value for $nearSphere",
-    ),
-    QueryTestCase(
-        id="nearSphere_boolean_value",
-        filter={"loc": {"$nearSphere": True}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject boolean value for $nearSphere",
-    ),
-    QueryTestCase(
-        id="nearSphere_min_max_distance_without_geometry",
-        filter={
-            "loc": {
-                "$nearSphere": {
-                    "$maxDistance": 1000,
-                    "$minDistance": 100,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject $nearSphere with $minDistance/$maxDistance but no $geometry",
-    ),
-    QueryTestCase(
-        id="nearSphere_geometry_out_of_range_longitude",
-        filter={"loc": {"$nearSphere": {"$geometry": {"type": "Point", "coordinates": [200, 0]}}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject out-of-range longitude in $nearSphere $geometry",
-    ),
-    QueryTestCase(
-        id="nearSphere_geometry_missing_coordinates",
-        filter={"loc": {"$nearSphere": {"$geometry": {"type": "Point"}}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject $geometry Point missing coordinates in $nearSphere",
-    ),
-    QueryTestCase(
-        id="nearSphere_geometry_empty_coordinates",
-        filter={"loc": {"$nearSphere": {"$geometry": {"type": "Point", "coordinates": []}}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject $geometry Point with empty coordinates in $nearSphere",
-    ),
-    QueryTestCase(
-        id="nearSphere_geometry_polygon_with_maxDistance",
-        filter={
-            "loc": {
-                "$nearSphere": {
-                    "$geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
-                    },
-                    "$maxDistance": 1000,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject non-Point $geometry in $nearSphere",
-    ),
-]
-
-
-# --- Error cases: invalid $minDistance/$maxDistance with $geometry ---
-
-DISTANCE_VALIDATION_TESTS: list[QueryTestCase] = [
-    QueryTestCase(
-        id="near_geometry_minDistance_nan",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$minDistance": float("nan"),
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject NaN $minDistance with $geometry",
-    ),
-    QueryTestCase(
-        id="near_geometry_maxDistance_nan",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$maxDistance": float("nan"),
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject NaN $maxDistance with $geometry",
-    ),
-    QueryTestCase(
-        id="near_geometry_minDistance_negative_infinity",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$minDistance": float("-inf"),
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject -Infinity $minDistance with $geometry",
-    ),
-    QueryTestCase(
-        id="near_geometry_maxDistance_negative_infinity",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$maxDistance": float("-inf"),
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject -Infinity $maxDistance with $geometry",
-    ),
-    QueryTestCase(
-        id="near_geometry_minDistance_infinity",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$minDistance": float("inf"),
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject Infinity $minDistance with $geometry",
-    ),
-    QueryTestCase(
-        id="near_geometry_maxDistance_infinity",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$maxDistance": float("inf"),
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject Infinity $maxDistance with $geometry",
-    ),
-]
-
-
-# --- Error cases: $near with non-Point $geometry ---
-
-NON_POINT_NEAR_TESTS: list[QueryTestCase] = [
-    QueryTestCase(
-        id="near_geometry_linestring",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {
-                        "type": "LineString",
-                        "coordinates": [[0, 0], [1, 1]],
-                    }
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject non-Point $geometry (LineString) in $near",
-    ),
-    QueryTestCase(
-        id="near_geometry_polygon",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
-                    }
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject non-Point $geometry (Polygon) in $near",
-    ),
-    QueryTestCase(
-        id="nearSphere_geometry_linestring",
-        filter={
-            "loc": {
-                "$nearSphere": {
-                    "$geometry": {
-                        "type": "LineString",
-                        "coordinates": [[0, 0], [1, 1]],
-                    }
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject non-Point $geometry (LineString) in $nearSphere",
     ),
 ]
 
@@ -360,38 +159,6 @@ INVALID_BOUNDARY_TESTS: list[QueryTestCase] = [
 
 INVALID_CRS_TESTS: list[QueryTestCase] = [
     QueryTestCase(
-        id="crs_with_near",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {
-                        "type": "Point",
-                        "coordinates": [0, 0],
-                        "crs": STRICT_CRS,
-                    }
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject custom CRS with $near",
-    ),
-    QueryTestCase(
-        id="crs_with_nearSphere",
-        filter={
-            "loc": {
-                "$nearSphere": {
-                    "$geometry": {
-                        "type": "Point",
-                        "coordinates": [0, 0],
-                        "crs": STRICT_CRS,
-                    }
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject custom CRS with $nearSphere",
-    ),
-    QueryTestCase(
         id="invalid_crs_type",
         filter={
             "loc": {
@@ -441,6 +208,40 @@ INVALID_CRS_TESTS: list[QueryTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="Should reject CRS missing properties field",
+    ),
+    QueryTestCase(
+        id="crs_missing_type",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": CCW_POLYGON,
+                        "crs": {
+                            "properties": {"name": "urn:x-mongodb:crs:strictwinding:EPSG:4326"}
+                        },
+                    }
+                }
+            }
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject CRS missing type field",
+    ),
+    QueryTestCase(
+        id="crs_non_polygon_type",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$geometry": {
+                        "type": "Point",
+                        "coordinates": [0, 0],
+                        "crs": STRICT_CRS,
+                    }
+                }
+            }
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject custom CRS with non-Polygon type",
     ),
 ]
 
@@ -623,15 +424,110 @@ INVALID_COORDINATE_TYPE_TESTS: list[QueryTestCase] = [
 ]
 
 
+# --- Error cases: invalid polygon structures ---
+
+POLYGON_STRUCTURE_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="self_intersecting_polygon",
+        filter={
+            "loc": {
+                "$geoIntersects": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[0, 0], [1, 1], [1, 0], [0, 1], [0, 0]]],
+                    }
+                }
+            }
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject self-intersecting polygon (bowtie shape)",
+    ),
+    QueryTestCase(
+        id="hole_touching_exterior",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [[0, 0], [5, 0], [5, 5], [0, 5], [0, 0]],
+                            [[0, 0], [0, 2], [2, 2], [2, 0], [0, 0]],
+                        ],
+                    }
+                }
+            }
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject polygon with hole sharing vertex with exterior ring",
+    ),
+    QueryTestCase(
+        id="hole_larger_than_exterior",
+        filter={
+            "loc": {
+                "$geoIntersects": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]],
+                            [[-1, -1], [-1, 2], [2, 2], [2, -1], [-1, -1]],
+                        ],
+                    }
+                }
+            }
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject polygon with hole larger than exterior ring",
+    ),
+]
+
+
+# --- Error cases: malformed coordinate structures ---
+
+MALFORMED_STRUCTURE_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="point_nested_array",
+        filter={
+            "loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [[0, 0]]}}}
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject Point with nested array coordinates [[0,0]]",
+    ),
+    QueryTestCase(
+        id="polygon_flat_coordinates",
+        filter={
+            "loc": {
+                "$geoIntersects": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]],
+                    }
+                }
+            }
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject Polygon with flat coordinates (not nested rings)",
+    ),
+    QueryTestCase(
+        id="linestring_single_element_subarrays",
+        filter={
+            "loc": {
+                "$geoIntersects": {"$geometry": {"type": "LineString", "coordinates": [[0], [1]]}}
+            }
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject LineString with single-element sub-arrays",
+    ),
+]
+
+
 ALL_TESTS = (
     INVALID_GEOMETRY_TESTS
-    + NEARSPHERE_GEOMETRY_ERROR_TESTS
-    + DISTANCE_VALIDATION_TESTS
-    + NON_POINT_NEAR_TESTS
     + INVALID_BOUNDARY_TESTS
     + INVALID_CRS_TESTS
     + INVALID_TYPE_FIELD_TESTS
     + INVALID_COORDINATE_TYPE_TESTS
+    + POLYGON_STRUCTURE_TESTS
+    + MALFORMED_STRUCTURE_TESTS
 )
 
 

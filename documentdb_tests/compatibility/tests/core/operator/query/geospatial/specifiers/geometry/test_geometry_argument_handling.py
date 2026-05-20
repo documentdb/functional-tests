@@ -1,4 +1,5 @@
-"""Tests for $geometry valid argument handling — valid structures and field ordering."""
+"""Tests for $geometry valid argument handling —
+valid structures, field ordering, and CRS."""
 
 import pytest
 
@@ -8,6 +9,11 @@ from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_c
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+
+STRICT_CRS = {
+    "type": "name",
+    "properties": {"name": "urn:x-mongodb:crs:strictwinding:EPSG:4326"},
+}
 
 # --- Success cases: valid $geometry structures ---
 
@@ -38,6 +44,53 @@ VALID_GEOMETRY_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
         msg="Should accept coordinates before type (field order doesn't matter)",
+    ),
+    QueryTestCase(
+        id="crs_with_geoWithin",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
+                        "crs": STRICT_CRS,
+                    }
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0.5, 0.5]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [5, 5]}},
+        ],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0.5, 0.5]}}],
+        msg="Should accept custom CRS with $geoWithin",
+    ),
+    QueryTestCase(
+        id="array_value_no_error",
+        filter={"loc": {"$geoIntersects": {"$geometry": [0, 0]}}},
+        doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        msg="$geometry: array does not error — acts as no-op, returns all documents",
+    ),
+    QueryTestCase(
+        id="crs_with_geoIntersects",
+        filter={
+            "loc": {
+                "$geoIntersects": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
+                        "crs": STRICT_CRS,
+                    }
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0.5, 0.5]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [5, 5]}},
+        ],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0.5, 0.5]}}],
+        msg="Should accept custom CRS with $geoIntersects",
     ),
 ]
 

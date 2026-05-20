@@ -1,4 +1,5 @@
-"""Tests for $geometry valid coordinate boundary values — longitude/latitude limits."""
+"""Tests for $geometry valid coordinate boundary values — longitude/latitude limits,
+poles, antimeridian, and high-precision coordinates."""
 
 import pytest
 
@@ -15,7 +16,10 @@ VALID_BOUNDARY_TESTS: list[QueryTestCase] = [
         filter={
             "loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [-180, 0]}}}
         },
-        doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [-180, 0]}}],
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [-180, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [-180, 0]}}],
         msg="Should accept longitude = -180",
     ),
@@ -24,7 +28,10 @@ VALID_BOUNDARY_TESTS: list[QueryTestCase] = [
         filter={
             "loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [180, 0]}}}
         },
-        doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [180, 0]}}],
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [180, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [180, 0]}}],
         msg="Should accept longitude = 180",
     ),
@@ -33,7 +40,10 @@ VALID_BOUNDARY_TESTS: list[QueryTestCase] = [
         filter={
             "loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [0, -90]}}}
         },
-        doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, -90]}}],
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, -90]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, -90]}}],
         msg="Should accept latitude = -90",
     ),
@@ -42,9 +52,38 @@ VALID_BOUNDARY_TESTS: list[QueryTestCase] = [
         filter={
             "loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [0, 90]}}}
         },
-        doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}}],
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}}],
         msg="Should accept latitude = 90",
+    ),
+    QueryTestCase(
+        id="high_precision_coordinates",
+        filter={
+            "loc": {
+                "$geoIntersects": {
+                    "$geometry": {
+                        "type": "Point",
+                        "coordinates": [1.123456789012345, 2.123456789012345],
+                    }
+                }
+            }
+        },
+        doc=[
+            {
+                "_id": 1,
+                "loc": {"type": "Point", "coordinates": [1.123456789012345, 2.123456789012345]},
+            },
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "loc": {"type": "Point", "coordinates": [1.123456789012345, 2.123456789012345]},
+            },
+        ],
+        msg="Should accept high-precision coordinates (15+ decimal places)",
     ),
 ]
 

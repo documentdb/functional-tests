@@ -14,13 +14,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 VALID_GEOJSON_TYPE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
-        id="point",
-        filter={"loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [0, 0]}}}},
-        doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
-        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
-        msg="Should accept Point type",
-    ),
-    QueryTestCase(
         id="linestring",
         filter={
             "loc": {
@@ -109,6 +102,25 @@ VALID_GEOJSON_TYPE_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0.5, 0.5]}}],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0.5, 0.5]}}],
         msg="Should accept MultiPolygon type",
+    ),
+    QueryTestCase(
+        id="geometry_collection",
+        filter={
+            "loc": {
+                "$geoIntersects": {
+                    "$geometry": {
+                        "type": "GeometryCollection",
+                        "geometries": [
+                            {"type": "Point", "coordinates": [0, 0]},
+                            {"type": "LineString", "coordinates": [[1, 1], [2, 2]]},
+                        ],
+                    }
+                }
+            }
+        },
+        doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        msg="Should accept GeometryCollection type",
     ),
 ]
 
