@@ -9,7 +9,8 @@ necessary.
 """
 
 import pytest
-from bson import Decimal128
+from bson import Binary, Decimal128, ObjectId
+from datetime import datetime, timezone
 
 from documentdb_tests.framework.assertions import (
     assertFailureCode,
@@ -391,4 +392,395 @@ def test_addToSet_upsert_creates_array_field(collection):
         docs,
         [{"_id": 99, "tags": ["A"]}],
         msg="Upserted document must contain the new array",
+    )
+
+
+# ---------------------------------------------------------------------------
+# $each extra dedup semantics
+# ---------------------------------------------------------------------------
+
+
+def test_addToSet_each_collapses_internal_duplicates(collection):
+    """Duplicates inside the $each argument are deduped against each other and the field."""
+    collection.insert_one({"_id": 1, "tags": ["A"]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$addToSet": {"tags": {"$each": ["B", "B", "A", "C", "C"]}}},
+                }
+            ],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"n": 1, "nModified": 1, "ok": 1.0},
+        msg="$each must dedup internally and against existing values",
+    )
+
+
+def test_addToSet_each_all_existing_values_is_noop(collection):
+    """$each containing only values already present must report nModified=0."""
+    collection.insert_one({"_id": 1, "tags": ["A", "B"]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$addToSet": {"tags": {"$each": ["A", "B"]}}},
+                }
+            ],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"n": 1, "nModified": 0, "ok": 1.0},
+        msg="$each with only existing values must not modify the document",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Empty / first-element / special-value semantics
+# ---------------------------------------------------------------------------
+
+
+def test_addToSet_to_empty_array_adds_first_element(collection):
+    """$addToSet against an empty array reports nModified=1 with one new element."""
+    collection.insert_one({"_id": 1, "tags": []})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"tags": "X"}}}],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"n": 1, "nModified": 1, "ok": 1.0},
+        msg="Empty array must accept the first element",
+    )
+
+
+def test_addToSet_NaN_dedups_against_NaN(collection):
+    """NaN compares equal to NaN under $addToSet set semantics (no-op)."""
+    collection.insert_one({"_id": 1, "n": [float("nan")]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"n": float("nan")}}}],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"n": 1, "nModified": 0, "ok": 1.0},
+        msg="NaN must dedup against NaN inside $addToSet",
+    )
+
+
+def test_addToSet_positive_and_negative_infinity_distinct(collection):
+    """+Infinity and -Infinity are different set elements."""
+    collection.insert_one({"_id": 1, "n": [float("inf")]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"n": float("-inf")}}}],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"n": 1, "nModified": 1, "ok": 1.0},
+        msg="+Infinity and -Infinity must be treated as distinct values",
+    )
+
+
+def test_addToSet_nested_array_dedups_by_value(collection):
+    """An array-as-element is deduped against an equal array-as-element."""
+    collection.insert_one({"_id": 1, "arrs": [[1, 2]]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"arrs": [1, 2]}}}],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"n": 1, "nModified": 0, "ok": 1.0},
+        msg="Nested-array element must dedup by value",
+    )
+
+
+def test_addToSet_objectid_dedups_by_value(collection):
+    """Equal ObjectIds compare equal — second add is a no-op."""
+    oid = ObjectId("64b5e4f0a1b2c3d4e5f60001")
+    collection.insert_one({"_id": 1, "oids": [oid]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"oids": oid}}}],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"n": 1, "nModified": 0, "ok": 1.0},
+        msg="Equal ObjectId must dedup",
+    )
+
+
+def test_addToSet_date_dedups_by_value(collection):
+    """Equal Date values compare equal — second add is a no-op."""
+    d = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    collection.insert_one({"_id": 1, "ds": [d]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"ds": d}}}],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"n": 1, "nModified": 0, "ok": 1.0},
+        msg="Equal Date must dedup",
+    )
+
+
+def test_addToSet_binary_dedups_by_value(collection):
+    """Equal Binary values (same subtype + payload) dedup."""
+    b = Binary(b"hello", 0)
+    collection.insert_one({"_id": 1, "bs": [b]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"bs": b}}}],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"n": 1, "nModified": 0, "ok": 1.0},
+        msg="Equal Binary must dedup",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Multi-document update
+# ---------------------------------------------------------------------------
+
+
+def test_addToSet_multi_true_modifies_only_docs_that_change(collection):
+    """multi:true reports n equal to matched docs and nModified only for changed."""
+    collection.insert_many(
+        [{"_id": 1, "tags": ["A"]}, {"_id": 2, "tags": ["A", "B"]}]
+    )
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {}, "u": {"$addToSet": {"tags": "B"}}, "multi": True}],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"n": 2, "nModified": 1, "ok": 1.0},
+        msg="multi:true must match both but only modify the doc that gained an element",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Shared-error cases (must fail with the same code on native and on documentdb)
+# ---------------------------------------------------------------------------
+
+
+def test_addToSet_errors_on_scalar_number_field(collection):
+    """$addToSet onto a numeric scalar must fail with BadValue (2)."""
+    collection.insert_one({"_id": 1, "n": 5})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"n": 7}}}],
+        },
+    )
+    assertFailureCode(
+        result,
+        2,
+        msg="$addToSet against a numeric scalar must fail with BadValue (2)",
+    )
+
+
+def test_addToSet_errors_on_scalar_date_field(collection):
+    """$addToSet onto a Date scalar must fail with BadValue (2)."""
+    collection.insert_one(
+        {"_id": 1, "d": datetime(2024, 1, 1, tzinfo=timezone.utc)}
+    )
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"d": "x"}}}],
+        },
+    )
+    assertFailureCode(
+        result,
+        2,
+        msg="$addToSet against a Date scalar must fail with BadValue (2)",
+    )
+
+
+def test_addToSet_errors_on_null_field(collection):
+    """$addToSet onto a field whose value is BSON null must fail with BadValue (2)."""
+    collection.insert_one({"_id": 1, "tags": None})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"tags": "X"}}}],
+        },
+    )
+    assertFailureCode(
+        result,
+        2,
+        msg="$addToSet against a null-valued field must fail with BadValue (2)",
+    )
+
+
+def test_addToSet_errors_on_dotted_path_through_scalar(collection):
+    """$addToSet on a dotted path whose intermediate is a scalar must fail with PathNotViable (28)."""
+    collection.insert_one({"_id": 1, "name": "John"})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [
+                {"q": {"_id": 1}, "u": {"$addToSet": {"name.first": "X"}}}
+            ],
+        },
+    )
+    assertFailureCode(
+        result,
+        28,
+        msg="$addToSet through a scalar intermediate must fail with PathNotViable (28)",
+    )
+
+
+def test_addToSet_errors_on_id_target_as_non_array(collection):
+    """$addToSet targeting the _id field (a non-array scalar) must fail with BadValue (2)."""
+    collection.insert_one({"_id": 1})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"_id": 99}}}],
+        },
+    )
+    assertFailureCode(
+        result,
+        2,
+        msg="$addToSet against _id (a non-array scalar) must fail with BadValue (2)",
+    )
+
+
+def test_addToSet_errors_on_conflicting_subpath(collection):
+    """$addToSet on `tags` and `tags.0` in the same update must conflict (40)."""
+    collection.insert_one({"_id": 1, "tags": ["A", "B"]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$addToSet": {"tags": "C", "tags.0": "Z"}},
+                }
+            ],
+        },
+    )
+    assertFailureCode(
+        result,
+        40,
+        msg="Updates on tags and tags.0 in the same operator must conflict (40)",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Engine divergences ($push modifiers leaking into $addToSet)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.engine_xfail(
+    engine="documentdb",
+    reason=(
+        "$position is a $push modifier; native MongoDB rejects it in $addToSet "
+        "with code 2 ('Found unexpected fields after $each'). documentdb "
+        "silently ignores the modifier and succeeds."
+    ),
+    raises=AssertionError,
+)
+def test_addToSet_each_with_position_modifier_errors(collection):
+    """$each combined with $position must fail with BadValue (2)."""
+    collection.insert_one({"_id": 1, "tags": ["A"]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {
+                        "$addToSet": {
+                            "tags": {"$each": ["B"], "$position": 0},
+                        }
+                    },
+                }
+            ],
+        },
+    )
+    assertFailureCode(
+        result,
+        2,
+        msg="$each + $position in $addToSet must fail with BadValue (2)",
+    )
+
+
+@pytest.mark.engine_xfail(
+    engine="documentdb",
+    reason=(
+        "$sort is a $push modifier; native MongoDB rejects it in $addToSet "
+        "with code 2 ('Found unexpected fields after $each'). documentdb "
+        "silently ignores the modifier and succeeds."
+    ),
+    raises=AssertionError,
+)
+def test_addToSet_each_with_sort_modifier_errors(collection):
+    """$each combined with $sort must fail with BadValue (2)."""
+    collection.insert_one({"_id": 1, "tags": ["A"]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {
+                        "$addToSet": {
+                            "tags": {"$each": ["B"], "$sort": 1},
+                        }
+                    },
+                }
+            ],
+        },
+    )
+    assertFailureCode(
+        result,
+        2,
+        msg="$each + $sort in $addToSet must fail with BadValue (2)",
     )
