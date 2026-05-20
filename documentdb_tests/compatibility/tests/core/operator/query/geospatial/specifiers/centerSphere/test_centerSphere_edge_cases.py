@@ -1,5 +1,6 @@
-"""Tests for $centerSphere edge cases — spherical geometry, radius boundaries,
-antimeridian, poles."""
+"""Tests for $centerSphere edge cases — radius boundaries, antimeridian,
+poles, nested fields, coordinate order, unit conversion, boundary
+precision, array of points, and spherical vs planar comparison."""
 
 import math
 
@@ -129,17 +130,124 @@ TESTS: list[QueryTestCase] = [
         msg="Should correctly convert miles to radians (10 miles / 3963.2)",
     ),
     QueryTestCase(
-        id="spherical_vs_planar_divergence",
-        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 60], 500 / 6371]}}},
+        id="point_exactly_on_sphere_boundary",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    # 1 degree along equator = pi/180 radians
+                    "$centerSphere": [[0, 0], math.radians(1)]
+                }
+            }
+        },
         doc=[
-            {"_id": 1, "loc": {"type": "Point", "coordinates": [7, 60]}},
-            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 60]}},
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [1, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0.5, 0]}},
+            {"_id": 3, "loc": {"type": "Point", "coordinates": [2, 0]}},
         ],
         expected=[
-            {"_id": 1, "loc": {"type": "Point", "coordinates": [7, 60]}},
-            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 60]}},
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [1, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0.5, 0]}},
         ],
-        msg="Should use spherical geometry (7 degrees longitude at lat 60 is ~390km)",
+        msg="Point exactly at radius distance should be included",
+    ),
+    QueryTestCase(
+        id="point_just_beyond_sphere_boundary",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    # 100km radius in radians
+                    "$centerSphere": [[0, 0], 100 / 6371]
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0.5, 0]}},
+            {"_id": 3, "loc": {"type": "Point", "coordinates": [2, 0]}},
+        ],
+        expected=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0.5, 0]}},
+        ],
+        msg="Point beyond sphere boundary should not be included",
+    ),
+    QueryTestCase(
+        id="point_on_boundary_non_cardinal_angle",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    # 1 degree in radians — should reach a point ~1 degree away
+                    # at a 45-degree bearing
+                    "$centerSphere": [[0, 0], math.radians(1)]
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0.5, 0.5]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0.9, 0.9]}},
+            {"_id": 3, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        expected=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0.5, 0.5]}},
+            {"_id": 3, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        msg="Point at non-cardinal angle near boundary should respect spherical distance",
+    ),
+    QueryTestCase(
+        id="radius_slightly_above_pi",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], math.pi + 0.1]}}},
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [180, 0]}},
+            {"_id": 3, "loc": {"type": "Point", "coordinates": [-90, -45]}},
+        ],
+        expected=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [180, 0]}},
+            {"_id": 3, "loc": {"type": "Point", "coordinates": [-90, -45]}},
+        ],
+        msg="Radius slightly above pi should still return all documents",
+    ),
+    QueryTestCase(
+        id="array_of_points_field",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 0.01]}}},
+        doc=[
+            {
+                "_id": 1,
+                "loc": [
+                    {"type": "Point", "coordinates": [0, 0]},
+                    {"type": "Point", "coordinates": [50, 50]},
+                ],
+            },
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [50, 50]}},
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "loc": [
+                    {"type": "Point", "coordinates": [0, 0]},
+                    {"type": "Point", "coordinates": [50, 50]},
+                ],
+            },
+        ],
+        msg="Should match document when any element in array of points is within sphere",
+    ),
+    QueryTestCase(
+        id="center_vs_centerSphere_comparison",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 60], 500 / 6371]}}},
+        doc=[
+            {"_id": 1, "loc": [0, 60]},
+            {"_id": 2, "loc": [8, 60]},
+            {"_id": 3, "loc": [0, 55]},
+        ],
+        expected=[
+            {"_id": 1, "loc": [0, 60]},
+            {"_id": 2, "loc": [8, 60]},
+        ],
+        msg=(
+            "$centerSphere uses spherical distance — 8 degrees longitude "
+            "at lat 60 is ~446km (within 500km), unlike planar $center"
+        ),
     ),
 ]
 

@@ -14,6 +14,7 @@ from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
+    DECIMAL128_NAN,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
@@ -114,6 +115,12 @@ RADIUS_TESTS: list[QueryTestCase] = [
         msg="Should reject NaN radius",
     ),
     QueryTestCase(
+        id="decimal128_nan_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], DECIMAL128_NAN]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject Decimal128 NaN radius",
+    ),
+    QueryTestCase(
         id="negative_infinity_radius",
         filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], FLOAT_NEGATIVE_INFINITY]}}},
         error_code=BAD_VALUE_ERROR,
@@ -142,6 +149,54 @@ RADIUS_TESTS: list[QueryTestCase] = [
         filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], [1]]}}},
         error_code=BAD_VALUE_ERROR,
         msg="Should reject array as radius",
+    ),
+    QueryTestCase(
+        id="date_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], datetime(2024, 1, 1)]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject date as radius",
+    ),
+    QueryTestCase(
+        id="bindata_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], Binary(b"\x00")]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject BinData as radius",
+    ),
+    QueryTestCase(
+        id="objectid_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], ObjectId()]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject ObjectId as radius",
+    ),
+    QueryTestCase(
+        id="regex_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], Regex("a")]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject regex as radius",
+    ),
+    QueryTestCase(
+        id="javascript_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], Code("")]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject JavaScript Code as radius",
+    ),
+    QueryTestCase(
+        id="timestamp_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], Timestamp(0, 0)]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject timestamp as radius",
+    ),
+    QueryTestCase(
+        id="minkey_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], MinKey()]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject MinKey as radius",
+    ),
+    QueryTestCase(
+        id="maxkey_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], MaxKey()]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject MaxKey as radius",
     ),
 ]
 
@@ -286,29 +341,12 @@ BOUNDARY_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(STRUCTURE_TESTS))
-def test_centerSphere_structure_errors(collection, test):
-    """Verifies $centerSphere rejects invalid argument structures."""
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertFailureCode(result, test.error_code, msg=test.msg)
+ALL_TESTS = STRUCTURE_TESTS + RADIUS_TESTS + COORDINATE_TYPE_TESTS + BOUNDARY_TESTS
 
 
-@pytest.mark.parametrize("test", pytest_params(RADIUS_TESTS))
-def test_centerSphere_radius_errors(collection, test):
-    """Verifies $centerSphere rejects invalid radius values."""
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertFailureCode(result, test.error_code, msg=test.msg)
-
-
-@pytest.mark.parametrize("test", pytest_params(COORDINATE_TYPE_TESTS))
-def test_centerSphere_coordinate_type_errors(collection, test):
-    """Verifies $centerSphere rejects non-numeric coordinate types."""
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertFailureCode(result, test.error_code, msg=test.msg)
-
-
-@pytest.mark.parametrize("test", pytest_params(BOUNDARY_TESTS))
-def test_centerSphere_boundary_errors(collection, test):
-    """Verifies $centerSphere rejects out-of-range coordinates."""
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+def test_centerSphere_errors(collection, test):
+    """Verifies $centerSphere rejects invalid structures, radius values,
+    coordinate types, and out-of-range coordinates."""
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertFailureCode(result, test.error_code, msg=test.msg)

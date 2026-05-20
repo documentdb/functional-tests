@@ -237,6 +237,46 @@ TESTS: list[QueryTestCase] = [
         msg="Should not return MultiPolygon when only one polygon is within sphere",
     ),
     QueryTestCase(
+        id="multipolygon_with_hole_within_sphere",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+        doc=[
+            {
+                "_id": 1,
+                "loc": {
+                    "type": "MultiPolygon",
+                    "coordinates": [
+                        [
+                            [[0, 0], [5, 0], [5, 5], [0, 5], [0, 0]],
+                            [[1, 1], [1, 2], [2, 2], [2, 1], [1, 1]],
+                        ],
+                    ],
+                },
+            },
+            {
+                "_id": 2,
+                "loc": {
+                    "type": "Polygon",
+                    "coordinates": [[[80, 0], [81, 0], [81, 1], [80, 1], [80, 0]]],
+                },
+            },
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "loc": {
+                    "type": "MultiPolygon",
+                    "coordinates": [
+                        [
+                            [[0, 0], [5, 0], [5, 5], [0, 5], [0, 0]],
+                            [[1, 1], [1, 2], [2, 2], [2, 1], [1, 1]],
+                        ],
+                    ],
+                },
+            },
+        ],
+        msg="Should return MultiPolygon with hole fully within sphere",
+    ),
+    QueryTestCase(
         id="radius_pi_returns_all_geometry_types",
         filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], math.pi]}}},
         doc=[

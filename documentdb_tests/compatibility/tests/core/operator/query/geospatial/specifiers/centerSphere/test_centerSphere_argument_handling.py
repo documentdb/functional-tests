@@ -1,4 +1,5 @@
-"""Tests for $centerSphere valid argument handling — valid types, null/missing fields."""
+"""Tests for $centerSphere valid argument handling — valid types,
+non-geospatial field values, and null/missing fields."""
 
 import pytest
 from bson import Decimal128, Int64
@@ -49,6 +50,13 @@ VALID_TYPE_TESTS: list[QueryTestCase] = [
         msg="Should accept mixed int and Int64 coordinates",
     ),
     QueryTestCase(
+        id="float_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 0.5]}}},
+        doc=[{"_id": 1, "loc": [0, 0]}],
+        expected=[{"_id": 1, "loc": [0, 0]}],
+        msg="Should accept float radius",
+    ),
+    QueryTestCase(
         id="int_radius",
         filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
         doc=[{"_id": 1, "loc": [0, 0]}],
@@ -97,6 +105,73 @@ VALID_TYPE_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}}],
         msg="Should accept latitude = 90",
     ),
+    QueryTestCase(
+        id="embedded_doc_non_xy_keys",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+        doc=[
+            {"_id": 1, "loc": {"a": 0, "b": 0}},
+            {"_id": 2, "loc": [0, 0]},
+            {"_id": 3, "loc": [50, 50]},
+        ],
+        expected=[
+            {"_id": 1, "loc": {"a": 0, "b": 0}},
+            {"_id": 2, "loc": [0, 0]},
+        ],
+        msg="Embedded doc with non-x/y keys uses first two fields as coordinates",
+    ),
+]
+
+NON_GEO_FIELD_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="number_field_not_matched",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+        doc=[
+            {"_id": 1, "loc": 42},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        msg="Should silently skip document with number as location field",
+    ),
+    QueryTestCase(
+        id="string_field_not_matched",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+        doc=[
+            {"_id": 1, "loc": "hello"},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        msg="Should silently skip document with string as location field",
+    ),
+    QueryTestCase(
+        id="boolean_field_not_matched",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+        doc=[
+            {"_id": 1, "loc": True},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        msg="Should silently skip document with boolean as location field",
+    ),
+    QueryTestCase(
+        id="empty_array_field_not_matched",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+        doc=[
+            {"_id": 1, "loc": []},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        msg="Should silently skip document with empty array as location field",
+    ),
+    QueryTestCase(
+        id="empty_object_field_not_matched",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+        doc=[
+            {"_id": 1, "loc": {}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        msg="Should silently skip document with empty object as location field",
+    ),
 ]
 
 NULL_MISSING_TESTS: list[QueryTestCase] = [
@@ -117,32 +192,15 @@ NULL_MISSING_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}}],
         msg="Should not match document with missing location field",
     ),
-    QueryTestCase(
-        id="mixed_valid_null_missing",
-        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
-        doc=[
-            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
-            {"_id": 2, "loc": None},
-            {"_id": 3, "other": "x"},
-        ],
-        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
-        msg="Should only match documents with valid location among mixed null/missing",
-    ),
 ]
 
-
-@pytest.mark.parametrize("test", pytest_params(VALID_TYPE_TESTS))
-def test_centerSphere_valid_types(collection, test):
-    """Verifies $centerSphere accepts valid numeric types for coordinates and radius."""
-    if test.doc:
-        collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
+ALL_TESTS = VALID_TYPE_TESTS + NON_GEO_FIELD_TESTS + NULL_MISSING_TESTS
 
 
-@pytest.mark.parametrize("test", pytest_params(NULL_MISSING_TESTS))
-def test_centerSphere_null_missing_fields(collection, test):
-    """Verifies $centerSphere does not match documents with null or missing location fields."""
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+def test_centerSphere_argument_handling(collection, test):
+    """Verifies $centerSphere accepts valid types, skips non-geospatial
+    fields, and handles null/missing."""
     if test.doc:
         collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
