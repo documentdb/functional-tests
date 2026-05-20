@@ -124,6 +124,62 @@ PROPERTY_COMBINATION_CREATE_TESTS: list[IndexTestCase] = [
         expected=index_created_response(num_indexes_before=2, num_indexes_after=3),
         msg="Unique+sparse should be separate from sparse-only on same key",
     ),
+    IndexTestCase(
+        id="text_with_partial",
+        indexes=(
+            {
+                "key": {"content": "text"},
+                "name": "idx_text_partial",
+                "partialFilterExpression": {"status": "published"},
+            },
+        ),
+        msg="Should allow text index + partialFilterExpression",
+    ),
+    IndexTestCase(
+        id="hidden_with_partial",
+        indexes=(
+            {
+                "key": {"a": 1},
+                "name": "idx_hidden_partial",
+                "hidden": True,
+                "partialFilterExpression": {"a": {"$gt": 0}},
+            },
+        ),
+        msg="Should allow hidden + partialFilterExpression",
+    ),
+    IndexTestCase(
+        id="collation_with_partial",
+        indexes=(
+            {
+                "key": {"name": 1},
+                "name": "idx_collation_partial",
+                "collation": {"locale": "en", "strength": 2},
+                "partialFilterExpression": {"name": {"$exists": True}},
+            },
+        ),
+        msg="Should allow collation + partialFilterExpression",
+    ),
+    IndexTestCase(
+        id="collation_partial_signature",
+        indexes=(
+            {
+                "key": {"name": 1},
+                "name": "idx_collation_partial_fr",
+                "collation": {"locale": "fr"},
+                "partialFilterExpression": {"name": {"$exists": True}},
+            },
+        ),
+        setup_indexes=[
+            {
+                "key": {"name": 1},
+                "name": "idx_collation_partial_en",
+                "collation": {"locale": "en"},
+                "partialFilterExpression": {"name": {"$exists": True}},
+            }
+        ],
+        expected=index_created_response(num_indexes_before=2, num_indexes_after=3),
+        msg="Same partial filter with different collation creates separate index",
+    ),
 ]
 
 
@@ -243,3 +299,73 @@ def test_sparse_unique_failure(collection, test):
         {"insert": collection.name, **test.command_options},
     )
     assertFailureCode(result, test.error_code, test.msg)
+
+
+_PARTIAL_UNIQUE_IDX = (
+    {
+        "key": {"a": 1},
+        "name": "idx_partial_unique",
+        "partialFilterExpression": {"a": {"$gt": 0}},
+        "unique": True,
+    },
+)
+
+PARTIAL_UNIQUE_ALLOWED: list[IndexTestCase] = [
+    IndexTestCase(
+        id="duplicate_not_matching",
+        indexes=_PARTIAL_UNIQUE_IDX,
+        doc=({"_id": 1, "a": -1},),
+        input={"_id": 2, "a": -1},
+        msg="Should allow duplicate outside filter",
+    ),
+    IndexTestCase(
+        id="missing_field",
+        indexes=_PARTIAL_UNIQUE_IDX,
+        doc=({"_id": 1},),
+        input={"_id": 2},
+        msg="Should allow multiple docs with missing field",
+    ),
+    IndexTestCase(
+        id="zero_duplicates",
+        indexes=_PARTIAL_UNIQUE_IDX,
+        doc=({"_id": 1, "a": 0},),
+        input={"_id": 2, "a": 0},
+        msg="Should allow duplicate zero (not in filter)",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(PARTIAL_UNIQUE_ALLOWED))
+def test_partial_unique_allows_duplicates_outside_filter(collection, test):
+    """Test partial unique index allows duplicates for documents not matching filter."""
+    execute_command(collection, {"createIndexes": collection.name, "indexes": list(test.indexes)})
+    collection.insert_many(list(test.doc))
+    result = execute_command(
+        collection,
+        {"insert": collection.name, "documents": [test.input]},
+    )
+    assertSuccessPartial(result, {"ok": 1.0, "n": 1}, msg=test.msg)
+
+
+PARTIAL_UNIQUE_REJECTED: list[IndexTestCase] = [
+    IndexTestCase(
+        id="duplicate_matching",
+        indexes=_PARTIAL_UNIQUE_IDX,
+        doc=({"_id": 1, "a": 5},),
+        input={"_id": 2, "a": 5},
+        error_code=DUPLICATE_KEY_ERROR,
+        msg="Should reject duplicate in partial unique index",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(PARTIAL_UNIQUE_REJECTED))
+def test_partial_unique_rejects_duplicates_inside_filter(collection, test):
+    """Test partial unique index rejects duplicates for documents matching filter."""
+    execute_command(collection, {"createIndexes": collection.name, "indexes": list(test.indexes)})
+    collection.insert_many(list(test.doc))
+    result = execute_command(
+        collection,
+        {"insert": collection.name, "documents": [test.input]},
+    )
+    assertFailureCode(result, test.error_code, msg=test.msg)
