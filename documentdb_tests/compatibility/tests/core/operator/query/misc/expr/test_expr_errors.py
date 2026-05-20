@@ -14,12 +14,12 @@ from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_c
 from documentdb_tests.framework.assertions import assertFailureCode, assertResult
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
-    EXPR_IN_ARRAY_FILTERS_ERROR,
     EXPRESSION_IN_NOT_ARRAY_ERROR,
     EXPRESSION_TYPE_MISMATCH_ERROR,
     FAILED_TO_PARSE_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
     LET_UNDEFINED_VARIABLE_ERROR,
+    QUERY_FEATURE_NOT_ALLOWED,
     UNRECOGNIZED_EXPRESSION_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -102,7 +102,7 @@ def test_expr_in_array_filters(collection):
             ],
         },
     )
-    assertFailureCode(result, EXPR_IN_ARRAY_FILTERS_ERROR)
+    assertFailureCode(result, QUERY_FEATURE_NOT_ALLOWED)
 
 
 def test_expr_in_elemmatch_query(collection):
