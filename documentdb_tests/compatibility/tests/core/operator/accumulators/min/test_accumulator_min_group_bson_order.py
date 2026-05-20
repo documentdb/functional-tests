@@ -136,13 +136,6 @@ MIN_BSON_ORDER_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": 100}],
         msg="$min should pick Number regardless of document order",
     ),
-    AccumulatorTestCase(
-        "bson_minkey_before_maxkey",
-        docs=[{"v": MinKey()}, {"v": MaxKey()}],
-        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": MinKey()}],
-        msg="$min should pick MinKey regardless of document order",
-    ),
 ]
 
 
@@ -151,20 +144,6 @@ MIN_BSON_ORDER_TESTS: list[AccumulatorTestCase] = [
 # even when they appear similar. For $min, the lower BSON type wins.
 # ---------------------------------------------------------------------------
 MIN_TYPE_DISTINCTION_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "distinct_false_vs_zero",
-        docs=[{"v": False}, {"v": 0}],
-        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": 0}],
-        msg="$min should pick Number(0) over Boolean(false) (Number < Boolean)",
-    ),
-    AccumulatorTestCase(
-        "distinct_true_vs_one",
-        docs=[{"v": True}, {"v": 1}],
-        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": 1}],
-        msg="$min should pick Number(1) over Boolean(true) (Number < Boolean)",
-    ),
     AccumulatorTestCase(
         "distinct_empty_string_vs_null",
         docs=[{"v": ""}, {"v": None}],

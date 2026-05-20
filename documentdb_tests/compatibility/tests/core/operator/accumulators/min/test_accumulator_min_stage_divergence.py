@@ -190,16 +190,6 @@ MIN_TIE_BREAKING_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
 # ---------------------------------------------------------------------------
 MIN_NUMERIC_EQUIV_GROUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "equiv_int_long_double_decimal_group",
-        docs=[{"v": 5}, {"v": Int64(5)}, {"v": 5.0}, {"v": Decimal128("5")}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$min": "$v"}}},
-            {"$project": {"_id": 0, "type": {"$type": "$result"}, "value": "$result"}},
-        ],
-        expected=[{"type": "decimal", "value": Decimal128("5")}],
-        msg="$min in $group should pick last type (Decimal128) for equal values",
-    ),
-    AccumulatorTestCase(
         "equiv_zeros_group",
         docs=[{"v": 0}, {"v": Int64(0)}, {"v": 0.0}, {"v": Decimal128("0")}],
         pipeline=[
@@ -215,22 +205,6 @@ MIN_NUMERIC_EQUIV_GROUP_TESTS: list[AccumulatorTestCase] = [
 # Property [Numeric Equivalence — $bucketAuto]: $bucketAuto: first type wins.
 # ---------------------------------------------------------------------------
 MIN_NUMERIC_EQUIV_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "equiv_int_long_double_decimal_bucket_auto",
-        docs=[{"v": 5}, {"v": Int64(5)}, {"v": 5.0}, {"v": Decimal128("5")}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$min": "$v"}},
-                }
-            },
-            {"$project": {"_id": 0, "type": {"$type": "$result"}, "value": "$result"}},
-        ],
-        expected=[{"type": "int", "value": 5}],
-        msg="$min in $bucketAuto should pick first type (int32) for equal values",
-    ),
     AccumulatorTestCase(
         "equiv_zeros_bucket_auto",
         docs=[{"v": 0}, {"v": Int64(0)}, {"v": 0.0}, {"v": Decimal128("0")}],

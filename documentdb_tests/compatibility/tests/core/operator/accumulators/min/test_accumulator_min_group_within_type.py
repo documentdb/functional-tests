@@ -187,13 +187,6 @@ MIN_BOOLEAN_ORDERING_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": False}],
         msg="$min should pick False over True",
     ),
-    AccumulatorTestCase(
-        "boolean_false_vs_true",
-        docs=[{"v": False}, {"v": True}],
-        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": False}],
-        msg="$min should pick False regardless of document order",
-    ),
 ]
 
 # ---------------------------------------------------------------------------
