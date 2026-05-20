@@ -70,7 +70,7 @@ VALID_GEOMETRY_TESTS: list[QueryTestCase] = [
         filter={"loc": {"$geoIntersects": {"$geometry": [0, 0]}}},
         doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
-        msg="$geometry: array does not error — acts as no-op, returns all documents",
+        msg="$geometry: array value does not error, geometry specifier is silently ignored",
     ),
     QueryTestCase(
         id="crs_with_geoIntersects",
