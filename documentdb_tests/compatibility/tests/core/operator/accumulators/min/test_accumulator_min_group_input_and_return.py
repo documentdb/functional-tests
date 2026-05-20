@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 from bson import Decimal128, Int64
 
@@ -15,22 +13,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DATE_EPOCH, DATE_Y2K
 
-
-def _group_min(accumulator: Any) -> list[dict[str, Any]]:
-    """Build a $group pipeline for $min."""
-    return [{"$group": {"_id": None, "result": {"$min": accumulator}}}]
-
-
-def _run_accumulator(collection, test_case: AccumulatorTestCase):
-    """Insert docs and run the pipeline."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    return execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-
-
 # ---------------------------------------------------------------------------
 # Property [Expression Argument Tests]: $min accumulator accepts various
 # expression types as its operand.
@@ -39,42 +21,49 @@ MIN_EXPRESSION_ARGUMENT_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "input_field_path",
         docs=[{"v": 10}, {"v": 5}, {"v": 20}],
-        pipeline=_group_min("$v"),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
         expected=[{"_id": None, "result": 5}],
         msg="$min should accept basic field reference",
     ),
     AccumulatorTestCase(
         "input_nested_field",
         docs=[{"a": {"b": 10}}, {"a": {"b": 5}}, {"a": {"b": 20}}],
-        pipeline=_group_min("$a.b"),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": "$a.b"}}}],
         expected=[{"_id": None, "result": 5}],
         msg="$min should accept nested document field path",
     ),
     AccumulatorTestCase(
         "input_literal",
         docs=[{"v": 1}, {"v": 2}, {"v": 3}],
-        pipeline=_group_min(42),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": 42}}}],
         expected=[{"_id": None, "result": 42}],
         msg="$min should accept constant literal (same for all docs)",
     ),
     AccumulatorTestCase(
         "input_expression",
         docs=[{"price": 10, "qty": 2}, {"price": 5, "qty": 3}, {"price": 20, "qty": 1}],
-        pipeline=_group_min({"$multiply": ["$price", "$qty"]}),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": {"$multiply": ["$price", "$qty"]}}}}],
         expected=[{"_id": None, "result": 15}],
         msg="$min should accept computed expression as operand",
     ),
     AccumulatorTestCase(
         "input_cond_remove",
         docs=[{"v": -1}, {"v": 5}, {"v": -2}, {"v": 10}],
-        pipeline=_group_min({"$cond": [{"$gt": ["$v", 0]}, "$v", "$$REMOVE"]}),
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$min": {"$cond": [{"$gt": ["$v", 0]}, "$v", "$$REMOVE"]}},
+                }
+            }
+        ],
         expected=[{"_id": None, "result": 5}],
         msg="$min should accept conditional expression with $$REMOVE",
     ),
     AccumulatorTestCase(
         "input_null_literal",
         docs=[{"v": 1}, {"v": 2}],
-        pipeline=_group_min(None),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": None}}}],
         expected=[{"_id": None, "result": None}],
         msg="$min should return null when accumulator is null literal",
     ),
@@ -176,5 +165,10 @@ MIN_GROUP_INPUT_AND_RETURN_SUCCESS_TESTS = MIN_EXPRESSION_ARGUMENT_TESTS + MIN_R
 @pytest.mark.parametrize("test_case", pytest_params(MIN_GROUP_INPUT_AND_RETURN_SUCCESS_TESTS))
 def test_accumulator_min_group_input_and_return(collection, test_case: AccumulatorTestCase):
     """Test $min accumulator expression arguments and return type verification with $group."""
-    result = _run_accumulator(collection, test_case)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
     assertSuccess(result, test_case.expected, msg=test_case.msg)

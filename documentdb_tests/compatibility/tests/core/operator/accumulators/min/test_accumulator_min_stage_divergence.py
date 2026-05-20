@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 from bson import Code, Decimal128, Int64, MaxKey, MinKey, Regex
 
@@ -15,35 +13,6 @@ from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, MODULO_ZERO_
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_NAN, FLOAT_NAN
-
-
-def _group_min(accumulator: Any) -> list[dict[str, Any]]:
-    """Build a $group pipeline for $min."""
-    return [{"$group": {"_id": None, "result": {"$min": accumulator}}}]
-
-
-def _bucket_auto_min(accumulator: Any) -> list[dict[str, Any]]:
-    """Build a $bucketAuto pipeline for $min."""
-    return [
-        {
-            "$bucketAuto": {
-                "groupBy": {"$literal": 0},
-                "buckets": 1,
-                "output": {"result": {"$min": accumulator}},
-            }
-        }
-    ]
-
-
-def _run_accumulator(collection, test_case: AccumulatorTestCase):
-    """Insert docs and run the pipeline."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    return execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-
 
 # ---------------------------------------------------------------------------
 # Property [Tie-Breaking — $group]: when numerically equal values have different
@@ -287,14 +256,14 @@ MIN_NEGZERO_GROUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "negzero_double_group",
         docs=[{"v": -0.0}, {"v": 0.0}],
-        pipeline=_group_min("$v"),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
         expected=[{"_id": None, "result": 0.0}],
         msg="$min in $group should return 0.0 (last wins) for -0.0 vs 0.0",
     ),
     AccumulatorTestCase(
         "negzero_decimal_group",
         docs=[{"v": Decimal128("-0")}, {"v": Decimal128("0")}],
-        pipeline=_group_min("$v"),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
         expected=[{"_id": None, "result": Decimal128("0")}],
         msg="$min in $group should return Decimal128('0') (last wins) for Decimal128 -0 vs 0",
     ),
@@ -307,14 +276,30 @@ MIN_NEGZERO_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "negzero_double_bucket_auto",
         docs=[{"v": -0.0}, {"v": 0.0}],
-        pipeline=_bucket_auto_min("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$min": "$v"}},
+                }
+            }
+        ],
         expected=[{"_id": {"min": 0, "max": 0}, "result": -0.0}],
         msg="$min in $bucketAuto should return -0.0 (first wins) for -0.0 vs 0.0",
     ),
     AccumulatorTestCase(
         "negzero_decimal_bucket_auto",
         docs=[{"v": Decimal128("-0")}, {"v": Decimal128("0")}],
-        pipeline=_bucket_auto_min("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$min": "$v"}},
+                }
+            }
+        ],
         expected=[{"_id": {"min": 0, "max": 0}, "result": Decimal128("-0")}],
         msg="$min in $bucketAuto should return Decimal128('-0') (first wins)",
     ),
@@ -365,7 +350,7 @@ MIN_DECIMAL_TRAILING_GROUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "decimal_trailing_zeros_group",
         docs=[{"v": Decimal128("1.0")}, {"v": Decimal128("1.00")}],
-        pipeline=_group_min("$v"),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
         expected=[{"_id": None, "result": Decimal128("1.00")}],
         msg="$min in $group should return Decimal128('1.00') (last wins) for trailing zero tie",
     ),
@@ -378,7 +363,15 @@ MIN_DECIMAL_TRAILING_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "decimal_trailing_zeros_bucket_auto",
         docs=[{"v": Decimal128("1.0")}, {"v": Decimal128("1.00")}],
-        pipeline=_bucket_auto_min("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$min": "$v"}},
+                }
+            }
+        ],
         expected=[{"_id": {"min": 0, "max": 0}, "result": Decimal128("1.0")}],
         msg="$min in $bucketAuto should return Decimal128('1.0') for trailing zero tie",
     ),
@@ -391,28 +384,28 @@ MIN_BSON_SERIALIZATION_GROUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "bson_regex_vs_code_group",
         docs=[{"v": Regex("zzz")}, {"v": Code("a")}],
-        pipeline=_group_min("$v"),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
         expected=[{"_id": None, "result": Regex("zzz")}],
         msg="$min in $group should return Regex as Regex object (Regex < Code)",
     ),
     AccumulatorTestCase(
         "bson_code_vs_maxkey_group",
         docs=[{"v": Code("zzz")}, {"v": MaxKey()}],
-        pipeline=_group_min("$v"),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
         expected=[{"_id": None, "result": Code("zzz")}],
         msg="$min in $group should return Code as Code object",
     ),
     AccumulatorTestCase(
         "bson_minkey_vs_maxkey_group",
         docs=[{"v": MinKey()}, {"v": MaxKey()}],
-        pipeline=_group_min("$v"),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
         expected=[{"_id": None, "result": MinKey()}],
         msg="$min in $group should return MinKey directly",
     ),
     AccumulatorTestCase(
         "bson_code_basic_group",
         docs=[{"v": Code("a()")}, {"v": Code("b()")}],
-        pipeline=_group_min("$v"),
+        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
         expected=[{"_id": None, "result": Code("a()")}],
         msg="$min in $group should return Code as Code object",
     ),
@@ -426,28 +419,60 @@ MIN_BSON_SERIALIZATION_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "bson_regex_vs_code_bucket_auto",
         docs=[{"v": Regex("zzz")}, {"v": Code("a")}],
-        pipeline=_bucket_auto_min("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$min": "$v"}},
+                }
+            }
+        ],
         expected=[{"_id": {"min": 0, "max": 0}, "result": Regex("zzz")}],
         msg="$min in $bucketAuto should return Regex as Regex object (Regex < Code)",
     ),
     AccumulatorTestCase(
         "bson_code_vs_maxkey_bucket_auto",
         docs=[{"v": Code("zzz")}, {"v": MaxKey()}],
-        pipeline=_bucket_auto_min("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$min": "$v"}},
+                }
+            }
+        ],
         expected=[{"_id": {"min": 0, "max": 0}, "result": Code("zzz")}],
         msg="$min in $bucketAuto should return Code as Code object",
     ),
     AccumulatorTestCase(
         "bson_minkey_vs_maxkey_bucket_auto",
         docs=[{"v": MinKey()}, {"v": MaxKey()}],
-        pipeline=_bucket_auto_min("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$min": "$v"}},
+                }
+            }
+        ],
         expected=[{"_id": {"min": 0, "max": 0}, "result": MinKey()}],
         msg="$min in $bucketAuto should return MinKey directly",
     ),
     AccumulatorTestCase(
         "bson_code_basic_bucket_auto",
         docs=[{"v": Code("a()")}, {"v": Code("b()")}],
-        pipeline=_bucket_auto_min("$v"),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$min": "$v"}},
+                }
+            }
+        ],
         expected=[{"_id": {"min": 0, "max": 0}, "result": Code("a()")}],
         msg="$min in $bucketAuto should return Code as Code object",
     ),
@@ -461,14 +486,30 @@ MIN_EXPRESSION_ERROR_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "error_divide_by_zero_bucket_auto",
         docs=[{"v": 10}],
-        pipeline=_bucket_auto_min({"$divide": ["$v", 0]}),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$min": {"$divide": ["$v", 0]}}},
+                }
+            }
+        ],
         error_code=BAD_VALUE_ERROR,
         msg="$min in $bucketAuto should wrap divide-by-zero as BAD_VALUE_ERROR",
     ),
     AccumulatorTestCase(
         "error_mod_by_zero_bucket_auto",
         docs=[{"v": 10}],
-        pipeline=_bucket_auto_min({"$mod": ["$v", 0]}),
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$min": {"$mod": ["$v", 0]}}},
+                }
+            }
+        ],
         error_code=MODULO_ZERO_REMAINDER_ERROR,
         msg="$min in $bucketAuto should wrap mod-by-zero as MODULO_ZERO_REMAINDER_ERROR",
     ),
@@ -504,19 +545,34 @@ MIN_STAGE_DIVERGENCE_BUCKET_AUTO_SUCCESS_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(MIN_STAGE_DIVERGENCE_GROUP_SUCCESS_TESTS))
 def test_accumulator_min_stage_divergence_group(collection, test_case: AccumulatorTestCase):
     """Test $min stage-specific behavior in $group."""
-    result = _run_accumulator(collection, test_case)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MIN_STAGE_DIVERGENCE_BUCKET_AUTO_SUCCESS_TESTS))
 def test_accumulator_min_stage_divergence_bucket_auto(collection, test_case: AccumulatorTestCase):
     """Test $min stage-specific behavior in $bucketAuto."""
-    result = _run_accumulator(collection, test_case)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MIN_EXPRESSION_ERROR_BUCKET_AUTO_TESTS))
 def test_accumulator_min_expression_errors_bucket_auto(collection, test_case):
     """Test $min expression error codes in $bucketAuto."""
-    result = _run_accumulator(collection, test_case)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
