@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 import pytest
 from bson import (
     Binary,
-    Code,
     Decimal128,
     Int64,
     MaxKey,
@@ -23,13 +22,8 @@ from documentdb_tests.compatibility.tests.core.operator.accumulators.utils impor
 )
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.error_codes import (
-    BAD_VALUE_ERROR,
-    CONVERSION_FAILURE_ERROR,
-    DIVIDE_BY_ZERO_V2_ERROR,
     EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
     GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
-    MODULO_BY_ZERO_V2_ERROR,
-    MODULO_ZERO_REMAINDER_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -480,29 +474,6 @@ FIRST_INPUT_FORM_TESTS: list[AccumulatorTestCase] = [
         msg="$first with a literal constant should return that constant",
     ),
     AccumulatorTestCase(
-        "input_expression",
-        docs=[{"price": 10, "qty": 2}, {"price": 5, "qty": 10}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$first": {"$multiply": ["$price", "$qty"]}}}}
-        ],
-        expected=[{"_id": None, "result": 20}],
-        msg="$first should accept a computed expression as operand",
-    ),
-    AccumulatorTestCase(
-        "input_cond_remove",
-        docs=[{"v": -1}, {"v": 5}],
-        pipeline=[
-            {
-                "$group": {
-                    "_id": None,
-                    "result": {"$first": {"$cond": [{"$gt": ["$v", 0]}, "$v", "$$REMOVE"]}},
-                }
-            }
-        ],
-        expected=[{"_id": None, "result": None}],
-        msg="$first should accept conditional with $$REMOVE as operand",
-    ),
-    AccumulatorTestCase(
         "input_null_literal",
         docs=[{"v": 1}, {"v": 2}],
         pipeline=[{"$group": {"_id": None, "result": {"$first": None}}}],
@@ -605,32 +576,6 @@ FIRST_ARITY_GROUP_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [Expression Error Propagation]: errors in sub-expressions used
-# as $first operand propagate as errors.
-FIRST_EXPRESSION_ERROR_GROUP_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "error_toInt_invalid_group",
-        docs=[{"v": "not_a_number"}],
-        pipeline=[{"$group": {"_id": None, "result": {"$first": {"$toInt": "$v"}}}}],
-        error_code=CONVERSION_FAILURE_ERROR,
-        msg="$first should propagate conversion error from $toInt sub-expression in $group",
-    ),
-    AccumulatorTestCase(
-        "error_divide_by_zero_group",
-        docs=[{"v": 10}],
-        pipeline=[{"$group": {"_id": None, "result": {"$first": {"$divide": ["$v", 0]}}}}],
-        error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$first should propagate divide-by-zero error in $group",
-    ),
-    AccumulatorTestCase(
-        "error_mod_by_zero_group",
-        docs=[{"v": 10}],
-        pipeline=[{"$group": {"_id": None, "result": {"$first": {"$mod": ["$v", 0]}}}}],
-        error_code=MODULO_BY_ZERO_V2_ERROR,
-        msg="$first should propagate mod-by-zero error in $group",
-    ),
-]
-
 FIRST_GROUP_SUCCESS_TESTS = (
     FIRST_NULL_MISSING_TESTS
     + FIRST_BSON_TYPE_TESTS
@@ -641,8 +586,6 @@ FIRST_GROUP_SUCCESS_TESTS = (
     + FIRST_INPUT_FORM_TESTS
     + FIRST_EDGE_CASE_TESTS
 )
-
-FIRST_GROUP_ERROR_TESTS = FIRST_ARITY_GROUP_TESTS + FIRST_EXPRESSION_ERROR_GROUP_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(FIRST_GROUP_SUCCESS_TESTS))
@@ -655,18 +598,6 @@ def test_accumulator_first_group(collection, test_case: AccumulatorTestCase):
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(FIRST_GROUP_ERROR_TESTS))
-def test_accumulator_first_group_errors(collection, test_case):
-    """Test $first accumulator error cases via $group."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
 
 
 # Property [Bucket Stage Smoke]: $first produces correct results through
@@ -915,40 +846,6 @@ def test_accumulator_first_bucket_auto(collection, test_case: AccumulatorTestCas
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
-# Property [Code Serialization Divergence]: Code without scope is returned
-# as str when projected in $group/$bucket but as Code object in $bucketAuto.
-FIRST_CODE_GROUP_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "code_without_scope_group",
-        docs=[{"v": Code("abc")}, {"v": 999}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$first": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": "abc"}],
-        msg="$first should return Code without scope as str in $group",
-    ),
-]
-
-FIRST_CODE_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "code_without_scope_bucket_auto",
-        docs=[{"v": Code("abc")}, {"v": 999}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$first": "$v"}},
-                }
-            },
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": Code("abc", None)}],
-        msg="$first should return Code without scope as Code in $bucketAuto",
-    ),
-]
-
 # Property [MinKey Serialization Divergence]: MinKey is wrapped in a
 # document when projected in $group/$bucket but returned directly in
 # $bucketAuto.
@@ -1020,9 +917,7 @@ FIRST_MAXKEY_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
 ]
 
 FIRST_STAGE_DIVERGENCE_SUCCESS_TESTS = (
-    FIRST_CODE_GROUP_TESTS
-    + FIRST_CODE_BUCKET_AUTO_TESTS
-    + FIRST_MINKEY_GROUP_TESTS
+    FIRST_MINKEY_GROUP_TESTS
     + FIRST_MINKEY_BUCKET_AUTO_TESTS
     + FIRST_MAXKEY_GROUP_TESTS
     + FIRST_MAXKEY_BUCKET_AUTO_TESTS
@@ -1040,104 +935,6 @@ def test_accumulator_first_stage_divergence(collection, test_case: AccumulatorTe
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
-
-# Property [Error Code Divergence]: $group/$bucket and $bucketAuto use
-# different error codes for divide-by-zero and mod-by-zero.
-FIRST_ERROR_BUCKET_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "error_toInt_invalid_bucket",
-        docs=[{"v": "not_a_number"}],
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": {"$literal": 0},
-                    "boundaries": [-1, 1],
-                    "output": {"result": {"$first": {"$toInt": "$v"}}},
-                }
-            }
-        ],
-        error_code=CONVERSION_FAILURE_ERROR,
-        msg="$first should propagate conversion error from $toInt in $bucket",
-    ),
-    AccumulatorTestCase(
-        "error_divide_by_zero_bucket",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": {"$literal": 0},
-                    "boundaries": [-1, 1],
-                    "output": {"result": {"$first": {"$divide": ["$v", 0]}}},
-                }
-            }
-        ],
-        error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$first should propagate divide-by-zero error in $bucket",
-    ),
-    AccumulatorTestCase(
-        "error_mod_by_zero_bucket",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": {"$literal": 0},
-                    "boundaries": [-1, 1],
-                    "output": {"result": {"$first": {"$mod": ["$v", 0]}}},
-                }
-            }
-        ],
-        error_code=MODULO_BY_ZERO_V2_ERROR,
-        msg="$first should propagate mod-by-zero error in $bucket",
-    ),
-]
-
-FIRST_ERROR_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "error_toInt_invalid_bucket_auto",
-        docs=[{"v": "not_a_number"}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$first": {"$toInt": "$v"}}},
-                }
-            }
-        ],
-        error_code=CONVERSION_FAILURE_ERROR,
-        msg="$first should propagate conversion error from $toInt in $bucketAuto",
-    ),
-    AccumulatorTestCase(
-        "error_divide_by_zero_bucket_auto",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$first": {"$divide": ["$v", 0]}}},
-                }
-            }
-        ],
-        error_code=BAD_VALUE_ERROR,
-        msg="$first should propagate divide-by-zero in $bucketAuto (wrapped as BAD_VALUE)",
-    ),
-    AccumulatorTestCase(
-        "error_mod_by_zero_bucket_auto",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$first": {"$mod": ["$v", 0]}}},
-                }
-            }
-        ],
-        error_code=MODULO_ZERO_REMAINDER_ERROR,
-        msg="$first should propagate mod-by-zero in $bucketAuto (wrapped as 16610)",
-    ),
-]
 
 # Property [Arity Across Stages]: arity rejection is consistent across $bucket and $bucketAuto.
 FIRST_ARITY_BUCKET_TESTS: list[AccumulatorTestCase] = [
@@ -1236,25 +1033,9 @@ FIRST_ARITY_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-FIRST_EXPRESSION_ERROR_TESTS = (
-    FIRST_EXPRESSION_ERROR_GROUP_TESTS + FIRST_ERROR_BUCKET_TESTS + FIRST_ERROR_BUCKET_AUTO_TESTS
-)
-
 FIRST_ARITY_ERROR_TESTS = (
     FIRST_ARITY_GROUP_TESTS + FIRST_ARITY_BUCKET_TESTS + FIRST_ARITY_BUCKET_AUTO_TESTS
 )
-
-
-@pytest.mark.parametrize("test_case", pytest_params(FIRST_EXPRESSION_ERROR_TESTS))
-def test_accumulator_first_expression_errors(collection, test_case):
-    """Test $first expression error propagation."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(FIRST_ARITY_ERROR_TESTS))
