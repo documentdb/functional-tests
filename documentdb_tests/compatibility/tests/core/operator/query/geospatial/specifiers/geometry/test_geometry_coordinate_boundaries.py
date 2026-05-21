@@ -1,5 +1,5 @@
 """Tests for $geometry valid coordinate boundary values — longitude/latitude limits,
-poles, antimeridian, and high-precision coordinates."""
+poles, antimeridian, origin, negative coordinates, and high-precision coordinates."""
 
 import pytest
 
@@ -58,6 +58,28 @@ VALID_BOUNDARY_TESTS: list[QueryTestCase] = [
         ],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}}],
         msg="Should accept latitude = 90",
+    ),
+    QueryTestCase(
+        id="origin_zero_zero",
+        filter={"loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [0, 0]}}}},
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [45, 45]}},
+        ],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        msg="Should accept coordinates at origin (0, 0)",
+    ),
+    QueryTestCase(
+        id="negative_coordinates",
+        filter={
+            "loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [-45, -45]}}}
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [-45, -45]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [45, 45]}},
+        ],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [-45, -45]}}],
+        msg="Should accept negative longitude and latitude",
     ),
     QueryTestCase(
         id="high_precision_coordinates",

@@ -1,4 +1,5 @@
-"""Tests for $geometry valid GeoJSON type coverage — valid types and coordinate types."""
+"""Tests for $geometry valid GeoJSON type coverage — valid types, coordinate types,
+and mixed coordinate types."""
 
 import pytest
 from bson import Decimal128, Int64
@@ -183,6 +184,50 @@ VALID_COORDINATE_TYPE_TESTS: list[QueryTestCase] = [
         doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [10, 20]}}],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [10, 20]}}],
         msg="Should accept Point with 3 coordinates (altitude ignored)",
+    ),
+    QueryTestCase(
+        id="mixed_int_and_decimal128",
+        filter={
+            "loc": {
+                "$geoIntersects": {
+                    "$geometry": {"type": "Point", "coordinates": [1, Decimal128("1")]}
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [1, 1]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [50, 50]}},
+        ],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [1, 1]}}],
+        msg="Should accept mixed int and Decimal128 coordinates",
+    ),
+    QueryTestCase(
+        id="mixed_int_and_int64",
+        filter={
+            "loc": {
+                "$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [1, Int64(1)]}}
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [1, 1]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [50, 50]}},
+        ],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [1, 1]}}],
+        msg="Should accept mixed int and Int64 coordinates",
+    ),
+    QueryTestCase(
+        id="mixed_float_and_int64",
+        filter={
+            "loc": {
+                "$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [1.0, Int64(1)]}}
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [1, 1]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [50, 50]}},
+        ],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [1, 1]}}],
+        msg="Should accept mixed float and Int64 coordinates",
     ),
 ]
 

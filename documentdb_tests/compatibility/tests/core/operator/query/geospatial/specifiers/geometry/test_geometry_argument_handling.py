@@ -73,6 +73,28 @@ VALID_GEOMETRY_TESTS: list[QueryTestCase] = [
         msg="$geometry: array value does not error, geometry specifier is silently ignored",
     ),
     QueryTestCase(
+        id="multiple_extra_fields",
+        filter={
+            "loc": {
+                "$geoIntersects": {
+                    "$geometry": {
+                        "type": "Point",
+                        "coordinates": [1, 1],
+                        "bbox": [-1, -1, 1, 1],
+                        "id": "test",
+                        "properties": {"name": "foo"},
+                    }
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [1, 1]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [50, 50]}},
+        ],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [1, 1]}}],
+        msg="Should ignore multiple extra fields (bbox, id, properties) in $geometry",
+    ),
+    QueryTestCase(
         id="crs_with_geoIntersects",
         filter={
             "loc": {
