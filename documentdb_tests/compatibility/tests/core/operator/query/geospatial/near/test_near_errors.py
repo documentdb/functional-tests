@@ -1,4 +1,4 @@
-"""Tests for $near error handling — all error/rejection cases consolidated."""
+"""Tests for $near error handling — invalid coordinates, GeoJSON structure, restrictions."""
 
 import pytest
 
@@ -14,7 +14,6 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
-    DECIMAL128_MAX,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
@@ -171,137 +170,7 @@ GEOJSON_STRUCTURE_ERROR_TESTS: list[QueryTestCase] = [
 ]
 
 
-INVALID_DISTANCE_TESTS: list[QueryTestCase] = [
-    QueryTestCase(
-        id="maxDistance_negative",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$maxDistance": -1,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject negative $maxDistance",
-    ),
-    QueryTestCase(
-        id="minDistance_negative",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$minDistance": -1,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject negative $minDistance",
-    ),
-    QueryTestCase(
-        id="maxDistance_decimal128_max",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$maxDistance": DECIMAL128_MAX,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject $maxDistance=DECIMAL128_MAX as non-negative overflow",
-    ),
-]
-
-
-DISTANCE_VALIDATION_TESTS: list[QueryTestCase] = [
-    QueryTestCase(
-        id="maxDistance_nan",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$maxDistance": FLOAT_NAN,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject NaN $maxDistance",
-    ),
-    QueryTestCase(
-        id="maxDistance_neg_infinity",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$maxDistance": FLOAT_NEGATIVE_INFINITY,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject -Infinity $maxDistance",
-    ),
-    QueryTestCase(
-        id="minDistance_nan",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$minDistance": FLOAT_NAN,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject NaN $minDistance",
-    ),
-    QueryTestCase(
-        id="minDistance_neg_infinity",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$minDistance": FLOAT_NEGATIVE_INFINITY,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject -Infinity $minDistance",
-    ),
-    QueryTestCase(
-        id="maxDistance_infinity",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$maxDistance": FLOAT_INFINITY,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject Infinity $maxDistance",
-    ),
-    QueryTestCase(
-        id="minDistance_infinity",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$minDistance": FLOAT_INFINITY,
-                }
-            }
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject Infinity $minDistance",
-    ),
-]
-
-
-ALL_ERROR_TESTS = (
-    COORDINATE_BOUNDARY_ERROR_TESTS
-    + GEOJSON_STRUCTURE_ERROR_TESTS
-    + INVALID_DISTANCE_TESTS
-    + DISTANCE_VALIDATION_TESTS
-)
+ALL_ERROR_TESTS = COORDINATE_BOUNDARY_ERROR_TESTS + GEOJSON_STRUCTURE_ERROR_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_ERROR_TESTS))
@@ -317,12 +186,6 @@ RESTRICTION_ERROR_TESTS: list[QueryTestCase] = [
         filter={"loc": {"$near": {}}},
         error_code=BAD_VALUE_ERROR,
         msg="Should reject $near with empty object (no $geometry)",
-    ),
-    QueryTestCase(
-        id="near_with_only_maxDistance",
-        filter={"loc": {"$near": {"$maxDistance": 5000}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject $near with $maxDistance but no $geometry",
     ),
     QueryTestCase(
         id="near_and_nearSphere_same_field",

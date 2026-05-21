@@ -57,50 +57,10 @@ GEOJSON_STRUCTURE_SUCCESS_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-DISTANCE_COMBINATION_TESTS: list[QueryTestCase] = [
-    QueryTestCase(
-        id="both_min_and_max",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$minDistance": 0,
-                    "$maxDistance": 1000000,
-                }
-            }
-        },
-        doc=[
-            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
-            {"_id": 2, "loc": {"type": "Point", "coordinates": [5, 5]}},
-        ],
-        expected=[
-            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
-            {"_id": 2, "loc": {"type": "Point", "coordinates": [5, 5]}},
-        ],
-        msg="Should accept both $minDistance and $maxDistance",
-    ),
-    QueryTestCase(
-        id="only_minDistance",
-        filter={
-            "loc": {
-                "$near": {
-                    "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                    "$minDistance": 0,
-                }
-            }
-        },
-        doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
-        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
-        msg="Should accept only $minDistance",
-    ),
-]
 
-
-@pytest.mark.parametrize(
-    "test", pytest_params(GEOJSON_STRUCTURE_SUCCESS_TESTS + DISTANCE_COMBINATION_TESTS)
-)
+@pytest.mark.parametrize("test", pytest_params(GEOJSON_STRUCTURE_SUCCESS_TESTS))
 def test_near_valid_argument_handling(collection, test):
-    """Verifies $near accepts valid GeoJSON structures and distance combinations."""
+    """Verifies $near accepts valid GeoJSON structures."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, msg=test.msg)

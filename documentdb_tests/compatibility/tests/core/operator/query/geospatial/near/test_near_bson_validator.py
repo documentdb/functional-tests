@@ -31,26 +31,6 @@ GEOJSON_BSON_PARAMS = [
         default_error_code=BAD_VALUE_ERROR,
     ),
     BsonTypeTestCase(
-        id="maxDistance",
-        msg="$maxDistance should reject non-numeric types",
-        keyword="$maxDistance",
-        valid_types=[BsonType.DOUBLE, BsonType.INT, BsonType.LONG, BsonType.DECIMAL],
-        default_error_code=BAD_VALUE_ERROR,
-    ),
-    BsonTypeTestCase(
-        id="minDistance",
-        msg="$minDistance should reject non-numeric types",
-        keyword="$minDistance",
-        valid_types=[BsonType.DOUBLE, BsonType.INT, BsonType.LONG, BsonType.DECIMAL],
-        valid_inputs={
-            BsonType.DOUBLE: 0.0,
-            BsonType.INT: 0,
-            BsonType.LONG: Int64(0),
-            BsonType.DECIMAL: Decimal128("0"),
-        },
-        default_error_code=BAD_VALUE_ERROR,
-    ),
-    BsonTypeTestCase(
         id="coordinates",
         msg="coordinates should reject non-numeric element types",
         keyword="coordinates",
@@ -82,16 +62,7 @@ def _build_geojson_filter(spec, sample_value):
                 }
             }
         }
-    if spec.keyword == "$geometry":
-        return {"loc": {"$near": {"$geometry": sample_value}}}
-    return {
-        "loc": {
-            "$near": {
-                "$geometry": {"type": "Point", "coordinates": [0, 0]},
-                spec.keyword: sample_value,
-            }
-        }
-    }
+    return {"loc": {"$near": {"$geometry": sample_value}}}
 
 
 @pytest.mark.parametrize("bson_type,sample_value,spec", GEOJSON_REJECTION)

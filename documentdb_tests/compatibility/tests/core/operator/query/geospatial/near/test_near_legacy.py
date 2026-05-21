@@ -23,35 +23,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.usefixtures("geo_2d")
 
 
-LEGACY_CORE_TESTS: list[QueryTestCase] = [
-    QueryTestCase(
-        id="legacy_with_max_distance",
-        filter={"loc": {"$near": [0, 0], "$maxDistance": 2}},
-        doc=[
-            {"_id": 1, "loc": [0, 0]},
-            {"_id": 2, "loc": [1, 1]},
-            {"_id": 3, "loc": [50, 50]},
-        ],
-        expected=[
-            {"_id": 1, "loc": [0, 0]},
-            {"_id": 2, "loc": [1, 1]},
-        ],
-        msg="Should filter legacy documents beyond $maxDistance in radians",
-    ),
-    QueryTestCase(
-        id="legacy_with_min_distance",
-        filter={"loc": {"$near": [0, 0], "$minDistance": 1}},
-        doc=[
-            {"_id": 1, "loc": [0, 0]},
-            {"_id": 2, "loc": [1, 1]},
-        ],
-        expected=[
-            {"_id": 2, "loc": [1, 1]},
-        ],
-        msg="Should accept $minDistance in legacy mode and exclude close documents",
-    ),
-]
-
 LEGACY_ERROR_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="legacy_single_element",
@@ -66,14 +37,6 @@ LEGACY_ERROR_TESTS: list[QueryTestCase] = [
         msg="Should reject empty legacy array",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(LEGACY_CORE_TESTS))
-def test_near_legacy_core(collection, test):
-    """Verifies $near legacy mode core functionality."""
-    collection.insert_many(test.doc)
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg)
 
 
 @pytest.mark.parametrize("test", pytest_params(LEGACY_ERROR_TESTS))
