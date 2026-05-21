@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-def test_smoke_accumulator_max(collection):
+def test_accumulator_max_smoke(collection):
     """Test basic $max accumulator behavior."""
     collection.insert_many(
         [

@@ -172,7 +172,7 @@ SUM_BOUNDARY_AND_LARGE_GROUP_TESTS = SUM_INTEGER_BOUNDARY_TESTS + SUM_LARGE_GROU
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_BOUNDARY_AND_LARGE_GROUP_TESTS))
-def test_sum_boundary(collection, test_case: AccumulatorTestCase):
+def test_accumulator_sum_boundary(collection, test_case: AccumulatorTestCase):
     """Test $sum integer boundary values and large group accumulation."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
@@ -234,7 +234,7 @@ SUM_NEGATIVE_ZERO_TESTS: list[AccumulatorTestCase] = [
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_NEGATIVE_ZERO_TESTS))
-def test_sum_negative_zero(collection, test_case: AccumulatorTestCase):
+def test_accumulator_sum_negative_zero(collection, test_case: AccumulatorTestCase):
     """Test $sum negative zero normalization."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

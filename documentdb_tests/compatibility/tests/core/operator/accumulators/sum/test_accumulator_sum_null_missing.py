@@ -238,7 +238,7 @@ SUM_NULL_MISSING_AND_NON_NUMERIC_TESTS = SUM_NULL_MISSING_TESTS + SUM_NON_NUMERI
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_NULL_MISSING_AND_NON_NUMERIC_TESTS))
-def test_sum_null_missing(collection, test_case: AccumulatorTestCase):
+def test_accumulator_sum_null_missing(collection, test_case: AccumulatorTestCase):
     """Test $sum null/missing handling and non-numeric type behavior."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
@@ -255,7 +255,7 @@ def test_sum_null_missing(collection, test_case: AccumulatorTestCase):
 
 # Property [Empty Collection]: empty collection produces no group output
 # (empty result set).
-def test_sum_empty_collection(collection):
+def test_accumulator_sum_empty_collection(collection):
     """Test $sum on empty collection returns empty result set."""
     result = execute_command(
         collection,

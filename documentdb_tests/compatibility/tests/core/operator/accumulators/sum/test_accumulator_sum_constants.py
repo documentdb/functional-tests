@@ -124,7 +124,7 @@ SUM_CONSTANT_AND_EXPRESSION_TESTS = SUM_CONSTANT_EXPRESSION_TESTS + SUM_EXPRESSI
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_CONSTANT_AND_EXPRESSION_TESTS))
-def test_sum_constants(collection, test_case: AccumulatorTestCase):
+def test_accumulator_sum_constants(collection, test_case: AccumulatorTestCase):
     """Test $sum constant expression behavior and expression arguments."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
@@ -186,7 +186,7 @@ SUM_CONSTANT_TYPE_TESTS: list[AccumulatorTestCase] = [
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_CONSTANT_TYPE_TESTS))
-def test_sum_constant_type(collection, test_case: AccumulatorTestCase):
+def test_accumulator_sum_constant_type(collection, test_case: AccumulatorTestCase):
     """Test $sum constant type preservation."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

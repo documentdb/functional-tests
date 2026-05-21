@@ -60,7 +60,7 @@ SUM_ERROR_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_ERROR_TESTS))
-def test_sum_errors(collection, test_case):
+def test_accumulator_sum_errors(collection, test_case):
     """Test $sum error cases."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
