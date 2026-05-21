@@ -103,14 +103,6 @@ TESTS: list[QueryTestCase] = [
 ]
 
 
-def _run_test(collection, test, extra_cmd=None):
-    """Helper to run a query test with optional extra command fields."""
-    cmd = {"find": collection.name, "filter": test.filter}
-    if extra_cmd:
-        cmd.update(extra_cmd)
-    return execute_command(collection, cmd)
-
-
 @pytest.mark.parametrize("test", pytest_params(TESTS))
 def test_centerSphere_query_interaction(collection, test):
     """Verifies $centerSphere works with other query operators and $and."""

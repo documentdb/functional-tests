@@ -300,6 +300,12 @@ COORDINATE_TYPE_TESTS: list[QueryTestCase] = [
         msg="Should reject NaN as latitude",
     ),
     QueryTestCase(
+        id="decimal128_nan_coordinates",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[DECIMAL128_NAN, 0], 1]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Should reject Decimal128 NaN as coordinate",
+    ),
+    QueryTestCase(
         id="infinity_longitude",
         filter={"loc": {"$geoWithin": {"$centerSphere": [[FLOAT_INFINITY, 0], 0.1]}}},
         error_code=BAD_VALUE_ERROR,

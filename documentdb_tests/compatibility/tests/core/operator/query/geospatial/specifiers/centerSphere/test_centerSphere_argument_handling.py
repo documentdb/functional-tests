@@ -119,6 +119,20 @@ VALID_TYPE_TESTS: list[QueryTestCase] = [
         ],
         msg="Embedded doc with non-x/y keys uses first two fields as coordinates",
     ),
+    QueryTestCase(
+        id="embedded_doc_xy_keys",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+        doc=[
+            {"_id": 1, "loc": {"x": 0, "y": 0}},
+            {"_id": 2, "loc": [0, 0]},
+            {"_id": 3, "loc": [50, 50]},
+        ],
+        expected=[
+            {"_id": 1, "loc": {"x": 0, "y": 0}},
+            {"_id": 2, "loc": [0, 0]},
+        ],
+        msg="Embedded doc with canonical x/y keys as legacy coordinates",
+    ),
 ]
 
 NON_GEO_FIELD_TESTS: list[QueryTestCase] = [
@@ -172,6 +186,30 @@ NON_GEO_FIELD_TESTS: list[QueryTestCase] = [
         expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}}],
         msg="Should silently skip document with empty object as location field",
     ),
+    QueryTestCase(
+        id="three_element_array_uses_first_two",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+        doc=[
+            {"_id": 1, "loc": [0, 0, 0]},
+            {"_id": 2, "loc": [0, 0]},
+            {"_id": 3, "loc": [50, 50]},
+        ],
+        expected=[
+            {"_id": 1, "loc": [0, 0, 0]},
+            {"_id": 2, "loc": [0, 0]},
+        ],
+        msg="3-element array location uses first two elements as coordinates",
+    ),
+    QueryTestCase(
+        id="single_element_array_not_matched",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+        doc=[
+            {"_id": 1, "loc": [5]},
+            {"_id": 2, "loc": [0, 0]},
+        ],
+        expected=[{"_id": 2, "loc": [0, 0]}],
+        msg="Single-element array location should not match",
+    ),
 ]
 
 NULL_MISSING_TESTS: list[QueryTestCase] = [
@@ -201,7 +239,6 @@ ALL_TESTS = VALID_TYPE_TESTS + NON_GEO_FIELD_TESTS + NULL_MISSING_TESTS
 def test_centerSphere_argument_handling(collection, test):
     """Verifies $centerSphere accepts valid types, skips non-geospatial
     fields, and handles null/missing."""
-    if test.doc:
-        collection.insert_many(test.doc)
+    collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)

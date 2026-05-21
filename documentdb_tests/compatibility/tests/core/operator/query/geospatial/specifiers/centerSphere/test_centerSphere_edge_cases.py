@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_c
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import FLOAT_INFINITY
+from documentdb_tests.framework.test_constants import DECIMAL128_INFINITY, FLOAT_INFINITY
 
 TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -62,6 +62,19 @@ TESTS: list[QueryTestCase] = [
             {"_id": 2, "loc": {"type": "Point", "coordinates": [180, 0]}},
         ],
         msg="Should return all documents with Infinity radius",
+    ),
+    QueryTestCase(
+        id="decimal128_infinity_radius",
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], DECIMAL128_INFINITY]}}},
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [180, 0]}},
+        ],
+        expected=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [180, 0]}},
+        ],
+        msg="Should return all documents with Decimal128 Infinity radius",
     ),
     QueryTestCase(
         id="antimeridian_crossing",
