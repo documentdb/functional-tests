@@ -51,8 +51,10 @@ class IndexQueryTestCase(IndexTestCase):
         filter: Query filter for find command.
         collation: Collation to use on the query.
         sort: Optional sort specification.
+        hint: Optional index hint for the query.
     """
 
     filter: Optional[dict] = None
     collation: Optional[dict] = None
     sort: Optional[dict] = None
+    hint: Optional[Any] = None

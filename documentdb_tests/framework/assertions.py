@@ -180,9 +180,18 @@ def assertSuccessPartial(
     assertSuccess(result, expected, msg, raw_res=True, transform=partial_match(expected))
 
 
+def _extract_partial(expected, actual):
+    """Recursively extract only the keys/elements present in expected from actual."""
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        return {k: _extract_partial(expected[k], actual[k]) for k in expected if k in actual}
+    if isinstance(expected, list) and isinstance(actual, list):
+        return [_extract_partial(e, a) for e, a in zip(expected, actual)]
+    return actual
+
+
 def partial_match(expected: Dict[str, Any]):
-    """Create transform function that extracts only expected fields."""
-    return lambda r: {k: r[k] for k in expected.keys() if k in r}
+    """Create transform function that extracts only expected fields recursively."""
+    return lambda r: _extract_partial(expected, r)
 
 
 def assertFailure(
