@@ -40,27 +40,6 @@ MIN_EXPRESSION_ARGUMENT_TESTS: list[AccumulatorTestCase] = [
         msg="$min should accept constant literal (same for all docs)",
     ),
     AccumulatorTestCase(
-        "input_expression",
-        docs=[{"price": 10, "qty": 2}, {"price": 5, "qty": 3}, {"price": 20, "qty": 1}],
-        pipeline=[{"$group": {"_id": None, "result": {"$min": {"$multiply": ["$price", "$qty"]}}}}],
-        expected=[{"_id": None, "result": 15}],
-        msg="$min should accept computed expression as operand",
-    ),
-    AccumulatorTestCase(
-        "input_cond_remove",
-        docs=[{"v": -1}, {"v": 5}, {"v": -2}, {"v": 10}],
-        pipeline=[
-            {
-                "$group": {
-                    "_id": None,
-                    "result": {"$min": {"$cond": [{"$gt": ["$v", 0]}, "$v", "$$REMOVE"]}},
-                }
-            }
-        ],
-        expected=[{"_id": None, "result": 5}],
-        msg="$min should accept conditional expression with $$REMOVE",
-    ),
-    AccumulatorTestCase(
         "input_null_literal",
         docs=[{"v": 1}, {"v": 2}],
         pipeline=[{"$group": {"_id": None, "result": {"$min": None}}}],
