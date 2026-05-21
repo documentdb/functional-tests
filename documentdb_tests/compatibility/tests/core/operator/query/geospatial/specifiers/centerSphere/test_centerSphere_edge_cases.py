@@ -268,7 +268,6 @@ TESTS: list[QueryTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(TESTS))
 def test_centerSphere_edge_cases(collection, test):
     """Verifies $centerSphere behavior at radius boundaries and spherical geometry edge cases."""
-    if test.doc:
-        collection.insert_many(test.doc)
+    collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
