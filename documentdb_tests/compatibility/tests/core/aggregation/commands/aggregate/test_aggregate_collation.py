@@ -22,7 +22,12 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.error_codes import (
+    BAD_VALUE_ERROR,
+    MISSING_FIELD_ERROR,
+    TYPE_MISMATCH_ERROR,
+    UNRECOGNIZED_COMMAND_FIELD_ERROR,
+)
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
@@ -276,6 +281,70 @@ AGGREGATE_COLLATION_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [Collation Field Ordering]: collation validation accepts locale at
+# any position within the document.
+AGGREGATE_COLLATION_FIELD_ORDERING_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "collation_locale_at_end",
+        docs=[{"_id": 1, "x": "a"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [],
+            "cursor": {},
+            "collation": {"strength": 2, "locale": "en"},
+        },
+        expected={
+            "ok": Eq(1.0),
+            "cursor": {"firstBatch": Eq([{"_id": 1, "x": "a"}])},
+        },
+        msg="aggregate should accept collation with locale at any position",
+    ),
+    CommandTestCase(
+        "collation_locale_middle",
+        docs=[{"_id": 1, "x": "a"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [],
+            "cursor": {},
+            "collation": {"strength": 2, "locale": "en", "caseLevel": False},
+        },
+        expected={
+            "ok": Eq(1.0),
+            "cursor": {"firstBatch": Eq([{"_id": 1, "x": "a"}])},
+        },
+        msg="aggregate should accept collation with locale in the middle",
+    ),
+]
+
+# Property [Pipeline Content Independence]: collation validation fires
+# regardless of pipeline content, not only when the pipeline is empty.
+AGGREGATE_COLLATION_PIPELINE_VALIDATION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "nonempty_pipeline_invalid_type",
+        docs=[{"_id": 1, "x": 1}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [{"$match": {"x": 1}}],
+            "cursor": {},
+            "collation": "en",
+        },
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="aggregate should reject non-object collation even with non-empty pipeline",
+    ),
+    CommandTestCase(
+        "nonempty_pipeline_invalid_locale",
+        docs=[{"_id": 1, "x": 1}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [{"$match": {"x": 1}}],
+            "cursor": {},
+            "collation": {"locale": "invalid_xyz"},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="aggregate should reject invalid locale even with non-empty pipeline",
+    ),
+]
+
 # Property [Collation Type Rejection]: all non-document, non-null BSON types
 # for the collation field produce a type mismatch error.
 AGGREGATE_COLLATION_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
@@ -310,8 +379,67 @@ AGGREGATE_COLLATION_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
     ]
 ]
 
+# Property [Collation Missing Locale]: a collation document without a locale
+# field produces MISSING_FIELD_ERROR.
+AGGREGATE_COLLATION_MISSING_LOCALE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "missing_locale_with_strength",
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [],
+            "cursor": {},
+            "collation": {"strength": 2},
+        },
+        error_code=MISSING_FIELD_ERROR,
+        msg="aggregate should reject collation without locale field",
+    ),
+    CommandTestCase(
+        "missing_locale_with_case_level",
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [],
+            "cursor": {},
+            "collation": {"caseLevel": True},
+        },
+        error_code=MISSING_FIELD_ERROR,
+        msg="aggregate should reject collation with caseLevel but no locale",
+    ),
+]
+
+# Property [Collation Unknown Fields]: unknown fields in the collation document
+# produce UNRECOGNIZED_COMMAND_FIELD_ERROR.
+AGGREGATE_COLLATION_UNKNOWN_FIELD_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "unknown_field_capitalized",
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [],
+            "cursor": {},
+            "collation": {"locale": "en", "Strength": 2},
+        },
+        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        msg="aggregate should reject capitalized field name as unknown",
+    ),
+    CommandTestCase(
+        "unknown_field_arbitrary",
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [],
+            "cursor": {},
+            "collation": {"locale": "en", "foo": "bar"},
+        },
+        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        msg="aggregate should reject arbitrary unknown field in collation",
+    ),
+]
+
 AGGREGATE_COLLATION_TESTS = (
-    AGGREGATE_COLLATION_ACCEPTANCE_TESTS + AGGREGATE_COLLATION_TYPE_REJECTION_TESTS
+    AGGREGATE_COLLATION_ACCEPTANCE_TESTS
+    + AGGREGATE_COLLATION_FIELD_ORDERING_TESTS
+    + AGGREGATE_COLLATION_PIPELINE_VALIDATION_TESTS
+    + AGGREGATE_COLLATION_TYPE_REJECTION_TESTS
+    + AGGREGATE_COLLATION_MISSING_LOCALE_TESTS
+    + AGGREGATE_COLLATION_UNKNOWN_FIELD_TESTS
 )
 
 
