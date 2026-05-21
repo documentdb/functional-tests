@@ -1,5 +1,6 @@
 """Tests for $centerSphere valid argument handling — valid types,
-non-geospatial field values, and null/missing fields."""
+boundary values, embedded document coordinate formats, non-geospatial
+field values, array location fields, and null/missing fields."""
 
 import pytest
 from bson import Decimal128, Int64
