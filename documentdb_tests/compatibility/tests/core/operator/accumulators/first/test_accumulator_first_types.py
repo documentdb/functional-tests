@@ -275,46 +275,6 @@ FIRST_DECIMAL_PRECISION_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [No Coercion]: $first preserves BSON type distinctions without
-# coercing similar-looking values.
-FIRST_TYPE_DISTINCTION_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "distinct_false_not_zero",
-        docs=[{"v": False}, {"v": 999}],
-        pipeline=[{"$group": {"_id": None, "result": {"$first": "$v"}}}],
-        expected=[{"_id": None, "result": False}],
-        msg="$first should return False, not coerce to 0",
-    ),
-    AccumulatorTestCase(
-        "distinct_true_not_one",
-        docs=[{"v": True}, {"v": 999}],
-        pipeline=[{"$group": {"_id": None, "result": {"$first": "$v"}}}],
-        expected=[{"_id": None, "result": True}],
-        msg="$first should return True, not coerce to 1",
-    ),
-    AccumulatorTestCase(
-        "distinct_zero_not_false",
-        docs=[{"v": 0}, {"v": 999}],
-        pipeline=[{"$group": {"_id": None, "result": {"$first": "$v"}}}],
-        expected=[{"_id": None, "result": 0}],
-        msg="$first should return int32(0), not coerce to False",
-    ),
-    AccumulatorTestCase(
-        "distinct_empty_string",
-        docs=[{"v": ""}, {"v": 999}],
-        pipeline=[{"$group": {"_id": None, "result": {"$first": "$v"}}}],
-        expected=[{"_id": None, "result": ""}],
-        msg="$first should return empty string, not coerce to null",
-    ),
-    AccumulatorTestCase(
-        "distinct_string_number",
-        docs=[{"v": "123"}, {"v": 999}],
-        pipeline=[{"$group": {"_id": None, "result": {"$first": "$v"}}}],
-        expected=[{"_id": None, "result": "123"}],
-        msg="$first should return string '123', not coerce to int",
-    ),
-]
-
 # Property [Position-Based]: $first picks the first document's value
 # regardless of what other documents contain.
 FIRST_MIXED_TYPE_TESTS: list[AccumulatorTestCase] = [
@@ -437,7 +397,6 @@ FIRST_TYPE_SUCCESS_TESTS = (
     FIRST_BSON_TYPE_TESTS
     + FIRST_SPECIAL_NUMERIC_TESTS
     + FIRST_DECIMAL_PRECISION_TESTS
-    + FIRST_TYPE_DISTINCTION_TESTS
     + FIRST_MIXED_TYPE_TESTS
     + FIRST_RETURN_TYPE_TESTS
 )

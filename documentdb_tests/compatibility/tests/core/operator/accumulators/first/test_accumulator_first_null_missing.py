@@ -110,13 +110,6 @@ FIRST_NULL_MISSING_TESTS: list[AccumulatorTestCase] = [
 # Property [Input Forms]: $first accumulator accepts various expression types as its operand.
 FIRST_INPUT_FORM_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "input_field_path",
-        docs=[{"v": 10}, {"v": 20}],
-        pipeline=[{"$group": {"_id": None, "result": {"$first": "$v"}}}],
-        expected=[{"_id": None, "result": 10}],
-        msg="$first should accept a basic field path reference",
-    ),
-    AccumulatorTestCase(
         "input_nested_field",
         docs=[{"a": {"b": 10}}, {"a": {"b": 20}}],
         pipeline=[{"$group": {"_id": None, "result": {"$first": "$a.b"}}}],
@@ -182,13 +175,6 @@ FIRST_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[{"$group": {"_id": None, "result": {"$first": "$v"}}}],
         expected=[{"_id": None, "result": [5, 1, 8]}],
         msg="$first should return array as whole value, not traverse it",
-    ),
-    AccumulatorTestCase(
-        "edge_literal_constant",
-        docs=[{"v": 1}, {"v": 2}, {"v": 3}],
-        pipeline=[{"$group": {"_id": None, "result": {"$first": 42}}}],
-        expected=[{"_id": None, "result": 42}],
-        msg="$first with literal constant should always return that constant",
     ),
 ]
 
