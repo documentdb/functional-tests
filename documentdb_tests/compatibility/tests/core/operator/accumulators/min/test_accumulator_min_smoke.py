@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-def test_smoke_accumulator_min(collection):
+def test_accumulator_min_smoke(collection):
     """Test basic $min accumulator behavior."""
     collection.insert_many(
         [
