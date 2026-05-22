@@ -173,7 +173,7 @@ def _run(collection, test_case: AccumulatorTestCase):
 
 
 @pytest.mark.parametrize("test_case", pytest_params(LAST_ERROR_TESTS))
-def test_last_errors(collection, test_case: AccumulatorTestCase):
+def test_last_errors(collection, test_case):
     """Test $last error cases."""
     result = _run(collection, test_case)
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
