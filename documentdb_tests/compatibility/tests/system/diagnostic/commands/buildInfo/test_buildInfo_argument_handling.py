@@ -25,7 +25,6 @@ class BuildInfoArgTest(BaseTestCase):
     arg_value: Any = None
 
 
-# buildInfo ignores its argument value — any BSON type should succeed.
 ARGUMENT_TYPE_TESTS: list[BuildInfoArgTest] = [
     BuildInfoArgTest("int_1", arg_value=1, expected={"ok": 1.0}, msg="Should accept int 1"),
     BuildInfoArgTest("int_0", arg_value=0, expected={"ok": 1.0}, msg="Should accept int 0"),
