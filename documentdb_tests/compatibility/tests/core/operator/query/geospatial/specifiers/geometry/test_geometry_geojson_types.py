@@ -11,8 +11,6 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# --- Valid GeoJSON types ---
-
 VALID_GEOJSON_TYPE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="linestring",
@@ -125,8 +123,6 @@ VALID_GEOJSON_TYPE_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-
-# --- Valid coordinate types ---
 
 VALID_COORDINATE_TYPE_TESTS: list[QueryTestCase] = [
     QueryTestCase(

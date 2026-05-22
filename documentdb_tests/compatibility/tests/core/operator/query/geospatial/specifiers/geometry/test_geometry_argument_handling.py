@@ -15,8 +15,6 @@ STRICT_CRS = {
     "properties": {"name": "urn:x-mongodb:crs:strictwinding:EPSG:4326"},
 }
 
-# --- Success cases: valid $geometry structures ---
-
 VALID_GEOMETRY_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="valid_point",
@@ -66,11 +64,14 @@ VALID_GEOMETRY_TESTS: list[QueryTestCase] = [
         msg="Should accept custom CRS with $geoWithin",
     ),
     QueryTestCase(
-        id="array_value_no_error",
+        id="array_value_as_legacy_coordinates",
         filter={"loc": {"$geoIntersects": {"$geometry": [0, 0]}}},
-        doc=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [50, 50]}},
+        ],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}}],
-        msg="$geometry: array value does not error, geometry specifier is silently ignored",
+        msg="$geometry: array value should be treated as a legacy coordinate pair",
     ),
     QueryTestCase(
         id="multiple_extra_fields",

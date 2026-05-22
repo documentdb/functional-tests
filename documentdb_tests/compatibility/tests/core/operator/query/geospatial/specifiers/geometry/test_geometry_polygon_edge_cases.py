@@ -1,5 +1,6 @@
-"""Tests for $geometry polygon edge cases — odd shapes, winding order,
-CRS winding, and degenerate polygons."""
+"""Tests for $geometry polygon edge cases — odd shapes, hemisphere auto-correction,
+mixed GeoJSON/legacy documents, polygon holes, null/missing field handling,
+and winding order with CRS."""
 
 import pytest
 
@@ -14,8 +15,6 @@ STRICT_CRS = {
     "type": "name",
     "properties": {"name": "urn:x-mongodb:crs:strictwinding:EPSG:4326"},
 }
-
-# --- Odd polygon shapes (from geo_s2oddshapes.js) ---
 
 ODD_SHAPE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -170,6 +169,27 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
         msg="Should handle degenerate geometry (all points same location)",
     ),
     QueryTestCase(
+        id="large_polygon_greater_than_hemisphere",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [[-170, -80], [170, -80], [170, 80], [-170, 80], [-170, -80]]
+                        ],
+                    }
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [170, 80]}},
+        ],
+        expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [170, 80]}}],
+        msg="Polygon larger than hemisphere should be auto-corrected to smaller complement area",
+    ),
+    QueryTestCase(
         id="mixed_geojson_and_legacy_docs",
         filter={
             "loc": {
@@ -193,8 +213,6 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-
-# --- Polygon with hole ---
 
 POLYGON_HOLE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -229,7 +247,47 @@ POLYGON_HOLE_TESTS: list[QueryTestCase] = [
 ]
 
 
-# --- Winding order ---
+NULL_MISSING_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="null_location_not_matched",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-10, -10], [10, -10], [10, 10], [-10, 10], [-10, -10]]],
+                    }
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "loc": None},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        msg="Should not match documents where location field is null",
+    ),
+    QueryTestCase(
+        id="missing_location_not_matched",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-10, -10], [10, -10], [10, 10], [-10, 10], [-10, -10]]],
+                    }
+                }
+            }
+        },
+        doc=[
+            {"_id": 1, "name": "no_loc"},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}}],
+        msg="Should not match documents where location field is missing",
+    ),
+]
+
 
 WINDING_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -274,7 +332,7 @@ WINDING_TESTS: list[QueryTestCase] = [
 ]
 
 
-ALL_TESTS = ODD_SHAPE_TESTS + POLYGON_HOLE_TESTS + WINDING_TESTS
+ALL_TESTS = ODD_SHAPE_TESTS + POLYGON_HOLE_TESTS + NULL_MISSING_TESTS + WINDING_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))

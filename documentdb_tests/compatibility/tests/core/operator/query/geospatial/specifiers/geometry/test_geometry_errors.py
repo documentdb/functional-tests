@@ -1,5 +1,6 @@
 """Tests for $geometry error cases — invalid values, coordinate boundaries,
-CRS errors, invalid type fields, invalid coordinate types, and invalid polygon structures."""
+CRS errors, invalid type fields, invalid coordinate types, invalid polygon structures,
+and malformed geometry structures."""
 
 import pytest
 
@@ -11,8 +12,6 @@ from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# --- Constants ---
-
 STRICT_CRS = {
     "type": "name",
     "properties": {"name": "urn:x-mongodb:crs:strictwinding:EPSG:4326"},
@@ -20,8 +19,6 @@ STRICT_CRS = {
 
 CCW_POLYGON = [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]
 
-
-# --- Error cases: invalid $geometry values ---
 
 INVALID_GEOMETRY_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -74,8 +71,6 @@ INVALID_GEOMETRY_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-
-# --- Error cases: coordinate boundary violations ---
 
 INVALID_BOUNDARY_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -154,8 +149,6 @@ INVALID_BOUNDARY_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-
-# --- Error cases: invalid CRS ---
 
 INVALID_CRS_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -246,8 +239,6 @@ INVALID_CRS_TESTS: list[QueryTestCase] = [
 ]
 
 
-# --- Error cases: invalid type field values ---
-
 INVALID_TYPE_FIELD_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="type_as_number",
@@ -317,8 +308,6 @@ INVALID_TYPE_FIELD_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-
-# --- Error cases: invalid coordinate types and structures ---
 
 INVALID_COORDINATE_TYPE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -424,8 +413,6 @@ INVALID_COORDINATE_TYPE_TESTS: list[QueryTestCase] = [
 ]
 
 
-# --- Error cases: invalid polygon structures ---
-
 POLYGON_STRUCTURE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="self_intersecting_polygon",
@@ -480,8 +467,6 @@ POLYGON_STRUCTURE_TESTS: list[QueryTestCase] = [
     ),
 ]
 
-
-# --- Error cases: malformed coordinate structures ---
 
 MALFORMED_STRUCTURE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
