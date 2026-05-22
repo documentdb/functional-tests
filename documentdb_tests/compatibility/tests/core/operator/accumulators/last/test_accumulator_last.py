@@ -40,37 +40,39 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-
-def _group_last(acc):
-    """Build a $sort + $group pipeline for $last."""
-    return [
-        {"$sort": {"_id": 1}},
-        {"$group": {"_id": None, "result": {"$last": acc}}},
-        {"$project": {"_id": 0, "result": 1}},
-    ]
-
-
 # Property [BSON Type Passthrough]: $last returns the last value in a group
 # unchanged, preserving its exact BSON type without coercion.
 LAST_BSON_TYPE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "bson_double",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 3.14}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 3.14}],
         msg="$last should return double value unchanged",
     ),
     AccumulatorTestCase(
         "bson_int32",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 42}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 42}],
         msg="$last should return int32 value unchanged",
     ),
     AccumulatorTestCase(
         "bson_int64",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Int64(9223372036854775807)}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": Int64(9223372036854775807)}],
         msg="$last should return int64 value unchanged",
     ),
@@ -80,28 +82,44 @@ LAST_BSON_TYPE_TESTS: list[AccumulatorTestCase] = [
             {"_id": 0, "v": 1},
             {"_id": 1, "v": Decimal128("123.456")},
         ],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": Decimal128("123.456")}],
         msg="$last should return Decimal128 value unchanged",
     ),
     AccumulatorTestCase(
         "bson_string",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": "hello"}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": "hello"}],
         msg="$last should return string value unchanged",
     ),
     AccumulatorTestCase(
         "bson_bool_true",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": True}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": True}],
         msg="$last should return boolean true unchanged",
     ),
     AccumulatorTestCase(
         "bson_bool_false",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": False}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": False}],
         msg="$last should return boolean false unchanged",
     ),
@@ -111,35 +129,55 @@ LAST_BSON_TYPE_TESTS: list[AccumulatorTestCase] = [
             {"_id": 0, "v": 1},
             {"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         ],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$last should return datetime value unchanged",
     ),
     AccumulatorTestCase(
         "bson_null",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": None}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": None}],
         msg="$last should return null value unchanged",
     ),
     AccumulatorTestCase(
         "bson_object",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": {"nested": "doc"}}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": {"nested": "doc"}}],
         msg="$last should return embedded document unchanged",
     ),
     AccumulatorTestCase(
         "bson_array",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": [1, 2, 3]}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": [1, 2, 3]}],
         msg="$last should return entire array unchanged without traversal",
     ),
     AccumulatorTestCase(
         "bson_binary",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Binary(b"\x00\x01\x02")}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": b"\x00\x01\x02"}],
         msg="$last should return Binary value unchanged",
     ),
@@ -149,42 +187,66 @@ LAST_BSON_TYPE_TESTS: list[AccumulatorTestCase] = [
             {"_id": 0, "v": 1},
             {"_id": 1, "v": ObjectId("507f1f77bcf86cd799439011")},
         ],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": ObjectId("507f1f77bcf86cd799439011")}],
         msg="$last should return ObjectId unchanged",
     ),
     AccumulatorTestCase(
         "bson_regex",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Regex("^abc", "i")}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": Regex("^abc", "i")}],
         msg="$last should return Regex unchanged",
     ),
     AccumulatorTestCase(
         "bson_code",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Code("function(){}")}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": "function(){}"}],
         msg="$last should return Code as string via runCommand",
     ),
     AccumulatorTestCase(
         "bson_timestamp",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Timestamp(1, 1)}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": Timestamp(1, 1)}],
         msg="$last should return Timestamp unchanged",
     ),
     AccumulatorTestCase(
         "bson_minkey",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": MinKey()}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": {"": MinKey()}}],
         msg="$last should return MinKey wrapped as object via runCommand",
     ),
     AccumulatorTestCase(
         "bson_maxkey",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": MaxKey()}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": {"": MaxKey()}}],
         msg="$last should return MaxKey wrapped as object via runCommand",
     ),
@@ -197,56 +259,88 @@ LAST_NULL_MISSING_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "null_last_doc",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": None}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": None}],
         msg="$last should return null when last document has null value",
     ),
     AccumulatorTestCase(
         "missing_last_doc",
         docs=[{"_id": 0, "v": 1}, {"_id": 1}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": None}],
         msg="$last should return null when last document has missing field",
     ),
     AccumulatorTestCase(
         "null_all",
         docs=[{"_id": 0, "v": None}, {"_id": 1, "v": None}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": None}],
         msg="$last should return null when all values are null",
     ),
     AccumulatorTestCase(
         "missing_all",
         docs=[{"_id": 0}, {"_id": 1}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": None}],
         msg="$last should return null when all documents have missing field",
     ),
     AccumulatorTestCase(
         "null_not_last",
         docs=[{"_id": 0, "v": None}, {"_id": 1, "v": 10}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 10}],
         msg="$last should return last value even when earlier values are null",
     ),
     AccumulatorTestCase(
         "missing_not_last",
         docs=[{"_id": 0}, {"_id": 1, "v": 10}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 10}],
         msg="$last should return last value even when earlier fields are missing",
     ),
     AccumulatorTestCase(
         "null_among_values",
         docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": None}, {"_id": 2, "v": 20}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 20}],
         msg="$last should return value from last document regardless of intermediate nulls",
     ),
     AccumulatorTestCase(
         "missing_among_values",
         docs=[{"_id": 0, "v": 10}, {"_id": 1}, {"_id": 2, "v": 20}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 20}],
         msg="$last should return value from last doc regardless of intermediate missing fields",
     ),
@@ -338,56 +432,88 @@ LAST_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "nan_double",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": FLOAT_NAN}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": pytest.approx(math.nan, nan_ok=True)}],
         msg="$last should return double NaN unchanged",
     ),
     AccumulatorTestCase(
         "nan_decimal128",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Decimal128("NaN")}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": Decimal128("NaN")}],
         msg="$last should return Decimal128 NaN unchanged",
     ),
     AccumulatorTestCase(
         "inf_double",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": FLOAT_INFINITY}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": FLOAT_INFINITY}],
         msg="$last should return double Infinity unchanged",
     ),
     AccumulatorTestCase(
         "neg_inf_double",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": FLOAT_NEGATIVE_INFINITY}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": FLOAT_NEGATIVE_INFINITY}],
         msg="$last should return double -Infinity unchanged",
     ),
     AccumulatorTestCase(
         "inf_decimal128",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Decimal128("Infinity")}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": Decimal128("Infinity")}],
         msg="$last should return Decimal128 Infinity unchanged",
     ),
     AccumulatorTestCase(
         "neg_inf_decimal128",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Decimal128("-Infinity")}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": Decimal128("-Infinity")}],
         msg="$last should return Decimal128 -Infinity unchanged",
     ),
     AccumulatorTestCase(
         "neg_zero_double",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": DOUBLE_NEGATIVE_ZERO}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": DOUBLE_NEGATIVE_ZERO}],
         msg="$last should preserve double -0.0 unchanged",
     ),
     AccumulatorTestCase(
         "neg_zero_decimal128",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": DECIMAL128_NEGATIVE_ZERO}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": DECIMAL128_NEGATIVE_ZERO}],
         msg="$last should preserve Decimal128 -0 unchanged",
     ),
@@ -399,56 +525,88 @@ LAST_BOUNDARY_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "boundary_int32_max",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": INT32_MAX}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": INT32_MAX}],
         msg="$last should return INT32_MAX unchanged",
     ),
     AccumulatorTestCase(
         "boundary_int32_min",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": INT32_MIN}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": INT32_MIN}],
         msg="$last should return INT32_MIN unchanged",
     ),
     AccumulatorTestCase(
         "boundary_int64_max",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": INT64_MAX}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": INT64_MAX}],
         msg="$last should return INT64_MAX unchanged",
     ),
     AccumulatorTestCase(
         "boundary_int64_min",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": INT64_MIN}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": INT64_MIN}],
         msg="$last should return INT64_MIN unchanged",
     ),
     AccumulatorTestCase(
         "boundary_double_max",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": DOUBLE_MAX}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": DOUBLE_MAX}],
         msg="$last should return DOUBLE_MAX unchanged",
     ),
     AccumulatorTestCase(
         "boundary_double_min_subnormal",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": DOUBLE_MIN_SUBNORMAL}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": DOUBLE_MIN_SUBNORMAL}],
         msg="$last should return double min subnormal unchanged",
     ),
     AccumulatorTestCase(
         "boundary_decimal128_max",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": DECIMAL128_MAX}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": DECIMAL128_MAX}],
         msg="$last should return DECIMAL128_MAX unchanged",
     ),
     AccumulatorTestCase(
         "boundary_decimal128_min",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": DECIMAL128_MIN}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": DECIMAL128_MIN}],
         msg="$last should return DECIMAL128_MIN unchanged",
     ),
@@ -460,21 +618,33 @@ LAST_ARRAY_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "array_whole",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": [1, 2, 3]}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": [1, 2, 3]}],
         msg="$last should return entire array without traversal",
     ),
     AccumulatorTestCase(
         "array_nested",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": [[1, 2], [3, 4]]}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": [[1, 2], [3, 4]]}],
         msg="$last should return nested array unchanged",
     ),
     AccumulatorTestCase(
         "array_empty",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": []}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": []}],
         msg="$last should return empty array unchanged",
     ),
@@ -484,14 +654,22 @@ LAST_ARRAY_TESTS: list[AccumulatorTestCase] = [
             {"_id": 0, "v": 1},
             {"_id": 1, "v": [{"a": 1}, {"a": 2}]},
         ],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": [{"a": 1}, {"a": 2}]}],
         msg="$last should return array of objects unchanged",
     ),
     AccumulatorTestCase(
         "array_single_element",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": [42]}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": [42]}],
         msg="$last should return single-element array as array, not scalar",
     ),
@@ -501,7 +679,11 @@ LAST_ARRAY_TESTS: list[AccumulatorTestCase] = [
             {"_id": 0, "v": 1},
             {"_id": 1, "v": [1, "two", None, True]},
         ],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": [1, "two", None, True]}],
         msg="$last should return mixed-type array unchanged",
     ),
@@ -513,7 +695,11 @@ LAST_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "expr_field_path",
         docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": 20}],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 20}],
         msg="$last should accept field path expression",
     ),
@@ -523,7 +709,11 @@ LAST_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
             {"_id": 0, "a": {"b": 10}},
             {"_id": 1, "a": {"b": 20}},
         ],
-        pipeline=_group_last("$a.b"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$a.b"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 20}],
         msg="$last should accept nested field path",
     ),
@@ -533,7 +723,11 @@ LAST_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
             {"_id": 0, "a": {"b": {"c": 10}}},
             {"_id": 1, "a": {"b": {"c": 20}}},
         ],
-        pipeline=_group_last("$a.b.c"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$a.b.c"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": 20}],
         msg="$last should accept deeply nested field path",
     ),
@@ -598,7 +792,11 @@ LAST_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
             {"_id": 0, "a": {"b": 10}},
             {"_id": 1, "a": {}},
         ],
-        pipeline=_group_last("$a.b"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$a.b"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": None}],
         msg="$last should return null when nested field is missing in last document",
     ),
@@ -614,7 +812,11 @@ LAST_MIXED_TYPE_TESTS: list[AccumulatorTestCase] = [
             {"_id": 1, "v": "hello"},
             {"_id": 2, "v": True},
         ],
-        pipeline=_group_last("$v"),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
         expected=[{"result": True}],
         msg="$last should return last value regardless of mixed types in group",
     ),
@@ -632,18 +834,13 @@ LAST_SUCCESS_TESTS = (
 )
 
 
-def _run(collection, test_case: AccumulatorTestCase):
-    """Insert docs and execute the pipeline."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    return execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-
-
 @pytest.mark.parametrize("test_case", pytest_params(LAST_SUCCESS_TESTS))
 def test_accumulator_last(collection, test_case: AccumulatorTestCase):
     """Test $last accumulator success cases."""
-    result = _run(collection, test_case)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
     assertSuccess(result, test_case.expected, msg=test_case.msg)

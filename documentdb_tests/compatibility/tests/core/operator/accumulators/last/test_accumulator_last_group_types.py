@@ -18,58 +18,72 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-
-def _group_last_with_type():
-    """Build a $group pipeline for $last with $type projection."""
-    return [
-        {"$sort": {"_id": 1}},
-        {"$group": {"_id": None, "result": {"$last": "$v"}}},
-        {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-    ]
-
-
 # Property [Return Type Preservation]: $last preserves the BSON type of the
 # last value, verified via $type projection.
 LAST_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "type_int32",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 42}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": 42, "type": "int"}],
         msg="$last should preserve int32 type",
     ),
     AccumulatorTestCase(
         "type_int64",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Int64(42)}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": Int64(42), "type": "long"}],
         msg="$last should preserve int64 type",
     ),
     AccumulatorTestCase(
         "type_double",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 3.14}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": 3.14, "type": "double"}],
         msg="$last should preserve double type",
     ),
     AccumulatorTestCase(
         "type_decimal128",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Decimal128("3.14")}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": Decimal128("3.14"), "type": "decimal"}],
         msg="$last should preserve Decimal128 type",
     ),
     AccumulatorTestCase(
         "type_string",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": "hello"}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": "hello", "type": "string"}],
         msg="$last should preserve string type",
     ),
     AccumulatorTestCase(
         "type_bool",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": True}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": True, "type": "bool"}],
         msg="$last should preserve bool type",
     ),
@@ -79,35 +93,55 @@ LAST_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
             {"_id": 0, "v": 1},
             {"_id": 1, "v": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         ],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": datetime(2024, 1, 1, tzinfo=timezone.utc), "type": "date"}],
         msg="$last should preserve date type",
     ),
     AccumulatorTestCase(
         "type_null",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": None}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": None, "type": "null"}],
         msg="$last should preserve null type",
     ),
     AccumulatorTestCase(
         "type_object",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": {"a": 1}}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": {"a": 1}, "type": "object"}],
         msg="$last should preserve object type",
     ),
     AccumulatorTestCase(
         "type_array",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": [1, 2]}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": [1, 2], "type": "array"}],
         msg="$last should preserve array type",
     ),
     AccumulatorTestCase(
         "type_binary",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Binary(b"\x01")}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": b"\x01", "type": "binData"}],
         msg="$last should preserve Binary type",
     ),
@@ -117,60 +151,79 @@ LAST_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
             {"_id": 0, "v": 1},
             {"_id": 1, "v": ObjectId("507f1f77bcf86cd799439011")},
         ],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": ObjectId("507f1f77bcf86cd799439011"), "type": "objectId"}],
         msg="$last should preserve ObjectId type",
     ),
     AccumulatorTestCase(
         "type_regex",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Regex("abc", "i")}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": Regex("abc", "i"), "type": "regex"}],
         msg="$last should preserve Regex type",
     ),
     AccumulatorTestCase(
         "type_code",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Code("function(){}")}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": "function(){}", "type": "string"}],
         msg="$last should return Code as string via runCommand",
     ),
     AccumulatorTestCase(
         "type_timestamp",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Timestamp(1, 1)}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": Timestamp(1, 1), "type": "timestamp"}],
         msg="$last should preserve Timestamp type",
     ),
     AccumulatorTestCase(
         "type_minkey",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": MinKey()}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": {"": MinKey()}, "type": "object"}],
         msg="$last should return MinKey wrapped as object via runCommand",
     ),
     AccumulatorTestCase(
         "type_maxkey",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": MaxKey()}],
-        pipeline=_group_last_with_type(),
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
         expected=[{"value": {"": MaxKey()}, "type": "object"}],
         msg="$last should return MaxKey wrapped as object via runCommand",
     ),
 ]
 
 
-def _run(collection, test_case: AccumulatorTestCase):
-    """Insert docs and execute the pipeline."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    return execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-
-
 @pytest.mark.parametrize("test_case", pytest_params(LAST_RETURN_TYPE_TESTS))
 def test_last_group_types(collection, test_case: AccumulatorTestCase):
     """Test $last return type preservation via $type projection."""
-    result = _run(collection, test_case)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
     assertResult(result, expected=test_case.expected, msg=test_case.msg)
