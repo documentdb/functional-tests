@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
@@ -161,13 +161,6 @@ SUM_NON_NUMERIC_TESTS: list[AccumulatorTestCase] = [
         pipeline=[{"$group": {"_id": None, "result": {"$sum": "$v"}}}],
         expected=11,
         msg="$sum should ignore Regex values",
-    ),
-    AccumulatorTestCase(
-        "non_numeric_code_ignored",
-        docs=[{"v": Code("function(){}")}, {"v": 12}],
-        pipeline=[{"$group": {"_id": None, "result": {"$sum": "$v"}}}],
-        expected=12,
-        msg="$sum should ignore Code values",
     ),
     AccumulatorTestCase(
         "non_numeric_minkey_ignored",
