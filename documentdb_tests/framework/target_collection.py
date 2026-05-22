@@ -351,6 +351,25 @@ class ViewOnCustomCollection(TargetCollection):
 
 
 @dataclass(frozen=True)
+class CollectionWithView(TargetCollection):
+    """A collection with a view created on top of it.
+
+    Creates the source collection, then creates a view on it with
+    ``view_options``. Resolves to the source collection so tests can
+    verify the view does not affect the underlying collection.
+    """
+
+    view_options: dict[str, Any] = field(default_factory=dict)
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        source_name = f"{collection.name}_source"
+        db.command("create", source_name)
+        view_name = f"{collection.name}_view"
+        db.command("create", view_name, viewOn=source_name, pipeline=[], **self.view_options)
+        return db[source_name]
+
+
+@dataclass(frozen=True)
 class SiblingCollection:
     """Describes an additional collection to create alongside the source.
 

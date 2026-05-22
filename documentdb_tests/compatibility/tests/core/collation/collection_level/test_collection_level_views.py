@@ -16,7 +16,11 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import OPTION_NOT_SUPPORTED_ON_VIEW_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.target_collection import ViewCollection, ViewOnCustomCollection
+from documentdb_tests.framework.target_collection import (
+    CollectionWithView,
+    ViewCollection,
+    ViewOnCustomCollection,
+)
 
 # Property [View Collation Constraints]: aggregating on a view with an explicit
 # collation that differs from the view's default produces
@@ -125,6 +129,20 @@ COLLATION_VIEW_CONSTRAINT_TESTS: list[CommandTestCase] = [
         },
         error_code=OPTION_NOT_SUPPORTED_ON_VIEW_ERROR,
         msg="aggregate on view without collation with non-simple collation should be rejected",
+    ),
+    CommandTestCase(
+        "view_collation_does_not_affect_source",
+        target_collection=CollectionWithView(
+            view_options={"collation": {"locale": "en", "strength": 1}}
+        ),
+        docs=[{"_id": 1, "name": "cafe"}, {"_id": 2, "name": "Cafe"}, {"_id": 3, "name": "CAFE"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [{"$match": {"name": "cafe"}}],
+            "cursor": {},
+        },
+        expected=[{"_id": 1, "name": "cafe"}],
+        msg="querying source collection should use binary comparison, unaffected by view collation",
     ),
 ]
 
