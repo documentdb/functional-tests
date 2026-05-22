@@ -20,7 +20,7 @@ from bson import (
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -246,4 +246,4 @@ def test_accumulator_last_bson_types(collection, test_case: AccumulatorTestCase)
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
+    assertResult(result, expected=test_case.expected, msg=test_case.msg)
