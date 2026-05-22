@@ -28,6 +28,8 @@ VALIDATE_DB_METADATA_READ_CONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "readConcern": {"level": "local"},
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -38,6 +40,8 @@ VALIDATE_DB_METADATA_READ_CONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "readConcern": {},
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
