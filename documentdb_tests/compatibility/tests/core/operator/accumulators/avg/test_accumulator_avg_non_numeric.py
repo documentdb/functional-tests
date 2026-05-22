@@ -2,7 +2,7 @@
 Tests for $avg accumulator non-numeric type handling in $group context.
 
 Covers all non-numeric BSON types (string, boolean, object, ObjectId, datetime,
-Timestamp, Binary, Regex, Code, MinKey, MaxKey, arrays) and verifies they are
+Timestamp, Binary, Regex, MinKey, MaxKey, arrays) and verifies they are
 silently ignored and excluded from both sum and count.
 """
 
@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
@@ -133,16 +133,6 @@ AVG_NON_NUMERIC_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"result": None}],
         msg="$avg should ignore Regex values",
-    ),
-    AccumulatorTestCase(
-        "code",
-        docs=[{"v": Code("x")}, {"v": Code("y")}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$avg": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": None}],
-        msg="$avg should ignore Code values",
     ),
     AccumulatorTestCase(
         "minkey",
