@@ -79,7 +79,7 @@ LAST_NULL_MISSING_TESTS: list[AccumulatorTestCase] = [
         msg="$last should return null when all documents have missing field",
     ),
     AccumulatorTestCase(
-        "null_not_last",
+        "null_first_value_last",
         docs=[{"_id": 0, "v": None}, {"_id": 1, "v": 10}],
         pipeline=[
             {"$sort": {"_id": 1}},
@@ -90,7 +90,7 @@ LAST_NULL_MISSING_TESTS: list[AccumulatorTestCase] = [
         msg="$last should return last value even when earlier values are null",
     ),
     AccumulatorTestCase(
-        "missing_not_last",
+        "missing_first_value_last",
         docs=[{"_id": 0}, {"_id": 1, "v": 10}],
         pipeline=[
             {"$sort": {"_id": 1}},
@@ -471,18 +471,7 @@ LAST_ARRAY_TESTS: list[AccumulatorTestCase] = [
 # beyond simple field paths.
 LAST_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "expr_field_path",
-        docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": 20}],
-        pipeline=[
-            {"$sort": {"_id": 1}},
-            {"$group": {"_id": None, "result": {"$last": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": 20}],
-        msg="$last should accept field path expression",
-    ),
-    AccumulatorTestCase(
-        "expr_nested_field",
+        "expr_nested_field_path",
         docs=[
             {"_id": 0, "a": {"b": 10}},
             {"_id": 1, "a": {"b": 20}},
@@ -496,7 +485,7 @@ LAST_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
         msg="$last should accept nested field path",
     ),
     AccumulatorTestCase(
-        "expr_deep_nested",
+        "expr_three_level_field_path",
         docs=[
             {"_id": 0, "a": {"b": {"c": 10}}},
             {"_id": 1, "a": {"b": {"c": 20}}},
@@ -521,7 +510,7 @@ LAST_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
         msg="$last should accept literal expression",
     ),
     AccumulatorTestCase(
-        "expr_computed",
+        "expr_multiply_subexpression",
         docs=[
             {"_id": 0, "a": 2, "b": 3},
             {"_id": 1, "a": 4, "b": 5},
@@ -535,7 +524,7 @@ LAST_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
         msg="$last should accept computed sub-expression",
     ),
     AccumulatorTestCase(
-        "expr_conditional",
+        "expr_cond_subexpression",
         docs=[
             {"_id": 0, "v": -5},
             {"_id": 1, "v": 10},
@@ -554,7 +543,7 @@ LAST_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
         msg="$last should accept conditional expression",
     ),
     AccumulatorTestCase(
-        "expr_constant_value",
+        "expr_bare_constant",
         docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
         pipeline=[
             {"$sort": {"_id": 1}},
