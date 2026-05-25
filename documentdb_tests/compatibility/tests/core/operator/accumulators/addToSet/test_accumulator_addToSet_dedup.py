@@ -158,6 +158,26 @@ ADDTOSET_STRING_DEDUP_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": ["\u00e9", "\u0065\u0301"]}],
         msg="$addToSet should not normalize Unicode; precomposed and decomposed are distinct",
     ),
+    AccumulatorTestCase(
+        "string_embedded_null_bytes",
+        docs=[{"v": "a\x00b"}, {"v": "a\x00b"}, {"v": "a\x00c"}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": ["a\x00b", "a\x00c"]}],
+        msg="$addToSet should compare strings with embedded null bytes by byte value",
+    ),
+    AccumulatorTestCase(
+        "string_4byte_utf8_emoji",
+        docs=[{"v": "\U0001f600"}, {"v": "\U0001f600"}, {"v": "\U0001f601"}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": ["\U0001f600", "\U0001f601"]}],
+        msg="$addToSet should compare 4-byte UTF-8 characters (emoji) by byte value",
+    ),
 ]
 
 # Property [Mixed Type Collection]: $addToSet collects values of different

@@ -80,6 +80,27 @@ ADDTOSET_REMOVE_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [$$REMOVE Interaction with Deduplication]: $$REMOVE entries are excluded and
+# remaining values are properly deduplicated.
+ADDTOSET_REMOVE_DEDUP_INTERACTION_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "remove_dedup_same_value_produced",
+        docs=[{"v": 1}, {"v": 2}, {"v": -1}, {"v": -2}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$addToSet": {"$cond": [{"$gte": ["$v", 0]}, "kept", "$$REMOVE"]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": ["kept"]}],
+        msg="$addToSet should collect single value when $cond produces same value "
+        "for multiple docs and $$REMOVE for others",
+    ),
+]
+
 # Property [Unique Value Collection]: $addToSet returns an array of all unique values.
 ADDTOSET_UNIQUE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
@@ -380,6 +401,7 @@ ADDTOSET_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
 
 ADDTOSET_SUCCESS_TESTS = (
     ADDTOSET_REMOVE_TESTS
+    + ADDTOSET_REMOVE_DEDUP_INTERACTION_TESTS
     + ADDTOSET_UNIQUE_TESTS
     + ADDTOSET_ARRAY_ELEMENT_TESTS
     + ADDTOSET_EXPRESSION_TESTS
