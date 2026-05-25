@@ -1,6 +1,10 @@
 """Tests for connectionStatus command error conditions.
 
-Validates that invalid usages of connectionStatus produce appropriate errors.
+Verifies that connectionStatus rejects invalid inputs with the correct error
+codes. Covers unrecognized fields (UNRECOGNIZED_COMMAND_FIELD_ERROR) and
+showPrivileges type-mismatch errors (TYPE_MISMATCH_ERROR) for non-boolean,
+non-numeric BSON types: string, empty string, "false" string, array, object,
+date, objectId, minKey, and maxKey.
 """
 
 from datetime import datetime, timezone
@@ -91,7 +95,7 @@ ERROR_TESTS: list[DiagnosticErrorTest] = [
 
 @pytest.mark.parametrize("test", pytest_params(ERROR_TESTS))
 def test_connectionStatus_error_conditions(collection, test):
-    """Verifies connectionStatus rejects invalid usages with appropriate error codes."""
+    """Verify connectionStatus returns the expected error code for an invalid input."""
     if test.use_admin:
         result = execute_admin_command(collection, test.command)
     else:

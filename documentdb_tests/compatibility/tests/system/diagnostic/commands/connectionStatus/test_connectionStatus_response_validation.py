@@ -1,9 +1,15 @@
 """Tests for connectionStatus response structure validation.
 
-Validates response fields, types, and auth-related properties.
-Note: Many auth-related tests require creating users with specific roles
-and authenticating as them. These tests cover what's testable without
-special RBAC setup (unauthenticated/default connection behavior).
+Validates the shape of the connectionStatus response on an unauthenticated
+connection: authInfo exists, authenticatedUsers and authenticatedUserRoles
+are arrays (and empty without auth), and the uuid field is binData.
+
+Also verifies cross-database behavior: the command succeeds when run against
+a non-existent database and returns identical authInfo regardless of which
+database it is executed on.
+
+Note: Sub-document field validation (user, db, role entries) requires
+creating users with specific roles and is not covered here.
 """
 
 import pytest
@@ -55,13 +61,13 @@ RESPONSE_PROPERTY_TESTS: list[DiagnosticPropertyTest] = [
 
 @pytest.mark.parametrize("test", pytest_params(RESPONSE_PROPERTY_TESTS))
 def test_connectionStatus_response_properties(collection, test):
-    """Verifies connectionStatus response fields and types."""
+    """Verify a response field exists and has the expected type."""
     result = execute_admin_command(collection, {"connectionStatus": 1})
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
 def test_connectionStatus_succeeds_on_nonexistent_database(collection):
-    """Test connectionStatus succeeds on a non-existent database."""
+    """Verify connectionStatus returns ok and authInfo when run on a non-existent database."""
     other_col = collection.database.client["nonexistent_db_for_connstatus_test"]["dummy"]
     result = execute_command(other_col, {"connectionStatus": 1})
     assertProperties(
@@ -73,7 +79,7 @@ def test_connectionStatus_succeeds_on_nonexistent_database(collection):
 
 
 def test_connectionStatus_same_result_across_databases(collection):
-    """Test connectionStatus returns same authInfo on admin vs other database."""
+    """Verify authInfo is identical whether run on admin or a different database."""
     admin_result = execute_admin_command(collection, {"connectionStatus": 1})
     other_col = collection.database.client["nonexistent_db_for_connstatus_test"]["dummy"]
     other_result = execute_command(other_col, {"connectionStatus": 1})

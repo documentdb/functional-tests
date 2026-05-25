@@ -1,4 +1,11 @@
-"""Tests for connectionStatus showPrivileges parameter."""
+"""Tests for connectionStatus showPrivileges parameter.
+
+Verifies the truthy/falsy/omit behavior of the showPrivileges field.
+Truthy values (true, int 1, double 1.0, long 1, decimal128 1) should cause
+authenticatedUserPrivileges to appear as an array. Falsy values (false,
+int 0, double 0.0, long 0, decimal128 0, null) and omitting the field
+entirely should exclude authenticatedUserPrivileges from the response.
+"""
 
 from __future__ import annotations
 
@@ -53,7 +60,7 @@ OMIT_TESTS: list[DiagnosticPropertyTest] = [
 
 @pytest.mark.parametrize("test", pytest_params(TRUTHY_TESTS))
 def test_connectionStatus_show_privileges_truthy(collection, test):
-    """Test connectionStatus showPrivileges truthy values return privileges."""
+    """Verify a truthy showPrivileges value includes authenticatedUserPrivileges as an array."""
     result = execute_admin_command(
         collection, {"connectionStatus": 1, "showPrivileges": test.show_priv}
     )
@@ -67,7 +74,7 @@ def test_connectionStatus_show_privileges_truthy(collection, test):
 
 @pytest.mark.parametrize("test", pytest_params(FALSY_TESTS))
 def test_connectionStatus_show_privileges_falsy(collection, test):
-    """Test connectionStatus showPrivileges falsy values hide privileges."""
+    """Verify a falsy showPrivileges value excludes authenticatedUserPrivileges."""
     result = execute_admin_command(
         collection, {"connectionStatus": 1, "showPrivileges": test.show_priv}
     )
@@ -81,6 +88,6 @@ def test_connectionStatus_show_privileges_falsy(collection, test):
 
 @pytest.mark.parametrize("test", pytest_params(OMIT_TESTS))
 def test_connectionStatus_omit_showPrivileges(collection, test):
-    """Test omitting showPrivileges behaves same as showPrivileges: false."""
+    """Verify omitting showPrivileges excludes authenticatedUserPrivileges (same as false)."""
     result = execute_admin_command(collection, {"connectionStatus": 1})
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)

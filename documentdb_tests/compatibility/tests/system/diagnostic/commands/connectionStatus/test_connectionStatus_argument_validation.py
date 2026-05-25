@@ -1,4 +1,9 @@
-"""Tests for connectionStatus command argument validation."""
+"""Tests for connectionStatus command argument validation.
+
+Verifies that connectionStatus accepts all 18 BSON types (int, double, long,
+decimal128, string, bool, date, null, object, array, binData, objectId, regex,
+timestamp, minKey, maxKey) as the command field value and returns ok: 1 for each.
+"""
 
 from __future__ import annotations
 
@@ -48,6 +53,6 @@ ARG_TYPE_TESTS: list[ConnStatusArgTest] = [
 
 @pytest.mark.parametrize("test", pytest_params(ARG_TYPE_TESTS))
 def test_connectionStatus_accepts_any_type(collection, test):
-    """Test connectionStatus accepts all BSON types for command field value."""
+    """Verify connectionStatus succeeds when the command field value is a given BSON type."""
     result = execute_admin_command(collection, {"connectionStatus": test.value})
     assertSuccessPartial(result, {"ok": 1.0}, msg=test.msg)
