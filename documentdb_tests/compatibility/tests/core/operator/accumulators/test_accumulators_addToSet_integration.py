@@ -192,6 +192,68 @@ ADDTOSET_NULL_VS_SUM_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [AddToSet with First/Last]: $addToSet collects all unique values
+# regardless of order while $first/$last pick positional values after $sort.
+ADDTOSET_WITH_FIRST_LAST_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "addtoset_first_last",
+        docs=[
+            {"cat": "a", "v": 30},
+            {"cat": "a", "v": 10},
+            {"cat": "a", "v": 20},
+            {"cat": "a", "v": 10},
+        ],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {
+                "$group": {
+                    "_id": "$cat",
+                    "unique": {"$addToSet": "$v"},
+                    "first_v": {"$first": "$v"},
+                    "last_v": {"$last": "$v"},
+                }
+            },
+        ],
+        expected=[
+            {"_id": "a", "unique": [10, 20, 30], "first_v": 10, "last_v": 30},
+        ],
+        msg="$addToSet should collect all unique values while $first/$last "
+        "pick sorted positional extremes",
+    ),
+]
+
+# Property [AddToSet with MergeObjects]: $addToSet collects unique values
+# while $mergeObjects combines per-document metadata independently.
+ADDTOSET_WITH_MERGEOBJECTS_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "addtoset_mergeobjects",
+        docs=[
+            {"cat": "a", "v": 10, "meta": {"src": "x"}},
+            {"cat": "a", "v": 20, "meta": {"quality": "high"}},
+            {"cat": "a", "v": 10, "meta": {"reviewed": True}},
+        ],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {
+                "$group": {
+                    "_id": "$cat",
+                    "unique": {"$addToSet": "$v"},
+                    "merged": {"$mergeObjects": "$meta"},
+                }
+            },
+        ],
+        expected=[
+            {
+                "_id": "a",
+                "unique": [10, 20],
+                "merged": {"src": "x", "quality": "high", "reviewed": True},
+            }
+        ],
+        msg="$addToSet should deduplicate values while $mergeObjects "
+        "merges metadata from all documents including duplicates",
+    ),
+]
+
 # Property [Multiple AddToSet]: multiple $addToSet accumulators in the same
 # $group independently collect unique values from different fields.
 MULTIPLE_ADDTOSET_TESTS: list[AccumulatorTestCase] = [
@@ -234,6 +296,8 @@ ADDTOSET_INTEGRATION_TESTS = (
     + ADDTOSET_WITH_MIN_MAX_TESTS
     + ADDTOSET_WITH_AVG_TESTS
     + ADDTOSET_NULL_VS_SUM_TESTS
+    + ADDTOSET_WITH_FIRST_LAST_TESTS
+    + ADDTOSET_WITH_MERGEOBJECTS_TESTS
     + MULTIPLE_ADDTOSET_TESTS
 )
 
