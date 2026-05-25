@@ -111,7 +111,7 @@ MERGE_OBJECTS_ERROR_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MERGE_OBJECTS_ERROR_TESTS))
-def test_mergeObjects_errors(collection, test_case: AccumulatorTestCase):
+def test_accumulator_mergeObjects_errors(collection, test_case: AccumulatorTestCase):
     """Test $mergeObjects error cases."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

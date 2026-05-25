@@ -214,7 +214,7 @@ MERGE_OBJECTS_NON_OBJECT_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MERGE_OBJECTS_NON_OBJECT_TESTS))
-def test_mergeObjects_non_object_types(collection, test_case: AccumulatorTestCase):
+def test_accumulator_mergeObjects_non_object_types(collection, test_case: AccumulatorTestCase):
     """Test $mergeObjects non-object type error behavior."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

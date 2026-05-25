@@ -177,7 +177,7 @@ MERGE_OBJECTS_EDGE_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MERGE_OBJECTS_EDGE_TESTS))
-def test_mergeObjects_edge_cases(collection, test_case: AccumulatorTestCase):
+def test_accumulator_mergeObjects_edge_cases(collection, test_case: AccumulatorTestCase):
     """Test $mergeObjects edge cases."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

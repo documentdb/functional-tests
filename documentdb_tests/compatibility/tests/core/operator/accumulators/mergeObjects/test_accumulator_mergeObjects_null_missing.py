@@ -186,7 +186,7 @@ MERGE_OBJECTS_NULL_MISSING_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MERGE_OBJECTS_NULL_MISSING_TESTS))
-def test_mergeObjects_null_missing(collection, test_case: AccumulatorTestCase):
+def test_accumulator_mergeObjects_null_missing(collection, test_case: AccumulatorTestCase):
     """Test $mergeObjects null/missing handling."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
@@ -199,7 +199,7 @@ def test_mergeObjects_null_missing(collection, test_case: AccumulatorTestCase):
 
 # Property [Empty Collection]: empty collection produces no group output
 # (empty result set).
-def test_mergeObjects_empty_collection(collection):
+def test_accumulator_mergeObjects_empty_collection(collection):
     """Test $mergeObjects on empty collection returns empty result set."""
     result = execute_command(
         collection,

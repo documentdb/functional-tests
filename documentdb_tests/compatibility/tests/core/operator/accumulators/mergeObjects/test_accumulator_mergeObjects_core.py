@@ -321,7 +321,7 @@ MERGE_OBJECTS_CORE_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MERGE_OBJECTS_CORE_TESTS))
-def test_mergeObjects_core(collection, test_case: AccumulatorTestCase):
+def test_accumulator_mergeObjects_core(collection, test_case: AccumulatorTestCase):
     """Test $mergeObjects core merge behavior."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
