@@ -1,5 +1,6 @@
 """
-Tests for $geoWithin error cases — argument validation, coordinate validation, and invalid geometry.
+Tests for $geoWithin error cases — argument validation, coordinate validation,
+invalid geometry, CRS validation, and legacy shape specifier validation.
 """
 
 import pytest
@@ -352,6 +353,19 @@ LEGACY_ERROR_TESTS: list[QueryTestCase] = [
         filter={"loc": {"$geoWithin": {"$polygon": [[0, 0], [10, 10]]}}},
         error_code=BAD_VALUE_ERROR,
         msg="$polygon with fewer than 3 points should error",
+    ),
+    QueryTestCase(
+        id="multiple_shape_specifiers",
+        filter={
+            "loc": {
+                "$geoWithin": {
+                    "$polygon": [[0, 0], [0, 10], [10, 10], [10, 0]],
+                    "$box": [[0, 0], [10, 10]],
+                }
+            }
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="Multiple shape specifiers in one $geoWithin should error",
     ),
 ]
 
