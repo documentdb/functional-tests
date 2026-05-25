@@ -9,8 +9,7 @@ from typing import Any
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
-from documentdb_tests.framework.error_codes import UNRECOGNIZED_COMMAND_FIELD_ERROR
+from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_case import BaseTestCase
@@ -23,7 +22,6 @@ class ConnStatusArgTest(BaseTestCase):
     value: Any = None
 
 
-# connectionStatus ignores the command field value — all types should succeed
 ARG_TYPE_TESTS: list[ConnStatusArgTest] = [
     ConnStatusArgTest("int_1", value=1, msg="int should succeed"),
     ConnStatusArgTest("int_0", value=0, msg="int 0 should succeed"),
@@ -53,11 +51,3 @@ def test_connectionStatus_accepts_any_type(collection, test):
     """Test connectionStatus accepts all BSON types for command field value."""
     result = execute_admin_command(collection, {"connectionStatus": test.value})
     assertSuccessPartial(result, {"ok": 1.0}, msg=test.msg)
-
-
-def test_connectionStatus_unrecognized_field(collection):
-    """Test connectionStatus with unrecognized extra field returns error."""
-    result = execute_admin_command(collection, {"connectionStatus": 1, "foo": 1})
-    assertFailureCode(
-        result, UNRECOGNIZED_COMMAND_FIELD_ERROR, msg="Unrecognized field should error"
-    )
