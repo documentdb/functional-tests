@@ -5,7 +5,7 @@ Validates presence, types, and values of response fields.
 
 import pytest
 
-from documentdb_tests.compatibility.tests.system.diagnostic.commands.utils.diagnostic_test_case import (  # noqa: E501
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticPropertyTest,
 )
 from documentdb_tests.framework.assertions import assertProperties

@@ -5,7 +5,7 @@ Validates that invalid usages of buildInfo produce appropriate errors.
 
 import pytest
 
-from documentdb_tests.compatibility.tests.system.diagnostic.commands.utils.diagnostic_test_case import (  # noqa: E501
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticErrorTest,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
