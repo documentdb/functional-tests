@@ -88,6 +88,27 @@ COLLATION_INDEX_CREATION_TESTS: list[CommandTestCase] = [
         error_code=MISSING_FIELD_ERROR,
         msg="creating index with collation missing locale should produce an error",
     ),
+    CommandTestCase(
+        "create_two_indexes_same_key_different_collation",
+        docs=[],
+        command=lambda ctx: {
+            "createIndexes": ctx.collection,
+            "indexes": [
+                {
+                    "key": {"name": 1},
+                    "name": "name_s1",
+                    "collation": {"locale": "en", "strength": 1},
+                },
+                {
+                    "key": {"name": 1},
+                    "name": "name_s2",
+                    "collation": {"locale": "en", "strength": 2},
+                },
+            ],
+        },
+        expected={"ok": Eq(1.0)},
+        msg="should allow two indexes on same key with different collations",
+    ),
 ]
 
 # Property [Unique Index Enforcement Under Collation]: a unique index with
