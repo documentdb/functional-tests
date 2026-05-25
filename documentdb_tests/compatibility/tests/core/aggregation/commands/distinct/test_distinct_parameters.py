@@ -18,6 +18,7 @@ from documentdb_tests.framework.error_codes import NAMESPACE_NOT_FOUND_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Len, Ne
+from documentdb_tests.framework.target_collection import ViewCollection
 from documentdb_tests.framework.test_constants import (
     DOUBLE_NEGATIVE_ZERO,
     INT32_MAX,
@@ -335,6 +336,44 @@ DISTINCT_NULL_PARAMS_TESTS: list[CommandTestCase] = [
     ]
 ]
 
+# Property [Query Composition on Views]: the query parameter composes with
+# the view's pipeline filter to further restrict visible documents.
+DISTINCT_QUERY_VIEW_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "query_on_filtered_view",
+        target_collection=ViewCollection(pipeline=[{"$match": {"status": "active"}}]),
+        docs=[
+            {"_id": 1, "status": "active", "cat": "a", "x": 10},
+            {"_id": 2, "status": "active", "cat": "b", "x": 20},
+            {"_id": 3, "status": "inactive", "cat": "a", "x": 30},
+            {"_id": 4, "status": "active", "cat": "a", "x": 40},
+        ],
+        command=lambda ctx: {
+            "distinct": ctx.collection,
+            "key": "cat",
+            "query": {"x": {"$gte": 20}},
+        },
+        expected={"values": ["a", "b"], "ok": 1},
+        ignore_order_in=["values"],
+        msg="distinct query should compose with view pipeline filter",
+    ),
+    CommandTestCase(
+        "query_excludes_all_on_filtered_view",
+        target_collection=ViewCollection(pipeline=[{"$match": {"status": "active"}}]),
+        docs=[
+            {"_id": 1, "status": "active", "cat": "a", "x": 10},
+            {"_id": 2, "status": "inactive", "cat": "b", "x": 50},
+        ],
+        command=lambda ctx: {
+            "distinct": ctx.collection,
+            "key": "cat",
+            "query": {"x": {"$gte": 50}},
+        },
+        expected={"values": [], "ok": 1},
+        msg="distinct query + view filter should return empty when no docs match both",
+    ),
+]
+
 DISTINCT_PARAMETER_TESTS: list[CommandTestCase] = (
     DISTINCT_NULL_PARAMS_TESTS
     + DISTINCT_QUERY_SUCCESS_TESTS
@@ -346,6 +385,7 @@ DISTINCT_PARAMETER_TESTS: list[CommandTestCase] = (
     + DISTINCT_COLLECTION_NAME_ACCEPTANCE_TESTS
     + DISTINCT_COLLECTION_NAME_UUID_TESTS
     + DISTINCT_COLLECTION_NAME_UUID_SUCCESS_TESTS
+    + DISTINCT_QUERY_VIEW_TESTS
 )
 
 

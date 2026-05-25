@@ -31,9 +31,11 @@ class TargetCollection:
 class ViewCollection(TargetCollection):
     """A view on the fixture collection."""
 
+    pipeline: list[dict[str, Any]] = field(default_factory=list)
+
     def resolve(self, db: Database, collection: Collection) -> Collection:
         view_name = f"{collection.name}_view"
-        db.command("create", view_name, viewOn=collection.name, pipeline=[])
+        db.command("create", view_name, viewOn=collection.name, pipeline=self.pipeline)
         return db[view_name]
 
     def writable(self, source: Collection, resolved: Collection) -> Collection:
