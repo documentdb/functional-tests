@@ -195,6 +195,7 @@ def test_centerSphere_with_skip(collection):
         {
             "find": collection.name,
             "filter": {"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 1]}}},
+            "sort": {"_id": 1},
             "skip": 1,
         },
     )
