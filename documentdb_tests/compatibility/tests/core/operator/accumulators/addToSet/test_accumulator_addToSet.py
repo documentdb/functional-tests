@@ -30,11 +30,6 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-_OID1 = ObjectId("000000000000000000000001")
-_OID2 = ObjectId("000000000000000000000002")
-_DT1 = datetime(2020, 1, 1, tzinfo=timezone.utc)
-_DT2 = datetime(2021, 1, 1, tzinfo=timezone.utc)
-
 # ---------------------------------------------------------------------------
 # Property lists
 # ---------------------------------------------------------------------------
@@ -514,22 +509,44 @@ ADDTOSET_BSON_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "bson_datetime",
-        docs=[{"v": _DT1}, {"v": _DT2}, {"v": _DT1}],
+        docs=[
+            {"v": datetime(2020, 1, 1, tzinfo=timezone.utc)},
+            {"v": datetime(2021, 1, 1, tzinfo=timezone.utc)},
+            {"v": datetime(2020, 1, 1, tzinfo=timezone.utc)},
+        ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
-        expected=[{"result": [_DT1, _DT2]}],
+        expected=[
+            {
+                "result": [
+                    datetime(2020, 1, 1, tzinfo=timezone.utc),
+                    datetime(2021, 1, 1, tzinfo=timezone.utc),
+                ]
+            }
+        ],
         msg="$addToSet should collect and deduplicate datetime values",
     ),
     AccumulatorTestCase(
         "bson_objectid",
-        docs=[{"v": _OID1}, {"v": _OID2}, {"v": _OID1}],
+        docs=[
+            {"v": ObjectId("000000000000000000000001")},
+            {"v": ObjectId("000000000000000000000002")},
+            {"v": ObjectId("000000000000000000000001")},
+        ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
-        expected=[{"result": [_OID1, _OID2]}],
+        expected=[
+            {
+                "result": [
+                    ObjectId("000000000000000000000001"),
+                    ObjectId("000000000000000000000002"),
+                ]
+            }
+        ],
         msg="$addToSet should collect and deduplicate ObjectId values",
     ),
     AccumulatorTestCase(
