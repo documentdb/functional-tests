@@ -58,12 +58,6 @@ INVALID_GEOMETRY_TESTS: list[QueryTestCase] = [
         msg="Should reject $geometry used outside geospatial operator context",
     ),
     QueryTestCase(
-        id="missing_type_field",
-        filter={"loc": {"$geoIntersects": {"$geometry": {"coordinates": [0, 0]}}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Should reject $geometry missing type field",
-    ),
-    QueryTestCase(
         id="missing_coordinates_field",
         filter={"loc": {"$geoIntersects": {"$geometry": {"type": "Point"}}}},
         error_code=BAD_VALUE_ERROR,

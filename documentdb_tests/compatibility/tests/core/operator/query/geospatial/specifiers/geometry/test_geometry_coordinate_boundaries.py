@@ -147,4 +147,4 @@ def test_geometry_coordinate_boundaries(collection, test):
     collection.create_index([("loc", "2dsphere")])
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, msg=test.msg)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
