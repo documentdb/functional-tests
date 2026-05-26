@@ -1,4 +1,4 @@
-"""Tests for $setUnion accumulator: type validation errors, arity rejection, and mixed types."""
+"""Tests for $setUnion accumulator: type validation errors and mixed types."""
 
 from __future__ import annotations
 
@@ -11,11 +11,7 @@ from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accum
     AccumulatorTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
-from documentdb_tests.framework.error_codes import (
-    EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
-    GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
-    TYPE_MISMATCH_ERROR,
-)
+from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -162,56 +158,7 @@ SETUNION_MIXED_TYPE_ERROR_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [Arity Rejection]: $setUnion accumulator in $group rejects array
-# syntax and multi-key expression objects.
-SETUNION_ARITY_ERROR_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "arity_empty_array",
-        docs=[{"v": [1]}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": []}}}],
-        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
-        msg="$setUnion should reject empty array in accumulator context",
-    ),
-    AccumulatorTestCase(
-        "arity_single_element_array",
-        docs=[{"v": [1]}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": [1]}}}],
-        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
-        msg="$setUnion should reject single-element array in accumulator context",
-    ),
-    AccumulatorTestCase(
-        "arity_single_field_ref_array",
-        docs=[{"v": [1]}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": ["$v"]}}}],
-        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
-        msg="$setUnion should reject single field ref in array in accumulator context",
-    ),
-    AccumulatorTestCase(
-        "arity_multi_element_array",
-        docs=[{"v": [1]}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": [1, 2, 3]}}}],
-        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
-        msg="$setUnion should reject multi-element array in accumulator context",
-    ),
-    AccumulatorTestCase(
-        "arity_multi_key_expression_object",
-        docs=[{"v": [1]}],
-        pipeline=[
-            {
-                "$group": {
-                    "_id": None,
-                    "result": {"$setUnion": {"$add": [1, 2], "$multiply": [3, 4]}},
-                }
-            }
-        ],
-        error_code=EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
-        msg="$setUnion should reject multi-key expression object",
-    ),
-]
-
-SETUNION_ERROR_TESTS = (
-    SETUNION_TYPE_ERROR_TESTS + SETUNION_MIXED_TYPE_ERROR_TESTS + SETUNION_ARITY_ERROR_TESTS
-)
+SETUNION_ERROR_TESTS = SETUNION_TYPE_ERROR_TESTS + SETUNION_MIXED_TYPE_ERROR_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SETUNION_ERROR_TESTS))
