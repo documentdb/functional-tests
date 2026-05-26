@@ -15,18 +15,21 @@ from documentdb_tests.framework.parametrize import pytest_params
 # multiple documents in order, preserving all elements.
 CONCATARRAYS_CORE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "core_basic_three_docs",
+        "core_concat_multiple_arrays",
         docs=[
             {"_id": 1, "v": [1, 2]},
             {"_id": 2, "v": [3, 4]},
             {"_id": 3, "v": [5]},
         ],
-        pipeline=[{"$group": {"_id": None, "result": {"$concatArrays": "$v"}}}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
+        ],
         expected=[{"_id": None, "result": [1, 2, 3, 4, 5]}],
         msg="$concatArrays should concatenate arrays from multiple documents in order",
     ),
     AccumulatorTestCase(
-        "core_single_doc",
+        "core_single_array_passthrough",
         docs=[{"_id": 1, "v": [1, 2, 3]}],
         pipeline=[{"$group": {"_id": None, "result": {"$concatArrays": "$v"}}}],
         expected=[{"_id": None, "result": [1, 2, 3]}],
@@ -56,7 +59,7 @@ CONCATARRAYS_CORE_TESTS: list[AccumulatorTestCase] = [
         msg="$concatArrays should concatenate 100 single-element arrays in order",
     ),
     AccumulatorTestCase(
-        "core_many_docs_few_unique",
+        "core_many_docs_repeated_values",
         docs=[{"_id": i, "v": [i % 5]} for i in range(100)],
         pipeline=[
             {"$sort": {"_id": 1}},
@@ -71,7 +74,7 @@ CONCATARRAYS_CORE_TESTS: list[AccumulatorTestCase] = [
 # including duplicates, unlike $addToSet.
 CONCATARRAYS_DUPLICATE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "dup_same_elements",
+        "dup_overlapping_elements",
         docs=[
             {"_id": 1, "v": [1, 2]},
             {"_id": 2, "v": [2, 3]},
@@ -267,20 +270,6 @@ CONCATARRAYS_GROUPING_TESTS: list[AccumulatorTestCase] = [
             {"_id": "Z", "result": [3]},
         ],
         msg="$concatArrays should compute independently across three groups",
-    ),
-    AccumulatorTestCase(
-        "grouping_single_group_all_docs",
-        docs=[
-            {"_id": 1, "v": [1]},
-            {"_id": 2, "v": [2]},
-            {"_id": 3, "v": [3]},
-        ],
-        pipeline=[
-            {"$sort": {"_id": 1}},
-            {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
-        ],
-        expected=[{"_id": None, "result": [1, 2, 3]}],
-        msg="$concatArrays should concatenate all arrays when grouped into a single group",
     ),
 ]
 

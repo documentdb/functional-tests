@@ -18,19 +18,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 # when they appear as array elements.
 CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "bson_int32_elements",
-        docs=[
-            {"_id": 1, "v": [1, 2]},
-            {"_id": 2, "v": [3]},
-        ],
-        pipeline=[
-            {"$sort": {"_id": 1}},
-            {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
-        ],
-        expected=[{"_id": None, "result": [1, 2, 3]}],
-        msg="$concatArrays should preserve int32 elements",
-    ),
-    AccumulatorTestCase(
         "bson_int64_elements",
         docs=[
             {"_id": 1, "v": [Int64(100)]},

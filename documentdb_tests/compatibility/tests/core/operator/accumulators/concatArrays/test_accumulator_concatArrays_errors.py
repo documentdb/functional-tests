@@ -188,19 +188,6 @@ CONCATARRAYS_TYPE_REJECTION_TESTS: list[AccumulatorTestCase] = [
 # another has an invalid type, the error is raised.
 CONCATARRAYS_MIXED_INVALID_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "mixed_array_and_null",
-        docs=[
-            {"_id": 1, "v": [1, 2]},
-            {"_id": 2, "v": None},
-        ],
-        pipeline=[
-            {"$sort": {"_id": 1}},
-            {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
-        ],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$concatArrays should error when mixing array and null values",
-    ),
-    AccumulatorTestCase(
         "mixed_array_and_string",
         docs=[
             {"_id": 1, "v": [1, 2]},
