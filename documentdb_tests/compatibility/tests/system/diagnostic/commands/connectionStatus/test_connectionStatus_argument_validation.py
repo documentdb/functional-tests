@@ -1,18 +1,15 @@
 """Tests for connectionStatus command argument validation.
 
-Verifies that connectionStatus accepts all 18 BSON types (int, double, long,
-decimal128, string, bool, date, null, object, array, binData, objectId, regex,
-timestamp, minKey, maxKey) as the command field value and returns ok: 1 for each.
+Verifies that connectionStatus accepts all BSON types as the command field
+value and returns ok: 1 for each.
 """
-
-from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
 import pytest
-from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
@@ -48,6 +45,7 @@ ARG_TYPE_TESTS: list[ConnStatusArgTest] = [
     ConnStatusArgTest("timestamp", value=Timestamp(0, 0), msg="timestamp should succeed"),
     ConnStatusArgTest("minKey", value=MinKey(), msg="minKey should succeed"),
     ConnStatusArgTest("maxKey", value=MaxKey(), msg="maxKey should succeed"),
+    ConnStatusArgTest("code", value=Code("function(){}"), msg="code should succeed"),
 ]
 
 

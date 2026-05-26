@@ -2,15 +2,14 @@
 
 Verifies that connectionStatus rejects invalid inputs with the correct error
 codes. Covers unrecognized fields (UNRECOGNIZED_COMMAND_FIELD_ERROR) and
-showPrivileges type-mismatch errors (TYPE_MISMATCH_ERROR) for non-boolean,
-non-numeric BSON types: string, empty string, "false" string, array, object,
-date, objectId, minKey, and maxKey.
+showPrivileges type-mismatch errors (TYPE_MISMATCH_ERROR) for all non-boolean,
+non-numeric BSON types.
 """
 
 from datetime import datetime, timezone
 
 import pytest
-from bson import MaxKey, MinKey, ObjectId
+from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticErrorTest,
@@ -89,6 +88,30 @@ ERROR_TESTS: list[DiagnosticErrorTest] = [
         command={"connectionStatus": 1, "showPrivileges": MaxKey()},
         error_code=TYPE_MISMATCH_ERROR,
         msg="showPrivileges maxKey should be rejected as wrong type",
+    ),
+    DiagnosticErrorTest(
+        id="showPrivileges_binData_type_mismatch",
+        command={"connectionStatus": 1, "showPrivileges": Binary(b"")},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="showPrivileges binData should be rejected as wrong type",
+    ),
+    DiagnosticErrorTest(
+        id="showPrivileges_regex_type_mismatch",
+        command={"connectionStatus": 1, "showPrivileges": Regex("test")},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="showPrivileges regex should be rejected as wrong type",
+    ),
+    DiagnosticErrorTest(
+        id="showPrivileges_timestamp_type_mismatch",
+        command={"connectionStatus": 1, "showPrivileges": Timestamp(0, 0)},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="showPrivileges timestamp should be rejected as wrong type",
+    ),
+    DiagnosticErrorTest(
+        id="showPrivileges_code_type_mismatch",
+        command={"connectionStatus": 1, "showPrivileges": Code("function(){}")},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="showPrivileges code should be rejected as wrong type",
     ),
 ]
 

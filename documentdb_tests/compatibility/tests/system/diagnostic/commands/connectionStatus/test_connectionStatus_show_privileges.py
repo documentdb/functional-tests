@@ -7,8 +7,6 @@ int 0, double 0.0, long 0, decimal128 0, null) and omitting the field
 entirely should exclude authenticatedUserPrivileges from the response.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -38,6 +36,8 @@ TRUTHY_TESTS: list[ShowPrivTest] = [
     ShowPrivTest("double_1", show_priv=1.0, msg="double 1.0 (truthy) should show"),
     ShowPrivTest("long_1", show_priv=Int64(1), msg="long 1 (truthy) should show"),
     ShowPrivTest("decimal128_1", show_priv=Decimal128("1"), msg="decimal128 1 should show"),
+    ShowPrivTest("int_neg1", show_priv=-1, msg="int -1 (truthy) should show privileges"),
+    ShowPrivTest("double_neg1", show_priv=-1.0, msg="double -1.0 (truthy) should show"),
 ]
 
 FALSY_TESTS: list[ShowPrivTest] = [
