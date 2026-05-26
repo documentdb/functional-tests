@@ -192,18 +192,6 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_BSON_ELEMENT_TESTS))
-def test_accumulator_concatArrays_bson_elements(collection, test_case: AccumulatorTestCase):
-    """Test $concatArrays BSON element type preservation."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
-    )
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
 # Property [Missing Field Handling]: missing fields are silently excluded from
 # concatenation; when all inputs are missing, the result is an empty array.
 CONCATARRAYS_MISSING_TESTS: list[AccumulatorTestCase] = [
@@ -353,12 +341,14 @@ CONCATARRAYS_REMOVE_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-CONCATARRAYS_MISSING_AND_REMOVE_TESTS = CONCATARRAYS_MISSING_TESTS + CONCATARRAYS_REMOVE_TESTS
+CONCATARRAYS_ALL_BSON_TESTS = (
+    CONCATARRAYS_BSON_ELEMENT_TESTS + CONCATARRAYS_MISSING_TESTS + CONCATARRAYS_REMOVE_TESTS
+)
 
 
-@pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_MISSING_AND_REMOVE_TESTS))
-def test_accumulator_concatArrays_missing(collection, test_case: AccumulatorTestCase):
-    """Test $concatArrays missing field and $$REMOVE handling."""
+@pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_ALL_BSON_TESTS))
+def test_accumulator_concatArrays_bson_elements(collection, test_case: AccumulatorTestCase):
+    """Test $concatArrays BSON element preservation, missing field, and $$REMOVE handling."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(
