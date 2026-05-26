@@ -1,4 +1,4 @@
-"""Tests for $setUnion accumulator: null field handling, missing field handling, and null elements."""
+"""Tests for $setUnion accumulator: null/missing field handling and null elements."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Null Field Error]: null field values cause TYPE_MISMATCH_ERROR in
 # accumulator context.
-SETUNION_NULL_FIELD_TESTS: list[AccumulatorTestCase] = [
+SETUNION_NULL_FIELD_ERROR_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "null_field_single_doc",
         docs=[{"v": None}],
@@ -106,22 +106,39 @@ SETUNION_MISSING_FIELD_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [Null vs Missing Distinction]: null and missing have fundamentally
-# different behaviors in accumulator context.
-SETUNION_NULL_VS_MISSING_TESTS: list[AccumulatorTestCase] = [
+# Property [$$REMOVE Treated as Missing]: $$REMOVE via $cond is treated as a
+# missing field, not as null.
+SETUNION_REMOVE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "distinction_null_errors",
-        docs=[{"v": None}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$setUnion should error on null field (distinct from missing)",
+        "remove_all",
+        docs=[{"v": [1]}, {"v": [2]}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$setUnion": {"$cond": [False, "$v", "$$REMOVE"]}},
+                }
+            },
+        ],
+        expected=[{"_id": None, "result": []}],
+        msg="$setUnion should treat $$REMOVE as missing and return empty array",
     ),
     AccumulatorTestCase(
-        "distinction_missing_ignored",
-        docs=[{"x": 1}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
-        expected=[{"_id": None, "result": []}],
-        msg="$setUnion should silently ignore missing field (distinct from null)",
+        "remove_mixed_with_arrays",
+        docs=[{"v": [1, 2], "skip": False}, {"v": [2, 3], "skip": True}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {
+                        "$setUnion": {"$cond": [{"$eq": ["$skip", False]}, "$v", "$$REMOVE"]}
+                    },
+                }
+            },
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [1, 2]}],
+        msg="$setUnion should skip $$REMOVE documents and union remaining arrays",
     ),
 ]
 
@@ -183,11 +200,9 @@ SETUNION_MISSING_GROUP_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-SETUNION_NULL_MISSING_ERROR_TESTS = SETUNION_NULL_FIELD_TESTS + SETUNION_NULL_VS_MISSING_TESTS[:1]
-
 SETUNION_NULL_MISSING_SUCCESS_TESTS = (
     SETUNION_MISSING_FIELD_TESTS
-    + SETUNION_NULL_VS_MISSING_TESTS[1:]
+    + SETUNION_REMOVE_TESTS
     + SETUNION_NULL_ELEMENT_TESTS
     + SETUNION_MISSING_GROUP_TESTS
 )
@@ -205,8 +220,8 @@ def test_accumulator_setUnion_null_missing_success(collection, test_case: Accumu
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
-@pytest.mark.parametrize("test_case", pytest_params(SETUNION_NULL_MISSING_ERROR_TESTS))
-def test_accumulator_setUnion_null_missing_errors(collection, test_case: AccumulatorTestCase):
+@pytest.mark.parametrize("test_case", pytest_params(SETUNION_NULL_FIELD_ERROR_TESTS))
+def test_accumulator_setUnion_null_missing_errors(collection, test_case):
     """Test $setUnion accumulator null field error cases."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

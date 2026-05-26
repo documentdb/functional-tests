@@ -215,7 +215,7 @@ SETUNION_ERROR_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SETUNION_ERROR_TESTS))
-def test_accumulator_setUnion_errors(collection, test_case: AccumulatorTestCase):
+def test_accumulator_setUnion_errors(collection, test_case):
     """Test $setUnion accumulator error cases."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
