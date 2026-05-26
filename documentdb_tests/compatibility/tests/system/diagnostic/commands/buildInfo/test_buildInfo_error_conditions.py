@@ -9,7 +9,11 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
     DiagnosticErrorTest,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
-from documentdb_tests.framework.error_codes import COMMAND_NOT_FOUND_ERROR
+from documentdb_tests.framework.error_codes import (
+    COMMAND_NOT_FOUND_ERROR,
+    UNKNOWN_PIPELINE_STAGE_ERROR,
+    UNRECOGNIZED_COMMAND_FIELD_ERROR,
+)
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -21,7 +25,7 @@ ERROR_TESTS: list[DiagnosticErrorTest] = [
         id="as_aggregation_stage",
         command={"aggregate": "test", "pipeline": [{"$buildInfo": {}}], "cursor": {}},
         use_admin=False,
-        error_code=40324,
+        error_code=UNKNOWN_PIPELINE_STAGE_ERROR,
         msg="$buildInfo is not a valid aggregation stage",
     ),
     DiagnosticErrorTest(
@@ -30,6 +34,13 @@ ERROR_TESTS: list[DiagnosticErrorTest] = [
         use_admin=True,
         error_code=COMMAND_NOT_FOUND_ERROR,
         msg="Case-mismatched command name should fail",
+    ),
+    DiagnosticErrorTest(
+        id="unrecognized_field",
+        command={"buildInfo": 1, "unknownField": 1},
+        use_admin=True,
+        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        msg="Should reject unrecognized fields",
     ),
 ]
 

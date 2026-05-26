@@ -1,16 +1,16 @@
 """Tests for buildInfo command argument handling.
 
-Validates that buildInfo accepts any BSON type as its argument value
-and handles unrecognized fields correctly.
+Validates that buildInfo accepts any BSON type as its argument value.
 """
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest
-from bson import Decimal128, Int64
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
+from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_case import BaseTestCase
@@ -61,6 +61,39 @@ ARGUMENT_TYPE_TESTS: list[BuildInfoArgTest] = [
         expected={"ok": 1.0},
         msg="Should accept infinity",
     ),
+    BuildInfoArgTest(
+        "date",
+        arg_value=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        expected={"ok": 1.0},
+        msg="Should accept date",
+    ),
+    BuildInfoArgTest(
+        "binData", arg_value=Binary(b""), expected={"ok": 1.0}, msg="Should accept binData"
+    ),
+    BuildInfoArgTest(
+        "objectId", arg_value=ObjectId(), expected={"ok": 1.0}, msg="Should accept objectId"
+    ),
+    BuildInfoArgTest(
+        "regex", arg_value=Regex("test"), expected={"ok": 1.0}, msg="Should accept regex"
+    ),
+    BuildInfoArgTest(
+        "timestamp",
+        arg_value=Timestamp(0, 0),
+        expected={"ok": 1.0},
+        msg="Should accept timestamp",
+    ),
+    BuildInfoArgTest(
+        "minKey", arg_value=MinKey(), expected={"ok": 1.0}, msg="Should accept minKey"
+    ),
+    BuildInfoArgTest(
+        "maxKey", arg_value=MaxKey(), expected={"ok": 1.0}, msg="Should accept maxKey"
+    ),
+    BuildInfoArgTest(
+        "code",
+        arg_value=Code("function(){}"),
+        expected={"ok": 1.0},
+        msg="Should accept JavaScript code",
+    ),
 ]
 
 
@@ -69,9 +102,3 @@ def test_buildInfo_argument_types(collection, test):
     """Test that buildInfo accepts various BSON types as argument value."""
     result = execute_admin_command(collection, {"buildInfo": test.arg_value})
     assertSuccessPartial(result, test.expected, msg=test.msg)
-
-
-def test_buildInfo_extra_unrecognized_field(collection):
-    """Test that buildInfo rejects unrecognized extra fields."""
-    result = execute_admin_command(collection, {"buildInfo": 1, "unknownField": 1})
-    assertFailureCode(result, 40415, msg="Should reject unrecognized fields")

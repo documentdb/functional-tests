@@ -102,31 +102,17 @@ def test_buildInfo_response_properties(collection, test):
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
-def test_buildInfo_versionArray_matches_version_major(collection):
-    """Test versionArray[0] matches major version from version string."""
+def test_buildInfo_versionArray_matches_version_string(collection):
+    """Verify versionArray[0..2] matches major.minor.patch from version string."""
     result = execute_admin_command(collection, {"buildInfo": 1})
+    parts = result["version"].split(".")
     assertProperties(
         result,
-        {"versionArray.0": Eq(int(result["version"].split(".")[0]))},
+        {
+            "versionArray.0": Eq(int(parts[0])),
+            "versionArray.1": Eq(int(parts[1])),
+            "versionArray.2": Eq(int(parts[2].split("-")[0])),
+        },
         raw_res=True,
-    )
-
-
-def test_buildInfo_versionArray_matches_version_minor(collection):
-    """Test versionArray[1] matches minor version from version string."""
-    result = execute_admin_command(collection, {"buildInfo": 1})
-    assertProperties(
-        result,
-        {"versionArray.1": Eq(int(result["version"].split(".")[1]))},
-        raw_res=True,
-    )
-
-
-def test_buildInfo_versionArray_matches_version_patch(collection):
-    """Test versionArray[2] matches patch version from version string."""
-    result = execute_admin_command(collection, {"buildInfo": 1})
-    assertProperties(
-        result,
-        {"versionArray.2": Eq(int(result["version"].split(".")[2].split("-")[0]))},
-        raw_res=True,
+        msg="versionArray should match version string",
     )
