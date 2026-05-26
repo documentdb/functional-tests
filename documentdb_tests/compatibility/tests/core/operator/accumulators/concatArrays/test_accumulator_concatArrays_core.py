@@ -45,6 +45,26 @@ CONCATARRAYS_CORE_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": [3, 1, 2, 4]}],
         msg="$concatArrays should preserve element order within and across documents",
     ),
+    AccumulatorTestCase(
+        "core_many_docs_unique",
+        docs=[{"_id": i, "v": [i]} for i in range(100)],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": list(range(100))}],
+        msg="$concatArrays should concatenate 100 single-element arrays in order",
+    ),
+    AccumulatorTestCase(
+        "core_many_docs_few_unique",
+        docs=[{"_id": i, "v": [i % 5]} for i in range(100)],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": [i % 5 for i in range(100)]}],
+        msg="$concatArrays should preserve all 100 elements even with repeated values",
+    ),
 ]
 
 # Property [Duplicate Preservation]: $concatArrays preserves all elements
