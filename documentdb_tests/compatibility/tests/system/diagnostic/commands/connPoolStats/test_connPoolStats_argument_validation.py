@@ -58,3 +58,11 @@ def test_connPoolStats_unrecognized_field(collection):
     """Test connPoolStats with unrecognized extra field succeeds."""
     result = execute_admin_command(collection, {"connPoolStats": 1, "foo": 1})
     assertSuccessPartial(result, {"ok": 1.0}, msg="Unrecognized field should be ignored")
+
+
+def test_connPoolStats_multiple_unrecognized_fields(collection):
+    """Test connPoolStats with multiple unrecognized fields succeeds."""
+    result = execute_admin_command(
+        collection, {"connPoolStats": 1, "foo": 1, "bar": "baz", "qux": []}
+    )
+    assertSuccessPartial(result, {"ok": 1.0}, msg="Multiple unrecognized fields should be ignored")

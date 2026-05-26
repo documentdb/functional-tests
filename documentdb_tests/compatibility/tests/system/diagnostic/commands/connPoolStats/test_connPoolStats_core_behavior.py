@@ -1,69 +1,64 @@
-"""Tests for connPoolStats command core behavior and response structure."""
+"""Tests for connPoolStats command response structure."""
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
+    DiagnosticPropertyTest,
+)
+from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Gte, IsType
 
 pytestmark = pytest.mark.admin
 
 
-def test_connPoolStats_returns_ok(collection):
-    """Test connPoolStats returns ok: 1."""
-    result = execute_admin_command(collection, {"connPoolStats": 1})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Should return ok: 1")
-
-
-def test_connPoolStats_returns_totalInUse(collection):
-    """Test connPoolStats returns totalInUse as a non-negative number."""
-    result = execute_admin_command(collection, {"connPoolStats": 1})
-    assertResult(
-        result, expected={"totalInUse": Gte(0)}, raw_res=True, msg="totalInUse should be >= 0"
-    )
-
-
-def test_connPoolStats_returns_totalAvailable(collection):
-    """Test connPoolStats returns totalAvailable as a non-negative number."""
-    result = execute_admin_command(collection, {"connPoolStats": 1})
-    assertResult(
-        result,
-        expected={"totalAvailable": Gte(0)},
-        raw_res=True,
+RESPONSE_PROPERTY_TESTS: list[DiagnosticPropertyTest] = [
+    DiagnosticPropertyTest(
+        id="totalInUse_gte_0",
+        checks={"totalInUse": Gte(0)},
+        msg="totalInUse should be >= 0",
+    ),
+    DiagnosticPropertyTest(
+        id="totalAvailable_gte_0",
+        checks={"totalAvailable": Gte(0)},
         msg="totalAvailable should be >= 0",
-    )
-
-
-def test_connPoolStats_returns_totalCreated(collection):
-    """Test connPoolStats returns totalCreated as a non-negative number."""
-    result = execute_admin_command(collection, {"connPoolStats": 1})
-    assertResult(
-        result, expected={"totalCreated": Gte(0)}, raw_res=True, msg="totalCreated should be >= 0"
-    )
-
-
-def test_connPoolStats_returns_totalRefreshing(collection):
-    """Test connPoolStats returns totalRefreshing as a non-negative number."""
-    result = execute_admin_command(collection, {"connPoolStats": 1})
-    assertResult(
-        result,
-        expected={"totalRefreshing": Gte(0)},
-        raw_res=True,
+    ),
+    DiagnosticPropertyTest(
+        id="totalCreated_gte_0",
+        checks={"totalCreated": Gte(0)},
+        msg="totalCreated should be >= 0",
+    ),
+    DiagnosticPropertyTest(
+        id="totalRefreshing_gte_0",
+        checks={"totalRefreshing": Gte(0)},
         msg="totalRefreshing should be >= 0",
-    )
+    ),
+    DiagnosticPropertyTest(
+        id="pools_is_object",
+        checks={"pools": IsType("object")},
+        msg="pools should be a document",
+    ),
+    DiagnosticPropertyTest(
+        id="hosts_is_object",
+        checks={"hosts": IsType("object")},
+        msg="hosts should be a document",
+    ),
+    DiagnosticPropertyTest(
+        id="numClientConnections_gte_0",
+        checks={"numClientConnections": Gte(0)},
+        msg="numClientConnections should be >= 0",
+    ),
+    DiagnosticPropertyTest(
+        id="numAScopedConnections_gte_0",
+        checks={"numAScopedConnections": Gte(0)},
+        msg="numAScopedConnections should be >= 0",
+    ),
+]
 
 
-def test_connPoolStats_returns_pools(collection):
-    """Test connPoolStats returns pools as a document."""
+@pytest.mark.parametrize("test", pytest_params(RESPONSE_PROPERTY_TESTS))
+def test_connPoolStats_response_properties(collection, test):
+    """Verify a connPoolStats response field exists and has the expected type or value."""
     result = execute_admin_command(collection, {"connPoolStats": 1})
-    assertResult(
-        result, expected={"pools": IsType("object")}, raw_res=True, msg="pools should be a document"
-    )
-
-
-def test_connPoolStats_returns_hosts(collection):
-    """Test connPoolStats returns hosts as a document."""
-    result = execute_admin_command(collection, {"connPoolStats": 1})
-    assertResult(
-        result, expected={"hosts": IsType("object")}, raw_res=True, msg="hosts should be a document"
-    )
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
