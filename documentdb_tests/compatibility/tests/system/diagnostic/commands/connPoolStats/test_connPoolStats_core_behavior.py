@@ -1,4 +1,7 @@
-"""Tests for connPoolStats command response structure."""
+"""Tests for connPoolStats command core behavior.
+
+Verifies that each response field exists and has the expected type or value.
+"""
 
 import pytest
 

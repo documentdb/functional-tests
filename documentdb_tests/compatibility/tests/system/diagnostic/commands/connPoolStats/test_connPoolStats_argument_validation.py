@@ -1,13 +1,15 @@
-"""Tests for connPoolStats command argument validation."""
+"""Tests for connPoolStats command argument validation.
 
-from __future__ import annotations
+Verifies that connPoolStats accepts all BSON types for the command field
+value and ignores unrecognized fields.
+"""
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
 import pytest
-from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
@@ -44,6 +46,7 @@ ARG_TYPE_TESTS: list[ConnPoolArgTest] = [
     ConnPoolArgTest("timestamp", value=Timestamp(0, 0), msg="timestamp should succeed"),
     ConnPoolArgTest("minKey", value=MinKey(), msg="minKey should succeed"),
     ConnPoolArgTest("maxKey", value=MaxKey(), msg="maxKey should succeed"),
+    ConnPoolArgTest("code", value=Code("function(){}"), msg="code should succeed"),
 ]
 
 
