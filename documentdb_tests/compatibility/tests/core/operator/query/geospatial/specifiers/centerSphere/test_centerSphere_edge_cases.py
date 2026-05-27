@@ -14,6 +14,13 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_INFINITY, FLOAT_INFINITY
 
+# Earth's mean radius in km; used to convert km to radians (km / R)
+EARTH_RADIUS_KM = 6371
+RADIUS_5_KM_IN_RADIANS = 5 / EARTH_RADIUS_KM
+RADIUS_100_KM_IN_RADIANS = 100 / EARTH_RADIUS_KM
+RADIUS_200_KM_IN_RADIANS = 200 / EARTH_RADIUS_KM
+RADIUS_500_KM_IN_RADIANS = 500 / EARTH_RADIUS_KM
+
 TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="radius_zero",
@@ -78,7 +85,7 @@ TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="antimeridian_crossing",
-        filter={"loc": {"$geoWithin": {"$centerSphere": [[180, 0], 5 / 6371]}}},
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[180, 0], RADIUS_5_KM_IN_RADIANS]}}},
         doc=[
             {"_id": 1, "loc": {"type": "Point", "coordinates": [179.99, 0]}},
             {"_id": 2, "loc": {"type": "Point", "coordinates": [-179.99, 0]}},
@@ -92,7 +99,7 @@ TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="pole_proximity_north",
-        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 90], 200 / 6371]}}},
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 90], RADIUS_200_KM_IN_RADIANS]}}},
         doc=[
             {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 89]}},
             {"_id": 2, "loc": {"type": "Point", "coordinates": [90, 89]}},
@@ -165,14 +172,7 @@ TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="point_just_beyond_sphere_boundary",
-        filter={
-            "loc": {
-                "$geoWithin": {
-                    # 100km radius in radians
-                    "$centerSphere": [[0, 0], 100 / 6371]
-                }
-            }
-        },
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], RADIUS_100_KM_IN_RADIANS]}}},
         doc=[
             {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
             {"_id": 2, "loc": {"type": "Point", "coordinates": [0.5, 0]}},
@@ -247,7 +247,7 @@ TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="center_vs_centerSphere_comparison",
-        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 60], 500 / 6371]}}},
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 60], RADIUS_500_KM_IN_RADIANS]}}},
         doc=[
             {"_id": 1, "loc": [0, 60]},
             {"_id": 2, "loc": [8, 60]},
