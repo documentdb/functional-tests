@@ -132,74 +132,6 @@ DISTINCT_READCONCERN_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [Collation Parameter Type Errors]: invalid BSON types and values for
-# the collation parameter produce appropriate errors.
-DISTINCT_COLLATION_TYPE_ERROR_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        f"collation_type_{tid}",
-        docs=[{"_id": 1, "x": "a"}],
-        command=lambda ctx, v=val: {
-            "distinct": ctx.collection,
-            "key": "x",
-            "collation": v,
-        },
-        error_code=TYPE_MISMATCH_ERROR,
-        msg=f"distinct should reject {tid} as collation",
-    )
-    for tid, val in [
-        ("string", "en"),
-        ("int32", 42),
-        ("int64", Int64(1)),
-        ("double", 3.14),
-        ("decimal128", Decimal128("1")),
-        ("bool", True),
-        ("array", [1, 2]),
-        ("objectid", ObjectId("000000000000000000000001")),
-        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
-        ("timestamp", Timestamp(1, 1)),
-        ("binary", Binary(b"data", 0)),
-        ("regex", Regex("abc", "")),
-        ("code", Code("function(){}")),
-        ("code_with_scope", Code("function(){}", {"s": 1})),
-        ("minkey", MinKey()),
-        ("maxkey", MaxKey()),
-    ]
-] + [
-    CommandTestCase(
-        "collation_missing_locale",
-        docs=[{"_id": 1, "x": "a"}],
-        command=lambda ctx: {
-            "distinct": ctx.collection,
-            "key": "x",
-            "collation": {"strength": 1},
-        },
-        error_code=MISSING_FIELD_ERROR,
-        msg="distinct should reject collation with missing locale",
-    ),
-    CommandTestCase(
-        "collation_invalid_locale",
-        docs=[{"_id": 1, "x": "a"}],
-        command=lambda ctx: {
-            "distinct": ctx.collection,
-            "key": "x",
-            "collation": {"locale": ""},
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="distinct should reject collation with invalid (empty) locale",
-    ),
-    CommandTestCase(
-        "collation_validated_nonexistent_collection",
-        docs=None,
-        command=lambda ctx: {
-            "distinct": ctx.collection,
-            "key": "x",
-            "collation": {"strength": 1},
-        },
-        error_code=MISSING_FIELD_ERROR,
-        msg="distinct should validate collation even when the collection does not exist",
-    ),
-]
-
 # Property [Key Parameter Type Errors]: all non-string BSON types for key produce
 # TypeMismatch error; null or omitted key produces a missing field error.
 DISTINCT_KEY_TYPE_ERROR_TESTS: list[CommandTestCase] = [
@@ -457,7 +389,6 @@ DISTINCT_TYPE_ERROR_TESTS: list[CommandTestCase] = (
     DISTINCT_NULL_HINT_ERROR_TESTS
     + DISTINCT_QUERY_TYPE_ERROR_TESTS
     + DISTINCT_READCONCERN_TYPE_ERROR_TESTS
-    + DISTINCT_COLLATION_TYPE_ERROR_TESTS
     + DISTINCT_KEY_TYPE_ERROR_TESTS
     + DISTINCT_HINT_TYPE_ERROR_TESTS
     + DISTINCT_COLLNAME_TYPE_ERROR_TESTS

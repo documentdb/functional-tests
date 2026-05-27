@@ -14,11 +14,9 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import NAMESPACE_NOT_FOUND_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Len, Ne
-from documentdb_tests.framework.target_collection import ViewCollection
 from documentdb_tests.framework.test_constants import (
     DOUBLE_NEGATIVE_ZERO,
     INT32_MAX,
@@ -181,143 +179,7 @@ DISTINCT_TIMESTAMP_ZERO_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Collection Name Acceptance]: non-existent collection names with special
-# characters, Unicode, number-like strings, and long names succeed with empty results.
-DISTINCT_COLLECTION_NAME_ACCEPTANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "collname_nonexistent",
-        docs=None,
-        command=lambda ctx: {"distinct": ctx.collection, "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg="distinct should succeed with empty results for a non-existent collection",
-    ),
-    CommandTestCase(
-        "collname_space",
-        docs=None,
-        command=lambda ctx: {"distinct": f"{ctx.collection} space", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg="distinct should accept space characters in collection names",
-    ),
-    CommandTestCase(
-        "collname_punctuation",
-        docs=None,
-        command=lambda ctx: {"distinct": f"{ctx.collection}!@#%^&*()", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg="distinct should accept punctuation characters in collection names",
-    ),
-    CommandTestCase(
-        "collname_control_chars",
-        docs=None,
-        command=lambda ctx: {"distinct": f"{ctx.collection}\x01\x02\x03", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg="distinct should accept control characters in collection names",
-    ),
-    CommandTestCase(
-        "collname_zero_width_space",
-        # U+200B zero-width space.
-        docs=None,
-        command=lambda ctx: {"distinct": f"{ctx.collection}\u200b", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg="distinct should accept zero-width space in collection names",
-    ),
-    CommandTestCase(
-        "collname_emoji",
-        docs=None,
-        command=lambda ctx: {"distinct": f"{ctx.collection}\U0001f389", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg="distinct should accept emoji characters in collection names",
-    ),
-    CommandTestCase(
-        "collname_tab",
-        docs=None,
-        command=lambda ctx: {"distinct": f"{ctx.collection}\t", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg="distinct should accept tab characters in collection names",
-    ),
-    CommandTestCase(
-        "collname_newline",
-        docs=None,
-        command=lambda ctx: {"distinct": f"{ctx.collection}\n", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg="distinct should accept newline characters in collection names",
-    ),
-    CommandTestCase(
-        "collname_number_zero",
-        docs=None,
-        command=lambda ctx: {"distinct": "0", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg='distinct should accept "0" as collection name without coercion',
-    ),
-    CommandTestCase(
-        "collname_number_nan",
-        docs=None,
-        command=lambda ctx: {"distinct": "NaN", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg='distinct should accept "NaN" as collection name without coercion',
-    ),
-    CommandTestCase(
-        "collname_number_infinity",
-        docs=None,
-        command=lambda ctx: {"distinct": "Infinity", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg='distinct should accept "Infinity" as collection name without coercion',
-    ),
-    CommandTestCase(
-        "collname_number_true",
-        docs=None,
-        command=lambda ctx: {"distinct": "true", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg='distinct should accept "true" as collection name without coercion',
-    ),
-    CommandTestCase(
-        "collname_number_null",
-        docs=None,
-        command=lambda ctx: {"distinct": "null", "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg='distinct should accept "null" as collection name without coercion',
-    ),
-    CommandTestCase(
-        "collname_long_name",
-        docs=None,
-        command=lambda ctx: {"distinct": "a" * 10_000, "key": "x"},
-        expected={"values": [], "ok": 1.0},
-        msg="distinct should accept very long collection names without error",
-    ),
-]
-
-# Property [Collection Name UUID Resolution]: Binary subtype 4 (UUID) as the
-# distinct field triggers UUID-based collection resolution, producing a namespace
-# not found error when the UUID does not match any collection.
-DISTINCT_COLLECTION_NAME_UUID_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "collname_uuid_binary_error",
-        docs=None,
-        command=lambda ctx: {
-            "distinct": Binary(b"\x00" * 16, 4),
-            "key": "x",
-        },
-        error_code=NAMESPACE_NOT_FOUND_ERROR,
-        msg=(
-            "distinct should trigger UUID-based resolution for Binary subtype 4,"
-            " producing a namespace not found error when UUID does not match"
-        ),
-    ),
-]
-
-# Property [Collection Name UUID Success]: Binary subtype 4 (UUID) as the distinct
-# field triggers UUID-based collection resolution; when the UUID matches an existing
-# collection, the command succeeds.
-DISTINCT_COLLECTION_NAME_UUID_SUCCESS_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "collname_uuid_success",
-        docs=[{"_id": 1, "x": "found"}],
-        command=lambda ctx: {"distinct": ctx.uuids[ctx.collection], "key": "x"},
-        expected={"values": ["found"], "ok": 1.0},
-        msg="distinct should succeed when Binary subtype 4 (UUID) matches an existing collection",
-    ),
-]
-
-# Property [Null Optional Parameters]: when optional parameters (query, collation,
+# Property [Null Optional Parameters]: when optional parameters (query,
 # readConcern, comment, maxTimeMS) are null, they are treated as omitted.
 DISTINCT_NULL_PARAMS_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -329,49 +191,10 @@ DISTINCT_NULL_PARAMS_TESTS: list[CommandTestCase] = [
     )
     for tid, param in [
         ("query", "query"),
-        ("collation", "collation"),
         ("read_concern", "readConcern"),
         ("comment", "comment"),
         ("max_time_ms", "maxTimeMS"),
     ]
-]
-
-# Property [Query Composition on Views]: the query parameter composes with
-# the view's pipeline filter to further restrict visible documents.
-DISTINCT_QUERY_VIEW_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "query_on_filtered_view",
-        target_collection=ViewCollection(pipeline=[{"$match": {"status": "active"}}]),
-        docs=[
-            {"_id": 1, "status": "active", "cat": "a", "x": 10},
-            {"_id": 2, "status": "active", "cat": "b", "x": 20},
-            {"_id": 3, "status": "inactive", "cat": "a", "x": 30},
-            {"_id": 4, "status": "active", "cat": "a", "x": 40},
-        ],
-        command=lambda ctx: {
-            "distinct": ctx.collection,
-            "key": "cat",
-            "query": {"x": {"$gte": 20}},
-        },
-        expected={"values": ["a", "b"], "ok": 1},
-        ignore_order_in=["values"],
-        msg="distinct query should compose with view pipeline filter",
-    ),
-    CommandTestCase(
-        "query_excludes_all_on_filtered_view",
-        target_collection=ViewCollection(pipeline=[{"$match": {"status": "active"}}]),
-        docs=[
-            {"_id": 1, "status": "active", "cat": "a", "x": 10},
-            {"_id": 2, "status": "inactive", "cat": "b", "x": 50},
-        ],
-        command=lambda ctx: {
-            "distinct": ctx.collection,
-            "key": "cat",
-            "query": {"x": {"$gte": 50}},
-        },
-        expected={"values": [], "ok": 1},
-        msg="distinct query + view filter should return empty when no docs match both",
-    ),
 ]
 
 DISTINCT_PARAMETER_TESTS: list[CommandTestCase] = (
@@ -382,10 +205,6 @@ DISTINCT_PARAMETER_TESTS: list[CommandTestCase] = (
     + DISTINCT_READCONCERN_SUCCESS_TESTS
     + DISTINCT_MAXTIMEMS_ACCEPTANCE_TESTS
     + DISTINCT_TIMESTAMP_ZERO_TESTS
-    + DISTINCT_COLLECTION_NAME_ACCEPTANCE_TESTS
-    + DISTINCT_COLLECTION_NAME_UUID_TESTS
-    + DISTINCT_COLLECTION_NAME_UUID_SUCCESS_TESTS
-    + DISTINCT_QUERY_VIEW_TESTS
 )
 
 

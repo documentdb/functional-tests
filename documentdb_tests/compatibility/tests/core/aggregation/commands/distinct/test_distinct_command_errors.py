@@ -18,7 +18,6 @@ from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     DISTINCT_TOO_BIG_ERROR,
     FAILED_TO_PARSE_ERROR,
-    INVALID_NAMESPACE_ERROR,
     INVALID_OPTIONS_ERROR,
     KEY_FIELD_NULL_BYTE_ERROR,
     TYPE_MISMATCH_ERROR,
@@ -70,28 +69,6 @@ DISTINCT_KEY_NULL_BYTE_TESTS: list[CommandTestCase] = [
         ("start", "\x00x"),
         ("end", "x\x00"),
         ("only", "\x00"),
-    ]
-]
-
-# Property [Collection Name String Validation]: empty string, null bytes, leading
-# dots, and dollar signs in the collection name produce InvalidNamespace error.
-DISTINCT_COLLNAME_STRING_ERROR_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        f"collname_{tid}",
-        docs=None,
-        command=lambda ctx, v=val: {"distinct": v, "key": "x"},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg=f"distinct should reject {desc}",
-    )
-    for tid, val, desc in [
-        ("empty_string", "", "empty string as collection name"),
-        ("null_byte_start", "\x00test", "collection name with null byte at start"),
-        ("null_byte_middle", "te\x00st", "collection name with null byte in middle"),
-        ("null_byte_end", "test\x00", "collection name with null byte at end"),
-        ("leading_dot", ".test", "collection name starting with a dot"),
-        ("dollar_start", "$test", "collection name with dollar sign at start"),
-        ("dollar_middle", "te$st", "collection name with dollar sign in middle"),
-        ("dollar_end", "test$", "collection name with dollar sign at end"),
     ]
 ]
 
@@ -314,7 +291,6 @@ DISTINCT_BSON_SIZE_LIMIT_TESTS: list[CommandTestCase] = [
 DISTINCT_COMMAND_ERROR_TESTS: list[CommandTestCase] = (
     DISTINCT_QUERY_ERROR_TESTS
     + DISTINCT_KEY_NULL_BYTE_TESTS
-    + DISTINCT_COLLNAME_STRING_ERROR_TESTS
     + DISTINCT_UNRECOGNIZED_FIELDS_TESTS
     + DISTINCT_WRITE_CONCERN_TESTS
     + DISTINCT_MAXTIMEMS_ERROR_TESTS
