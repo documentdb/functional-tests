@@ -10,7 +10,7 @@
 - **One layer deep only** — Test the feature itself and one layer of composition.
   - `$project` with expressions: one test per operator, no edge cases of the operator.
   - `$lookup` sub-pipeline: verify stages are accepted/rejected, don't test the stage's full behavior inside the sub-pipeline.
-- **No engine-specific implementation details** — Don't test exact nesting limits (20 levels), pipeline stage limits (1000), or internal storage details (wiredTiger). These belong in engine-specific test suites, not compatibility tests.
+- **No engine-specific implementation details** — Don't test internal storage details (wiredTiger, engine-specific fields, etc.). These belong in engine-specific test suites, not compatibility tests.
 - **Tests belong in the feature's folder** — `$abs` type validation goes in `expressions/arithmetic/abs/`, not in `stages/project/`. Testing `$abs` inside `$project` is a `$project` context test (one simple case), not an `$abs` test.
 
 ---
