@@ -264,6 +264,28 @@ MAX_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": ""}],
         msg="$max should skip null and return empty string",
     ),
+    AccumulatorTestCase(
+        "edge_order_independent_asc",
+        docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 5}],
+        msg="$max should return same result regardless of input order (ascending)",
+    ),
+    AccumulatorTestCase(
+        "edge_order_independent_desc",
+        docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$sort": {"v": -1}},
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 5}],
+        msg="$max should return same result regardless of input order (descending)",
+    ),
 ]
 
 

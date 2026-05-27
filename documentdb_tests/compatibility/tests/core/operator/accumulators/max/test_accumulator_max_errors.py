@@ -1,4 +1,4 @@
-"""Tests for $max accumulator error cases: arity rejection."""
+"""Tests for $max accumulator error cases: arity rejection and expression error propagation."""
 
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ from documentdb_tests.compatibility.tests.core.operator.accumulators.utils impor
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
+    CONVERSION_FAILURE_ERROR,
+    DIVIDE_BY_ZERO_V2_ERROR,
     EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
     GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
 )
@@ -70,10 +72,37 @@ MAX_ARITY_ERROR_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Expression Error Propagation]: errors raised during sub-expression
+# evaluation propagate through the accumulator without being caught.
+MAX_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "expr_error_divide_by_zero",
+        docs=[{"v": 1}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": {"$divide": ["$v", 0]}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$max should propagate $divide by zero error",
+    ),
+    AccumulatorTestCase(
+        "expr_error_to_int_invalid_string",
+        docs=[{"v": "abc"}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": {"$toInt": "$v"}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=CONVERSION_FAILURE_ERROR,
+        msg="$max should propagate $toInt conversion error from expression",
+    ),
+]
 
-@pytest.mark.parametrize("test_case", pytest_params(MAX_ARITY_ERROR_TESTS))
+MAX_ERROR_TESTS = MAX_ARITY_ERROR_TESTS + MAX_EXPRESSION_ERROR_TESTS
+
+
+@pytest.mark.parametrize("test_case", pytest_params(MAX_ERROR_TESTS))
 def test_accumulator_max_errors(collection, test_case):
-    """Test $max accumulator error cases: arity rejection."""
+    """Test $max accumulator error cases."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(
