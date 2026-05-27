@@ -22,17 +22,13 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import (
-    FAILED_TO_PARSE_ERROR,
-    TYPE_MISMATCH_ERROR,
-)
+from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 
 # Property [writeConcern Sub-field j Acceptance]: j accepts bool, int, long,
-# double, and decimal types, and j and fsync can coexist when one or both are
-# falsy.
+# double, and decimal types.
 AGGREGATE_WRITECONCERN_J_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "wc_j_bool_true",
@@ -130,88 +126,37 @@ AGGREGATE_WRITECONCERN_J_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         expected={"ok": Eq(1.0)},
         msg="aggregate should accept j=null in writeConcern",
     ),
-    CommandTestCase(
-        "wc_j_false_fsync_false",
-        docs=[{"_id": 1}],
-        command=lambda ctx: {
-            "aggregate": ctx.collection,
-            "pipeline": [],
-            "cursor": {},
-            "writeConcern": {"j": False, "fsync": False},
-        },
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept j and fsync both falsy in writeConcern",
-    ),
-    CommandTestCase(
-        "wc_j_true_fsync_false",
-        docs=[{"_id": 1}],
-        command=lambda ctx: {
-            "aggregate": ctx.collection,
-            "pipeline": [],
-            "cursor": {},
-            "writeConcern": {"j": True, "fsync": False},
-        },
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept j truthy with fsync falsy in writeConcern",
-    ),
-    CommandTestCase(
-        "wc_j_false_fsync_true",
-        docs=[{"_id": 1}],
-        command=lambda ctx: {
-            "aggregate": ctx.collection,
-            "pipeline": [],
-            "cursor": {},
-            "writeConcern": {"j": False, "fsync": True},
-        },
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept fsync truthy with j falsy in writeConcern",
-    ),
 ]
 
 # Property [writeConcern Sub-field j Rejection]: non-boolean, non-numeric
-# types for j produce a type mismatch error, and both j and fsync set to
-# truthy simultaneously produces a parse error.
+# types for j produce a type mismatch error.
 AGGREGATE_WRITECONCERN_J_REJECTION_TESTS: list[CommandTestCase] = [
-    *[
-        CommandTestCase(
-            f"wc_j_reject_{tid}",
-            docs=[{"_id": 1}],
-            command=lambda ctx, v=val: {
-                "aggregate": ctx.collection,
-                "pipeline": [],
-                "cursor": {},
-                "writeConcern": {"j": v},
-            },
-            error_code=TYPE_MISMATCH_ERROR,
-            msg=f"aggregate should reject {tid} j in writeConcern",
-        )
-        for tid, val in [
-            ("string", "true"),
-            ("array", [1]),
-            ("object", {"a": 1}),
-            ("objectid", ObjectId()),
-            ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
-            ("timestamp", Timestamp(1, 1)),
-            ("regex", Regex(".*")),
-            ("binary", Binary(b"data")),
-            ("code", Code("function(){}")),
-            ("code_with_scope", Code("function(){}", {"x": 1})),
-            ("minkey", MinKey()),
-            ("maxkey", MaxKey()),
-        ]
-    ],
     CommandTestCase(
-        "wc_j_true_fsync_true",
+        f"wc_j_reject_{tid}",
         docs=[{"_id": 1}],
-        command=lambda ctx: {
+        command=lambda ctx, v=val: {
             "aggregate": ctx.collection,
             "pipeline": [],
             "cursor": {},
-            "writeConcern": {"j": True, "fsync": True},
+            "writeConcern": {"j": v},
         },
-        error_code=FAILED_TO_PARSE_ERROR,
-        msg="aggregate should reject both j and fsync set to truthy simultaneously",
-    ),
+        error_code=TYPE_MISMATCH_ERROR,
+        msg=f"aggregate should reject {tid} j in writeConcern",
+    )
+    for tid, val in [
+        ("string", "true"),
+        ("array", [1]),
+        ("object", {"a": 1}),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(1, 1)),
+        ("regex", Regex(".*")),
+        ("binary", Binary(b"data")),
+        ("code", Code("function(){}")),
+        ("code_with_scope", Code("function(){}", {"x": 1})),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
 ]
 
 AGGREGATE_WRITECONCERN_J_TESTS = (

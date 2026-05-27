@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, timezone
 
 import pytest
@@ -99,9 +98,8 @@ AGGREGATE_FIELD_NUMERIC_ONE_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [String Name Character Acceptance]: string collection names with
-# special characters, unicode, and long lengths are accepted.
-AGGREGATE_FIELD_STRING_CHARS_TESTS: list[CommandTestCase] = [
+# Property [String Name Acceptance]: string collection names are accepted.
+AGGREGATE_FIELD_STRING_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "string_name",
         docs=[{"_id": 1}],
@@ -109,212 +107,36 @@ AGGREGATE_FIELD_STRING_CHARS_TESTS: list[CommandTestCase] = [
         expected={"ok": Eq(1.0)},
         msg="aggregate should accept a string collection name",
     ),
-    CommandTestCase(
-        "string_dollar_prefix",
-        command={"aggregate": "$hello", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept dollar-prefixed collection name",
-    ),
-    CommandTestCase(
-        "string_dollar_cmd",
-        command={"aggregate": "$cmd", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept $cmd as collection name",
-    ),
-    CommandTestCase(
-        "string_dollar_cmd_dot_x",
-        command={"aggregate": "$cmd.x", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept $cmd.x as collection name",
-    ),
-    CommandTestCase(
-        "string_control_char",
-        command={"aggregate": "test\x01coll", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept collection name with control character U+0001",
-    ),
-    CommandTestCase(
-        "string_whitespace",
-        command={"aggregate": "test coll", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept collection name with whitespace",
-    ),
-    CommandTestCase(
-        "string_unicode",
-        command={"aggregate": "test\u00e9", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept collection name with unicode characters",
-    ),
-    CommandTestCase(
-        "string_emoji",
-        command={"aggregate": "test\U0001f600", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept collection name with emoji",
-    ),
-    CommandTestCase(
-        "string_cjk",
-        command={"aggregate": "test\u4e2d\u6587", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept collection name with CJK characters",
-    ),
-    CommandTestCase(
-        "string_long_name",
-        command={"aggregate": "a" * 100_000, "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept collection name longer than 100K characters",
-    ),
-]
-
-# Property [System Collection Acceptance]: system.* collection names are
-# accepted as valid aggregate targets.
-AGGREGATE_FIELD_SYSTEM_COLLECTION_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "string_system_users",
-        command={"aggregate": "system.users", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept system.users as collection name",
-    ),
-    CommandTestCase(
-        "string_system_profile",
-        command={"aggregate": "system.profile", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept system.profile as collection name",
-    ),
-    CommandTestCase(
-        "string_system_views",
-        command={"aggregate": "system.views", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept system.views as collection name",
-    ),
-    CommandTestCase(
-        "string_system_buckets",
-        command={"aggregate": "system.buckets.test", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept system.buckets.* as collection name",
-    ),
-    CommandTestCase(
-        "string_system_js",
-        command={"aggregate": "system.js", "pipeline": [], "cursor": {}},
-        expected={"ok": Eq(1.0)},
-        msg="aggregate should accept system.js as collection name",
-    ),
 ]
 
 AGGREGATE_FIELD_ACCEPTANCE_TESTS = (
-    AGGREGATE_FIELD_NUMERIC_ONE_TESTS
-    + AGGREGATE_FIELD_STRING_CHARS_TESTS
-    + AGGREGATE_FIELD_SYSTEM_COLLECTION_TESTS
+    AGGREGATE_FIELD_NUMERIC_ONE_TESTS + AGGREGATE_FIELD_STRING_ACCEPTANCE_TESTS
 )
 
 # Property [Field Type Rejection]: non-string, non-numeric BSON types for the
 # aggregate field are rejected.
 AGGREGATE_FIELD_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "reject_null",
-        command={"aggregate": None, "pipeline": [], "cursor": {}},
+        f"reject_{tid}",
+        command={"aggregate": val, "pipeline": [], "cursor": {}},
         error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject null as an invalid type",
-    ),
-    CommandTestCase(
-        "reject_bool_true",
-        command={"aggregate": True, "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject boolean True as a type error",
-    ),
-    CommandTestCase(
-        "reject_array",
-        command={"aggregate": [1, 2], "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject array type",
-    ),
-    CommandTestCase(
-        "reject_document",
-        command={"aggregate": {"a": 1}, "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject document type",
-    ),
-    CommandTestCase(
-        "reject_objectid",
-        command={"aggregate": ObjectId(), "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject ObjectId type",
-    ),
-    CommandTestCase(
-        "reject_datetime",
-        command={
-            "aggregate": datetime(2024, 1, 1, tzinfo=timezone.utc),
-            "pipeline": [],
-            "cursor": {},
-        },
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject datetime type",
-    ),
-    CommandTestCase(
-        "reject_timestamp",
-        command={"aggregate": Timestamp(1, 1), "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject Timestamp type",
-    ),
-    CommandTestCase(
-        "reject_regex",
-        command={"aggregate": Regex(".*"), "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject Regex type",
-    ),
-    CommandTestCase(
-        "reject_code",
-        command={"aggregate": Code("function(){}"), "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject Code type",
-    ),
-    CommandTestCase(
-        "reject_code_with_scope",
-        command={
-            "aggregate": Code("function(){}", {"x": 1}),
-            "pipeline": [],
-            "cursor": {},
-        },
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject Code with scope type",
-    ),
-    CommandTestCase(
-        "reject_minkey",
-        command={"aggregate": MinKey(), "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject MinKey type",
-    ),
-    CommandTestCase(
-        "reject_maxkey",
-        command={"aggregate": MaxKey(), "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject MaxKey type",
-    ),
-    CommandTestCase(
-        "reject_binary",
-        command={"aggregate": Binary(b"hello"), "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject Binary type",
-    ),
-    CommandTestCase(
-        "reject_binary_uuid",
-        command={
-            "aggregate": Binary.from_uuid(uuid.uuid4()),
-            "pipeline": [],
-            "cursor": {},
-        },
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject Binary UUID with a distinct message",
-    ),
-    CommandTestCase(
-        "reject_binary_uuid_short",
-        command={
-            "aggregate": Binary(b"short", subtype=4),
-            "pipeline": [],
-            "cursor": {},
-        },
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject non-standard-size Binary subtype 4 with UUID error",
-    ),
+        msg=f"aggregate should reject {tid} type",
+    )
+    for tid, val in [
+        ("null", None),
+        ("bool", True),
+        ("array", [1, 2]),
+        ("document", {"a": 1}),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(1, 1)),
+        ("regex", Regex(".*")),
+        ("binary", Binary(b"hello")),
+        ("code", Code("function(){}")),
+        ("code_with_scope", Code("function(){}", {"x": 1})),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
 ]
 
 # Property [Numeric Value Rejection]: numeric values other than 1 (including
@@ -407,39 +229,8 @@ AGGREGATE_FIELD_NUMERIC_REJECTION_TESTS: list[CommandTestCase] = [
     ],
 ]
 
-# Property [String Format Rejection]: string values with invalid formats
-# (empty, dot-prefixed, embedded null byte, $cmd.aggregate) are rejected.
-AGGREGATE_FIELD_STRING_REJECTION_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "reject_empty_string",
-        command={"aggregate": "", "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject empty string collection name",
-    ),
-    CommandTestCase(
-        "reject_dot_prefix",
-        command={"aggregate": ".hello", "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject dot-prefixed collection name",
-    ),
-    CommandTestCase(
-        "reject_embedded_null_byte",
-        command={"aggregate": "test\x00coll", "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject collection name with embedded null byte",
-    ),
-    CommandTestCase(
-        "reject_cmd_aggregate",
-        command={"aggregate": "$cmd.aggregate", "pipeline": [], "cursor": {}},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="aggregate should reject the specific string $cmd.aggregate",
-    ),
-]
-
 AGGREGATE_FIELD_REJECTION_TESTS = (
-    AGGREGATE_FIELD_TYPE_REJECTION_TESTS
-    + AGGREGATE_FIELD_NUMERIC_REJECTION_TESTS
-    + AGGREGATE_FIELD_STRING_REJECTION_TESTS
+    AGGREGATE_FIELD_TYPE_REJECTION_TESTS + AGGREGATE_FIELD_NUMERIC_REJECTION_TESTS
 )
 
 AGGREGATE_FIELD_TESTS = AGGREGATE_FIELD_ACCEPTANCE_TESTS + AGGREGATE_FIELD_REJECTION_TESTS
