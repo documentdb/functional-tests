@@ -451,6 +451,7 @@ For each invalid_type in [string, object, array, ...]:
 
  **Out of Scope**:
   - **BSON comparison ordering** (used by `$max`/`$min`/`$top`/`$bottom`) — `bson_types/test_bson_types_ordering.py`; per-accumulator coverage limited to a small wiring sample.
+  - **JavaScript Code type** — the BSON `Code` type is deprecated; accumulator tests should not include `Code` constant or `Code`-valued field tests.
 
 ---
 
