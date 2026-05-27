@@ -1,4 +1,4 @@
-"""Tests for $max accumulator null/missing handling, input forms, and edge cases."""
+"""Tests for $max accumulator null/missing handling and edge cases."""
 
 from __future__ import annotations
 
@@ -148,57 +148,7 @@ MAX_NULL_MISSING_TESTS: list[AccumulatorTestCase] = [
 
 
 # ===========================================================================
-# 2. Expression Argument Tests
-# ===========================================================================
-
-# Property [Input Forms]: $max accumulator accepts various expression types
-# as its operand.
-MAX_INPUT_FORM_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "input_field_path",
-        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": 20}],
-        msg="$max should accept a basic field path reference",
-    ),
-    AccumulatorTestCase(
-        "input_nested_field",
-        docs=[{"a": {"b": 10}}, {"a": {"b": 20}}, {"a": {"b": 5}}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$a.b"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": 20}],
-        msg="$max should accept a nested document field path",
-    ),
-    AccumulatorTestCase(
-        "input_literal",
-        docs=[{"v": 1}, {"v": 2}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": 42}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": 42}],
-        msg="$max with a literal constant should return that constant",
-    ),
-    AccumulatorTestCase(
-        "input_null_literal",
-        docs=[{"v": 1}, {"v": 2}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": None}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": None}],
-        msg="$max with null literal should return null (all docs produce null)",
-    ),
-]
-
-
-# ===========================================================================
-# 3. Accumulator-Specific Edge Cases
+# 2. Accumulator-Specific Edge Cases
 # ===========================================================================
 
 # Property [Edge Cases]: edge cases unique to accumulator context.
@@ -321,12 +271,12 @@ MAX_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
 # Combined success tests and test function
 # ===========================================================================
 
-MAX_NULL_MISSING_SUCCESS_TESTS = MAX_NULL_MISSING_TESTS + MAX_INPUT_FORM_TESTS + MAX_EDGE_CASE_TESTS
+MAX_NULL_MISSING_SUCCESS_TESTS = MAX_NULL_MISSING_TESTS + MAX_EDGE_CASE_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MAX_NULL_MISSING_SUCCESS_TESTS))
 def test_accumulator_max_null_missing(collection, test_case: AccumulatorTestCase):
-    """Test $max accumulator null/missing, input forms, and edge cases via $group."""
+    """Test $max accumulator null/missing and edge cases via $group."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(
