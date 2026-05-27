@@ -261,6 +261,19 @@ def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Op
     assertFailure(result, expected, msg, transform=partial_match(expected))
 
 
+def _is_property_spec(value: Any) -> bool:
+    """Return True if a value in an ``expected`` dict denotes property checks.
+
+    A property spec is a ``Check``, a nested dict of checks, or a non-empty
+    list of ``Check`` instances (multiple checks applied to one path).
+    """
+    if isinstance(value, (Check, dict)):
+        return True
+    if isinstance(value, list) and value:
+        return all(isinstance(c, Check) for c in value)
+    return False
+
+
 def assertResult(
     result: Union[Any, Exception],
     expected: Any = None,
@@ -293,9 +306,7 @@ def assertResult(
     """
     if error_code is not None:
         assertFailureCode(result, error_code, msg)
-    elif isinstance(expected, dict) and any(
-        isinstance(v, (Check, dict)) for v in expected.values()
-    ):
+    elif isinstance(expected, dict) and any(_is_property_spec(v) for v in expected.values()):
         assertProperties(result, expected, msg=msg, raw_res=raw_res)
     else:
         assertSuccess(
@@ -424,9 +435,10 @@ def assertProperties(
                     _run_checks(check, full_path)
                 else:
                     actual = _walk_path(doc, full_path)
-                    err = check.check(actual, full_path)
-                    if err:
-                        failures.append(f"{doc_prefix}{err}")
+                    for one in check if isinstance(check, list) else [check]:
+                        err = one.check(actual, full_path)
+                        if err:
+                            failures.append(f"{doc_prefix}{err}")
 
         _run_checks(checks)
 
