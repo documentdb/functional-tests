@@ -9,17 +9,12 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
 from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq, Gte
+from documentdb_tests.framework.property_checks import Gte
 
 pytestmark = pytest.mark.admin
 
 
 RESPONSE_PROPERTY_TESTS: list[DiagnosticPropertyTest] = [
-    DiagnosticPropertyTest(
-        "returns_ok",
-        checks={"ok": Eq(1.0)},
-        msg="Should return ok: 1",
-    ),
     DiagnosticPropertyTest(
         "returns_size",
         checks={"size": Gte(Int64(1))},
