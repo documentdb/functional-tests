@@ -81,6 +81,12 @@ AGGREGATE_AGNOSTIC_REJECTION_TESTS: list[CommandTestCase] = [
         error_code=INVALID_NAMESPACE_ERROR,
         msg="aggregate should reject $documents stage with a string collection name",
     ),
+    CommandTestCase(
+        "non_agnostic_stage_with_aggregate_1",
+        command={"aggregate": 1, "pipeline": [{"$match": {"x": 1}}], "cursor": {}},
+        error_code=INVALID_NAMESPACE_ERROR,
+        msg="aggregate should reject non-agnostic stage in collection-agnostic mode",
+    ),
 ]
 
 # Property [Collection-Agnostic Admin Stage]: $currentOp requires the admin
