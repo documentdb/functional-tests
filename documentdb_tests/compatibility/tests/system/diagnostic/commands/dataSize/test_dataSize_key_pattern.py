@@ -1,62 +1,86 @@
 """Tests for dataSize command keyPattern and min/max parameters."""
 
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
+
 import pytest
 from bson import Int64
 
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_case import BaseTestCase
 
 pytestmark = pytest.mark.admin
 
 
-def test_dataSize_keyPattern_id(collection):
-    """Test dataSize with keyPattern: {_id: 1} succeeds."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(10)])
+@dataclass(frozen=True)
+class KeyPatternTest(BaseTestCase):
+    """Test case for dataSize keyPattern/min/max parameter combinations."""
+
+    doc_count: int = 10
+    create_index: bool = False
+    key_pattern: Dict[str, Any] = field(default_factory=lambda: {"_id": 1})
+    min_bound: Optional[Dict[str, Any]] = None
+    max_bound: Optional[Dict[str, Any]] = None
+
+
+KEY_PATTERN_TESTS: list[KeyPatternTest] = [
+    KeyPatternTest(
+        "keyPattern_id",
+        expected={"ok": 1.0},
+        key_pattern={"_id": 1},
+        msg="keyPattern _id should succeed",
+    ),
+    KeyPatternTest(
+        "with_min_max",
+        expected={"ok": 1.0},
+        doc_count=100,
+        create_index=True,
+        key_pattern={"x": 1},
+        min_bound={"x": 10},
+        max_bound={"x": 50},
+        msg="keyPattern with min/max should succeed",
+    ),
+    KeyPatternTest(
+        "min_max_no_match",
+        expected={"numObjects": Int64(0)},
+        create_index=True,
+        key_pattern={"x": 1},
+        min_bound={"x": 1000},
+        max_bound={"x": 2000},
+        msg="No match should return 0",
+    ),
+    KeyPatternTest(
+        "without_min_max",
+        expected={"ok": 1.0},
+        create_index=True,
+        key_pattern={"x": 1},
+        msg="keyPattern without min/max should succeed",
+    ),
+    KeyPatternTest(
+        "min_equal_max",
+        expected={"numObjects": Int64(0)},
+        create_index=True,
+        key_pattern={"x": 1},
+        min_bound={"x": 5},
+        max_bound={"x": 5},
+        msg="min==max should return 0",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(KEY_PATTERN_TESTS))
+def test_dataSize_key_pattern(collection, test):
+    """Test dataSize with keyPattern and optional min/max parameters."""
+    collection.insert_many([{"_id": i, "x": i} for i in range(test.doc_count)])
+    if test.create_index:
+        collection.create_index("x")
     ns = f"{collection.database.name}.{collection.name}"
-    result = execute_command(collection, {"dataSize": ns, "keyPattern": {"_id": 1}})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="keyPattern _id should succeed")
-
-
-def test_dataSize_keyPattern_with_min_max(collection):
-    """Test dataSize with keyPattern + min + max returns subset."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(100)])
-    collection.create_index("x")
-    ns = f"{collection.database.name}.{collection.name}"
-    result = execute_command(
-        collection,
-        {"dataSize": ns, "keyPattern": {"x": 1}, "min": {"x": 10}, "max": {"x": 50}},
-    )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="keyPattern with min/max should succeed")
-
-
-def test_dataSize_keyPattern_min_max_no_match(collection):
-    """Test dataSize with min/max where no documents match returns 0."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(10)])
-    collection.create_index("x")
-    ns = f"{collection.database.name}.{collection.name}"
-    result = execute_command(
-        collection,
-        {"dataSize": ns, "keyPattern": {"x": 1}, "min": {"x": 1000}, "max": {"x": 2000}},
-    )
-    assertSuccessPartial(result, {"numObjects": Int64(0)}, msg="No match should return 0")
-
-
-def test_dataSize_keyPattern_without_min_max(collection):
-    """Test dataSize with keyPattern only (without min/max) succeeds."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(10)])
-    collection.create_index("x")
-    ns = f"{collection.database.name}.{collection.name}"
-    result = execute_command(collection, {"dataSize": ns, "keyPattern": {"x": 1}})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="keyPattern without min/max should succeed")
-
-
-def test_dataSize_min_equal_max(collection):
-    """Test dataSize with min equal to max returns 0."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(10)])
-    collection.create_index("x")
-    ns = f"{collection.database.name}.{collection.name}"
-    result = execute_command(
-        collection,
-        {"dataSize": ns, "keyPattern": {"x": 1}, "min": {"x": 5}, "max": {"x": 5}},
-    )
-    assertSuccessPartial(result, {"numObjects": Int64(0)}, msg="min==max should return 0")
+    cmd = {"dataSize": ns, "keyPattern": test.key_pattern}
+    if test.min_bound is not None:
+        cmd["min"] = test.min_bound
+    if test.max_bound is not None:
+        cmd["max"] = test.max_bound
+    result = execute_command(collection, cmd)
+    assertSuccessPartial(result, test.expected, msg=test.msg)
