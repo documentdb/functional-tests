@@ -179,6 +179,13 @@ MIN_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
         msg="$min should pick scalar Number over Array (Number < Array in BSON)",
     ),
     AccumulatorTestCase(
+        "edge_empty_collection",
+        docs=[],
+        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
+        expected=[],
+        msg="$min on empty collection should produce no groups (empty result)",
+    ),
+    AccumulatorTestCase(
         "edge_order_independent_asc",
         docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
         pipeline=[
