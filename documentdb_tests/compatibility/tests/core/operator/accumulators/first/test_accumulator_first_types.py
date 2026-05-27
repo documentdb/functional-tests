@@ -10,6 +10,8 @@ from bson import (
     Binary,
     Decimal128,
     Int64,
+    MaxKey,
+    MinKey,
     ObjectId,
     Regex,
     Timestamp,
@@ -308,11 +310,289 @@ FIRST_MIXED_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# ---------------------------------------------------------------------------
+# Property [BSON Constant Arguments]: $first accepts BSON constants as the
+# accumulator argument (not field references). The constant is returned for
+# every document, so the "first" value is that constant.
+# ---------------------------------------------------------------------------
+FIRST_BSON_CONSTANT_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "const_true",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": True}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": True}],
+        msg="$first with boolean True constant should return True",
+    ),
+    AccumulatorTestCase(
+        "const_false",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": False}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": False}],
+        msg="$first with boolean False constant should return False",
+    ),
+    AccumulatorTestCase(
+        "const_int64",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": Int64(42)}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": Int64(42)}],
+        msg="$first with Int64 constant should return that Int64 value",
+    ),
+    AccumulatorTestCase(
+        "const_double",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": 3.14}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 3.14}],
+        msg="$first with double constant should return that double value",
+    ),
+    AccumulatorTestCase(
+        "const_decimal128",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": Decimal128("3.14")}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": Decimal128("3.14")}],
+        msg="$first with Decimal128 constant should return that Decimal128 value",
+    ),
+    AccumulatorTestCase(
+        "const_string",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": "hello"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": "hello"}],
+        msg="$first with string constant (no $) should return that string",
+    ),
+    AccumulatorTestCase(
+        "const_binary",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": Binary(b"\x01\x02")}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": b"\x01\x02"}],
+        msg="$first with Binary constant should return that Binary value",
+    ),
+    AccumulatorTestCase(
+        "const_objectid",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$first": ObjectId("000000000000000000000000")},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": ObjectId("000000000000000000000000")}],
+        msg="$first with ObjectId constant should return that ObjectId",
+    ),
+    AccumulatorTestCase(
+        "const_datetime",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$first": datetime(2020, 1, 1, tzinfo=timezone.utc)},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": datetime(2020, 1, 1, tzinfo=timezone.utc)}],
+        msg="$first with datetime constant should return that datetime",
+    ),
+    AccumulatorTestCase(
+        "const_timestamp",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": Timestamp(1, 1)}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": Timestamp(1, 1)}],
+        msg="$first with Timestamp constant should return that Timestamp",
+    ),
+    AccumulatorTestCase(
+        "const_regex",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": Regex("abc", "i")}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": Regex("abc", "i")}],
+        msg="$first with Regex constant should return that Regex",
+    ),
+    AccumulatorTestCase(
+        "const_null",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": None}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": None}],
+        msg="$first with null constant should return null",
+    ),
+    AccumulatorTestCase(
+        "const_minkey",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": MinKey()}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": {"": MinKey()}}],
+        msg="$first with MinKey constant should return MinKey wrapped in document",
+    ),
+    AccumulatorTestCase(
+        "const_maxkey",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": MaxKey()}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": {"": MaxKey()}}],
+        msg="$first with MaxKey constant should return MaxKey wrapped in document",
+    ),
+]
+
+# ---------------------------------------------------------------------------
+# Property [Expression Types]: $first accepts various expression types as
+# its operand and evaluates them per document before picking the first.
+# ---------------------------------------------------------------------------
+FIRST_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "expr_operator_single",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": {"$abs": "$v"}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 10}],
+        msg="$first should accept single-input expression operator",
+    ),
+    AccumulatorTestCase(
+        "expr_operator_multi_arg",
+        docs=[{"v": -10, "w": 3}, {"v": 20, "w": 7}, {"v": -5, "w": 1}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$first": {"$add": ["$v", "$w"]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": -7}],
+        msg="$first should accept a multi-arg expression operator",
+    ),
+    AccumulatorTestCase(
+        "expr_nested",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$first": {"$add": [1, {"$abs": "$v"}]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 11}],
+        msg="$first should accept nested expression operators",
+    ),
+    AccumulatorTestCase(
+        "expr_sysvar_remove",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": "$$REMOVE"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": None}],
+        msg="$first with $$REMOVE should treat value as missing and return null",
+    ),
+    AccumulatorTestCase(
+        "expr_object_expression",
+        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": {"a": "$v"}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": {"a": 5}}],
+        msg="$first should accept an object expression",
+    ),
+    AccumulatorTestCase(
+        "expr_object_with_operator",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$first": {"a": {"$abs": "$v"}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": {"a": 10}}],
+        msg="$first should accept an object expression containing an operator",
+    ),
+    AccumulatorTestCase(
+        "expr_let",
+        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$first": {"$let": {"vars": {"x": "$v"}, "in": "$$x"}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 5}],
+        msg="$first should accept a $let expression as its operand",
+    ),
+]
+
 FIRST_TYPE_SUCCESS_TESTS = (
     FIRST_BSON_TYPE_TESTS
     + FIRST_SPECIAL_NUMERIC_TESTS
     + FIRST_DECIMAL_PRECISION_TESTS
     + FIRST_MIXED_TYPE_TESTS
+    + FIRST_BSON_CONSTANT_TESTS
+    + FIRST_EXPRESSION_TYPE_TESTS
 )
 
 

@@ -95,6 +95,33 @@ FIRST_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": [5, 1, 8]}],
         msg="$first should return array as whole value, not traverse it",
     ),
+    AccumulatorTestCase(
+        "edge_empty_collection",
+        docs=[],
+        pipeline=[{"$group": {"_id": None, "result": {"$first": "$v"}}}],
+        expected=[],
+        msg="$first on empty collection should produce no groups (empty result)",
+    ),
+    AccumulatorTestCase(
+        "edge_order_dependent_asc",
+        docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$first": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": 1}],
+        msg="$first with ascending sort should return smallest value",
+    ),
+    AccumulatorTestCase(
+        "edge_order_dependent_desc",
+        docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$sort": {"v": -1}},
+            {"$group": {"_id": None, "result": {"$first": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": 5}],
+        msg="$first with descending sort should return largest value",
+    ),
 ]
 
 FIRST_SUCCESS_TESTS = FIRST_NULL_MISSING_TESTS + FIRST_EDGE_CASE_TESTS
