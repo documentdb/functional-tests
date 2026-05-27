@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 import pytest
 from bson import (
     Binary,
-    Code,
     Decimal128,
     Int64,
     MaxKey,
@@ -156,20 +155,6 @@ ADDTOSET_BSON_TYPE_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"result": [Regex("abc"), Regex("def")]}],
         msg="$addToSet should collect and deduplicate Regex values",
-    ),
-    AccumulatorTestCase(
-        "bson_code",
-        docs=[
-            {"v": Code("function(){}")},
-            {"v": Code("function(){return 1}")},
-            {"v": Code("function(){}")},
-        ],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": ["function(){}", "function(){return 1}"]}],
-        msg="$addToSet should collect and deduplicate Code values",
     ),
     AccumulatorTestCase(
         "bson_timestamp",

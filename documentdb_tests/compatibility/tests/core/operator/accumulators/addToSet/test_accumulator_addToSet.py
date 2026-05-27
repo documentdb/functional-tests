@@ -2,8 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
-from bson import Binary, Regex
+from bson import (
+    Binary,
+    Decimal128,
+    Int64,
+    MaxKey,
+    MinKey,
+    ObjectId,
+    Regex,
+    Timestamp,
+)
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
@@ -356,6 +367,290 @@ ADDTOSET_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
 ]
 
 # ---------------------------------------------------------------------------
+# Property [BSON Constant Arguments]: $addToSet accepts BSON constants as the
+# accumulator argument. Since every doc yields the same constant, the result
+# set contains exactly one element.
+# ---------------------------------------------------------------------------
+ADDTOSET_BSON_CONSTANT_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "const_true",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": True}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [True]}],
+        msg="$addToSet with boolean True constant should return [True]",
+    ),
+    AccumulatorTestCase(
+        "const_false",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": False}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [False]}],
+        msg="$addToSet with boolean False constant should return [False]",
+    ),
+    AccumulatorTestCase(
+        "const_int64",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": Int64(42)}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [Int64(42)]}],
+        msg="$addToSet with Int64 constant should return single-element set",
+    ),
+    AccumulatorTestCase(
+        "const_double",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": 3.14}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [3.14]}],
+        msg="$addToSet with double constant should return single-element set",
+    ),
+    AccumulatorTestCase(
+        "const_decimal128",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": Decimal128("3.14")}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [Decimal128("3.14")]}],
+        msg="$addToSet with Decimal128 constant should return single-element set",
+    ),
+    AccumulatorTestCase(
+        "const_string",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": "hello"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": ["hello"]}],
+        msg="$addToSet with string constant should return single-element set",
+    ),
+    AccumulatorTestCase(
+        "const_binary",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": Binary(b"\x01\x02")}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [b"\x01\x02"]}],
+        msg="$addToSet with Binary constant should return single-element set",
+    ),
+    AccumulatorTestCase(
+        "const_objectid",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$addToSet": ObjectId("000000000000000000000000")},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [ObjectId("000000000000000000000000")]}],
+        msg="$addToSet with ObjectId constant should return single-element set",
+    ),
+    AccumulatorTestCase(
+        "const_datetime",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$addToSet": datetime(2020, 1, 1, tzinfo=timezone.utc)},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [datetime(2020, 1, 1, tzinfo=timezone.utc)]}],
+        msg="$addToSet with datetime constant should return single-element set",
+    ),
+    AccumulatorTestCase(
+        "const_timestamp",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": Timestamp(1, 1)}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [Timestamp(1, 1)]}],
+        msg="$addToSet with Timestamp constant should return single-element set",
+    ),
+    AccumulatorTestCase(
+        "const_regex",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": Regex("abc", "i")}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [Regex("abc", "i")]}],
+        msg="$addToSet with Regex constant should return single-element set",
+    ),
+    AccumulatorTestCase(
+        "const_null",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": None}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [None]}],
+        msg="$addToSet with null constant should return [null]",
+    ),
+    AccumulatorTestCase(
+        "const_minkey",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": MinKey()}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [{"": MinKey()}]}],
+        msg="$addToSet with MinKey constant should return MinKey wrapped in document",
+    ),
+    AccumulatorTestCase(
+        "const_maxkey",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": MaxKey()}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [{"": MaxKey()}]}],
+        msg="$addToSet with MaxKey constant should return MaxKey wrapped in document",
+    ),
+]
+
+# ---------------------------------------------------------------------------
+# Property [Expression Types]: $addToSet accepts various expression types as
+# its operand and evaluates them per document before collecting unique values.
+# ---------------------------------------------------------------------------
+ADDTOSET_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "expr_type_operator_single",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": {"$abs": "$v"}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [10, 20, 5]}],
+        msg="$addToSet should accept single-input expression operator",
+    ),
+    AccumulatorTestCase(
+        "expr_type_operator_multi_arg",
+        docs=[{"v": -10, "w": 3}, {"v": 20, "w": 7}, {"v": -5, "w": 1}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$addToSet": {"$add": ["$v", "$w"]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [-7, 27, -4]}],
+        msg="$addToSet should accept a multi-arg expression operator",
+    ),
+    AccumulatorTestCase(
+        "expr_type_nested",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$addToSet": {"$add": [1, {"$abs": "$v"}]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [11, 21, 6]}],
+        msg="$addToSet should accept nested expression operators",
+    ),
+    AccumulatorTestCase(
+        "expr_type_sysvar_remove",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": "$$REMOVE"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": []}],
+        msg="$addToSet with $$REMOVE should exclude all values and return empty array",
+    ),
+    AccumulatorTestCase(
+        "expr_type_object_expression",
+        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": {"a": "$v"}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [{"a": 10}, {"a": 20}, {"a": 5}]}],
+        msg="$addToSet should accept an object expression",
+    ),
+    AccumulatorTestCase(
+        "expr_type_object_with_operator",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$addToSet": {"a": {"$abs": "$v"}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [{"a": 10}, {"a": 20}, {"a": 5}]}],
+        msg="$addToSet should accept an object expression containing an operator",
+    ),
+    AccumulatorTestCase(
+        "expr_type_let",
+        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$addToSet": {"$let": {"vars": {"x": "$v"}, "in": "$$x"}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [10, 20, 5]}],
+        msg="$addToSet should accept a $let expression as its operand",
+    ),
+]
+
+# ---------------------------------------------------------------------------
+# Property [Order Independence]: $addToSet produces the same set regardless
+# of input order.
+# ---------------------------------------------------------------------------
+ADDTOSET_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "order_independent_asc",
+        docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [1, 2, 3, 4, 5]}],
+        msg="$addToSet with ascending sort should produce same set",
+    ),
+    AccumulatorTestCase(
+        "order_independent_desc",
+        docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$sort": {"v": -1}},
+            {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [1, 2, 3, 4, 5]}],
+        msg="$addToSet with descending sort should produce same set",
+    ),
+]
+
+# ---------------------------------------------------------------------------
 # Aggregate
 # ---------------------------------------------------------------------------
 
@@ -368,6 +663,9 @@ ADDTOSET_SUCCESS_TESTS = (
     + ADDTOSET_GROUPING_TESTS
     + ADDTOSET_EMPTY_TESTS
     + ADDTOSET_EDGE_CASE_TESTS
+    + ADDTOSET_BSON_CONSTANT_TESTS
+    + ADDTOSET_EXPRESSION_TYPE_TESTS
+    + ADDTOSET_ORDER_INDEPENDENCE_TESTS
 )
 
 # ---------------------------------------------------------------------------

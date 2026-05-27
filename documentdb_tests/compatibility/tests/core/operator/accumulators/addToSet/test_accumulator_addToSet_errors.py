@@ -11,6 +11,8 @@ from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     CONVERSION_FAILURE_ERROR,
     DIVIDE_BY_ZERO_V2_ERROR,
+    EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
+    GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
     MODULO_BY_ZERO_V2_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -19,6 +21,66 @@ from documentdb_tests.framework.parametrize import pytest_params
 # ---------------------------------------------------------------------------
 # Property lists
 # ---------------------------------------------------------------------------
+
+# Property [Arity]: $addToSet in accumulator context is a unary operator and
+# rejects array syntax.
+ADDTOSET_ARITY_ERROR_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "arity_empty_array",
+        docs=[{"v": 1}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": []}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
+        msg="$addToSet should reject empty array in accumulator context",
+    ),
+    AccumulatorTestCase(
+        "arity_single_element_array",
+        docs=[{"v": 1}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": [1]}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
+        msg="$addToSet should reject single-element array in accumulator context",
+    ),
+    AccumulatorTestCase(
+        "arity_single_field_ref_array",
+        docs=[{"v": 1}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": ["$v"]}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
+        msg="$addToSet should reject single field ref in array in accumulator context",
+    ),
+    AccumulatorTestCase(
+        "arity_multi_element_array",
+        docs=[{"v": 1}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": [1, 2, 3]}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
+        msg="$addToSet should reject multi-element array in accumulator context",
+    ),
+    AccumulatorTestCase(
+        "arity_multi_key_expression_object",
+        docs=[{"v": 1}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$addToSet": {"$add": [1, 2], "$multiply": [3, 4]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
+        msg="$addToSet should reject multi-key expression object",
+    ),
+]
 
 # Property [Expression Error Propagation]: errors from sub-expressions propagate.
 ADDTOSET_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
@@ -50,7 +112,10 @@ ADDTOSET_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("test_case", pytest_params(ADDTOSET_EXPRESSION_ERROR_TESTS))
+ADDTOSET_ERROR_TESTS = ADDTOSET_ARITY_ERROR_TESTS + ADDTOSET_EXPRESSION_ERROR_TESTS
+
+
+@pytest.mark.parametrize("test_case", pytest_params(ADDTOSET_ERROR_TESTS))
 def test_accumulator_addToSet_errors(collection, test_case):
     """Test $addToSet accumulator error cases with $group."""
     if test_case.docs:
