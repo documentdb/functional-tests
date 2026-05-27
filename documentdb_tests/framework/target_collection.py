@@ -29,13 +29,18 @@ class TargetCollection:
 
 @dataclass(frozen=True)
 class ViewCollection(TargetCollection):
-    """A view on the fixture collection."""
+    """A view on the fixture collection.
 
-    pipeline: list[dict[str, Any]] = field(default_factory=list)
+    Pass any extra keyword arguments accepted by the ``create`` command
+    (e.g. ``pipeline``, ``collation``) via the ``options`` dict.
+    """
+
+    options: dict[str, Any] = field(default_factory=dict)
+    suffix: str = "_view"
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
-        view_name = f"{collection.name}_view"
-        db.command("create", view_name, viewOn=collection.name, pipeline=self.pipeline)
+        view_name = f"{collection.name}{self.suffix}"
+        db.command("create", view_name, viewOn=collection.name, **self.options)
         return db[view_name]
 
     def writable(self, source: Collection, resolved: Collection) -> Collection:
