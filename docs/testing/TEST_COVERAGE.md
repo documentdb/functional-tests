@@ -417,6 +417,43 @@ For each invalid_type in [string, object, array, ...]:
 
 ---
 
+### 18. Accumulator Coverage
+
+**Rule**: Each accumulator must be tested for its expression error propagation, empty-group result, order dependence, and sibling-accumulator interactions. Tests live under
+  `tests/core/operator/accumulators/$accumulator/`. Sibling-accumulator interactions live in `tests/core/operator/accumulators/test_accumulators_$op_integration.py`.
+
+  The expression-form of dual-form operators (`$max`, `$min`, `$sum`, `$avg`, `$first`, `$last`, etc.) is tested separately under `tests/core/operator/expressions/accumulator/$op/` and is out of scope for the
+  accumulator-form file.
+
+  **Expression Error Propagation**:
+  Errors raised during sub-expression evaluation propagate through the accumulator without being caught:
+  - `{$op: {$divide: [1, "$v"]}}` → `CONVERSION_FAILURE_ERROR` (field violation)
+  - `{$op: {$divide: ["$v", 0]}}` → `DIVIDE_BY_ZERO_V2_ERROR` (literal violation)
+
+  **Empty-Group Behavior**:
+  Each accumulator defines a result for an empty group (zero matching documents). Verify the documented value for `{$group: {_id: null, r: {$op: ...}}}` against an empty collection. Result varies per accumulator
+  (e.g. 0, null, [], {}) — refer to the accumulator's spec.
+
+  **Order Dependence**:
+  Some accumulators are order-dependent (their result depends on input order); others are order-independent. Verify per accumulator which category it belongs to per its spec, and:
+
+  - For order-dependent accumulators, tests asserting a specific result must include a preceding `$sort`. Tests without `$sort` are flaky. (e.g. $first)
+  - For order-independent accumulators, the result must be the same regardless of input order. Verify this by running the same input twice with different `$sort` directions and asserting identical results.
+
+  **Tested in Other Folders** (in scope, but add under a different folder):
+  - **Host-stage compatibility** — when adding a new accumulator, add one smoke case for each host stage that supports it (`$group`, `$bucket`, `$bucketAuto`, `$setWindowFields`) under that stage's folder
+  (`stages/$stage/`), per the container-features rule (one test per sub-feature, no edge cases). Edge cases that are genuinely accumulator-specific stay in `accumulators/$op/`.
+  - **Stage-level error codes** (e.g. `$bucketAuto` wrapping `DIVIDE_BY_ZERO_V2_ERROR` as `BadValue`) — under `stages/bucketAuto/`, parameterized over a representative accumulator.
+
+ ** Scope that Covered by Other rules**:
+  - **Numeric equivalence in grouping** (used by `$addToSet`, `$setUnion`) — covered by §9 Numeric Equivalence in Grouping/Comparison.
+  - **Output type validation** — covered by §1 Data Type Coverage.
+
+ **Out of Scope**:
+  - **BSON comparison ordering** (used by `$max`/`$min`/`$top`/`$bottom`) — `bson_types/test_bson_types_ordering.py`; per-accumulator coverage limited to a small wiring sample.
+
+---
+
 ## Test Category Checklist
 
 For any DocumentDB feature, ensure coverage of:
