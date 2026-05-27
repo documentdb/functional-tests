@@ -1,7 +1,7 @@
 """Tests for dataSize command error conditions.
 
-Covers namespace format errors (empty string, missing dot), unrecognized
-command fields, and unsupported collection types (views).
+Covers namespace format errors, unrecognized command fields, min/max
+constraint violations, and unsupported collection types (views).
 """
 
 import pytest
@@ -11,8 +11,10 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
+    BAD_VALUE_ERROR,
     COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
     INVALID_NAMESPACE_ERROR,
+    OPERATION_FAILED_ERROR,
     UNRECOGNIZED_COMMAND_FIELD_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -39,6 +41,30 @@ ERROR_TESTS: list[DiagnosticErrorTest] = [
         command={"foo": 1},
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="Unrecognized field should error",
+    ),
+    DiagnosticErrorTest(
+        "min_max_without_keyPattern",
+        command={"min": {"x": 0}, "max": {"x": 5}},
+        error_code=OPERATION_FAILED_ERROR,
+        msg="min/max without keyPattern should error",
+    ),
+    DiagnosticErrorTest(
+        "min_only",
+        command={"keyPattern": {"_id": 1}, "min": {"_id": 5}},
+        error_code=BAD_VALUE_ERROR,
+        msg="min without max should error",
+    ),
+    DiagnosticErrorTest(
+        "max_only",
+        command={"keyPattern": {"_id": 1}, "max": {"_id": 5}},
+        error_code=BAD_VALUE_ERROR,
+        msg="max without min should error",
+    ),
+    DiagnosticErrorTest(
+        "namespace_without_db_prefix",
+        command={"dataSize": "just_collection_name"},
+        error_code=INVALID_NAMESPACE_ERROR,
+        msg="Namespace without db prefix should error",
     ),
 ]
 

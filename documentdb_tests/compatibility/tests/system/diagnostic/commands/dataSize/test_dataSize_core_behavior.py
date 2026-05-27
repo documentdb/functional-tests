@@ -1,4 +1,4 @@
-"""Tests for dataSize command core behavior and response structure."""
+"""Tests for dataSize command core behavior, response structure, and namespace edge cases."""
 
 import pytest
 from bson import Int64
@@ -65,3 +65,23 @@ def test_dataSize_non_existent_collection(collection):
         {"ok": 1.0, "size": Int64(0), "numObjects": Int64(0)},
         msg="Non-existent should return zeros",
     )
+
+
+def test_dataSize_special_chars_in_collection_name(database_client):
+    """Test dataSize with special characters in collection name."""
+    coll_name = "test-data_size.2024"
+    coll = database_client[coll_name]
+    coll.insert_one({"_id": 1, "data": "x" * 50})
+    ns = f"{database_client.name}.{coll_name}"
+    result = execute_command(coll, {"dataSize": ns})
+    assertSuccessPartial(result, {"ok": 1.0}, msg="Special chars in name should succeed")
+
+
+def test_dataSize_long_namespace(database_client):
+    """Test dataSize with a very long namespace string."""
+    coll_name = "a" * 200
+    coll = database_client[coll_name]
+    coll.insert_one({"_id": 1})
+    ns = f"{database_client.name}.{coll_name}"
+    result = execute_command(coll, {"dataSize": ns})
+    assertSuccessPartial(result, {"ok": 1.0}, msg="Long namespace should succeed")

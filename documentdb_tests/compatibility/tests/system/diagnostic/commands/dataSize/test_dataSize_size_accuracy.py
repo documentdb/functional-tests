@@ -10,22 +10,6 @@ from documentdb_tests.framework.property_checks import Gte, Ne
 pytestmark = pytest.mark.admin
 
 
-def test_dataSize_small_collection(collection):
-    """Test dataSize on collection with 3 documents returns correct numObjects."""
-    collection.insert_many([{"_id": i, "x": i * 10} for i in range(3)])
-    ns = f"{collection.database.name}.{collection.name}"
-    result = execute_command(collection, {"dataSize": ns})
-    assertSuccessPartial(result, {"numObjects": Int64(3)}, msg="Should report 3 objects")
-
-
-def test_dataSize_medium_collection(collection):
-    """Test dataSize on collection with 98 documents returns correct numObjects."""
-    collection.insert_many([{"_id": i, "value": i} for i in range(98)])
-    ns = f"{collection.database.name}.{collection.name}"
-    result = execute_command(collection, {"dataSize": ns})
-    assertSuccessPartial(result, {"numObjects": Int64(98)}, msg="Should report 98 objects")
-
-
 def test_dataSize_large_collection(collection):
     """Test dataSize on collection with 200 documents returns correct numObjects."""
     collection.insert_many([{"_id": i, "value": i} for i in range(200)])
@@ -43,7 +27,7 @@ def test_dataSize_large_documents_count(collection):
 
 
 def test_dataSize_large_documents_size(collection):
-    """Test dataSize on collection with large documents returns correct size."""
+    """Test dataSize on collection with large documents returns expected minimum size."""
     collection.insert_many([{"_id": i, "data": "x" * 3000} for i in range(50)])
     ns = f"{collection.database.name}.{collection.name}"
     result = execute_command(collection, {"dataSize": ns})
