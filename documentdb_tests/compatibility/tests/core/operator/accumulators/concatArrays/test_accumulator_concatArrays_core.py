@@ -329,6 +329,158 @@ CONCATARRAYS_EMPTY_COLLECTION_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# ---------------------------------------------------------------------------
+# Property [Expression Types]: $concatArrays accepts various expression types
+# that resolve to arrays. Since it is order-dependent, tests include $sort.
+# ---------------------------------------------------------------------------
+CONCATARRAYS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "expr_type_operator_single",
+        docs=[
+            {"_id": 1, "v": [3, 1, 2]},
+            {"_id": 2, "v": [6, 4, 5]},
+        ],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$concatArrays": {"$sortArray": {"input": "$v", "sortBy": 1}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [1, 2, 3, 4, 5, 6]}],
+        msg="$concatArrays should accept a single-input expression operator ($sortArray)",
+    ),
+    AccumulatorTestCase(
+        "expr_type_operator_multi_arg",
+        docs=[
+            {"_id": 1, "v": [1, 2], "w": [3]},
+            {"_id": 2, "v": [4], "w": [5, 6]},
+        ],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$concatArrays": {"$concatArrays": ["$v", "$w"]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [1, 2, 3, 4, 5, 6]}],
+        msg="$concatArrays should accept expression $concatArrays (multi-arg operator)",
+    ),
+    AccumulatorTestCase(
+        "expr_type_nested",
+        docs=[
+            {"_id": 1, "v": [3, 1]},
+            {"_id": 2, "v": [2, 4]},
+        ],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {
+                        "$concatArrays": {
+                            "$sortArray": {
+                                "input": {"$concatArrays": ["$v", [0]]},
+                                "sortBy": 1,
+                            }
+                        }
+                    },
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [0, 1, 3, 0, 2, 4]}],
+        msg="$concatArrays should accept nested expression operators",
+    ),
+    AccumulatorTestCase(
+        "expr_type_sysvar_remove",
+        docs=[{"_id": 1, "v": [1]}, {"_id": 2, "v": [2]}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$concatArrays": "$$REMOVE"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": []}],
+        msg="$concatArrays with $$REMOVE should treat all values as missing",
+    ),
+    AccumulatorTestCase(
+        "expr_type_let",
+        docs=[
+            {"_id": 1, "v": [10, 20]},
+            {"_id": 2, "v": [30]},
+        ],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$concatArrays": {"$let": {"vars": {"x": "$v"}, "in": "$$x"}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [10, 20, 30]}],
+        msg="$concatArrays should accept a $let expression returning an array",
+    ),
+    AccumulatorTestCase(
+        "expr_type_literal_array",
+        docs=[{"_id": 1}, {"_id": 2}, {"_id": 3}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$concatArrays": {"$literal": [1, 2]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [1, 2, 1, 2, 1, 2]}],
+        msg="$concatArrays should repeat a literal array constant for each document",
+    ),
+]
+
+# ---------------------------------------------------------------------------
+# Property [Order Dependence]: $concatArrays is order-dependent; the result
+# changes when input document order changes.
+# ---------------------------------------------------------------------------
+CONCATARRAYS_ORDER_DEPENDENCE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "order_dependent_asc",
+        docs=[
+            {"_id": 1, "v": [1, 2]},
+            {"_id": 2, "v": [3]},
+            {"_id": 3, "v": [4, 5]},
+        ],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [1, 2, 3, 4, 5]}],
+        msg="$concatArrays with ascending sort should concatenate in ascending order",
+    ),
+    AccumulatorTestCase(
+        "order_dependent_desc",
+        docs=[
+            {"_id": 1, "v": [1, 2]},
+            {"_id": 2, "v": [3]},
+            {"_id": 3, "v": [4, 5]},
+        ],
+        pipeline=[
+            {"$sort": {"_id": -1}},
+            {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [4, 5, 3, 1, 2]}],
+        msg="$concatArrays with descending sort should concatenate in descending order",
+    ),
+]
+
 CONCATARRAYS_ALL_CORE_TESTS = (
     CONCATARRAYS_CORE_TESTS
     + CONCATARRAYS_DUPLICATE_TESTS
@@ -337,6 +489,8 @@ CONCATARRAYS_ALL_CORE_TESTS = (
     + CONCATARRAYS_GROUPING_TESTS
     + CONCATARRAYS_RETURN_TYPE_TESTS
     + CONCATARRAYS_EMPTY_COLLECTION_TESTS
+    + CONCATARRAYS_EXPRESSION_TYPE_TESTS
+    + CONCATARRAYS_ORDER_DEPENDENCE_TESTS
 )
 
 
