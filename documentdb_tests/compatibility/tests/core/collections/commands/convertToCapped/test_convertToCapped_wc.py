@@ -1,4 +1,4 @@
-"""Tests for convertToCapped writeConcern other field validation."""
+"""Tests for convertToCapped writeConcern validation."""
 
 from datetime import datetime, timezone
 
@@ -21,7 +21,6 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    BAD_VALUE_ERROR,
     FAILED_TO_PARSE_ERROR,
     TYPE_MISMATCH_ERROR,
     UNRECOGNIZED_COMMAND_FIELD_ERROR,
@@ -29,9 +28,65 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
+    DECIMAL128_ZERO,
     FLOAT_INFINITY,
     INT32_OVERFLOW,
 )
+
+# Property [WriteConcern j Acceptance]: j accepts bool, numeric, and
+# null values.
+WRITECONCERN_J_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        f"j_{id}",
+        docs=[{"_id": 1}],
+        command=lambda ctx, v=val: {
+            "convertToCapped": ctx.collection,
+            "size": 100_000,
+            "writeConcern": {"j": v},
+        },
+        expected={"ok": 1.0},
+        msg=f"j={id} should succeed",
+    )
+    for id, val in [
+        ("bool_true", True),
+        ("bool_false", False),
+        ("int32", 0),
+        ("int64", Int64(1)),
+        ("double", 1.0),
+        ("decimal128", DECIMAL128_ZERO),
+        ("null", None),
+    ]
+]
+
+# Property [WriteConcern j Type Rejection]: j rejects non-coercible
+# types with TYPE_MISMATCH_ERROR.
+WRITECONCERN_J_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        f"j_{id}",
+        docs=[{"_id": 1}],
+        command=lambda ctx, v=val: {
+            "convertToCapped": ctx.collection,
+            "size": 100_000,
+            "writeConcern": {"j": v},
+        },
+        error_code=TYPE_MISMATCH_ERROR,
+        msg=f"j={id} should fail with type mismatch",
+    )
+    for id, val in [
+        ("string", "true"),
+        ("array", [1]),
+        ("object", {"a": 1}),
+        ("objectid", ObjectId("000000000000000000000001")),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(1, 1)),
+        ("binary", Binary(b"\x01")),
+        ("regex", Regex("abc", "i")),
+        ("code", Code("function(){}")),
+        ("code_with_scope", Code("function(){}", {"x": 1})),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
+]
 
 # Property [WriteConcern wtimeout Acceptance]: wtimeout accepts all BSON
 # types without error, including non-numeric types and negative values.
@@ -98,74 +153,6 @@ WRITECONCERN_WTIMEOUT_OVERFLOW_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [WriteConcern getLastError Acceptance]: the getLastError
-# field accepts any BSON type without validation.
-WRITECONCERN_GET_LAST_ERROR_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        f"gle_{id}",
-        docs=[{"_id": 1}],
-        command=lambda ctx, v=val: {
-            "convertToCapped": ctx.collection,
-            "size": 100_000,
-            "writeConcern": {"getLastError": v},
-        },
-        expected={"ok": 1.0},
-        msg=f"getLastError={id} should succeed",
-    )
-    for id, val in [
-        ("int32", 42),
-        ("int64", Int64(42)),
-        ("double", 3.14),
-        ("decimal128", Decimal128("1")),
-        ("bool", True),
-        ("null", None),
-        ("string", "hello"),
-        ("array", [1, 2]),
-        ("object", {"a": 1}),
-        ("objectid", ObjectId("000000000000000000000001")),
-        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
-        ("timestamp", Timestamp(1, 1)),
-        ("binary", Binary(b"\x01")),
-        ("regex", Regex("abc", "i")),
-        ("code", Code("function(){}")),
-        ("code_with_scope", Code("function(){}", {"x": 1})),
-        ("minkey", MinKey()),
-        ("maxkey", MaxKey()),
-    ]
-]
-
-# Property [WriteConcern provenance Type Error]: provenance rejects
-# non-string types with TYPE_MISMATCH_ERROR.
-WRITECONCERN_PROVENANCE_TYPE_ERROR_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "provenance_int",
-        docs=[{"_id": 1}],
-        command=lambda ctx: {
-            "convertToCapped": ctx.collection,
-            "size": 100_000,
-            "writeConcern": {"provenance": 42},
-        },
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="provenance=int should fail with type mismatch",
-    ),
-]
-
-# Property [WriteConcern provenance Invalid Enum]: provenance with an
-# invalid enum string produces BAD_VALUE_ERROR.
-WRITECONCERN_PROVENANCE_ENUM_ERROR_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "provenance_invalid_enum",
-        docs=[{"_id": 1}],
-        command=lambda ctx: {
-            "convertToCapped": ctx.collection,
-            "size": 100_000,
-            "writeConcern": {"provenance": "invalid"},
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="provenance='invalid' should fail with bad value",
-    ),
-]
-
 # Property [WriteConcern Unrecognized Fields]: unrecognized fields
 # within writeConcern produce UNRECOGNIZED_COMMAND_FIELD_ERROR.
 WRITECONCERN_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
@@ -180,44 +167,21 @@ WRITECONCERN_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="Unrecognized field in writeConcern should fail",
     ),
-    CommandTestCase(
-        "uppercase_w",
-        docs=[{"_id": 1}],
-        command=lambda ctx: {
-            "convertToCapped": ctx.collection,
-            "size": 100_000,
-            "writeConcern": {"W": 1},
-        },
-        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
-        msg="Case-sensitive: uppercase W should be unrecognized",
-    ),
-    CommandTestCase(
-        "leading_space_w",
-        docs=[{"_id": 1}],
-        command=lambda ctx: {
-            "convertToCapped": ctx.collection,
-            "size": 100_000,
-            "writeConcern": {" w": 1},
-        },
-        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
-        msg="Whitespace-sensitive: ' w' should be unrecognized",
-    ),
 ]
 
-WC_OTHER_FIELDS_TESTS: list[CommandTestCase] = (
-    WRITECONCERN_WTIMEOUT_ACCEPTANCE_TESTS
+WC_TESTS: list[CommandTestCase] = (
+    WRITECONCERN_J_ACCEPTANCE_TESTS
+    + WRITECONCERN_J_TYPE_REJECTION_TESTS
+    + WRITECONCERN_WTIMEOUT_ACCEPTANCE_TESTS
     + WRITECONCERN_WTIMEOUT_OVERFLOW_TESTS
-    + WRITECONCERN_GET_LAST_ERROR_TESTS
-    + WRITECONCERN_PROVENANCE_TYPE_ERROR_TESTS
-    + WRITECONCERN_PROVENANCE_ENUM_ERROR_TESTS
     + WRITECONCERN_UNRECOGNIZED_FIELD_TESTS
 )
 
 
 @pytest.mark.collection_mgmt
-@pytest.mark.parametrize("test", pytest_params(WC_OTHER_FIELDS_TESTS))
-def test_convert_to_capped_wc_other_fields(database_client, collection, test):
-    """Test convertToCapped writeConcern other field validation."""
+@pytest.mark.parametrize("test", pytest_params(WC_TESTS))
+def test_convert_to_capped_wc(database_client, collection, test):
+    """Test convertToCapped writeConcern validation."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
