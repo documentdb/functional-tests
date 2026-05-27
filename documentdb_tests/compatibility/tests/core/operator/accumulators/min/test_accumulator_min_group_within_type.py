@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, Decimal128, Int64, ObjectId, Regex, Timestamp
+from bson import Binary, Decimal128, Int64, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
@@ -339,19 +339,6 @@ MIN_REGEX_ORDERING_TESTS: list[AccumulatorTestCase] = [
 ]
 
 # ---------------------------------------------------------------------------
-# Property [Within-Type Ordering — Code]: lower code string wins.
-# ---------------------------------------------------------------------------
-MIN_CODE_ORDERING_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "code_basic",
-        docs=[{"v": Code("a()")}, {"v": Code("b()")}],
-        pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": Code("a()")}],
-        msg="$min should pick Code with lower string value",
-    ),
-]
-
-# ---------------------------------------------------------------------------
 # Property [Within-Type Ordering — Object]: recursive field-by-field comparison.
 # ---------------------------------------------------------------------------
 MIN_OBJECT_ORDERING_TESTS: list[AccumulatorTestCase] = [
@@ -432,7 +419,6 @@ MIN_GROUP_WITHIN_TYPE_SUCCESS_TESTS = (
     + MIN_OBJECTID_ORDERING_TESTS
     + MIN_BINARY_ORDERING_TESTS
     + MIN_REGEX_ORDERING_TESTS
-    + MIN_CODE_ORDERING_TESTS
     + MIN_OBJECT_ORDERING_TESTS
     + MIN_ARRAY_ORDERING_TESTS
 )

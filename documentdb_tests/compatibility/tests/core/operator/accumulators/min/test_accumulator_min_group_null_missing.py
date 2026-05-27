@@ -178,6 +178,26 @@ MIN_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": 5}],
         msg="$min should pick scalar Number over Array (Number < Array in BSON)",
     ),
+    AccumulatorTestCase(
+        "edge_order_independent_asc",
+        docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$min": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": 1}],
+        msg="$min should return same result regardless of input order (ascending)",
+    ),
+    AccumulatorTestCase(
+        "edge_order_independent_desc",
+        docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$sort": {"v": -1}},
+            {"$group": {"_id": None, "result": {"$min": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": 1}],
+        msg="$min should return same result regardless of input order (descending)",
+    ),
 ]
 
 # ---------------------------------------------------------------------------
