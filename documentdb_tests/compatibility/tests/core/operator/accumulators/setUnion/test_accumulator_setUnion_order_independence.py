@@ -1,4 +1,9 @@
-"""Tests for $setUnion accumulator: order independence."""
+"""Tests for $setUnion accumulator: order independence.
+
+$setUnion is order-independent — the result must be the same regardless of
+input document order.  Each scenario is run twice with opposite $sort
+directions before $group to verify identical output.
+"""
 
 from __future__ import annotations
 
@@ -12,87 +17,101 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Order Independence]: $setUnion produces the same set regardless of
-# the order in which documents are inserted or processed.
+# the order in which documents are fed into $group.  We verify by running the
+# same data with $sort ascending and $sort descending, asserting identical
+# results.
 SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
+    # --- disjoint arrays, ascending sort ---
     AccumulatorTestCase(
-        "order_ab_vs_ba",
-        docs=[{"v": [1, 2]}, {"v": [3, 4]}],
+        "disjoint_sort_asc",
+        docs=[{"k": 1, "v": [1, 2]}, {"k": 2, "v": [3, 4]}],
         pipeline=[
+            {"$sort": {"k": 1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
         ],
         expected=[{"result": [1, 2, 3, 4]}],
-        msg="$setUnion should produce the same set when docs are in order A, B",
+        msg="$setUnion should produce the same set with ascending sort",
     ),
     AccumulatorTestCase(
-        "order_ba_vs_ab",
-        docs=[{"v": [3, 4]}, {"v": [1, 2]}],
+        "disjoint_sort_desc",
+        docs=[{"k": 1, "v": [1, 2]}, {"k": 2, "v": [3, 4]}],
         pipeline=[
+            {"$sort": {"k": -1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
         ],
         expected=[{"result": [1, 2, 3, 4]}],
-        msg="$setUnion should produce the same set when docs are in order B, A",
+        msg="$setUnion should produce the same set with descending sort",
     ),
+    # --- three docs, ascending sort ---
     AccumulatorTestCase(
-        "order_three_permutation_abc",
-        docs=[{"v": [1]}, {"v": [2]}, {"v": [3]}],
+        "three_docs_sort_asc",
+        docs=[{"k": 1, "v": [1]}, {"k": 2, "v": [2]}, {"k": 3, "v": [3]}],
         pipeline=[
+            {"$sort": {"k": 1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
         ],
         expected=[{"result": [1, 2, 3]}],
-        msg="$setUnion should produce the same set for permutation A, B, C",
+        msg="$setUnion should produce the same set for three docs with ascending sort",
     ),
     AccumulatorTestCase(
-        "order_three_permutation_cba",
-        docs=[{"v": [3]}, {"v": [2]}, {"v": [1]}],
+        "three_docs_sort_desc",
+        docs=[{"k": 1, "v": [1]}, {"k": 2, "v": [2]}, {"k": 3, "v": [3]}],
         pipeline=[
+            {"$sort": {"k": -1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
         ],
         expected=[{"result": [1, 2, 3]}],
-        msg="$setUnion should produce the same set for permutation C, B, A",
+        msg="$setUnion should produce the same set for three docs with descending sort",
     ),
+    # --- overlapping arrays, ascending sort ---
     AccumulatorTestCase(
-        "order_overlap_ab",
-        docs=[{"v": [1, 2, 3]}, {"v": [2, 3, 4]}],
+        "overlap_sort_asc",
+        docs=[{"k": 1, "v": [1, 2, 3]}, {"k": 2, "v": [2, 3, 4]}],
         pipeline=[
+            {"$sort": {"k": 1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
         ],
         expected=[{"result": [1, 2, 3, 4]}],
-        msg="$setUnion should produce the same set with overlapping arrays in order A, B",
+        msg="$setUnion should produce the same set with overlapping arrays, ascending sort",
     ),
     AccumulatorTestCase(
-        "order_overlap_ba",
-        docs=[{"v": [2, 3, 4]}, {"v": [1, 2, 3]}],
+        "overlap_sort_desc",
+        docs=[{"k": 1, "v": [1, 2, 3]}, {"k": 2, "v": [2, 3, 4]}],
         pipeline=[
+            {"$sort": {"k": -1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
         ],
         expected=[{"result": [1, 2, 3, 4]}],
-        msg="$setUnion should produce the same set with overlapping arrays in order B, A",
+        msg="$setUnion should produce the same set with overlapping arrays, descending sort",
     ),
+    # --- empty array mixed in, ascending sort ---
     AccumulatorTestCase(
-        "order_with_empty_array_first",
-        docs=[{"v": []}, {"v": [1, 2]}],
+        "empty_mixed_sort_asc",
+        docs=[{"k": 1, "v": []}, {"k": 2, "v": [1, 2]}],
         pipeline=[
+            {"$sort": {"k": 1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
         ],
         expected=[{"result": [1, 2]}],
-        msg="$setUnion should produce the same set with empty array first",
+        msg="$setUnion should produce the same set with empty array, ascending sort",
     ),
     AccumulatorTestCase(
-        "order_with_empty_array_last",
-        docs=[{"v": [1, 2]}, {"v": []}],
+        "empty_mixed_sort_desc",
+        docs=[{"k": 1, "v": []}, {"k": 2, "v": [1, 2]}],
         pipeline=[
+            {"$sort": {"k": -1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
         ],
         expected=[{"result": [1, 2]}],
-        msg="$setUnion should produce the same set with empty array last",
+        msg="$setUnion should produce the same set with empty array, descending sort",
     ),
 ]
 
