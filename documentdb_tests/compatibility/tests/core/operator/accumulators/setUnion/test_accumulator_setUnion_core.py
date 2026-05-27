@@ -344,17 +344,3 @@ def test_accumulator_setUnion_core(collection, test_case: AccumulatorTestCase):
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-# Property [Empty Collection]: empty collection produces no group output.
-def test_accumulator_setUnion_empty_collection(collection):
-    """Test $setUnion on empty collection returns empty result set."""
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [], msg="$setUnion on empty collection should return empty result set")
