@@ -396,8 +396,9 @@ For each invalid_type in [string, object, array, ...]:
 - Verify response varies correctly based on collection state (e.g., index count, collection existence)
 
 **Collection Variants**:
-- Test against collection types the command supports: regular, capped, views, timeseries, clustered
-- Verify correct behavior or error for unsupported collection types
+- The collection type is an input to the command — test each supported type with one representative case showing the command works, and verify correct errors for unsupported types
+- Test command-specific behavior that varies by collection type (e.g., errors that only occur on views due to internal rewriting)
+- Do not test the collection type's own semantics (pipeline composition, chaining, eviction) — those belong in the feature's dedicated directory
 
 ---
 
