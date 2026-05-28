@@ -4,7 +4,7 @@ import pytest
 from bson import Int64
 
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
-    DiagnosticPropertyTest,
+    DiagnosticTestCase,
 )
 from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
@@ -14,13 +14,13 @@ from documentdb_tests.framework.property_checks import Gte
 pytestmark = pytest.mark.admin
 
 
-RESPONSE_PROPERTY_TESTS: list[DiagnosticPropertyTest] = [
-    DiagnosticPropertyTest(
+RESPONSE_PROPERTY_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
         "returns_size",
         checks={"size": Gte(Int64(1))},
         msg="size should be positive",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         "returns_millis",
         checks={"millis": Gte(0)},
         msg="millis should be >= 0",

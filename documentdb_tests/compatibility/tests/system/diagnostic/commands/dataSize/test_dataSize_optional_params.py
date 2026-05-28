@@ -4,12 +4,12 @@ Covers BSON type rejection and acceptance for min/max via bson_type_validator,
 and behavioral tests for keyPattern, estimate, and min/max.
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
-
 import pytest
 from bson import Int64
 
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
+    DiagnosticTestCase,
+)
 from documentdb_tests.framework.assertions import (
     assertFailureCode,
     assertResult,
@@ -24,53 +24,68 @@ from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Exists
-from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import BsonType
 
 pytestmark = pytest.mark.admin
 
 
-@dataclass(frozen=True)
-class KeyPatternTest(BaseTestCase):
-    """Test case for dataSize keyPattern parameter behavior."""
-
-    doc_count: int = 10
-    create_index: bool = False
-    key_pattern: Dict[str, Any] = field(default_factory=lambda: {"_id": 1})
-
-
-KEY_PATTERN_TESTS: list[KeyPatternTest] = [
-    KeyPatternTest(
+KEY_PATTERN_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
         "keyPattern_id",
+        command={"keyPattern": {"_id": 1}},
         expected={"ok": 1.0},
-        key_pattern={"_id": 1},
         msg="keyPattern _id should succeed",
     ),
-    KeyPatternTest(
+    DiagnosticTestCase(
         "without_min_max",
+        command={"keyPattern": {"x": 1}},
         expected={"ok": 1.0},
-        create_index=True,
-        key_pattern={"x": 1},
         msg="keyPattern without min/max should succeed",
     ),
-    KeyPatternTest(
+    DiagnosticTestCase(
         "no_matching_index",
+        command={"keyPattern": {"z": 1}},
         expected={"ok": 1.0},
-        doc_count=1,
-        key_pattern={"z": 1},
         msg="Non-matching keyPattern should still succeed",
     ),
 ]
 
+MIN_MAX_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "with_min_max",
+        command={"keyPattern": {"x": 1}, "min": {"x": 10}, "max": {"x": 50}},
+        expected={"ok": 1.0},
+        msg="min/max range query should succeed",
+    ),
+    DiagnosticTestCase(
+        "min_max_no_match",
+        command={"keyPattern": {"x": 1}, "min": {"x": 1000}, "max": {"x": 2000}},
+        expected={"numObjects": Int64(0)},
+        msg="No match should return 0",
+    ),
+    DiagnosticTestCase(
+        "min_equal_max",
+        command={"keyPattern": {"x": 1}, "min": {"x": 5}, "max": {"x": 5}},
+        expected={"numObjects": Int64(0)},
+        msg="min==max should return 0",
+    ),
+    DiagnosticTestCase(
+        "min_greater_than_max",
+        command={"keyPattern": {"x": 1}, "min": {"x": 50}, "max": {"x": 10}},
+        expected={"numObjects": Int64(0)},
+        msg="min > max should return 0",
+    ),
+]
 
-@pytest.mark.parametrize("test", pytest_params(KEY_PATTERN_TESTS))
-def test_dataSize_key_pattern(collection, test):
-    """Test dataSize with keyPattern parameter."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(test.doc_count)])
-    if test.create_index:
-        collection.create_index("x")
+
+@pytest.mark.parametrize("test", pytest_params(KEY_PATTERN_TESTS + MIN_MAX_TESTS))
+def test_dataSize_key_pattern_and_min_max(collection, test):
+    """Test dataSize with keyPattern and min/max parameters."""
+    collection.insert_many([{"_id": i, "x": i} for i in range(100)])
+    collection.create_index("x")
     ns = f"{collection.database.name}.{collection.name}"
-    result = execute_command(collection, {"dataSize": ns, "keyPattern": test.key_pattern})
+    cmd = {"dataSize": ns, **(test.command or {})}
+    result = execute_command(collection, cmd)
     assertSuccessPartial(result, test.expected, msg=test.msg)
 
 
@@ -116,68 +131,6 @@ def test_dataSize_estimate_returns_numObjects(collection):
         raw_res=True,
         msg="estimate should include numObjects",
     )
-
-
-@dataclass(frozen=True)
-class MinMaxTest(BaseTestCase):
-    """Test case for dataSize min/max range behavior."""
-
-    doc_count: int = 10
-    key_pattern: Dict[str, Any] = field(default_factory=lambda: {"x": 1})
-    min_bound: Optional[Dict[str, Any]] = None
-    max_bound: Optional[Dict[str, Any]] = None
-
-
-MIN_MAX_TESTS: list[MinMaxTest] = [
-    MinMaxTest(
-        "with_min_max",
-        expected={"ok": 1.0},
-        doc_count=100,
-        key_pattern={"x": 1},
-        min_bound={"x": 10},
-        max_bound={"x": 50},
-        msg="min/max range query should succeed",
-    ),
-    MinMaxTest(
-        "min_max_no_match",
-        expected={"numObjects": Int64(0)},
-        key_pattern={"x": 1},
-        min_bound={"x": 1000},
-        max_bound={"x": 2000},
-        msg="No match should return 0",
-    ),
-    MinMaxTest(
-        "min_equal_max",
-        expected={"numObjects": Int64(0)},
-        key_pattern={"x": 1},
-        min_bound={"x": 5},
-        max_bound={"x": 5},
-        msg="min==max should return 0",
-    ),
-    MinMaxTest(
-        "min_greater_than_max",
-        expected={"numObjects": Int64(0)},
-        key_pattern={"x": 1},
-        min_bound={"x": 50},
-        max_bound={"x": 10},
-        msg="min > max should return 0",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(MIN_MAX_TESTS))
-def test_dataSize_min_max(collection, test):
-    """Test dataSize with min/max range parameters."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(test.doc_count)])
-    collection.create_index("x")
-    ns = f"{collection.database.name}.{collection.name}"
-    cmd = {"dataSize": ns, "keyPattern": test.key_pattern}
-    if test.min_bound is not None:
-        cmd["min"] = test.min_bound
-    if test.max_bound is not None:
-        cmd["max"] = test.max_bound
-    result = execute_command(collection, cmd)
-    assertSuccessPartial(result, test.expected, msg=test.msg)
 
 
 def test_dataSize_min_max_both_null(collection):

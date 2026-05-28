@@ -7,7 +7,7 @@ constraint violations, and unsupported collection types (views).
 import pytest
 
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
-    DiagnosticErrorTest,
+    DiagnosticTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
@@ -23,56 +23,56 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 
-ERROR_TESTS: list[DiagnosticErrorTest] = [
-    DiagnosticErrorTest(
+ERROR_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
         "empty_string",
         command={"dataSize": ""},
         error_code=INVALID_NAMESPACE_ERROR,
         msg="Empty string should fail",
     ),
-    DiagnosticErrorTest(
+    DiagnosticTestCase(
         "no_dot",
         command={"dataSize": "nodot"},
         error_code=INVALID_NAMESPACE_ERROR,
         msg="No dot in namespace should fail",
     ),
-    DiagnosticErrorTest(
+    DiagnosticTestCase(
         "unrecognized_field",
         command={"foo": 1},
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="Unrecognized field should error",
     ),
-    DiagnosticErrorTest(
+    DiagnosticTestCase(
         "min_max_without_keyPattern",
         command={"min": {"x": 0}, "max": {"x": 5}},
         error_code=OPERATION_FAILED_ERROR,
         msg="min/max without keyPattern should error",
     ),
-    DiagnosticErrorTest(
+    DiagnosticTestCase(
         "min_only",
         command={"keyPattern": {"_id": 1}, "min": {"_id": 5}},
         error_code=BAD_VALUE_ERROR,
         msg="min without max should error",
     ),
-    DiagnosticErrorTest(
+    DiagnosticTestCase(
         "max_only",
         command={"keyPattern": {"_id": 1}, "max": {"_id": 5}},
         error_code=BAD_VALUE_ERROR,
         msg="max without min should error",
     ),
-    DiagnosticErrorTest(
+    DiagnosticTestCase(
         "namespace_without_db_prefix",
         command={"dataSize": "just_collection_name"},
         error_code=INVALID_NAMESPACE_ERROR,
         msg="Namespace without db prefix should error",
     ),
-    DiagnosticErrorTest(
+    DiagnosticTestCase(
         "min_set_max_null",
         command={"keyPattern": {"_id": 1}, "min": {"_id": 0}, "max": None},
         error_code=BAD_VALUE_ERROR,
         msg="min set with max null should error",
     ),
-    DiagnosticErrorTest(
+    DiagnosticTestCase(
         "min_null_max_set",
         command={"keyPattern": {"_id": 1}, "min": None, "max": {"_id": 5}},
         error_code=BAD_VALUE_ERROR,
