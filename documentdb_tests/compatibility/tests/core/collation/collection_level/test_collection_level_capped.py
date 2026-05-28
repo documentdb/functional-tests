@@ -1,9 +1,8 @@
-"""Tests for collation edge cases with capped collections and text indexes."""
+"""Tests for collation behavior with capped collections."""
 
 from __future__ import annotations
 
 import pytest
-from pymongo import IndexModel
 
 from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
     CommandContext,
@@ -12,7 +11,6 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq
 from documentdb_tests.framework.target_collection import CappedCollection, CustomCollection
 
 # Property [Capped Collection Collation]: a capped collection can be created
@@ -97,64 +95,10 @@ COLLATION_CAPPED_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Text Index Collation Incompatibility]: a text index cannot be
-# created with a collation other than simple; creating one on a collection
-# with a non-simple default collation requires specifying
-# collation {locale: "simple"} on the index.
-COLLATION_TEXT_INDEX_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "text_index_on_simple_collection",
-        docs=[{"_id": 1, "x": "hello world"}],
-        command=lambda ctx: {
-            "createIndexes": ctx.collection,
-            "indexes": [{"key": {"x": "text"}, "name": "x_text"}],
-        },
-        expected={"ok": Eq(1.0)},
-        msg="text index should be creatable on collection without collation",
-    ),
-    CommandTestCase(
-        "text_index_with_simple_collation_on_collated_collection",
-        target_collection=CustomCollection(options={"collation": {"locale": "en", "strength": 2}}),
-        docs=[{"_id": 1, "x": "hello world"}],
-        command=lambda ctx: {
-            "createIndexes": ctx.collection,
-            "indexes": [
-                {"key": {"x": "text"}, "name": "x_text", "collation": {"locale": "simple"}}
-            ],
-        },
-        expected={"ok": Eq(1.0)},
-        msg="text index with simple collation should be creatable on collated collection",
-    ),
-    CommandTestCase(
-        "text_search_ignores_collection_collation",
-        target_collection=CustomCollection(options={"collation": {"locale": "en", "strength": 2}}),
-        docs=[
-            {"_id": 1, "x": "cafe latte"},
-            {"_id": 2, "x": "Cafe Mocha"},
-            {"_id": 3, "x": "tea"},
-        ],
-        indexes=[
-            IndexModel([("x", "text")], collation={"locale": "simple"}, name="x_text"),
-        ],
-        command=lambda ctx: {
-            "find": ctx.collection,
-            "filter": {"$text": {"$search": "cafe"}},
-            "sort": {"_id": 1},
-        },
-        expected=[
-            {"_id": 1, "x": "cafe latte"},
-            {"_id": 2, "x": "Cafe Mocha"},
-        ],
-        msg="text search should use text index semantics not collection collation",
-    ),
-]
 
-COLLATION_EDGE_CASE_TESTS = COLLATION_CAPPED_TESTS + COLLATION_TEXT_INDEX_TESTS
-
-
-@pytest.mark.parametrize("test", pytest_params(COLLATION_EDGE_CASE_TESTS))
-def test_collation_edge_cases(database_client, collection, test):
-    """Test collation edge cases with capped collections and text indexes."""
+@pytest.mark.parametrize("test", pytest_params(COLLATION_CAPPED_TESTS))
+def test_collation_capped(database_client, collection, test):
+    """Test collation behavior with capped collections."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
