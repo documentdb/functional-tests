@@ -1,7 +1,7 @@
 """
-Smoke test for $avg accumulator.
+Smoke test for $sum accumulator.
 
-Tests basic $avg accumulator functionality.
+Tests basic $sum accumulator functionality.
 """
 
 import pytest
@@ -12,8 +12,8 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-def test_accumulator_avg_smoke(collection):
-    """Test basic $avg accumulator behavior."""
+def test_accumulator_sum_smoke(collection):
+    """Test basic $sum accumulator behavior."""
     collection.insert_many(
         [
             {"_id": 1, "category": "A", "value": 10},
@@ -26,10 +26,10 @@ def test_accumulator_avg_smoke(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$group": {"_id": "$category", "average": {"$avg": "$value"}}}],
+            "pipeline": [{"$group": {"_id": "$category", "total": {"$sum": "$value"}}}],
             "cursor": {},
         },
     )
 
-    expected = [{"_id": "A", "average": 20.0}]
-    assertSuccess(result, expected, msg="Should support $avg accumulator")
+    expected = [{"_id": "A", "total": 60}]
+    assertSuccess(result, expected, msg="Should support $sum accumulator")

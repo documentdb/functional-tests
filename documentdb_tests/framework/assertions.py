@@ -82,9 +82,9 @@ def _sort_fields(docs, fields):
     sorted_docs = []
     for doc in docs:
         doc = dict(doc)
-        for field in fields:
-            if field in doc:
-                doc[field] = _sort_if_list(doc[field])
+        for f in fields:
+            if f in doc:
+                doc[f] = _sort_if_list(doc[f])
         sorted_docs.append(doc)
     return sorted_docs
 
