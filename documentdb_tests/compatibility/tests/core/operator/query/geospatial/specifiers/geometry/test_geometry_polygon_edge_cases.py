@@ -21,7 +21,7 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
         id="tall_narrow_polygon",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [
@@ -42,7 +42,7 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
         id="very_small_polygon",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [[[0, 0], [0.001, 0], [0.001, 0.001], [0, 0.001], [0, 0]]],
@@ -61,7 +61,7 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
         id="antimeridian_polygon",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [[[179, -1], [-179, -1], [-179, 1], [179, 1], [179, -1]]],
@@ -80,7 +80,7 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
         id="pole_containing_polygon",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [[[-180, 80], [0, 80], [180, 80], [-180, 80]]],
@@ -99,7 +99,7 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
         id="many_vertices_polygon",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [
@@ -118,7 +118,7 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
         id="collinear_points_polygon",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [[[0, 0], [1, 0], [2, 0], [2, 1], [0, 1], [0, 0]]],
@@ -137,7 +137,7 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
         id="duplicate_consecutive_vertices",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [[[0, 0], [1, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
@@ -172,7 +172,7 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
         id="large_polygon_greater_than_hemisphere",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [
@@ -193,7 +193,7 @@ ODD_SHAPE_TESTS: list[QueryTestCase] = [
         id="mixed_geojson_and_legacy_docs",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [[[-1, -1], [2, -1], [2, 2], [-1, 2], [-1, -1]]],
@@ -219,7 +219,7 @@ POLYGON_HOLE_TESTS: list[QueryTestCase] = [
         id="polygon_with_hole",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [
@@ -252,7 +252,7 @@ NULL_MISSING_TESTS: list[QueryTestCase] = [
         id="null_location_not_matched",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [[[-10, -10], [10, -10], [10, 10], [-10, 10], [-10, -10]]],
@@ -271,7 +271,7 @@ NULL_MISSING_TESTS: list[QueryTestCase] = [
         id="missing_location_not_matched",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [[[-10, -10], [10, -10], [10, 10], [-10, 10], [-10, -10]]],
@@ -294,7 +294,7 @@ WINDING_TESTS: list[QueryTestCase] = [
         id="cw_winding_matches_interior",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]],
@@ -313,7 +313,7 @@ WINDING_TESTS: list[QueryTestCase] = [
         id="strict_crs_cw_matches_complement",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]],

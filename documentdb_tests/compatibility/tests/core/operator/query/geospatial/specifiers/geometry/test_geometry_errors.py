@@ -149,7 +149,7 @@ INVALID_CRS_TESTS: list[QueryTestCase] = [
         id="invalid_crs_type",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": CCW_POLYGON,
@@ -168,7 +168,7 @@ INVALID_CRS_TESTS: list[QueryTestCase] = [
         id="invalid_crs_name",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": CCW_POLYGON,
@@ -184,7 +184,7 @@ INVALID_CRS_TESTS: list[QueryTestCase] = [
         id="crs_missing_properties",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": CCW_POLYGON,
@@ -200,7 +200,7 @@ INVALID_CRS_TESTS: list[QueryTestCase] = [
         id="crs_missing_type",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": CCW_POLYGON,
@@ -218,7 +218,7 @@ INVALID_CRS_TESTS: list[QueryTestCase] = [
         id="crs_non_polygon_type",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Point",
                         "coordinates": [0, 0],
@@ -427,7 +427,7 @@ POLYGON_STRUCTURE_TESTS: list[QueryTestCase] = [
         id="hole_touching_exterior",
         filter={
             "loc": {
-                "$geoWithin": {
+                "$geoIntersects": {
                     "$geometry": {
                         "type": "Polygon",
                         "coordinates": [

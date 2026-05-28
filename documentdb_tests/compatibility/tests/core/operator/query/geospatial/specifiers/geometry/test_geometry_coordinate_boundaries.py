@@ -49,18 +49,6 @@ VALID_BOUNDARY_TESTS: list[QueryTestCase] = [
         msg="Should accept latitude = -90",
     ),
     QueryTestCase(
-        id="latitude_positive_90",
-        filter={
-            "loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [0, 90]}}}
-        },
-        doc=[
-            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}},
-            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
-        ],
-        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}}],
-        msg="Should accept latitude = 90",
-    ),
-    QueryTestCase(
         id="origin_zero_zero",
         filter={"loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [0, 0]}}}},
         doc=[

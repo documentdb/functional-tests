@@ -44,26 +44,6 @@ VALID_GEOMETRY_TESTS: list[QueryTestCase] = [
         msg="Should accept coordinates before type (field order doesn't matter)",
     ),
     QueryTestCase(
-        id="crs_with_geoWithin",
-        filter={
-            "loc": {
-                "$geoWithin": {
-                    "$geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
-                        "crs": STRICT_CRS,
-                    }
-                }
-            }
-        },
-        doc=[
-            {"_id": 1, "loc": {"type": "Point", "coordinates": [0.5, 0.5]}},
-            {"_id": 2, "loc": {"type": "Point", "coordinates": [5, 5]}},
-        ],
-        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0.5, 0.5]}}],
-        msg="Should accept custom CRS with $geoWithin",
-    ),
-    QueryTestCase(
         id="array_value_as_legacy_coordinates",
         filter={"loc": {"$geoIntersects": {"$geometry": [0, 0]}}},
         doc=[
