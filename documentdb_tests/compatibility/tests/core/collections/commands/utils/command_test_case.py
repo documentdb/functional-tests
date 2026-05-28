@@ -72,26 +72,33 @@ class CommandTestCase(BaseTestCase):
     docs: list[dict[str, Any]] | None = None
     command: dict[str, Any] | Callable[..., dict[str, Any]] | None = None
     expected: dict[str, Any] | list[dict[str, Any]] | Callable[..., dict[str, Any]] | None = None
+    ignore_order_in: list[str] | None = None
 
     def prepare(self, db: Database, collection: Collection) -> Collection:
         """Resolve the target collection and apply indexes/docs.
+
+        Documents and indexes are inserted into the collection returned
+        by ``target_collection.writable(source, resolved)``. For views
+        this is the source; for regular collections it is the resolved
+        collection itself.
 
         - If ``docs=None``, the collection is not created and will not exist.
         - If ``docs=[]``, the collection is explicitly created but left empty.
         - If ``docs=[...]``, the collection is created and documents are inserted.
         """
-        collection = self.target_collection.resolve(db, collection)
+        resolved = self.target_collection.resolve(db, collection)
+        target = self.target_collection.writable(collection, resolved)
         if self.indexes:
-            collection.create_indexes(self.indexes)
+            target.create_indexes(self.indexes)
         if self.docs is not None:
-            if collection.name not in collection.database.list_collection_names():
-                collection.database.create_collection(collection.name)
+            if target.name not in target.database.list_collection_names():
+                target.database.create_collection(target.name)
             if self.docs:
-                collection.insert_many(self.docs)
+                target.insert_many(self.docs)
         if self.siblings:
             for sibling in self.siblings:
                 sibling.create(db, collection)
-        return collection
+        return resolved
 
     def build_command(self, ctx: CommandContext) -> dict[str, Any]:
         """Resolve the command dict from a callable or plain dict."""

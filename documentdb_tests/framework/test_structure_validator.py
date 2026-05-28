@@ -17,6 +17,8 @@ def validate_python_files_in_tests(tests_dir: Path) -> list[str]:
     for py_file in tests_dir.rglob("*.py"):
         if py_file.name == "__init__.py":
             continue
+        if py_file.name == "conftest.py":
+            continue
         if any(folder in py_file.parts for folder in allowed_folders):
             continue
 
