@@ -96,4 +96,8 @@ def test_explicit_id_index_noop(collection):
     result = execute_command(
         collection, {"createIndexes": name, "indexes": [{"key": {"_id": 1}, "name": "test_id"}]}
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="creating {_id: 1} should be a no-op")
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0, "numIndexesBefore": 0, "numIndexesAfter": 0},
+        msg="creating {_id: 1} should be a no-op",
+    )

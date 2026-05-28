@@ -58,7 +58,9 @@ def test_record_id_size_limit_boundary(collection):
         collection,
         {"insert": name, "documents": [{"_id": max_id}]},
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="should accept _id at exactly the RecordId limit")
+    assertSuccessPartial(
+        result, {"n": 1, "ok": 1.0}, msg="should accept _id at exactly the RecordId limit"
+    )
 
 
 # Property [NaN Duplicate Error Code]: duplicate NaN _id (any NaN variant)
@@ -143,7 +145,7 @@ def test_binary_id_record_id_boundary(collection):
         {"insert": name, "documents": [{"_id": max_binary}]},
     )
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="should accept Binary _id at exactly the RecordId limit"
+        result, {"n": 1, "ok": 1.0}, msg="should accept Binary _id at exactly the RecordId limit"
     )
 
 
@@ -181,5 +183,5 @@ def test_multibyte_string_record_id_limit(collection):
         {"insert": name, "documents": [{"_id": max_id}]},
     )
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="should accept multi-byte string _id within byte limit"
+        result, {"n": 1, "ok": 1.0}, msg="should accept multi-byte string _id within byte limit"
     )
