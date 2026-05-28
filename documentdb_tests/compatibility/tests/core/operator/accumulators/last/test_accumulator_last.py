@@ -3,7 +3,6 @@ arrays, expressions, BSON constants, mixed types."""
 
 from __future__ import annotations
 
-import math
 from datetime import datetime, timezone
 
 import pytest
@@ -21,7 +20,7 @@ from bson import (
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.assertions import assertSuccessNaN
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
@@ -225,7 +224,7 @@ LAST_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$last": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
-        expected=[{"result": pytest.approx(math.nan, nan_ok=True)}],
+        expected=[{"result": FLOAT_NAN}],
         msg="$last should return double NaN unchanged",
     ),
     AccumulatorTestCase(
@@ -918,4 +917,4 @@ def test_accumulator_last(collection, test_case: AccumulatorTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
-    assertResult(result, expected=test_case.expected, msg=test_case.msg)
+    assertSuccessNaN(result, test_case.expected, msg=test_case.msg)
