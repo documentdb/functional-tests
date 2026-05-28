@@ -85,10 +85,10 @@ def test_tailable_cursors_awaitdata_single(database_client, collection, test: Co
     )
 
 
-# Property [awaitData getMore Behavior]: an awaitData cursor blocks on getMore
-# until maxTimeMS expires when no new data is available.
-def test_tailable_cursors_awaitdata_blocks(database_client, collection):
-    """Test awaitData cursor blocks at end of data."""
+# Property [awaitData getMore Behavior]: getMore with maxTimeMS on an awaitData
+# cursor returns an empty batch with the cursor still open when no new data exists.
+def test_tailable_cursors_awaitdata_getmore_empty(database_client, collection):
+    """Test getMore with maxTimeMS on awaitData cursor returns empty batch."""
     capped = create_capped(database_client, collection, [{"_id": 1}])
     result = execute_command(
         capped,
@@ -102,15 +102,15 @@ def test_tailable_cursors_awaitdata_blocks(database_client, collection):
     assertProperties(
         gm_result,
         {"cursor": {"id": Ne(INT64_ZERO), "nextBatch": Eq([])}},
-        msg="awaitData cursor should block then return empty batch",
+        msg="awaitData getMore with maxTimeMS should return empty batch with cursor open",
         raw_res=True,
     )
 
 
-# Property [awaitData Non-Blocking]: a tailable cursor without awaitData returns
-# immediately from getMore when no new data is available.
-def test_tailable_cursors_awaitdata_nonblocking(database_client, collection):
-    """Test non-awaitData tailable cursor returns immediately."""
+# Property [Non-awaitData getMore Behavior]: getMore on a tailable cursor without
+# awaitData returns an empty batch with the cursor still open when no new data exists.
+def test_tailable_cursors_non_awaitdata_getmore_empty(database_client, collection):
+    """Test getMore on non-awaitData tailable cursor returns empty batch."""
     capped = create_capped(database_client, collection, [{"_id": 1}])
     result = execute_command(
         capped,
@@ -122,7 +122,7 @@ def test_tailable_cursors_awaitdata_nonblocking(database_client, collection):
     assertProperties(
         gm_result,
         {"cursor": {"id": Ne(INT64_ZERO), "nextBatch": Eq([])}},
-        msg="Non-awaitData tailable cursor should return immediately",
+        msg="Non-awaitData getMore should return empty batch with cursor open",
         raw_res=True,
     )
 
