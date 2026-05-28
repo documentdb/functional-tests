@@ -15,7 +15,7 @@ creating users with specific roles and is not covered here.
 import pytest
 
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
-    DiagnosticPropertyTest,
+    DiagnosticTestCase,
 )
 from documentdb_tests.framework.assertions import assertProperties, assertResult
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
@@ -25,33 +25,33 @@ from documentdb_tests.framework.property_checks import Eq, Exists, IsType, Len
 pytestmark = pytest.mark.admin
 
 
-RESPONSE_PROPERTY_TESTS: list[DiagnosticPropertyTest] = [
-    DiagnosticPropertyTest(
+RESPONSE_PROPERTY_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
         id="authenticatedUsers_is_array",
         checks={"authInfo": {"authenticatedUsers": IsType("array")}},
         msg="authenticatedUsers should be array",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="authenticatedUserRoles_is_array",
         checks={"authInfo": {"authenticatedUserRoles": IsType("array")}},
         msg="authenticatedUserRoles should be array",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="authInfo_exists",
         checks={"authInfo": Exists()},
         msg="authInfo should always exist",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="unauthenticated_users_empty",
         checks={"authInfo": {"authenticatedUsers": Len(0)}},
         msg="without auth, authenticatedUsers should be empty",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="unauthenticated_roles_empty",
         checks={"authInfo": {"authenticatedUserRoles": Len(0)}},
         msg="without auth, authenticatedUserRoles should be empty",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="uuid_is_binData",
         checks={"uuid": IsType("binData")},
         msg="uuid should be a binData (UUID) field",
