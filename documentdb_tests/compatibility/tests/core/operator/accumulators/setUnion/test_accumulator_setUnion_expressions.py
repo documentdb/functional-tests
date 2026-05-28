@@ -158,6 +158,36 @@ SETUNION_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
         msg="$setUnion should propagate $divide by zero error",
     ),
     AccumulatorTestCase(
+        "error_prop_divide_by_zero_field_path",
+        docs=[{"_id": 0, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$setUnion": {"$let": {"vars": {}, "in": [{"$divide": [1, "$v"]}]}}},
+                }
+            },
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$setUnion should propagate $divide by zero when divisor comes from field path",
+    ),
+    AccumulatorTestCase(
+        "error_prop_divide_by_zero_later_doc",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$setUnion": {"$let": {"vars": {}, "in": [{"$divide": [1, "$v"]}]}}},
+                }
+            },
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$setUnion should propagate error even when failing doc is not the first",
+    ),
+    AccumulatorTestCase(
         "error_prop_mod_by_zero",
         docs=[{"v": 10}],
         pipeline=[
