@@ -149,6 +149,25 @@ COLLATION_FIND_FILTER_TESTS: list[CommandTestCase] = [
         expected=[{"_id": 1, "x": "apple"}],
         msg="find with strength 3 should match case-sensitively",
     ),
+    CommandTestCase(
+        "filter_dotted_path_case_insensitive",
+        docs=[
+            {"_id": 1, "a": {"b": "apple"}},
+            {"_id": 2, "a": {"b": "Apple"}},
+            {"_id": 3, "a": {"b": "banana"}},
+        ],
+        command=lambda ctx: {
+            "find": ctx.collection,
+            "filter": {"a.b": "apple"},
+            "sort": {"_id": 1},
+            "collation": {"locale": "en", "strength": 2},
+        },
+        expected=[
+            {"_id": 1, "a": {"b": "apple"}},
+            {"_id": 2, "a": {"b": "Apple"}},
+        ],
+        msg="find on dotted path should use collation for case-insensitive matching",
+    ),
 ]
 
 # Property [Find Sort Ordering]: collation affects the sort order of string
