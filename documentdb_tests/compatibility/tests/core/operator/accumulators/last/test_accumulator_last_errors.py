@@ -91,6 +91,28 @@ LAST_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
         msg="$last should propagate $divide by zero error",
     ),
     AccumulatorTestCase(
+        "expr_error_divide_by_zero_field_path",
+        docs=[{"_id": 0, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": {"$divide": [1, "$v"]}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$last should propagate $divide by zero when divisor comes from field path",
+    ),
+    AccumulatorTestCase(
+        "expr_error_divide_by_zero_last_doc_field_path",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": {"$divide": [1, "$v"]}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$last should propagate $divide by zero when last doc has zero divisor via field path",
+    ),
+    AccumulatorTestCase(
         "expr_error_conversion_failure",
         docs=[{"v": "not_a_number"}],
         pipeline=[
