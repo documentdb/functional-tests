@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-import math
-
 import pytest
 from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertSuccessNaN
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import FLOAT_NAN
 
 # ---------------------------------------------------------------------------
 # Property lists
@@ -328,7 +327,7 @@ ADDTOSET_NAN_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
-        expected=[{"result": [pytest.approx(math.nan, nan_ok=True)]}],
+        expected=[{"result": [FLOAT_NAN]}],
         msg="$addToSet should deduplicate double NaN values",
     ),
     AccumulatorTestCase(
@@ -348,7 +347,7 @@ ADDTOSET_NAN_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
-        expected=[{"result": [pytest.approx(math.nan, nan_ok=True)]}],
+        expected=[{"result": [FLOAT_NAN]}],
         msg="$addToSet should deduplicate float NaN and Decimal128 NaN as numerically equal",
     ),
     AccumulatorTestCase(
@@ -358,7 +357,7 @@ ADDTOSET_NAN_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
-        expected=[{"result": [pytest.approx(math.nan, nan_ok=True), 5]}],
+        expected=[{"result": [FLOAT_NAN, 5]}],
         msg="$addToSet should treat NaN and finite values as distinct",
     ),
 ]
@@ -519,4 +518,4 @@ def test_accumulator_addToSet_dedup(collection, test_case: AccumulatorTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
-    assertSuccess(result, test_case.expected, msg=test_case.msg, ignore_order_in=["result"])
+    assertSuccessNaN(result, test_case.expected, msg=test_case.msg, ignore_order_in=["result"])
