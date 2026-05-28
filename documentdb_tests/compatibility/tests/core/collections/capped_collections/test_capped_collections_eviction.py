@@ -155,6 +155,83 @@ def test_capped_count_reflects_eviction(database_client, collection):
     )
 
 
+# Property [CollMod Max No Immediate Eviction]: reducing cappedMax via collMod
+# does not immediately evict existing documents.
+@pytest.mark.collection_mgmt
+def test_capped_collmod_max_no_immediate_eviction(database_client, collection):
+    """Test that reducing cappedMax does not immediately evict documents."""
+    coll = CappedCollection(size=1_048_576, max=10).resolve(database_client, collection)
+    coll.insert_many([{"_id": i} for i in range(1, 6)])
+    execute_command(coll, {"collMod": coll.name, "cappedMax": 3})
+    result = execute_command(coll, {"find": coll.name, "projection": {"_id": 1}})
+    assertSuccess(
+        result,
+        [{"_id": 1}, {"_id": 2}, {"_id": 3}, {"_id": 4}, {"_id": 5}],
+        msg="Reducing cappedMax should not immediately evict existing documents",
+    )
+
+
+# Property [CollMod Max Deferred Eviction]: after reducing cappedMax via collMod,
+# the next insert triggers eviction down to the new limit.
+@pytest.mark.collection_mgmt
+def test_capped_collmod_max_deferred_eviction(database_client, collection):
+    """Test that next insert after cappedMax reduction triggers eviction."""
+    coll = CappedCollection(size=1_048_576, max=10).resolve(database_client, collection)
+    coll.insert_many([{"_id": i} for i in range(1, 6)])
+    execute_command(coll, {"collMod": coll.name, "cappedMax": 3})
+    coll.insert_one({"_id": 6})
+    result = execute_command(coll, {"find": coll.name, "projection": {"_id": 1}})
+    assertSuccess(
+        result,
+        [{"_id": 4}, {"_id": 5}, {"_id": 6}],
+        msg="Next insert after cappedMax reduction should trigger eviction to new limit",
+    )
+
+
+# Property [CollMod Size No Immediate Eviction]: reducing cappedSize via collMod
+# does not immediately evict existing documents.
+@pytest.mark.collection_mgmt
+def test_capped_collmod_size_no_immediate_eviction(database_client, collection):
+    """Test that reducing cappedSize does not immediately evict documents."""
+    coll = CappedCollection(size=1_048_576).resolve(database_client, collection)
+    for i in range(10):
+        coll.insert_one({"_id": i, "data": "x" * 500})
+    execute_command(coll, {"collMod": coll.name, "cappedSize": 4096})
+    result = execute_command(coll, {"count": coll.name})
+    assertProperties(
+        result,
+        {"n": Eq(10)},
+        msg="Reducing cappedSize should not immediately evict existing documents",
+        raw_res=True,
+    )
+
+
+# Property [CollMod Size Deferred Eviction]: after reducing cappedSize via
+# collMod, the next insert triggers eviction based on the new size limit.
+@pytest.mark.collection_mgmt
+def test_capped_collmod_size_deferred_eviction(database_client, collection):
+    """Test that next insert after cappedSize reduction triggers eviction."""
+    coll = CappedCollection(size=1_048_576).resolve(database_client, collection)
+    for i in range(10):
+        coll.insert_one({"_id": i, "data": "x" * 500})
+    execute_command(coll, {"collMod": coll.name, "cappedSize": 4096})
+    coll.insert_one({"_id": 10, "data": "x" * 500})
+    result = execute_command(coll, {"find": coll.name, "projection": {"_id": 1}})
+
+    def validate_deferred_size_eviction(r):
+        ids = [d["_id"] for d in r["cursor"]["firstBatch"]]
+        # Eviction occurred, most recent survives, in insertion order
+        return len(ids) < 11 and ids[-1] == 10 and ids == list(range(ids[0], ids[-1] + 1))
+
+    assertSuccess(
+        result,
+        True,
+        msg="Next insert after cappedSize reduction should trigger eviction to new limit",
+        raw_res=True,
+        transform=validate_deferred_size_eviction,
+    )
+
+
 # Property [Oversize Document Accepted]: a single document larger than the
 # declared size cap is accepted.
 @pytest.mark.collection_mgmt
