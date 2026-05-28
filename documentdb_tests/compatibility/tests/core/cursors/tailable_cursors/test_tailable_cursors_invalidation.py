@@ -227,7 +227,12 @@ def test_tailable_cursors_concurrent_writers(engine_client, database_client, col
     gm_result = execute_command(capped, {"getMore": cursor_id, "collection": capped.name})
     assertProperties(
         gm_result,
-        {"cursor": {"id": Ne(INT64_ZERO)}},
+        {
+            "cursor": {
+                "id": Ne(INT64_ZERO),
+                "nextBatch": Eq([{"_id": 1, "src": "conn1"}, {"_id": 2, "src": "conn2"}]),
+            }
+        },
         msg="Concurrent inserts should be visible to tailable cursor",
         raw_res=True,
     )
