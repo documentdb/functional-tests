@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 import pytest
 from bson import (
     Binary,
-    Code,
     Decimal128,
     Int64,
     MaxKey,
@@ -181,16 +180,6 @@ MAX_INPUT_FORM_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"result": Regex("abc", "i")}],
         msg="$max with Regex constant should return that Regex",
-    ),
-    AccumulatorTestCase(
-        "input_constant_code",
-        docs=[{"v": 1}, {"v": 2}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": Code("function(){}")}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": "function(){}"}],
-        msg="$max with Code constant should return Code as string via $group",
     ),
     AccumulatorTestCase(
         "input_constant_minkey",

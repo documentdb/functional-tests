@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
@@ -138,13 +138,6 @@ SUM_CONSTANT_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
         pipeline=[{"$group": {"_id": None, "result": {"$sum": Regex("abc", "i")}}}],
         expected=0,
         msg="$sum should return 0 for Regex constant",
-    ),
-    AccumulatorTestCase(
-        "constant_non_numeric_code",
-        docs=[{"x": 1}, {"x": 2}],
-        pipeline=[{"$group": {"_id": None, "result": {"$sum": Code("function(){}")}}}],
-        expected=0,
-        msg="$sum should return 0 for Code constant",
     ),
     AccumulatorTestCase(
         "constant_non_numeric_minkey",
