@@ -10,7 +10,7 @@
 - **One layer deep only** — Test the feature itself and one layer of composition.
   - `$project` with expressions: one test per operator, no edge cases of the operator.
   - `$lookup` sub-pipeline: verify stages are accepted/rejected, don't test the stage's full behavior inside the sub-pipeline.
-- **No engine-specific implementation details** — Don't test exact nesting limits (20 levels), pipeline stage limits (1000), or internal storage details (wiredTiger). These belong in engine-specific test suites, not compatibility tests.
+- **No engine-specific implementation details** — Don't test internal storage details (wiredTiger, engine-specific fields, etc.). These belong in engine-specific test suites, not compatibility tests.
 - **Tests belong in the feature's folder** — `$abs` type validation goes in `expressions/arithmetic/abs/`, not in `stages/project/`. Testing `$abs` inside `$project` is a `$project` context test (one simple case), not an `$abs` test.
 
 ---
@@ -396,8 +396,9 @@ For each invalid_type in [string, object, array, ...]:
 - Verify response varies correctly based on collection state (e.g., index count, collection existence)
 
 **Collection Variants**:
-- Test against collection types the command supports: regular, capped, views, timeseries, clustered
-- Verify correct behavior or error for unsupported collection types
+- The collection type is an input to the command — test each supported type with one representative case showing the command works, and verify correct errors for unsupported types
+- Test command-specific behavior that varies by collection type (e.g., errors that only occur on views due to internal rewriting)
+- Do not test the collection type's own semantics (pipeline composition, chaining, eviction) — those belong in the feature's dedicated directory
 
 ---
 

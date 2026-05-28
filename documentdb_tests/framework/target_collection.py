@@ -216,18 +216,18 @@ class SystemBucketsCollection(TimeseriesCollection):
         return db[f"system.buckets.{name}"]
 
 
-@dataclass(frozen=True)
-class ViewWithPipelineCollection(TargetCollection):
+def ViewWithPipelineCollection() -> ViewCollection:
     """A view on the fixture collection with a non-empty pipeline."""
+    return ViewCollection(options={"pipeline": [{"$match": {"x": 1}}]}, suffix="_vpipe")
+
+
+@dataclass(frozen=True)
+class OrphanedViewCollection(TargetCollection):
+    """A view whose source collection does not exist."""
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
-        view_name = f"{collection.name}_vpipe"
-        db.command(
-            "create",
-            view_name,
-            viewOn=collection.name,
-            pipeline=[{"$match": {"x": 1}}],
-        )
+        view_name = f"{collection.name}_orphan"
+        db.command("create", view_name, viewOn="nonexistent_source")
         return db[view_name]
 
     def writable(self, source: Collection, resolved: Collection) -> Collection:
