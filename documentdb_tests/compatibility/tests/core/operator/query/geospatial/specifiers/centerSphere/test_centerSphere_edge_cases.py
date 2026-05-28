@@ -6,6 +6,9 @@ import math
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.query.geospatial.utils.constants import (
+    EARTH_RADIUS_KM,
+)
 from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
     QueryTestCase,
 )
@@ -14,8 +17,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_INFINITY, FLOAT_INFINITY
 
-# Earth's mean radius in km; used to convert km to radians (km / R)
-EARTH_RADIUS_KM = 6371
 RADIUS_5_KM_IN_RADIANS = 5 / EARTH_RADIUS_KM
 RADIUS_100_KM_IN_RADIANS = 100 / EARTH_RADIUS_KM
 RADIUS_200_KM_IN_RADIANS = 200 / EARTH_RADIUS_KM

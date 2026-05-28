@@ -4,6 +4,9 @@ import math
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.query.geospatial.utils.constants import (
+    EARTH_RADIUS_KM,
+)
 from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
     QueryTestCase,
 )
@@ -14,7 +17,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="returns_points_within_sphere",
-        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 10 / 6371]}}},
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 10 / EARTH_RADIUS_KM]}}},
         doc=[
             {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}},
             {"_id": 2, "loc": {"type": "Point", "coordinates": [0.01, 0.01]}},
@@ -176,7 +179,7 @@ TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="polygon_intersecting_not_within",
-        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 5 / 6371]}}},
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 5 / EARTH_RADIUS_KM]}}},
         doc=[
             {
                 "_id": 1,
@@ -220,7 +223,7 @@ TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="multipolygon_partially_outside",
-        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 5 / 6371]}}},
+        filter={"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 5 / EARTH_RADIUS_KM]}}},
         doc=[
             {
                 "_id": 1,

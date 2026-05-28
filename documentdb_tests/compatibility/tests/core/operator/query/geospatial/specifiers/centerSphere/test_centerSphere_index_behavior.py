@@ -1,5 +1,8 @@
 """Tests for $centerSphere index behavior — 2dsphere, 2d, and no index."""
 
+from documentdb_tests.compatibility.tests.core.operator.query.geospatial.utils.constants import (
+    EARTH_RADIUS_KM,
+)
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
@@ -17,7 +20,7 @@ def test_centerSphere_without_index(collection):
         collection,
         {
             "find": collection.name,
-            "filter": {"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 200 / 6371]}}},
+            "filter": {"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 200 / EARTH_RADIUS_KM]}}},
         },
     )
     assertSuccess(
@@ -45,7 +48,7 @@ def test_centerSphere_with_2dsphere_index(collection):
         collection,
         {
             "find": collection.name,
-            "filter": {"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 200 / 6371]}}},
+            "filter": {"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 200 / EARTH_RADIUS_KM]}}},
         },
     )
     assertSuccess(
@@ -73,7 +76,7 @@ def test_centerSphere_with_2d_index(collection):
         collection,
         {
             "find": collection.name,
-            "filter": {"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 200 / 6371]}}},
+            "filter": {"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 200 / EARTH_RADIUS_KM]}}},
         },
     )
     assertSuccess(

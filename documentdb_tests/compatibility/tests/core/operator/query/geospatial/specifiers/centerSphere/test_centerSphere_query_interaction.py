@@ -3,6 +3,9 @@ geospatial fields, projection, limit, sort, and skip."""
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.query.geospatial.utils.constants import (
+    EARTH_RADIUS_KM,
+)
 from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
     QueryTestCase,
 )
@@ -31,8 +34,8 @@ TESTS: list[QueryTestCase] = [
         id="with_and_combining_two_geo",
         filter={
             "$and": [
-                {"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 500 / 6371]}}},
-                {"loc": {"$geoWithin": {"$centerSphere": [[5, 0], 500 / 6371]}}},
+                {"loc": {"$geoWithin": {"$centerSphere": [[0, 0], 500 / EARTH_RADIUS_KM]}}},
+                {"loc": {"$geoWithin": {"$centerSphere": [[5, 0], 500 / EARTH_RADIUS_KM]}}},
             ]
         },
         doc=[
