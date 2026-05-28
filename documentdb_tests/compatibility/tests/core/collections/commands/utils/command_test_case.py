@@ -72,6 +72,7 @@ class CommandTestCase(BaseTestCase):
     docs: list[dict[str, Any]] | None = None
     command: dict[str, Any] | Callable[..., dict[str, Any]] | None = None
     expected: dict[str, Any] | list[dict[str, Any]] | Callable[..., dict[str, Any]] | None = None
+    ignore_order_in: list[str] | None = None
 
     def prepare(self, db: Database, collection: Collection) -> Collection:
         """Resolve the target collection and apply indexes/docs.
