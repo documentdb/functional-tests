@@ -10,6 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accum
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     CONVERSION_FAILURE_ERROR,
+    DIVIDE_BY_ZERO_V2_ERROR,
     EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
     GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
@@ -100,6 +101,38 @@ MERGE_OBJECTS_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
         ],
         error_code=CONVERSION_FAILURE_ERROR,
         msg="$mergeObjects should propagate $toObjectId conversion error from expression",
+    ),
+    AccumulatorTestCase(
+        "expr_error_divide_by_zero_field_path",
+        docs=[{"_id": 0, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$mergeObjects": {"$divide": [1, "$v"]}},
+                }
+            },
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$mergeObjects should propagate $divide by zero when divisor comes from field path",
+    ),
+    AccumulatorTestCase(
+        "expr_error_divide_by_zero_later_doc",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {
+                        "$mergeObjects": {"$let": {"vars": {}, "in": {"x": {"$divide": [1, "$v"]}}}}
+                    },
+                }
+            },
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$mergeObjects should propagate error even when failing doc is not the first",
     ),
 ]
 
