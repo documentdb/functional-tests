@@ -253,16 +253,6 @@ ADDTOSET_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
         msg="$addToSet should collect unique computed expression results",
     ),
     AccumulatorTestCase(
-        "expr_null_literal",
-        docs=[{"v": 1}, {"v": 2}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$addToSet": None}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": [None]}],
-        msg="$addToSet should collect null literal and deduplicate across docs",
-    ),
-    AccumulatorTestCase(
         "expr_composite_array_path",
         docs=[{"a": [{"b": 1}, {"b": 2}]}, {"a": [{"b": 3}, {"b": 1}]}],
         pipeline=[
@@ -491,16 +481,6 @@ ADDTOSET_BSON_CONSTANT_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"result": [Regex("abc", "i")]}],
         msg="$addToSet with Regex constant should return single-element set",
-    ),
-    AccumulatorTestCase(
-        "const_null",
-        docs=[{"v": 1}, {"v": 2}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$addToSet": None}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": [None]}],
-        msg="$addToSet with null constant should return [null]",
     ),
     AccumulatorTestCase(
         "const_minkey",

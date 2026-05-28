@@ -47,6 +47,16 @@ ADDTOSET_NULL_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": [None, 5, 3]}],
         msg="$addToSet should collect null alongside other values",
     ),
+    AccumulatorTestCase(
+        "null_constant",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$addToSet": None}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": [None]}],
+        msg="$addToSet with null constant should return [null]",
+    ),
 ]
 
 # Property [Missing Excluded]: missing fields are excluded from the result.
