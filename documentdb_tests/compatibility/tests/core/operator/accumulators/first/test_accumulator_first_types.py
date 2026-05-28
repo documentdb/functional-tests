@@ -488,6 +488,17 @@ FIRST_BSON_CONSTANT_TESTS: list[AccumulatorTestCase] = [
 # ---------------------------------------------------------------------------
 FIRST_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
+        "expr_nested_field_path",
+        docs=[{"a": {"b": 10}}, {"a": {"b": 20}}],
+        pipeline=[
+            {"$sort": {"a.b": 1}},
+            {"$group": {"_id": None, "result": {"$first": "$a.b"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 10}],
+        msg="$first should accept nested document field path",
+    ),
+    AccumulatorTestCase(
         "expr_operator_single",
         docs=[{"v": -10}, {"v": 20}, {"v": -5}],
         pipeline=[
