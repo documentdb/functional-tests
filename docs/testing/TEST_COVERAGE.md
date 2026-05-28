@@ -10,8 +10,18 @@
 - **One layer deep only** — Test the feature itself and one layer of composition.
   - `$project` with expressions: one test per operator, no edge cases of the operator.
   - `$lookup` sub-pipeline: verify stages are accepted/rejected, don't test the stage's full behavior inside the sub-pipeline.
-- **No engine-specific implementation details** — Don't test exact nesting limits (20 levels), pipeline stage limits (1000), or internal storage details (wiredTiger). These belong in engine-specific test suites, not compatibility tests.
+- **No engine-specific implementation details** — Don't test internal storage details (wiredTiger, engine-specific fields, etc.). These belong in engine-specific test suites, not compatibility tests.
 - **Tests belong in the feature's folder** — `$abs` type validation goes in `expressions/arithmetic/abs/`, not in `stages/project/`. Testing `$abs` inside `$project` is a `$project` context test (one simple case), not an `$abs` test.
+- **No deprecated / removed features** — Do not write tests for the following deprecated or removed MongoDB features:
+  - **BSON `Code` type** (`bson.Code`) — deprecated BSON type; do not use `Code` constants or `Code`-valued fields in any test.
+  - **`mapReduce` command** — removed in MongoDB 8.0.
+  - **`reIndex` command** — removed in MongoDB 6.0.
+  - **JavaScript `function` in queries** — server-side JavaScript execution is deprecated.
+  - **`$accumulator` operator** — custom JavaScript accumulator; depends on deprecated server-side JS.
+  - **`$where` operator** — server-side JavaScript query operator; deprecated.
+  - **`currentOp` command** — administrative/diagnostic command; not in scope for compatibility tests.
+  - **`filemd5` command** — GridFS internal command; deprecated in MongoDB 6.0.
+  - **`collStats` command** — deprecated in MongoDB 6.2 in favor of the `$collStats` aggregation stage.
 
 ---
 
@@ -396,8 +406,9 @@ For each invalid_type in [string, object, array, ...]:
 - Verify response varies correctly based on collection state (e.g., index count, collection existence)
 
 **Collection Variants**:
-- Test against collection types the command supports: regular, capped, views, timeseries, clustered
-- Verify correct behavior or error for unsupported collection types
+- The collection type is an input to the command — test each supported type with one representative case showing the command works, and verify correct errors for unsupported types
+- Test command-specific behavior that varies by collection type (e.g., errors that only occur on views due to internal rewriting)
+- Do not test the collection type's own semantics (pipeline composition, chaining, eviction) — those belong in the feature's dedicated directory
 
 ---
 
@@ -414,6 +425,67 @@ For each invalid_type in [string, object, array, ...]:
 
 **Stages with a match expression**:
 - `$match`, `$lookup` subpipeline
+
+---
+
+### 18. Accumulator Coverage
+
+  **Rule**: Each accumulator must be tested for its expression error propagation, empty-group result, order dependence, and sibling-accumulator interactions. Tests live under
+  `tests/core/operator/accumulators/$accumulator/`. Sibling-accumulator interactions live in `tests/core/operator/accumulators/test_accumulators_$op_integration.py`.
+
+  The expression-form of dual-form operators (`$max`, `$min`, `$sum`, `$avg`, `$first`, `$last`, etc.) is tested separately under `tests/core/operator/expressions/accumulator/$op/` and is out of scope for the
+  accumulator-form file.
+
+  **Expression Error Propagation**:
+  Errors raised during sub-expression evaluation propagate through the accumulator without being caught:
+  - `{$op: {$divide: [1, "$v"]}}` → `CONVERSION_FAILURE_ERROR` (field violation)
+  - `{$op: {$divide: ["$v", 0]}}` → `DIVIDE_BY_ZERO_V2_ERROR` (literal violation)
+
+  **Empty-Group Behavior**:
+  Each accumulator defines a result for an empty group (zero matching documents). Verify the documented value for `{$group: {_id: null, r: {$op: ...}}}` against an empty collection. Result varies per accumulator
+  (e.g. 0, null, [], {}) — refer to the accumulator's spec.
+
+  **Order Dependence**:
+  Some accumulators are order-dependent (their result depends on input order); others are order-independent. Verify per accumulator which category it belongs to per its spec, and:
+
+  - For order-dependent accumulators, tests asserting a specific result must include a preceding `$sort`. Tests without `$sort` are flaky. (e.g. $first)
+  - For order-independent accumulators, the result must be the same regardless of input order. Verify this by running the same input twice with different `$sort` directions and asserting identical results.
+
+  **Tested in Other Folders** (in scope, but add under a different folder):
+  - **Host-stage compatibility** — when adding a new accumulator, add one smoke case for each host stage that supports it (`$group`, `$bucket`, `$bucketAuto`, `$setWindowFields`) under that stage's folder
+  (`stages/$stage/`), per the container-features rule (one test per sub-feature, no edge cases). Edge cases that are genuinely accumulator-specific stay in `accumulators/$op/`.
+  - **Stage-level error codes** (e.g. `$bucketAuto` wrapping `DIVIDE_BY_ZERO_V2_ERROR` as `BadValue`) — under `stages/bucketAuto/`, parameterized over a representative accumulator.
+
+ ** Scope that Covered by Other rules**:
+  - **Numeric equivalence in grouping** (used by `$addToSet`, `$setUnion`) — covered by §9 Numeric Equivalence in Grouping/Comparison.
+  - **Output type validation** — covered by §1 Data Type Coverage.
+
+ **Out of Scope**:
+  - **BSON comparison ordering** (used by `$max`/`$min`/`$top`/`$bottom`) — `bson_types/test_bson_types_ordering.py`; per-accumulator coverage limited to a small wiring sample.
+  - **JavaScript Code type** — the BSON `Code` type is deprecated; accumulator tests should not include `Code` constant or `Code`-valued field tests.
+
+---
+
+### 19. Foundational Spec Behaviors — Test Once
+
+  **Rule**: Foundational spec behaviors (BSON type ordering, collation rules, GeoJSON parsing, etc.) are tested comprehensively in their dedicated directory and assumed consistent
+  elsewhere. Consumers test only that they correctly delegate to the foundational behavior, not the foundational behavior itself.
+
+  **Rationale**: We are compatibility tests, not comprehensive functional tests. Re-verifying foundational behavior across every consumer multiplies cases without adding signal — if the foundational behavior diverges, it shows
+  in the foundational test, not in 50 downstream tests.
+
+  **Examples**:
+  - BSON type ordering → `tests/core/bson_types/`. Operators that use it (e.g. `$max`, `$gt`, `$sort`) get 1-2 wiring cases, not the full type-pair matrix.
+  - Collation comparison → `tests/core/collation/`. Commands that accept `collation` test syntactic acceptance only. Sub-fields testing and semantic behavior is in 'tests/core/collation/'.
+  - GeoJSON parsing and validation → `geospatial/specifiers/geometry/`. Geo operators that accept GeoJSON — test that the operator wires to the GeoJSON parser, not GeoJSON syntax tests.
+  - Wire-protocol namespace validation → TBD. Commands that take a namespace as their first field — single representative case, not the full character matrix.
+  - Field path validation  → Issue #118.
+
+  **Test naming convention**: wiring tests typically use the suffix `_bson_wiring.py` or `_<feature>_wiring.py`. Compare to `tests/core/operator/expressions/comparisons/gt/test_gt_bson_wiring.py` for the right
+  shape — small, representative, explicitly named.
+
+  **Carve-outs**: Per Rule 2's exception, parameters whose behavior genuinely varies per command (readConcern, writeConcern) are still tested exhaustively per command. The "test once" rule applies to behaviors that
+   should be uniform across consumers.
 
 ---
 
