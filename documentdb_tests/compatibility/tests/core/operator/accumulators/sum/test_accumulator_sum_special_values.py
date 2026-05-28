@@ -216,7 +216,7 @@ SUM_SPECIAL_VALUE_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_SPECIAL_VALUE_TESTS))
-def test_sum_special_values(collection, test_case: AccumulatorTestCase):
+def test_accumulator_sum_special_values(collection, test_case: AccumulatorTestCase):
     """Test $sum special float values, Decimal128 specials, and precision."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
