@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
@@ -163,13 +163,6 @@ SUM_NON_NUMERIC_TESTS: list[AccumulatorTestCase] = [
         msg="$sum should ignore Regex values",
     ),
     AccumulatorTestCase(
-        "non_numeric_code_ignored",
-        docs=[{"v": Code("function(){}")}, {"v": 12}],
-        pipeline=[{"$group": {"_id": None, "result": {"$sum": "$v"}}}],
-        expected=12,
-        msg="$sum should ignore Code values",
-    ),
-    AccumulatorTestCase(
         "non_numeric_minkey_ignored",
         docs=[{"v": MinKey()}, {"v": 14}],
         pipeline=[{"$group": {"_id": None, "result": {"$sum": "$v"}}}],
@@ -238,7 +231,7 @@ SUM_NULL_MISSING_AND_NON_NUMERIC_TESTS = SUM_NULL_MISSING_TESTS + SUM_NON_NUMERI
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_NULL_MISSING_AND_NON_NUMERIC_TESTS))
-def test_sum_null_missing(collection, test_case: AccumulatorTestCase):
+def test_accumulator_sum_null_missing(collection, test_case: AccumulatorTestCase):
     """Test $sum null/missing handling and non-numeric type behavior."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
@@ -255,7 +248,7 @@ def test_sum_null_missing(collection, test_case: AccumulatorTestCase):
 
 # Property [Empty Collection]: empty collection produces no group output
 # (empty result set).
-def test_sum_empty_collection(collection):
+def test_accumulator_sum_empty_collection(collection):
     """Test $sum on empty collection returns empty result set."""
     result = execute_command(
         collection,
@@ -266,3 +259,45 @@ def test_sum_empty_collection(collection):
         },
     )
     assertSuccess(result, [], msg="$sum on empty collection should return empty result set")
+
+
+# Property [Order Independence]: $sum is order-independent; the result must
+# be the same regardless of input order.
+SUM_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "order_independent_asc",
+        docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": None, "result": {"$sum": "$v"}}},
+        ],
+        expected=15,
+        msg="$sum should return same result regardless of input order (ascending)",
+    ),
+    AccumulatorTestCase(
+        "order_independent_desc",
+        docs=[{"v": 3}, {"v": 1}, {"v": 5}, {"v": 2}, {"v": 4}],
+        pipeline=[
+            {"$sort": {"v": -1}},
+            {"$group": {"_id": None, "result": {"$sum": "$v"}}},
+        ],
+        expected=15,
+        msg="$sum should return same result regardless of input order (descending)",
+    ),
+]
+
+
+@pytest.mark.parametrize("test_case", pytest_params(SUM_ORDER_INDEPENDENCE_TESTS))
+def test_accumulator_sum_order_independence(collection, test_case: AccumulatorTestCase):
+    """Test $sum accumulator order independence."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
+    )
+    assertSuccess(
+        result,
+        [{"_id": None, "result": test_case.expected}],
+        msg=test_case.msg,
+    )

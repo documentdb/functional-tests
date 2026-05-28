@@ -381,7 +381,7 @@ SUM_TYPE_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_TYPE_TESTS))
-def test_sum_type_promotion(collection, test_case: AccumulatorTestCase):
+def test_accumulator_sum_type_promotion(collection, test_case: AccumulatorTestCase):
     """Test $sum return type promotion, overflow, and cross-type interactions."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

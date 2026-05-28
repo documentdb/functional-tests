@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-def test_smoke_accumulator_sum(collection):
+def test_accumulator_sum_smoke(collection):
     """Test basic $sum accumulator behavior."""
     collection.insert_many(
         [

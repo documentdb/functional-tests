@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
-from bson import Decimal128, Int64
+from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
@@ -91,6 +93,66 @@ SUM_CONSTANT_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
         expected=FLOAT_NEGATIVE_INFINITY,
         msg="$sum should propagate negative infinity constant",
     ),
+    AccumulatorTestCase(
+        "constant_null",
+        docs=[{"x": 1}, {"x": 2}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": None}}}],
+        expected=0,
+        msg="$sum should return 0 for null constant",
+    ),
+    AccumulatorTestCase(
+        "constant_non_numeric_binary",
+        docs=[{"x": 1}, {"x": 2}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": Binary(b"\x01\x02")}}}],
+        expected=0,
+        msg="$sum should return 0 for Binary constant",
+    ),
+    AccumulatorTestCase(
+        "constant_non_numeric_objectid",
+        docs=[{"x": 1}, {"x": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$sum": ObjectId("000000000000000000000000")}}}
+        ],
+        expected=0,
+        msg="$sum should return 0 for ObjectId constant",
+    ),
+    AccumulatorTestCase(
+        "constant_non_numeric_datetime",
+        docs=[{"x": 1}, {"x": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$sum": datetime(2020, 1, 1, tzinfo=timezone.utc)}}}
+        ],
+        expected=0,
+        msg="$sum should return 0 for datetime constant",
+    ),
+    AccumulatorTestCase(
+        "constant_non_numeric_timestamp",
+        docs=[{"x": 1}, {"x": 2}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": Timestamp(1, 1)}}}],
+        expected=0,
+        msg="$sum should return 0 for Timestamp constant",
+    ),
+    AccumulatorTestCase(
+        "constant_non_numeric_regex",
+        docs=[{"x": 1}, {"x": 2}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": Regex("abc", "i")}}}],
+        expected=0,
+        msg="$sum should return 0 for Regex constant",
+    ),
+    AccumulatorTestCase(
+        "constant_non_numeric_minkey",
+        docs=[{"x": 1}, {"x": 2}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": MinKey()}}}],
+        expected=0,
+        msg="$sum should return 0 for MinKey constant",
+    ),
+    AccumulatorTestCase(
+        "constant_non_numeric_maxkey",
+        docs=[{"x": 1}, {"x": 2}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": MaxKey()}}}],
+        expected=0,
+        msg="$sum should return 0 for MaxKey constant",
+    ),
 ]
 
 # Property [Expression Arguments]: $sum accepts any expression that resolves
@@ -118,13 +180,62 @@ SUM_EXPRESSION_ARGS_TESTS: list[AccumulatorTestCase] = [
         expected=15,
         msg="$sum should accept nested $sum (array summation) as its expression",
     ),
+    AccumulatorTestCase(
+        "expr_args_single_input_operator",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": {"$abs": "$v"}}}}],
+        expected=35,
+        msg="$sum should accept a single-input expression operator",
+    ),
+    AccumulatorTestCase(
+        "expr_args_nested_expression",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$sum": {"$add": [1, {"$abs": "$v"}]}},
+                }
+            }
+        ],
+        expected=38,
+        msg="$sum should accept nested expression operators",
+    ),
+    AccumulatorTestCase(
+        "expr_args_sysvar_remove",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": "$$REMOVE"}}}],
+        expected=0,
+        msg="$sum with $$REMOVE should treat all values as missing and return 0",
+    ),
+    AccumulatorTestCase(
+        "expr_args_object_expression",
+        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": {"a": "$v"}}}}],
+        expected=0,
+        msg="$sum should return 0 for object expression (non-numeric result)",
+    ),
+    AccumulatorTestCase(
+        "expr_args_let_expression",
+        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$sum": {"$let": {"vars": {"x": "$v"}, "in": "$$x"}}},
+                }
+            }
+        ],
+        expected=35,
+        msg="$sum should accept a $let expression as its operand",
+    ),
 ]
 
 SUM_CONSTANT_AND_EXPRESSION_TESTS = SUM_CONSTANT_EXPRESSION_TESTS + SUM_EXPRESSION_ARGS_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_CONSTANT_AND_EXPRESSION_TESTS))
-def test_sum_constants(collection, test_case: AccumulatorTestCase):
+def test_accumulator_sum_constants(collection, test_case: AccumulatorTestCase):
     """Test $sum constant expression behavior and expression arguments."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
@@ -186,7 +297,7 @@ SUM_CONSTANT_TYPE_TESTS: list[AccumulatorTestCase] = [
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_CONSTANT_TYPE_TESTS))
-def test_sum_constant_type(collection, test_case: AccumulatorTestCase):
+def test_accumulator_sum_constant_type(collection, test_case: AccumulatorTestCase):
     """Test $sum constant type preservation."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
