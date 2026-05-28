@@ -99,6 +99,26 @@ ADDTOSET_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
         msg="$addToSet should propagate divide-by-zero error",
     ),
     AccumulatorTestCase(
+        "error_divide_by_zero_field_path",
+        docs=[{"_id": 0, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$addToSet": {"$divide": [1, "$v"]}}}},
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$addToSet should propagate $divide by zero when divisor comes from field path",
+    ),
+    AccumulatorTestCase(
+        "error_divide_by_zero_later_doc",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$addToSet": {"$divide": [1, "$v"]}}}},
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$addToSet should propagate error even when failing doc is not the first",
+    ),
+    AccumulatorTestCase(
         "error_mod_by_zero",
         docs=[{"v": 10}],
         pipeline=[{"$group": {"_id": None, "result": {"$addToSet": {"$mod": ["$v", 0]}}}}],
