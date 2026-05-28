@@ -1,7 +1,10 @@
 """Tests for dataSize command min/max parameters.
 
-Covers BSON type acceptance/rejection via bson_type_validator framework
-and behavioral tests for min/max range queries.
+Covers BSON type rejection via bson_type_validator framework and behavioral
+tests for min/max range queries. Acceptance tests are not generated via the
+framework because min/max have semantic constraints (bound field names must
+match keyPattern, and both must be set together) that the generic samples
+cannot satisfy.
 """
 
 from dataclasses import dataclass, field
@@ -13,7 +16,6 @@ from bson import Int64
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
 from documentdb_tests.framework.bson_type_validator import (
     BsonTypeTestCase,
-    generate_bson_acceptance_test_cases,
     generate_bson_rejection_test_cases,
 )
 from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
@@ -42,7 +44,6 @@ MIN_MAX_TYPE_PARAMS = [
 ]
 
 MIN_MAX_REJECTION_CASES = generate_bson_rejection_test_cases(MIN_MAX_TYPE_PARAMS)
-MIN_MAX_ACCEPTANCE_CASES = generate_bson_acceptance_test_cases(MIN_MAX_TYPE_PARAMS)
 
 
 @pytest.mark.parametrize("bson_type,sample_value,spec", MIN_MAX_REJECTION_CASES)
@@ -53,22 +54,6 @@ def test_dataSize_min_max_rejects_invalid_type(collection, bson_type, sample_val
     cmd = {"dataSize": ns, "keyPattern": {"_id": 1}, spec.keyword: sample_value}
     result = execute_command(collection, cmd)
     assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
-
-
-@pytest.mark.parametrize("bson_type,sample_value,spec", MIN_MAX_ACCEPTANCE_CASES)
-def test_dataSize_min_max_accepts_valid_type(collection, bson_type, sample_value, spec):
-    """Test dataSize accepts document and null BSON types for min and max."""
-    collection.insert_one({"_id": 1})
-    ns = f"{collection.database.name}.{collection.name}"
-    sibling = {"_id": 1} if spec.keyword == "min" else {"_id": 0}
-    cmd = {
-        "dataSize": ns,
-        "keyPattern": {"_id": 1},
-        "min": sibling if spec.keyword == "max" else sample_value,
-        "max": sibling if spec.keyword == "min" else sample_value,
-    }
-    result = execute_command(collection, cmd)
-    assertSuccessPartial(result, {"ok": 1.0}, msg=spec.msg)
 
 
 @dataclass(frozen=True)
@@ -131,3 +116,15 @@ def test_dataSize_min_max(collection, test):
         cmd["max"] = test.max_bound
     result = execute_command(collection, cmd)
     assertSuccessPartial(result, test.expected, msg=test.msg)
+
+
+def test_dataSize_min_max_both_null(collection):
+    """Test dataSize with both min and max set to null succeeds (treated as absent)."""
+    collection.insert_many([{"_id": i, "x": i} for i in range(10)])
+    collection.create_index("x")
+    ns = f"{collection.database.name}.{collection.name}"
+    result = execute_command(
+        collection,
+        {"dataSize": ns, "keyPattern": {"x": 1}, "min": None, "max": None},
+    )
+    assertSuccessPartial(result, {"ok": 1.0}, msg="Both min and max null should succeed")

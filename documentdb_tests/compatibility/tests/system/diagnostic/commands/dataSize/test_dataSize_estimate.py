@@ -26,20 +26,24 @@ pytestmark = pytest.mark.admin
 
 
 def test_dataSize_estimate_true(collection):
-    """Test dataSize with estimate: true returns ok: 1."""
+    """Test dataSize with estimate: true returns estimate: true in response."""
     collection.insert_many([{"_id": i, "data": "x" * 100} for i in range(10)])
     ns = f"{collection.database.name}.{collection.name}"
     result = execute_command(collection, {"dataSize": ns, "estimate": True})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="estimate true should succeed")
+    assertSuccessPartial(
+        result, {"ok": 1.0, "estimate": True}, msg="estimate true should echo in response"
+    )
 
 
 def test_dataSize_estimate_false(collection):
-    """Test dataSize with estimate: false returns exact size."""
+    """Test dataSize with estimate: false returns estimate: false in response."""
     collection.insert_many([{"_id": i} for i in range(10)])
     ns = f"{collection.database.name}.{collection.name}"
     result = execute_command(collection, {"dataSize": ns, "estimate": False})
     assertSuccessPartial(
-        result, {"ok": 1.0, "numObjects": Int64(10)}, msg="estimate false should return exact"
+        result,
+        {"ok": 1.0, "estimate": False, "numObjects": Int64(10)},
+        msg="estimate false should echo in response",
     )
 
 

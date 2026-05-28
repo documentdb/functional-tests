@@ -66,6 +66,18 @@ ERROR_TESTS: list[DiagnosticErrorTest] = [
         error_code=INVALID_NAMESPACE_ERROR,
         msg="Namespace without db prefix should error",
     ),
+    DiagnosticErrorTest(
+        "min_set_max_null",
+        command={"keyPattern": {"_id": 1}, "min": {"_id": 0}, "max": None},
+        error_code=BAD_VALUE_ERROR,
+        msg="min set with max null should error",
+    ),
+    DiagnosticErrorTest(
+        "min_null_max_set",
+        command={"keyPattern": {"_id": 1}, "min": None, "max": {"_id": 5}},
+        error_code=BAD_VALUE_ERROR,
+        msg="max set with min null should error",
+    ),
 ]
 
 
