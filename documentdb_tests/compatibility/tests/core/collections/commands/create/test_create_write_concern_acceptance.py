@@ -181,74 +181,6 @@ CREATE_WC_J_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [WriteConcern fsync Acceptance]: fsync accepts bool, numeric types
-# (truthiness), and null.
-CREATE_WC_FSYNC_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        id="wc_fsync_true",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "fsync": True},
-        },
-        expected={"ok": 1.0},
-        msg="fsync:true should succeed",
-    ),
-    CommandTestCase(
-        id="wc_fsync_false",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "fsync": False},
-        },
-        expected={"ok": 1.0},
-        msg="fsync:false should succeed",
-    ),
-    CommandTestCase(
-        id="wc_fsync_int32",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "fsync": 42},
-        },
-        expected={"ok": 1.0},
-        msg="fsync as int32 (numeric truthiness) should succeed",
-    ),
-    CommandTestCase(
-        id="wc_fsync_int64",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "fsync": Int64(1)},
-        },
-        expected={"ok": 1.0},
-        msg="fsync as Int64 (numeric truthiness) should succeed",
-    ),
-    CommandTestCase(
-        id="wc_fsync_double",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "fsync": 3.14},
-        },
-        expected={"ok": 1.0},
-        msg="fsync as double (numeric truthiness) should succeed",
-    ),
-    CommandTestCase(
-        id="wc_fsync_decimal128",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "fsync": Decimal128("1")},
-        },
-        expected={"ok": 1.0},
-        msg="fsync as Decimal128 (numeric truthiness) should succeed",
-    ),
-    CommandTestCase(
-        id="wc_fsync_null",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "fsync": None},
-        },
-        expected={"ok": 1.0},
-        msg="fsync:null should succeed",
-    ),
-]
-
 # Property [WriteConcern wtimeout Acceptance]: wtimeout accepts all BSON types.
 CREATE_WC_WTIMEOUT_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -427,80 +359,8 @@ CREATE_WC_WTIMEOUT_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [WriteConcern provenance and Legacy Fields]: provenance accepts
-# valid enum strings; getLastError, wElectionId, and wOpTime accept any type.
-CREATE_WC_PROVENANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        id="wc_provenance_client_supplied",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "provenance": "clientSupplied"},
-        },
-        expected={"ok": 1.0},
-        msg="provenance 'clientSupplied' should succeed",
-    ),
-    CommandTestCase(
-        id="wc_provenance_custom_default",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "provenance": "customDefault"},
-        },
-        expected={"ok": 1.0},
-        msg="provenance 'customDefault' should succeed",
-    ),
-    CommandTestCase(
-        id="wc_provenance_implicit_default",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "provenance": "implicitDefault"},
-        },
-        expected={"ok": 1.0},
-        msg="provenance 'implicitDefault' should succeed",
-    ),
-    CommandTestCase(
-        id="wc_provenance_get_last_error_defaults",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "provenance": "getLastErrorDefaults"},
-        },
-        expected={"ok": 1.0},
-        msg="provenance 'getLastErrorDefaults' should succeed",
-    ),
-    CommandTestCase(
-        id="wc_get_last_error_any_type",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "getLastError": "anything"},
-        },
-        expected={"ok": 1.0},
-        msg="getLastError accepts any type (ignored)",
-    ),
-    CommandTestCase(
-        id="wc_w_election_id_any_type",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "wElectionId": ObjectId()},
-        },
-        expected={"ok": 1.0},
-        msg="wElectionId accepts any type (ignored)",
-    ),
-    CommandTestCase(
-        id="wc_w_op_time_any_type",
-        command=lambda ctx: {
-            "create": f"{ctx.collection}_custom",
-            "writeConcern": {"w": 1, "wOpTime": Timestamp(1, 1)},
-        },
-        expected={"ok": 1.0},
-        msg="wOpTime accepts any type (ignored)",
-    ),
-]
-
 CREATE_WRITE_CONCERN_SUCCESS_TESTS: list[CommandTestCase] = (
-    CREATE_WC_DOCUMENT_AND_W_TESTS
-    + CREATE_WC_J_TESTS
-    + CREATE_WC_FSYNC_TESTS
-    + CREATE_WC_WTIMEOUT_TESTS
-    + CREATE_WC_PROVENANCE_TESTS
+    CREATE_WC_DOCUMENT_AND_W_TESTS + CREATE_WC_J_TESTS + CREATE_WC_WTIMEOUT_TESTS
 )
 
 

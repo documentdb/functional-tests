@@ -75,6 +75,23 @@ class CustomCollection(TargetCollection):
 
 
 @dataclass(frozen=True)
+class ViewOnCustomCollection(TargetCollection):
+    """A view on a custom collection created with arbitrary options."""
+
+    source_options: dict[str, Any] = field(default_factory=dict)
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        src_name = f"{collection.name}_custom_src"
+        db.command("create", src_name, **self.source_options)
+        view_name = f"{collection.name}_custom_view"
+        db.command("create", view_name, viewOn=src_name, pipeline=[])
+        return db[view_name]
+
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source.database[f"{source.name}_custom_src"]
+
+
+@dataclass(frozen=True)
 class CappedCollection(TargetCollection):
     """A capped collection."""
 
@@ -206,6 +223,19 @@ def ViewWithPipelineCollection() -> ViewCollection:
 
 
 @dataclass(frozen=True)
+class OrphanedViewCollection(TargetCollection):
+    """A view whose source collection does not exist."""
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        view_name = f"{collection.name}_orphan"
+        db.command("create", view_name, viewOn="nonexistent_source")
+        return db[view_name]
+
+    def writable(self, source: Collection, resolved: Collection) -> Collection:
+        return source
+
+
+@dataclass(frozen=True)
 class ValidatedCollection(TargetCollection):
     """A collection with a JSON schema validator."""
 
@@ -324,30 +354,6 @@ class ExtraCollections(TargetCollection):
         for i in range(self.count):
             db.create_collection(f"{collection.name}_extra_{i}")
         return collection
-
-
-@dataclass(frozen=True)
-class ViewOnCustomCollection(TargetCollection):
-    """A view on a source collection created with custom options.
-
-    Creates the source collection with ``source_options`` then creates
-    a view on it.
-    """
-
-    source_options: dict[str, Any] = field(default_factory=dict)
-
-    def resolve(self, db: Database, collection: Collection) -> Collection:
-        source_name = f"{collection.name}_source"
-        db.command("create", source_name, **self.source_options)
-        view_name = f"{collection.name}_view"
-        db.command("create", view_name, viewOn=source_name, pipeline=[])
-        return db[view_name]
-
-    def writable(self, source: Collection, resolved: Collection) -> Collection:
-        """Insert docs into the underlying source collection."""
-        db = source.database
-        source_name = f"{source.name}_source"
-        return db[source_name]
 
 
 @dataclass(frozen=True)
