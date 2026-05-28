@@ -6,7 +6,7 @@ Validates that invalid usages of buildInfo produce appropriate errors.
 import pytest
 
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
-    DiagnosticErrorTest,
+    DiagnosticTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
@@ -20,22 +20,22 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 
-ERROR_TESTS: list[DiagnosticErrorTest] = [
-    DiagnosticErrorTest(
+ERROR_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
         id="as_aggregation_stage",
         command={"aggregate": "test", "pipeline": [{"$buildInfo": {}}], "cursor": {}},
         use_admin=False,
         error_code=UNKNOWN_PIPELINE_STAGE_ERROR,
         msg="$buildInfo is not a valid aggregation stage",
     ),
-    DiagnosticErrorTest(
+    DiagnosticTestCase(
         id="case_sensitive",
         command={"BuildInfo": 1},
         use_admin=True,
         error_code=COMMAND_NOT_FOUND_ERROR,
         msg="Case-mismatched command name should fail",
     ),
-    DiagnosticErrorTest(
+    DiagnosticTestCase(
         id="unrecognized_field",
         command={"buildInfo": 1, "unknownField": 1},
         use_admin=True,

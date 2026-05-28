@@ -6,7 +6,7 @@ Validates presence, types, and values of response fields.
 import pytest
 
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
-    DiagnosticPropertyTest,
+    DiagnosticTestCase,
 )
 from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_admin_command
@@ -16,63 +16,63 @@ from documentdb_tests.framework.property_checks import Eq, Exists, Gte, IsType, 
 pytestmark = pytest.mark.admin
 
 
-PROPERTY_TESTS: list[DiagnosticPropertyTest] = [
-    DiagnosticPropertyTest(
+PROPERTY_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
         id="version_is_string",
         checks={"version": IsType("string")},
         msg="'version' field should be a string",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="gitVersion_is_string",
         checks={"gitVersion": IsType("string")},
         msg="'gitVersion' field should be a string",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="versionArray_is_array",
         checks={"versionArray": IsType("array")},
         msg="'versionArray' field should be an array",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="storageEngines_is_array",
         checks={"storageEngines": IsType("array")},
         msg="'storageEngines' field should be an array",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="javascriptEngine_is_string",
         checks={"javascriptEngine": IsType("string")},
         msg="'javascriptEngine' field should be a string",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="bits_is_int",
         checks={"bits": IsType("int")},
         msg="'bits' field should be an int",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="debug_is_bool",
         checks={"debug": IsType("bool")},
         msg="'debug' field should be a bool",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="maxBsonObjectSize_exists",
         checks={"maxBsonObjectSize": Exists()},
         msg="'maxBsonObjectSize' field should exist",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="openssl_is_object",
         checks={"openssl": IsType("object")},
         msg="'openssl' field should be an object",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="ok_is_1",
         checks={"ok": Eq(1.0)},
         msg="'ok' field should be 1.0",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="versionArray_has_4_elements",
         checks={"versionArray": Len(4)},
         msg="'versionArray' should have exactly 4 elements",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="versionArray_elements_nonneg",
         checks={
             "versionArray.0": Gte(0),
@@ -82,12 +82,12 @@ PROPERTY_TESTS: list[DiagnosticPropertyTest] = [
         },
         msg="'versionArray' elements should be non-negative",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="maxBsonObjectSize_gte_16mb",
         checks={"maxBsonObjectSize": Gte(16777216)},
         msg="'maxBsonObjectSize' should be at least 16777216 (16 MB)",
     ),
-    DiagnosticPropertyTest(
+    DiagnosticTestCase(
         id="modules_is_array",
         checks={"modules": IsType("array")},
         msg="'modules' field should be an array",
