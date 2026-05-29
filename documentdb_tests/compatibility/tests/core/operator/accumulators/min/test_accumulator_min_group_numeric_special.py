@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import math
-
 import pytest
 from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertSuccessNaN
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
@@ -45,7 +43,7 @@ MIN_NAN_TESTS: list[AccumulatorTestCase] = [
         "nan_sole_float",
         docs=[{"v": FLOAT_NAN}],
         pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": pytest.approx(math.nan, nan_ok=True)}],
+        expected=[{"_id": None, "result": FLOAT_NAN}],
         msg="$min should return float NaN when it is the sole value",
     ),
     AccumulatorTestCase(
@@ -66,35 +64,35 @@ MIN_NAN_TESTS: list[AccumulatorTestCase] = [
         "nan_vs_positive",
         docs=[{"v": FLOAT_NAN}, {"v": 100}],
         pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": pytest.approx(math.nan, nan_ok=True)}],
+        expected=[{"_id": None, "result": FLOAT_NAN}],
         msg="$min should pick NaN over positive number (NaN < all numerics)",
     ),
     AccumulatorTestCase(
         "nan_vs_negative",
         docs=[{"v": FLOAT_NAN}, {"v": -100}],
         pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": pytest.approx(math.nan, nan_ok=True)}],
+        expected=[{"_id": None, "result": FLOAT_NAN}],
         msg="$min should pick NaN over negative number",
     ),
     AccumulatorTestCase(
         "nan_vs_neg_infinity",
         docs=[{"v": FLOAT_NAN}, {"v": FLOAT_NEGATIVE_INFINITY}],
         pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": pytest.approx(math.nan, nan_ok=True)}],
+        expected=[{"_id": None, "result": FLOAT_NAN}],
         msg="$min should pick NaN over -Infinity (NaN < -Infinity)",
     ),
     AccumulatorTestCase(
         "nan_as_only_nonnull",
         docs=[{"v": FLOAT_NAN}, {"v": None}, {"x": 1}],
         pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": pytest.approx(math.nan, nan_ok=True)}],
+        expected=[{"_id": None, "result": FLOAT_NAN}],
         msg="$min should return NaN when it is the only non-null value",
     ),
     AccumulatorTestCase(
         "nan_three_docs",
         docs=[{"v": FLOAT_NAN}, {"v": 5}, {"v": 10}],
         pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": pytest.approx(math.nan, nan_ok=True)}],
+        expected=[{"_id": None, "result": FLOAT_NAN}],
         msg="$min should pick NaN over multiple positive values",
     ),
 ]
@@ -172,7 +170,7 @@ MIN_INFINITY_TESTS: list[AccumulatorTestCase] = [
         "neg_inf_vs_nan",
         docs=[{"v": FLOAT_NEGATIVE_INFINITY}, {"v": FLOAT_NAN}],
         pipeline=[{"$group": {"_id": None, "result": {"$min": "$v"}}}],
-        expected=[{"_id": None, "result": pytest.approx(math.nan, nan_ok=True)}],
+        expected=[{"_id": None, "result": FLOAT_NAN}],
         msg="$min should pick NaN over -Infinity (NaN < -Infinity)",
     ),
 ]
@@ -372,4 +370,4 @@ def test_accumulator_min_group_numeric_special(collection, test_case: Accumulato
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
+    assertSuccessNaN(result, test_case.expected, msg=test_case.msg)
