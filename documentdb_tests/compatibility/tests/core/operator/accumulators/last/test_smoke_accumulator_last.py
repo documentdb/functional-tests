@@ -6,7 +6,7 @@ Tests basic $last accumulator functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.smoke
@@ -35,4 +35,4 @@ def test_smoke_accumulator_last(collection):
     )
 
     expected = [{"_id": "A", "lastValue": 30}]
-    assertSuccess(result, expected, msg="Should support $last accumulator")
+    assertResult(result, expected=expected, msg="Should support $last accumulator")

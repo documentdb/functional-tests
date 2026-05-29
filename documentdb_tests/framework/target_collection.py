@@ -11,9 +11,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from pymongo import IndexModel
 from pymongo.collection import Collection
 from pymongo.database import Database
+from pymongo.operations import IndexModel
 
 
 @dataclass(frozen=True)
@@ -386,9 +386,10 @@ class SiblingCollection:
     suffix: str = "_target"
     view_on_source: bool = False
     timeseries_field: str | None = None
+    validator: dict[str, Any] | None = None
     collation: dict[str, Any] | None = None
-    indexes: list[IndexModel] | None = None
     docs: list[dict[str, Any]] | None = None
+    indexes: list[IndexModel] | None = None
 
     def create(self, db: Database, collection: Collection) -> None:
         """Create the sibling collection."""
@@ -397,6 +398,8 @@ class SiblingCollection:
             db.create_collection(name, viewOn=collection.name, pipeline=[])
         elif self.timeseries_field:
             db.create_collection(name, timeseries={"timeField": self.timeseries_field})
+        elif self.validator:
+            db.create_collection(name, validator=self.validator)
         elif self.collation:
             db.create_collection(name, collation=self.collation)
         else:
@@ -405,3 +408,5 @@ class SiblingCollection:
             db[name].create_indexes(self.indexes)
         if self.docs:
             db[name].insert_many(self.docs)
+        if self.indexes:
+            db[name].create_indexes(self.indexes)
