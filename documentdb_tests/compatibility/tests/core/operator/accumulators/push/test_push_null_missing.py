@@ -112,7 +112,21 @@ PUSH_REMOVE_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-PUSH_NULL_MISSING_TESTS = PUSH_NULL_TESTS + PUSH_MISSING_TESTS + PUSH_REMOVE_TESTS
+# Property [Empty Collection]: empty collection produces no group output
+# (empty result set).
+PUSH_EMPTY_COLLECTION_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "empty_collection",
+        docs=None,
+        pipeline=[{"$group": {"_id": None, "result": {"$push": "$v"}}}],
+        expected=[],
+        msg="$push on empty collection should return empty result set",
+    ),
+]
+
+PUSH_NULL_MISSING_TESTS = (
+    PUSH_NULL_TESTS + PUSH_MISSING_TESTS + PUSH_REMOVE_TESTS + PUSH_EMPTY_COLLECTION_TESTS
+)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(PUSH_NULL_MISSING_TESTS))
@@ -125,18 +139,3 @@ def test_push_null_missing(collection, test_case: AccumulatorTestCase):
         {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-# Property [Empty Collection]: empty collection produces no group output
-# (empty result set).
-def test_push_empty_collection(collection):
-    """Test $push on empty collection returns empty result set."""
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$group": {"_id": None, "result": {"$push": "$v"}}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(result, [], msg="$push on empty collection should return empty result set")
