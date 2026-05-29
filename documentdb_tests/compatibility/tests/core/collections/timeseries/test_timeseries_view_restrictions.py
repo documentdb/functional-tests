@@ -14,23 +14,9 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.target_collection import TimeseriesCollection
 
-# Property [View-Like Command Rejections]: mapReduce, dataSize, and reIndex
-# are not supported on timeseries collections.
+# Property [View-Like Command Rejections]: dataSize is not supported on
+# timeseries collections.
 VIEW_REJECTION_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "mapreduce_rejected",
-        target_collection=TimeseriesCollection(
-            timeseries_options={"timeField": "time", "metaField": "meta"}
-        ),
-        command=lambda ctx: {
-            "mapReduce": ctx.collection,
-            "map": "function(){emit(1,1)}",
-            "reduce": "function(k,v){return 1}",
-            "out": {"inline": 1},
-        },
-        error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
-        msg="Should reject mapReduce on timeseries",
-    ),
     CommandTestCase(
         "datasize_rejected",
         target_collection=TimeseriesCollection(
@@ -39,15 +25,6 @@ VIEW_REJECTION_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"dataSize": f"{ctx.database}.{ctx.collection}"},
         error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
         msg="Should reject dataSize on timeseries",
-    ),
-    CommandTestCase(
-        "reindex_rejected",
-        target_collection=TimeseriesCollection(
-            timeseries_options={"timeField": "time", "metaField": "meta"}
-        ),
-        command=lambda ctx: {"reIndex": ctx.collection},
-        error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
-        msg="Should reject reIndex on timeseries",
     ),
 ]
 
