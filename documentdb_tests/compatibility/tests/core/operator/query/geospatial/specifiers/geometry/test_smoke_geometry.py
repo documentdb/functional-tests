@@ -29,7 +29,7 @@ def test_smoke_geometry(collection):
             "find": collection.name,
             "filter": {
                 "loc": {
-                    "$geoWithin": {
+                    "$geoIntersects": {
                         "$geometry": {
                             "type": "Polygon",
                             "coordinates": [[[-1, -1], [5, -1], [5, 5], [-1, 5], [-1, -1]]],
