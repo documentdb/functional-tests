@@ -164,6 +164,26 @@ class NotContains(Check):
         return f"{type(self).__name__}({self.key!r}, {self.value!r})"
 
 
+class Includes(Check):
+    """Assert that a list contains the expected element."""
+
+    def __init__(self, element: Any) -> None:
+        self.element = element
+
+    def check(self, value: Any, path: str) -> str | None:
+        if value is _FIELD_ABSENT:
+            return f"expected '{path}' to exist"
+        if not isinstance(value, list):
+            return f"expected '{path}' to be a list, got {type(value).__name__}"
+        for item in value:
+            if strict_equal(item, self.element):
+                return None
+        return f"expected '{path}' to include {self.element!r}"
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.element!r})"
+
+
 class Ne(Check):
     """Assert that the field does not equal a value."""
 

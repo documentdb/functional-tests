@@ -1,82 +1,106 @@
-"""Tests for dbHash command core behavior and response structure."""
+"""Tests for dbHash command core behavior, response structure, and UUID consistency."""
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
+    DiagnosticTestCase,
+)
+from documentdb_tests.framework.assertions import assertProperties, assertResult
 from documentdb_tests.framework.executor import execute_command
-from documentdb_tests.framework.property_checks import Gte, IsType
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq, Gte, IsType, Ne
+from documentdb_tests.framework.target_collection import NamedCollection
 
 pytestmark = pytest.mark.admin
 
+RESPONSE_PROPERTY_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        id="host_is_string",
+        command={"dbHash": 1},
+        use_admin=False,
+        checks={"host": IsType("string")},
+        msg="'host' should be a string",
+    ),
+    DiagnosticTestCase(
+        id="collections_is_object",
+        command={"dbHash": 1},
+        use_admin=False,
+        checks={"collections": IsType("object")},
+        msg="'collections' should be an object",
+    ),
+    DiagnosticTestCase(
+        id="md5_is_string",
+        command={"dbHash": 1},
+        use_admin=False,
+        checks={"md5": IsType("string")},
+        msg="'md5' should be a string",
+    ),
+    DiagnosticTestCase(
+        id="timeMillis_gte_0",
+        command={"dbHash": 1},
+        use_admin=False,
+        checks={"timeMillis": Gte(0)},
+        msg="'timeMillis' should be >= 0",
+    ),
+    DiagnosticTestCase(
+        id="capped_is_array",
+        command={"dbHash": 1},
+        use_admin=False,
+        checks={"capped": IsType("array")},
+        msg="'capped' should be an array",
+    ),
+    DiagnosticTestCase(
+        id="uuids_is_object",
+        command={"dbHash": 1},
+        use_admin=False,
+        checks={"uuids": IsType("object")},
+        msg="'uuids' should be an object",
+    ),
+    DiagnosticTestCase(
+        id="empty_database",
+        command={"dbHash": 1, "collections": ["nonexistent_xyz_abc"]},
+        use_admin=False,
+        checks={"ok": Eq(1.0)},
+        msg="Should succeed on filtered empty",
+    ),
+]
 
-def test_dbHash_returns_ok(collection):
-    """Test dbHash returns ok: 1."""
+
+@pytest.mark.parametrize("test", pytest_params(RESPONSE_PROPERTY_TESTS))
+def test_dbHash_response_properties(collection, test):
+    """Verifies dbHash response fields have expected types and values."""
     collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"dbHash": 1})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Should return ok: 1")
+    result = execute_command(collection, test.command)
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
-def test_dbHash_returns_host(collection):
-    """Test dbHash returns host as a string."""
+def test_dbHash_uuid_stable_across_calls(collection):
+    """Test UUID for a collection remains stable across dbHash calls."""
     collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"dbHash": 1})
+    r1 = execute_command(collection, {"dbHash": 1})
+    uuid1 = r1["uuids"][collection.name]
+    r2 = execute_command(collection, {"dbHash": 1})
     assertResult(
-        result, expected={"host": IsType("string")}, raw_res=True, msg="host should be string"
-    )
-
-
-def test_dbHash_returns_collections(collection):
-    """Test dbHash returns collections as a document."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"dbHash": 1})
-    assertResult(
-        result,
-        expected={"collections": IsType("object")},
+        r2,
+        expected={"uuids": {collection.name: Eq(uuid1)}},
         raw_res=True,
-        msg="collections should be object",
+        msg="UUID should be stable",
     )
 
 
-def test_dbHash_returns_md5(collection):
-    """Test dbHash returns md5 as a 32-character hex string."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"dbHash": 1})
+def test_dbHash_uuid_changes_after_recreate(database_client, collection):
+    """Test UUID changes after dropping and recreating a collection with same name."""
+    coll = NamedCollection(suffix="_uuid").resolve(database_client, collection)
+    coll.insert_one({"_id": 1})
+    r1 = execute_command(coll, {"dbHash": 1})
+    uuid1 = r1["uuids"][coll.name]
+    database_client.drop_collection(coll.name)
+    database_client.create_collection(coll.name)
+    coll.insert_one({"_id": 2})
+    r2 = execute_command(coll, {"dbHash": 1})
     assertResult(
-        result, expected={"md5": IsType("string")}, raw_res=True, msg="md5 should be string"
-    )
-
-
-def test_dbHash_returns_timeMillis(collection):
-    """Test dbHash returns timeMillis as a non-negative number."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"dbHash": 1})
-    assertResult(
-        result, expected={"timeMillis": Gte(0)}, raw_res=True, msg="timeMillis should be >= 0"
-    )
-
-
-def test_dbHash_returns_capped_array(collection):
-    """Test dbHash returns capped as an array."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"dbHash": 1})
-    assertResult(
-        result, expected={"capped": IsType("array")}, raw_res=True, msg="capped should be array"
-    )
-
-
-def test_dbHash_returns_uuids(collection):
-    """Test dbHash returns uuids as a document."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"dbHash": 1})
-    assertResult(
-        result, expected={"uuids": IsType("object")}, raw_res=True, msg="uuids should be object"
-    )
-
-
-def test_dbHash_empty_database(collection):
-    """Test dbHash on database with no user collections returns empty collections."""
-    # Use a fresh database via execute_command on a different db
-    result = execute_command(collection, {"dbHash": 1, "collections": ["nonexistent_xyz_abc"]})
-    assertResult(
-        result, expected={"ok": Gte(0.0)}, raw_res=True, msg="Should succeed on filtered empty"
+        r2,
+        expected={"uuids": {coll.name: Ne(uuid1)}},
+        raw_res=True,
+        msg="UUID should change after recreate",
     )
