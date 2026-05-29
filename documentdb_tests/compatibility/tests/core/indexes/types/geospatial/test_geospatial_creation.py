@@ -1,8 +1,9 @@
 """Tests for geospatial index creation, data validation, and sparse behavior.
 
 Validates 2dsphere/2d creation, compound indexes, GeoJSON types (including
-Multi* and GeometryCollection), coordinate boundaries, null/missing handling,
-always-sparse behavior, duplicate/conflicting index handling, and legacy formats.
+Multi* and GeometryCollection), nested field paths, coordinate boundaries,
+null/missing handling, always-sparse behavior, duplicate/conflicting index
+handling, and legacy formats.
 """
 
 import pytest
@@ -254,6 +255,13 @@ VALID_GEOJSON_TESTS: list[IndexTestCase] = [
         ],
         msg="GeometryCollection document inserted",
     ),
+    IndexTestCase(
+        id="data_nested_field_path",
+        indexes=({"key": {"address.location": "2dsphere"}, "name": "addr_loc_2ds"},),
+        doc=({"_id": 1, "address": {"location": {"type": "Point", "coordinates": [0, 0]}}},),
+        expected=[{"_id": 1, "address": {"location": {"type": "Point", "coordinates": [0, 0]}}}],
+        msg="2dsphere index on nested field path inserted and queryable",
+    ),
 ]
 
 
@@ -266,7 +274,7 @@ def test_geospatial_2dsphere_valid_data(collection, test):
     )
     collection.insert_many(list(test.doc))
     result = execute_command(
-        collection, {"find": collection.name, "hint": "loc_2ds", "sort": {"_id": 1}}
+        collection, {"find": collection.name, "hint": test.indexes[0]["name"], "sort": {"_id": 1}}
     )
     assertSuccess(result, test.expected, msg=test.msg)
 

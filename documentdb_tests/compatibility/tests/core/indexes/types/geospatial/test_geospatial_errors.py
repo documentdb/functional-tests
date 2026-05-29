@@ -371,6 +371,18 @@ ADDITIONAL_GEOJSON_ERROR_TESTS: list[IndexTestCase] = [
         },
         msg="Array of GeoJSON objects should fail",
     ),
+    IndexTestCase(
+        id="self_intersecting_polygon_bowtie",
+        indexes=({"key": {"loc": "2dsphere"}, "name": "loc_2ds"},),
+        input={
+            "_id": 1,
+            "loc": {
+                "type": "Polygon",
+                "coordinates": [[[0, 0], [10, 10], [10, 0], [0, 10], [0, 0]]],
+            },
+        },
+        msg="Self-intersecting GeoJSON Polygon (bowtie) ring should fail",
+    ),
 ]
 
 
