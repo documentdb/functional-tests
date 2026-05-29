@@ -1,7 +1,7 @@
 """
 Smoke test for connectionStatus command.
 
-Tests basic connectionStatus command functionality.
+Verifies the command executes successfully and returns ok: 1.
 """
 
 import pytest
@@ -13,7 +13,7 @@ pytestmark = pytest.mark.smoke
 
 
 def test_smoke_connectionStatus(collection):
-    """Test basic connectionStatus command behavior."""
+    """Verify connectionStatus executes successfully and returns ok: 1."""
     result = execute_admin_command(collection, {"connectionStatus": 1})
 
     expected = {"ok": 1.0}

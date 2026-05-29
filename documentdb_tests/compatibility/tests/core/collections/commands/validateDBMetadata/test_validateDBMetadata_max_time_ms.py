@@ -50,6 +50,8 @@ VALIDATE_DB_METADATA_MAX_TIME_MS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "maxTimeMS": 0,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -60,6 +62,8 @@ VALIDATE_DB_METADATA_MAX_TIME_MS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "maxTimeMS": INT32_MAX,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -70,6 +74,8 @@ VALIDATE_DB_METADATA_MAX_TIME_MS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "maxTimeMS": Int64(1000),
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -80,6 +86,8 @@ VALIDATE_DB_METADATA_MAX_TIME_MS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "maxTimeMS": 500.0,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -90,6 +98,8 @@ VALIDATE_DB_METADATA_MAX_TIME_MS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "maxTimeMS": Decimal128("100"),
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -100,6 +110,8 @@ VALIDATE_DB_METADATA_MAX_TIME_MS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "maxTimeMS": DOUBLE_NEGATIVE_ZERO,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -110,6 +122,8 @@ VALIDATE_DB_METADATA_MAX_TIME_MS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "maxTimeMS": DECIMAL128_NEGATIVE_ZERO,
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -120,6 +134,8 @@ VALIDATE_DB_METADATA_MAX_TIME_MS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "maxTimeMS": Decimal128("1000.0"),
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
@@ -130,6 +146,8 @@ VALIDATE_DB_METADATA_MAX_TIME_MS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {
             "validateDBMetadata": 1,
             "apiParameters": {"version": "1", "strict": True},
+            "db": ctx.database,
+            "collection": ctx.collection,
             "maxTimeMS": Decimal128("5000.00"),
         },
         expected={"ok": 1.0, "apiVersionErrors": []},
