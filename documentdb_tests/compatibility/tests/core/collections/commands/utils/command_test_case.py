@@ -97,7 +97,7 @@ class CommandTestCase(BaseTestCase):
                 target.insert_many(self.docs)
         if self.siblings:
             for sibling in self.siblings:
-                sibling.create(db, collection)
+                sibling.create(db, resolved)
         return resolved
 
     def build_command(self, ctx: CommandContext) -> dict[str, Any]:
