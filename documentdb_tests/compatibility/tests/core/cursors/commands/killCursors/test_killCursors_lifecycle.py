@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import datetime
+
 import pytest
 from bson import Int64
 
@@ -154,6 +156,66 @@ def test_killCursors_list_indexes_cursor(collection):
             "ok": 1.0,
         },
         msg="killCursors should kill cursor from listIndexes",
+        raw_res=True,
+    )
+
+
+def test_killCursors_view_cursor(database_client, collection):
+    """Test killCursors kills a cursor opened against a view."""
+    collection.insert_many([{"_id": i} for i in range(10)])
+    view_name = collection.name + "_view"
+    execute_command(
+        collection,
+        {"create": view_name, "viewOn": collection.name, "pipeline": []},
+    )
+    view = database_client[view_name]
+    res = execute_command(view, {"find": view_name, "batchSize": 1})
+    cursor_id = res["cursor"]["id"]
+    result = execute_command(
+        view,
+        {"killCursors": view_name, "cursors": [cursor_id]},
+    )
+    assertResult(
+        result,
+        expected={
+            "cursorsKilled": [cursor_id],
+            "cursorsNotFound": [],
+            "cursorsAlive": [],
+            "cursorsUnknown": [],
+            "ok": 1.0,
+        },
+        msg="killCursors should kill cursor from a view",
+        raw_res=True,
+    )
+
+
+def test_killCursors_timeseries_cursor(database_client, collection):
+    """Test killCursors kills a cursor opened against a time-series collection."""
+    ts_name = collection.name + "_ts"
+    execute_command(
+        collection,
+        {"create": ts_name, "timeseries": {"timeField": "ts"}},
+    )
+    ts = database_client[ts_name]
+    ts.insert_many(
+        [{"ts": datetime.datetime(2024, 1, 1) + datetime.timedelta(minutes=i)} for i in range(20)]
+    )
+    res = execute_command(ts, {"find": ts_name, "batchSize": 1})
+    cursor_id = res["cursor"]["id"]
+    result = execute_command(
+        ts,
+        {"killCursors": ts_name, "cursors": [cursor_id]},
+    )
+    assertResult(
+        result,
+        expected={
+            "cursorsKilled": [cursor_id],
+            "cursorsNotFound": [],
+            "cursorsAlive": [],
+            "cursorsUnknown": [],
+            "ok": 1.0,
+        },
+        msg="killCursors should kill cursor from a time-series collection",
         raw_res=True,
     )
 
