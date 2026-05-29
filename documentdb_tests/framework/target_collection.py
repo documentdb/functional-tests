@@ -13,6 +13,7 @@ from typing import Any
 
 from pymongo.collection import Collection
 from pymongo.database import Database
+from pymongo.operations import IndexModel
 
 
 @dataclass(frozen=True)
@@ -356,6 +357,25 @@ class ExtraCollections(TargetCollection):
 
 
 @dataclass(frozen=True)
+class CollectionWithView(TargetCollection):
+    """A collection with a view created on top of it.
+
+    Creates the source collection, then creates a view on it with
+    ``view_options``. Resolves to the source collection so tests can
+    verify the view does not affect the underlying collection.
+    """
+
+    view_options: dict[str, Any] = field(default_factory=dict)
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        source_name = f"{collection.name}_source"
+        db.command("create", source_name)
+        view_name = f"{collection.name}_view"
+        db.command("create", view_name, viewOn=source_name, pipeline=[], **self.view_options)
+        return db[source_name]
+
+
+@dataclass(frozen=True)
 class SiblingCollection:
     """Describes an additional collection to create alongside the source.
 
@@ -366,7 +386,10 @@ class SiblingCollection:
     suffix: str = "_target"
     view_on_source: bool = False
     timeseries_field: str | None = None
+    validator: dict[str, Any] | None = None
+    collation: dict[str, Any] | None = None
     docs: list[dict[str, Any]] | None = None
+    indexes: list[IndexModel] | None = None
 
     def create(self, db: Database, collection: Collection) -> None:
         """Create the sibling collection."""
@@ -375,7 +398,15 @@ class SiblingCollection:
             db.create_collection(name, viewOn=collection.name, pipeline=[])
         elif self.timeseries_field:
             db.create_collection(name, timeseries={"timeField": self.timeseries_field})
+        elif self.validator:
+            db.create_collection(name, validator=self.validator)
+        elif self.collation:
+            db.create_collection(name, collation=self.collation)
         else:
             db.create_collection(name)
+        if self.indexes:
+            db[name].create_indexes(self.indexes)
         if self.docs:
             db[name].insert_many(self.docs)
+        if self.indexes:
+            db[name].create_indexes(self.indexes)
