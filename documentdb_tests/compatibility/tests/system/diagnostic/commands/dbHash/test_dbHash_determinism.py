@@ -69,6 +69,22 @@ def test_dbHash_update_changes_hash(collection):
     )
 
 
+def test_dbHash_hash_reverts_after_undo(collection):
+    """Test hash returns to original after reverting data changes."""
+    collection.insert_one({"_id": 1})
+    r1 = execute_command(collection, {"dbHash": 1})
+    hash1 = r1.get("collections", {}).get(collection.name, "MISSING_HASH")
+    collection.insert_one({"_id": 2})
+    collection.delete_one({"_id": 2})
+    r2 = execute_command(collection, {"dbHash": 1})
+    assertResult(
+        r2,
+        expected={"collections": {collection.name: Eq(hash1)}},
+        raw_res=True,
+        msg="Hash should revert after undo",
+    )
+
+
 def test_dbHash_other_collection_unaffected(database_client, collection):
     """Test modifying collection A does not change collection B's hash."""
     coll_a = NamedCollection(suffix="_a").resolve(database_client, collection)

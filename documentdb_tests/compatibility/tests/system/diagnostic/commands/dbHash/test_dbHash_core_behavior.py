@@ -56,13 +56,6 @@ RESPONSE_PROPERTY_TESTS: list[DiagnosticTestCase] = [
         checks={"uuids": IsType("object")},
         msg="'uuids' should be an object",
     ),
-    DiagnosticTestCase(
-        id="empty_database",
-        command={"dbHash": 1, "collections": ["nonexistent_xyz_abc"]},
-        use_admin=False,
-        checks={"ok": Eq(1.0)},
-        msg="Should succeed on filtered empty",
-    ),
 ]
 
 

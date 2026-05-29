@@ -3,6 +3,7 @@
 import pytest
 
 from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.property_checks import Exists, NotExists
 from documentdb_tests.framework.target_collection import NamedCollection
@@ -46,19 +47,45 @@ def test_dbHash_collections_specific(database_client, collection):
     )
 
 
-def test_dbHash_collections_nonexistent(collection):
-    """Test dbHash with non-existent collection in array omits it from result."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"dbHash": 1, "collections": ["nonexistent_xyz"]})
+def test_dbHash_collections_multiple(database_client, collection):
+    """Test dbHash with multiple collection names returns hashes for both."""
+    coll_a = NamedCollection(suffix="_a").resolve(database_client, collection)
+    coll_b = NamedCollection(suffix="_b").resolve(database_client, collection)
+    coll_a.insert_one({"_id": 1})
+    coll_b.insert_one({"_id": 2})
+    result = execute_command(coll_a, {"dbHash": 1, "collections": [coll_a.name, coll_b.name]})
     assertResult(
         result,
         expected={
-            "collections": {"nonexistent_xyz": NotExists()},
-            "uuids": {"nonexistent_xyz": NotExists()},
+            "collections": {coll_a.name: Exists(), coll_b.name: Exists()},
+            "uuids": {coll_a.name: Exists(), coll_b.name: Exists()},
+        },
+        raw_res=True,
+        msg="Should include both specified collections",
+    )
+
+
+def test_dbHash_collections_nonexistent(collection):
+    """Test dbHash with non-existent collection in array omits it from result."""
+    nonexistent = f"{collection.name}_nonexistent"
+    collection.insert_one({"_id": 1})
+    result = execute_command(collection, {"dbHash": 1, "collections": [nonexistent]})
+    assertResult(
+        result,
+        expected={
+            "collections": {nonexistent: NotExists()},
+            "uuids": {nonexistent: NotExists()},
         },
         raw_res=True,
         msg="Non-existent should be omitted",
     )
+
+
+def test_dbHash_collections_non_string_element(collection):
+    """Test dbHash with non-string element in collections array returns error."""
+    collection.insert_one({"_id": 1})
+    result = execute_command(collection, {"dbHash": 1, "collections": [1]})
+    assertResult(result, error_code=BAD_VALUE_ERROR, msg="Non-string element should fail")
 
 
 def test_dbHash_collections_omitted(collection):
