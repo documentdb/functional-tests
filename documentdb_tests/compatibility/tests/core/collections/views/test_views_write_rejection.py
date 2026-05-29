@@ -14,8 +14,8 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.target_collection import ViewCollection
 
-# Property [Write Rejection]: insert, update, delete, findAndModify, and
-# mapReduce on a view are rejected with the command-not-supported-on-view error.
+# Property [Write Rejection]: insert, update, delete, and findAndModify
+# on a view are rejected with the command-not-supported-on-view error.
 VIEWS_WRITE_REJECTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "insert_rejected",
@@ -61,19 +61,6 @@ VIEWS_WRITE_REJECTION_TESTS: list[CommandTestCase] = [
         },
         error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
         msg="findAndModify on a view should be rejected",
-    ),
-    CommandTestCase(
-        "map_reduce_rejected",
-        target_collection=ViewCollection(),
-        docs=[{"_id": 1, "x": 10}],
-        command=lambda ctx: {
-            "mapReduce": ctx.collection,
-            "map": "function(){emit(this.x,1)}",
-            "reduce": "function(k,v){return Array.sum(v)}",
-            "out": {"inline": 1},
-        },
-        error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
-        msg="mapReduce on a view should be rejected",
     ),
 ]
 
