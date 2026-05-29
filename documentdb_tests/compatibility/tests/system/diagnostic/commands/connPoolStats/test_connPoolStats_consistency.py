@@ -13,6 +13,7 @@ from documentdb_tests.framework.assertions import (
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.property_checks import Gte
+from documentdb_tests.framework.test_constants import FLOAT_INFINITY
 
 pytestmark = pytest.mark.admin
 
@@ -27,7 +28,7 @@ def test_connPoolStats_repeated_calls(collection):
 def test_connPoolStats_totalCreated_non_decreasing(collection):
     """Verify totalCreated is monotonically non-decreasing across calls."""
     r1 = execute_admin_command(collection, {"connPoolStats": 1})
-    created1 = r1.get("totalCreated", None)
+    created1 = r1.get("totalCreated", FLOAT_INFINITY)
     r2 = execute_admin_command(collection, {"connPoolStats": 1})
     assertResult(
         r2,
@@ -40,7 +41,9 @@ def test_connPoolStats_totalCreated_non_decreasing(collection):
 def test_connPoolStats_totalCreated_gte_inUse_plus_available(collection):
     """Verify totalCreated >= totalInUse + totalAvailable."""
     result = execute_admin_command(collection, {"connPoolStats": 1})
-    minimum = result.get("totalInUse", None) + result.get("totalAvailable", None)
+    in_use = result.get("totalInUse", FLOAT_INFINITY)
+    available = result.get("totalAvailable", FLOAT_INFINITY)
+    minimum = in_use + available
     assertResult(
         result,
         expected={"totalCreated": Gte(minimum)},
