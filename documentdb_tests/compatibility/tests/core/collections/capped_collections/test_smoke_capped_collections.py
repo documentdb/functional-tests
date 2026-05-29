@@ -1,5 +1,5 @@
 """
-Smoke test for capped-collections.
+Smoke test for capped collections.
 
 Tests basic capped collection functionality with size limit.
 """
@@ -15,7 +15,7 @@ pytestmark = pytest.mark.smoke
 def test_smoke_capped_collections(collection):
     """Test basic capped collection creation."""
     result = execute_command(
-        collection, {"create": f"{collection.name}_capped", "capped": True, "size": 1024.0}
+        collection, {"create": f"{collection.name}_capped", "capped": True, "size": 1024}
     )
 
     expected = {"ok": 1.0}

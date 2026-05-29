@@ -13,7 +13,6 @@
 - **No engine-specific implementation details** — Don't test internal storage details (wiredTiger, engine-specific fields, etc.). These belong in engine-specific test suites, not compatibility tests.
 - **Tests belong in the feature's folder** — `$abs` type validation goes in `expressions/arithmetic/abs/`, not in `stages/project/`. Testing `$abs` inside `$project` is a `$project` context test (one simple case), not an `$abs` test.
 - **No deprecated / removed features** — Do not write tests for the following deprecated or removed MongoDB features:
-  - **BSON `Code` type** (`bson.Code`) — deprecated BSON type; do not use `Code` constants or `Code`-valued fields in any test.
   - **`mapReduce` command** — removed in MongoDB 8.0.
   - **`reIndex` command** — removed in MongoDB 6.0.
   - **JavaScript `function` in queries** — server-side JavaScript execution is deprecated.
@@ -462,7 +461,6 @@ For each invalid_type in [string, object, array, ...]:
 
  **Out of Scope**:
   - **BSON comparison ordering** (used by `$max`/`$min`/`$top`/`$bottom`) — `bson_types/test_bson_types_ordering.py`; per-accumulator coverage limited to a small wiring sample.
-  - **JavaScript Code type** — the BSON `Code` type is deprecated; accumulator tests should not include `Code` constant or `Code`-valued field tests.
 
 ---
 
