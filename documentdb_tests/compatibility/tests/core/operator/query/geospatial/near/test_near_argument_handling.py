@@ -9,8 +9,6 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.usefixtures("geo_2dsphere")
-
 NYC_POINT = [-73.9667, 40.78]
 
 
@@ -61,6 +59,7 @@ GEOJSON_STRUCTURE_SUCCESS_TESTS: list[QueryTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(GEOJSON_STRUCTURE_SUCCESS_TESTS))
 def test_near_valid_argument_handling(collection, test):
     """Verifies $near accepts valid GeoJSON structures."""
+    collection.create_index([("loc", "2dsphere")])
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, msg=test.msg)
