@@ -1,4 +1,4 @@
-"""Test case and helpers for killCursors tests requiring active cursors."""
+"""Test case and helpers for cursor command tests requiring active cursors."""
 
 from __future__ import annotations
 
@@ -35,13 +35,25 @@ class CursorCommandContext(CommandContext):
         )
 
 
-def open_find_cursors(collection: Collection, count: int) -> tuple[Any, ...]:
-    """Open count find cursors with batchSize 1 and return their IDs."""
+def open_find_cursors(
+    collection: Collection, count: int, *, batch_size: int = 1
+) -> tuple[Any, ...]:
+    """Open count find cursors with the given batchSize and return their IDs."""
     ids = []
     for _ in range(count):
-        res = execute_command(collection, {"find": collection.name, "batchSize": 1})
+        res = execute_command(collection, {"find": collection.name, "batchSize": batch_size})
         ids.append(res["cursor"]["id"])
     return tuple(ids)
+
+
+def open_cursor(collection: Collection, find_options: dict[str, Any]) -> Any:
+    """Open a cursor on ``collection`` with the given find options and return its ID.
+
+    ``find_options`` is merged into the find command (e.g.
+    ``{"tailable": True, "awaitData": True, "batchSize": 10}``).
+    """
+    res = execute_command(collection, {"find": collection.name, **find_options})
+    return res["cursor"]["id"]
 
 
 @dataclass(frozen=True)
@@ -52,3 +64,4 @@ class CursorCommandTestCase(CommandTestCase):
     """
 
     cursor_count: int = 0
+    find_batch_size: int = 1

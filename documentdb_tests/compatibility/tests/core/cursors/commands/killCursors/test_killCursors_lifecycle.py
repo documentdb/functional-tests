@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from bson import Int64
 
-from documentdb_tests.compatibility.tests.core.cursors.commands.killCursors.utils.cursor_test_case import (  # noqa: E501
+from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
     CursorCommandContext,
     CursorCommandTestCase,
     open_find_cursors,

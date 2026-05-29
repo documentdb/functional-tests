@@ -9,7 +9,7 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.compatibility.tests.core.cursors.commands.killCursors.utils.cursor_test_case import (  # noqa: E501
+from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
     CursorCommandContext,
     CursorCommandTestCase,
     open_find_cursors,
