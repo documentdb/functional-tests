@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-def test_smoke_accumulator_avg(collection):
+def test_accumulator_avg_smoke(collection):
     """Test basic $avg accumulator behavior."""
     collection.insert_many(
         [

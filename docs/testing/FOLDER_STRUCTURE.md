@@ -3,12 +3,13 @@
 ## Core Principles
 
 1. **Feature-specific tests** → dedicated subfolders. Test only the feature's own inputs and edge cases, not lower-level features it contains (those are tested in their own directories).
-2. **Cross-cutting features** (rbac, transactions, collation, etc.) → own top-level folders, NOT under feature-specific folders (e.g., rbac with find goes under `/tests/rbac/`, not `/tests/find/`).
-3. **Feature levels** — higher-level features (e.g., `find`, `$group`, `$lookup`) contain lower-level features (e.g., `projection`, `$sum`, `$unwind`). Higher-level tests only verify lower-level features are supported (1-2 cases) and test combinations of lower-level features. Lower-level features test their own edge cases in their own directories.
-4. **Integration tests** (multiple same-level features interacting) → parent folders. Example: `{$add: [{$subtract: [2, 1]}, 3]}` tests multiple operators working together (operator combination/nesting), not a single operator's edge cases — goes in `expressions/test_expression_combination.py`, not `expressions/arithmetic/add/`. Single operator edge cases (null handling, type errors, boundary values) stay in the operator's own folder.
-5. **Operators** → comprehensive tests in `/tests/operators/{type}/$operator/`, only 1-2 integration cases elsewhere.
+2. **Cross-cutting features** (rbac, transactions, collation, namespace rules, etc.) → own top-level folders, NOT under feature-specific folders (e.g., rbac with find goes under `/tests/rbac/`, not `/tests/find/`). When a command accepts a cross-cutting feature as a parameter (e.g., collation field on aggregate), the command tests only that the field is syntactically accepted (type acceptance/rejection, one valid case). Sub-field validation and semantic behavior live in the feature's own directory. Exception: parameters whose behavior genuinely varies per command (readConcern, writeConcern) are tested exhaustively per command including sub-fields.
+3. **Collection type as input** — when a command or operator accepts different collection types (views, capped, timeseries), test one representative case per type showing it works. The collection type's own semantics (pipeline composition, eviction, chaining) belong in the type's feature directory.
+4. **Feature levels** — higher-level features (e.g., `find`, `$group`, `$lookup`) contain lower-level features (e.g., `projection`, `$sum`, `$unwind`). Higher-level tests only verify lower-level features are supported (1-2 cases) and test combinations of lower-level features. Lower-level features test their own edge cases in their own directories.
+5. **Integration tests** (multiple same-level features interacting) → parent folders. Example: `{$add: [{$subtract: [2, 1]}, 3]}` tests multiple operators working together (operator combination/nesting), not a single operator's edge cases — goes in `expressions/test_expression_combination.py`, not `expressions/arithmetic/add/`. Single operator edge cases (null handling, type errors, boundary values) stay in the operator's own folder.
+6. **Operators** → comprehensive tests in `/tests/operators/{type}/$operator/`, only 1-2 integration cases elsewhere.
 
-6. **File organization** — a feature folder can have multiple files if a single file would exceed ~200 lines. Group test cases logically by aspect (e.g., by parameter, by error type). Example:
+7. **File organization** — a feature folder can have multiple files if a single file would exceed ~200 lines. Group test cases logically by aspect (e.g., by parameter, by error type). Example:
 ```
 /tests/aggregate/unwind/
 ├── test_unwind_path.py                           # path parameter
