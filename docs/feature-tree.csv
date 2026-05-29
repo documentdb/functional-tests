@@ -5,7 +5,6 @@ core,aggregation,commands,-,-,distinct
 core,aggregation,commands,-,-,mapReduce
 core,collections,-,-,-,capped-collections
 core,collections,-,-,-,clustered-collections
-core,collections,-,-,-,materialized-views
 core,collections,-,-,-,timeseries
 core,collections,-,-,-,views
 core,collections,commands,-,-,cloneCollectionAsCapped
