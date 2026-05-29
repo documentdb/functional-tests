@@ -68,7 +68,8 @@ def test_connectionStatus_response_properties(collection, test):
 
 def test_connectionStatus_succeeds_on_nonexistent_database(collection):
     """Verify connectionStatus returns ok and authInfo when run on a non-existent database."""
-    other_col = collection.database.client["nonexistent_db_for_connstatus_test"]["dummy"]
+    other_db = f"{collection.name}_nonexistent_db"
+    other_col = collection.database.client[other_db][collection.name]
     result = execute_command(other_col, {"connectionStatus": 1})
     assertProperties(
         result,
@@ -81,7 +82,8 @@ def test_connectionStatus_succeeds_on_nonexistent_database(collection):
 def test_connectionStatus_same_result_across_databases(collection):
     """Verify authInfo is identical whether run on admin or a different database."""
     admin_result = execute_admin_command(collection, {"connectionStatus": 1})
-    other_col = collection.database.client["nonexistent_db_for_connstatus_test"]["dummy"]
+    other_db = f"{collection.name}_nonexistent_db"
+    other_col = collection.database.client[other_db][collection.name]
     other_result = execute_command(other_col, {"connectionStatus": 1})
     assertResult(
         other_result,
