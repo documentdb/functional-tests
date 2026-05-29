@@ -86,7 +86,8 @@ def test_createIndexes_timeseries_rejected(timeseries_coll, test):
 
 
 # Property [Accepted Index Types]: 2dsphere, partial filter, compound,
-# descending, hidden, and collation indexes are supported on timeseries.
+# descending, hidden, collation, and metaField-specific (sparse, 2d)
+# indexes are supported on timeseries.
 TIMESERIES_INDEX_ACCEPTED_TESTS: list[IndexTestCase] = [
     IndexTestCase(
         "2dsphere_accepted",
@@ -128,6 +129,16 @@ TIMESERIES_INDEX_ACCEPTED_TESTS: list[IndexTestCase] = [
         "on_metafield_accepted",
         indexes=({"key": {"meta": 1}, "name": "meta_solo"},),
         msg="Should accept index on metaField on timeseries",
+    ),
+    IndexTestCase(
+        "sparse_on_metafield_accepted",
+        indexes=({"key": {"meta": 1}, "name": "meta_sparse", "sparse": True},),
+        msg="Should accept sparse index on metaField on timeseries",
+    ),
+    IndexTestCase(
+        "2d_on_metafield_accepted",
+        indexes=({"key": {"meta": "2d"}, "name": "meta_2d"},),
+        msg="Should accept 2d index on metaField on timeseries",
     ),
     IndexTestCase(
         "on_timefield_accepted",
