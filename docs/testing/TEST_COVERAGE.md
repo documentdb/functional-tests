@@ -1,6 +1,58 @@
-# DocumentDB Comprehensive Test Coverage Guidelines
+# DocumentDB Compatibility Test Coverage Guidelines
 
-**Purpose**: Define comprehensive test coverage requirements for DocumentDB features to ensure complete validation.
+**Purpose**: Define compatibility test coverage requirements for DocumentDB features to ensure complete validation.
+
+**Target Spec Version**: MongoDB 8.2.4 (see `.github/workflows/pr-tests.yml` for the authoritative image version)
+
+**xfail Policy**: `engine_xfail("mongodb")` is for confirmed MongoDB bugs where MongoDB itself returns incorrect results. DocumentDB failures are **not** handled here — they are tracked in the DocumentDB main repo.
+
+**Usage**: Use this document as a checklist when adding tests for a feature. Walk through each numbered section and confirm coverage exists or is not applicable.
+
+---
+
+## High-Level Guidelines
+
+### Compatibility Tests, Not Functional Tests
+
+These are **compatibility tests based on feature specs**. We validate that DocumentDB produces the same output as the spec defines for each feature's own behavior. We do **not** comprehensively test shared/implied behavior that belongs to other features.
+
+**What to test**: Behavior specific to the feature under test.  
+**What NOT to test**: Shared infrastructure behavior that is already covered by the feature that owns it.
+
+**Example**: When testing `$divide`:
+- ✅ Test that `$divide` returns correct results for numeric type combinations (this is `$divide`'s own spec)
+- ✅ Test that `$divide` rejects invalid types with correct error codes (this is `$divide`'s own spec)
+- ❌ Do NOT exhaustively test field path resolution like `"$a.b.c"` on deeply nested arrays (this belongs to the expression engine tests under `expressions/`)
+- ✅ DO add one smoke test that `$divide` accepts a field path input (confirms wiring, not field path semantics)
+
+The distinction: thorough coverage of shared mechanics lives in the feature that owns them. Per-feature tests only confirm the wiring works (one test per expression type, not exhaustive permutations).
+
+### Adding Tests Requires Multiple Paths
+
+Adding tests for a single feature often requires modifications across multiple directories:
+
+1. **Feature's dedicated path** — Core behavior, argument validation, type coverage  
+   Example: `tests/core/operator/expressions/arithmetic/divide/`
+
+2. **Parent folder** — Interaction tests with sibling features (only add if their interactions have special specs)  
+   Example: `tests/core/operator/expressions/test_expressions_combination_date_construct_operators.py` (e.g., `$dateToString` wrapping `$dateFromString` round-trip verifies millisecond preservation; `$toDate` vs `$convert` equivalence for string/long/ObjectId inputs)
+
+3. **Upper-level container feature** — Wiring tests in pipeline stages that consume the feature  
+   Example: `tests/core/operator/aggregation/stages/project/test_operators_in_project.py` (one test confirming `$divide` works in `$project`)
+
+4. **Cross-cutting feature paths** — Tests combining with orthogonal features  
+   Example: `tests/cross_cutting/collation/test_collation_find.py` (e.g., adding a new string comparison operator requires a test that it respects collation strength levels for case/accent insensitivity)
+
+**Concrete example** — adding `$strcasecmp`:
+| Path | What goes there |
+|------|----------------|
+| `expressions/string/strcasecmp/test_strcasecmp.py` | Core: string comparisons, argument count validation (0, 1, 3+ args error), null/missing per position, all BSON types per position |
+| `expressions/string/strcasecmp/test_strcasecmp_unicode.py` | Unicode: multi-byte chars, accented characters, locale-sensitive ordering |
+| `expressions/string/` (parent) | Interaction: `$strcasecmp` with `$concat` output, `$toLower`/`$toUpper` — verify comparison after case transformation |
+| `stages/project/test_operators_in_project.py` | Wiring: one test of `$strcasecmp` in `$project` |
+| `stages/group/test_operators_in_group.py` | Wiring: one test of `$strcasecmp` in `$group` |
+| `stages/match/test_operators_in_match_expr.py` | Wiring: one test of `$strcasecmp` in `$match` + `$expr` |
+| `cross_cutting/collation/test_collation_aggregate.py` | Cross-cutting: `$strcasecmp` ignores collation (it always uses simple binary comparison) — verify it does NOT change behavior when collation is set |
 
 ---
 
@@ -278,7 +330,6 @@ For each invalid_type in [string, object, array, ...]:
 
 **Pipeline Contexts** (one test case per operator per context):
 - In `core/operator/aggregation/stages/project`: `{$project: {result: {$op: "$field"}}}`
-- In `core/operator/aggregation/stages/addFields`: `{$addFields: {result: {$op: "$field"}}}`
 - In `core/operator/aggregation/stages/match` with `$expr`: `{$match: {$expr: {$gt: [{$op: "$field"}, value]}}}`
 - In `core/operator/aggregation/stages/group` expression: `{$group: {_id: null, result: {$max: {$op: "$field"}}}}` and `{$group: {_id: {$max: {$op: "$field"}}}}`
 - Don't need to add for every operator in find filter $expr: (should have same behavior with aggregation with $expr)
@@ -288,7 +339,6 @@ For each invalid_type in [string, object, array, ...]:
 
 **Example**: generating `$add` tests adds test cases in these files:
 - `stages/project/test_operators_in_project.py`
-- `stages/addFields/test_operators_in_addFields.py`
 - `stages/match/test_operators_in_match_expr.py`
 - `stages/group/test_operators_in_group.py`
 

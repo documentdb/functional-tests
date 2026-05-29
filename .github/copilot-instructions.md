@@ -1,0 +1,1 @@
+Read [`AGENTS.md`](../AGENTS.md) first; it indexes the project's authoritative docs. Follow the rules in the linked docs (`README.md`, `CONTRIBUTING.md`, `docs/testing/*`, `docs/REVIEW.md`) — they are the source of truth for this repo.
