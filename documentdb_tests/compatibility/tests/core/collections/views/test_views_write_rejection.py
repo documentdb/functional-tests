@@ -14,8 +14,9 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.target_collection import ViewCollection
 
-# Property [Write Rejection]: insert, update, delete, and findAndModify
-# on a view are rejected with the command-not-supported-on-view error.
+# Property [Write Rejection]: insert, update, delete, findAndModify,
+# createIndexes, and dropIndexes on a view are rejected with the
+# command-not-supported-on-view error.
 VIEWS_WRITE_REJECTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "insert_rejected",
@@ -61,6 +62,28 @@ VIEWS_WRITE_REJECTION_TESTS: list[CommandTestCase] = [
         },
         error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
         msg="findAndModify on a view should be rejected",
+    ),
+    CommandTestCase(
+        "create_indexes_rejected",
+        target_collection=ViewCollection(),
+        docs=[{"_id": 1, "x": 10}],
+        command=lambda ctx: {
+            "createIndexes": ctx.collection,
+            "indexes": [{"key": {"x": 1}, "name": "x_1"}],
+        },
+        error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
+        msg="createIndexes on a view should be rejected",
+    ),
+    CommandTestCase(
+        "drop_indexes_rejected",
+        target_collection=ViewCollection(),
+        docs=[{"_id": 1, "x": 10}],
+        command=lambda ctx: {
+            "dropIndexes": ctx.collection,
+            "index": "*",
+        },
+        error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
+        msg="dropIndexes on a view should be rejected",
     ),
 ]
 
