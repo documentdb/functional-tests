@@ -2,11 +2,13 @@
 
 find cursors are exercised exhaustively across the other getMore test files.
 This file holds one representative per other cursor source (aggregate, view,
-listCollections, listIndexes), confirming each source's cursor reaches the same
-getMore handling.
+time-series, listCollections, listIndexes), confirming each source's cursor
+reaches the same getMore handling.
 """
 
 from __future__ import annotations
+
+import datetime
 
 import pytest
 
@@ -54,6 +56,36 @@ def test_getMore_view_cursor(collection):
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(3)}},
         msg="getMore should return next batch from a view cursor",
+        raw_res=True,
+    )
+
+
+# Property [Time-Series Cursor Source]: getMore retrieves a subsequent batch
+# from a cursor over a time-series collection.
+def test_getMore_timeseries_cursor(collection):
+    """Test getMore returns a subsequent batch from a time-series cursor."""
+    ts_name = f"{collection.name}_ts"
+    execute_command(collection, {"create": ts_name, "timeseries": {"timeField": "ts"}})
+    execute_command(
+        collection,
+        {
+            "insert": ts_name,
+            "documents": [
+                {"ts": datetime.datetime(2024, 1, 1) + datetime.timedelta(minutes=i)}
+                for i in range(20)
+            ],
+        },
+    )
+    find_result = execute_command(collection, {"find": ts_name, "batchSize": 2})
+    cursor_id = find_result["cursor"]["id"]
+    result = execute_command(
+        collection,
+        {"getMore": cursor_id, "collection": ts_name, "batchSize": 3},
+    )
+    assertResult(
+        result,
+        expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(3)}},
+        msg="getMore should return next batch from a time-series cursor",
         raw_res=True,
     )
 
