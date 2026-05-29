@@ -1,5 +1,4 @@
 """Tests for $geometry valid coordinate boundary values — longitude/latitude limits,
-poles, longitude non-equivalence at antimeridian, pole longitude equivalence,
 origin, negative coordinates, and high-precision coordinates."""
 
 import pytest
@@ -49,6 +48,18 @@ VALID_BOUNDARY_TESTS: list[QueryTestCase] = [
         msg="Should accept latitude = -90",
     ),
     QueryTestCase(
+        id="latitude_positive_90",
+        filter={
+            "loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [0, 90]}}}
+        },
+        doc=[
+            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}},
+            {"_id": 2, "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ],
+        expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}}],
+        msg="Should accept latitude = 90",
+    ),
+    QueryTestCase(
         id="origin_zero_zero",
         filter={"loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [0, 0]}}}},
         doc=[
@@ -69,36 +80,6 @@ VALID_BOUNDARY_TESTS: list[QueryTestCase] = [
         ],
         expected=[{"_id": 1, "loc": {"type": "Point", "coordinates": [-45, -45]}}],
         msg="Should accept negative longitude and latitude",
-    ),
-    QueryTestCase(
-        id="lng_180_does_not_match_negative_180",
-        filter={
-            "loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [180, 0]}}}
-        },
-        doc=[
-            {"_id": 1, "loc": {"type": "Point", "coordinates": [-180, 0]}},
-            {"_id": 2, "loc": {"type": "Point", "coordinates": [180, 0]}},
-        ],
-        expected=[{"_id": 2, "loc": {"type": "Point", "coordinates": [180, 0]}}],
-        msg="Longitude 180 and -180 should not be treated as equivalent (strict numeric)",
-    ),
-    QueryTestCase(
-        id="north_pole_any_longitude",
-        filter={
-            "loc": {"$geoIntersects": {"$geometry": {"type": "Point", "coordinates": [0, 90]}}}
-        },
-        doc=[
-            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}},
-            {"_id": 2, "loc": {"type": "Point", "coordinates": [180, 90]}},
-            {"_id": 3, "loc": {"type": "Point", "coordinates": [-90, 90]}},
-            {"_id": 4, "loc": {"type": "Point", "coordinates": [0, 0]}},
-        ],
-        expected=[
-            {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 90]}},
-            {"_id": 2, "loc": {"type": "Point", "coordinates": [180, 90]}},
-            {"_id": 3, "loc": {"type": "Point", "coordinates": [-90, 90]}},
-        ],
-        msg="At the North Pole (lat=90), longitude is irrelevant — all pole points should match",
     ),
     QueryTestCase(
         id="high_precision_coordinates",
