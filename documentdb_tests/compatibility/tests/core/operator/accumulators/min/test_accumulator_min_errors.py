@@ -91,6 +91,26 @@ MIN_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
         msg="$min should propagate $divide by zero error",
     ),
     AccumulatorTestCase(
+        "expr_error_divide_by_zero_field",
+        docs=[{"v": 0}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$min": {"$divide": [1, "$v"]}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$min should propagate $divide by zero error when divisor is a field",
+    ),
+    AccumulatorTestCase(
+        "expr_error_divide_by_zero_non_first_doc",
+        docs=[{"v": 1}, {"v": 0}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$min": {"$divide": [1, "$v"]}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$min should propagate $divide by zero error from a non-first document",
+    ),
+    AccumulatorTestCase(
         "expr_error_to_int_invalid_string",
         docs=[{"v": "abc"}],
         pipeline=[
