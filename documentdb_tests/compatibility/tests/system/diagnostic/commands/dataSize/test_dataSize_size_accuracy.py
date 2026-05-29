@@ -5,7 +5,7 @@ from bson import Int64
 
 from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
-from documentdb_tests.framework.property_checks import Gte, Ne
+from documentdb_tests.framework.property_checks import Gt, Gte
 
 pytestmark = pytest.mark.admin
 
@@ -59,5 +59,5 @@ def test_dataSize_increases_after_insert(collection):
     collection.insert_many([{"_id": i, "data": "x" * 100} for i in range(1, 50)])
     r2 = execute_command(collection, {"dataSize": ns})
     assertResult(
-        r2, expected={"size": Ne(size1)}, raw_res=True, msg="Size should increase after inserts"
+        r2, expected={"size": Gt(size1)}, raw_res=True, msg="Size should increase after inserts"
     )

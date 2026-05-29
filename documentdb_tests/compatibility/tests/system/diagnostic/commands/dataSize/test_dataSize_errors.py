@@ -19,6 +19,7 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.target_collection import ViewCollection
 
 pytestmark = pytest.mark.admin
 
@@ -91,11 +92,10 @@ def test_dataSize_error(collection, test):
     assertFailureCode(result, test.error_code, msg=test.msg)
 
 
-def test_dataSize_view(database_client):
+def test_dataSize_view(database_client, collection):
     """Test dataSize on a view returns error."""
-    database_client.create_collection("base_ds")
-    database_client.command("create", "ds_view", viewOn="base_ds", pipeline=[])
-    ns = f"{database_client.name}.ds_view"
-    coll = database_client["ds_view"]
-    result = execute_command(coll, {"dataSize": ns})
+    target_collection = ViewCollection()
+    view = target_collection.resolve(database_client, collection)
+    ns = f"{database_client.name}.{view.name}"
+    result = execute_command(view, {"dataSize": ns})
     assertFailureCode(result, COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR, msg="View should error")

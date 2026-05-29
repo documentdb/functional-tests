@@ -1,7 +1,7 @@
 """Tests for dataSize command argument validation.
 
 Covers BSON type rejection and acceptance for namespace, keyPattern,
-and estimate. Min/max type validation lives in test_dataSize_min_max.py
+and estimate. Min/max type validation lives in test_dataSize_optional_params.py
 alongside their behavioral tests.
 """
 
