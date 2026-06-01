@@ -454,6 +454,9 @@ For each invalid_type in [string, object, array, ...]:
   - For order-independent accumulators, the result must be the same regardless of input order. Verify this by running the same input twice with different `$sort` directions and asserting identical results.
   - Sort coverage must include compound sorts with mixed directions (e.g. `{"$sort": {"priority": 1, "status": -1, "timestamp": 1}}`) and sorts on nested field paths (e.g. `{"$sort": {"user.dept": 1}}`).
 
+  **Large-Scale Result Verification**:
+  When testing accumulators at scale (1000+ documents), verify the actual content of the result, not just its count. Prefer building the expected result with a loop (e.g. `expected=[{"_id": None, "result": list(range(10_000))}]`) over using server-side aggregates like `$size` or `$count` in a `$project`. A count-only check can pass even if values are duplicated, dropped, or corrupted. When a full element-by-element expected list is impractical (e.g. multi-group aggregation), use server-side content checks (`$sum`, `$min`, `$max` on the pushed array) as a secondary option.
+
   **Tested in Other Folders** (in scope, but add under a different folder):
   - **Host-stage compatibility** — when adding a new accumulator, add one smoke case for each host stage that supports it (`$group`, `$bucket`, `$bucketAuto`, `$setWindowFields`) under that stage's folder
   (`stages/$stage/`), per the container-features rule (one test per sub-feature, no edge cases). Edge cases that are genuinely accumulator-specific stay in `accumulators/$op/`.
