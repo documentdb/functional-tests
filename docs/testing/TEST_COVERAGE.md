@@ -51,7 +51,7 @@
 - Type conversion behavior
 - Type precedence in operations
 
-**Nested Structure Coverage**: For operators that collect or pass through document values (e.g. `$push`, `$addToSet`, `$mergeObjects`), test deeply nested arrays-of-objects with embedded arrays (e.g. `{"data": {"users": [{"profile": {"name": "Alice", "scores": [85, 90]}}]}}`) to verify the full structure is preserved without flattening or truncation.
+**Nested Structure Coverage**: For operators that collect or pass through document values (e.g. `$push`, `$addToSet`, `$mergeObjects`), test deeply nested arrays-of-objects with embedded arrays (e.g. `{"data": {"users": [{"profile": {"name": "Alice", "scores": [85, 90]}}]}}`) to verify the full structure is preserved without flattening or truncation. Also test array traversal via field paths (e.g. `$a.b` on `{"a": [{"b": 1}, {"b": 2}]}`) to verify correct collection of values from arrays-of-objects.
 
 ---
 
