@@ -254,18 +254,57 @@ MERGE_OBJECTS_GROUPED_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [Expression Arguments]: $mergeObjects accepts expressions that
-# resolve to documents.
-MERGE_OBJECTS_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
+# Property [Expression Types]: $mergeObjects accepts various expression types
+# as its operand and evaluates them per document.
+MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "expr_args_literal",
+        "expr_type_field_path",
+        docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
+        msg="$mergeObjects should accept a simple field path",
+    ),
+    AccumulatorTestCase(
+        "expr_type_nested_field_path",
+        docs=[{"data": {"inner": {"a": 1}}}, {"data": {"inner": {"b": 2}}}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$data.inner"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
+        msg="$mergeObjects should accept a nested field path",
+    ),
+    AccumulatorTestCase(
+        "expr_type_literal",
         docs=[{"x": 1}, {"x": 2}],
         pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": {"$literal": {"a": 1}}}}}],
         expected=[{"_id": None, "result": {"a": 1}}],
-        msg="$mergeObjects should accept $literal expression that resolves to a document",
+        msg="$mergeObjects should accept a $literal expression",
     ),
     AccumulatorTestCase(
-        "expr_args_cond",
+        "expr_type_sysvar_remove",
+        docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$$REMOVE"}}},
+        ],
+        expected=[{"_id": None, "result": {}}],
+        msg="$mergeObjects should accept $$REMOVE system variable",
+    ),
+    AccumulatorTestCase(
+        "expr_type_operator_single",
+        docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$mergeObjects": {"$ifNull": ["$v", {}]}},
+                }
+            }
+        ],
+        expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
+        msg="$mergeObjects should accept a single-input expression operator",
+    ),
+    AccumulatorTestCase(
+        "expr_type_cond",
         docs=[{"v": {"a": 1}, "flag": True}, {"v": {"b": 2}, "flag": True}],
         pipeline=[
             {
@@ -276,16 +315,44 @@ MERGE_OBJECTS_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
             }
         ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
-        msg="$mergeObjects should accept $cond expression that resolves to a document",
+        msg="$mergeObjects should accept a $cond expression",
     ),
     AccumulatorTestCase(
-        "expr_args_nested_field_path",
-        docs=[{"data": {"inner": {"a": 1}}}, {"data": {"inner": {"b": 2}}}],
+        "expr_type_object_expression",
+        docs=[{"v": 1}, {"v": 2}],
         pipeline=[
-            {"$group": {"_id": None, "result": {"$mergeObjects": "$data.inner"}}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": {"a": "$v"}}}},
+        ],
+        expected=[{"_id": None, "result": {"a": 2}}],
+        msg="$mergeObjects should accept an object expression with field references",
+    ),
+    AccumulatorTestCase(
+        "expr_type_object_with_operator",
+        docs=[{"v": -5}, {"v": -10}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$mergeObjects": {"a": {"$abs": "$v"}}},
+                }
+            },
+        ],
+        expected=[{"_id": None, "result": {"a": 10}}],
+        msg="$mergeObjects should accept an object expression containing an operator",
+    ),
+    AccumulatorTestCase(
+        "expr_type_let",
+        docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$mergeObjects": {"$let": {"vars": {"x": "$v"}, "in": "$$x"}}},
+                }
+            },
         ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
-        msg="$mergeObjects should accept nested field path expression",
+        msg="$mergeObjects should accept a $let expression as its operand",
     ),
 ]
 
@@ -315,7 +382,7 @@ MERGE_OBJECTS_CORE_TESTS = (
     + MERGE_OBJECTS_EMPTY_DOC_TESTS
     + MERGE_OBJECTS_BSON_TYPE_TESTS
     + MERGE_OBJECTS_GROUPED_TESTS
-    + MERGE_OBJECTS_EXPRESSION_TESTS
+    + MERGE_OBJECTS_EXPRESSION_TYPE_TESTS
     + MERGE_OBJECTS_CONSTANT_OBJECT_TESTS
 )
 

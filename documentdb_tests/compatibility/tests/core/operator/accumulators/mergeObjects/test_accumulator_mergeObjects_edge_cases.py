@@ -166,6 +166,32 @@ MERGE_OBJECTS_DEEP_NESTING_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Order Dependence]: $mergeObjects is order-dependent; the last
+# document's value wins for overlapping keys. Different sort orders produce
+# different results.
+MERGE_OBJECTS_ORDER_DEPENDENCE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "order_dependent_asc",
+        docs=[{"_id": 1, "v": {"a": 1}}, {"_id": 2, "v": {"a": 2}}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": 2}}],
+        msg="$mergeObjects with ascending sort should use value from last document",
+    ),
+    AccumulatorTestCase(
+        "order_dependent_desc",
+        docs=[{"_id": 1, "v": {"a": 1}}, {"_id": 2, "v": {"a": 2}}],
+        pipeline=[
+            {"$sort": {"_id": -1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": 1}}],
+        msg="$mergeObjects with descending sort should use value from last document",
+    ),
+]
+
 MERGE_OBJECTS_EDGE_TESTS = (
     MERGE_OBJECTS_SINGLE_DOC_TESTS
     + MERGE_OBJECTS_MANY_DOCS_TESTS
@@ -173,6 +199,7 @@ MERGE_OBJECTS_EDGE_TESTS = (
     + MERGE_OBJECTS_SPECIAL_FIELD_TESTS
     + MERGE_OBJECTS_ID_FIELD_TESTS
     + MERGE_OBJECTS_DEEP_NESTING_TESTS
+    + MERGE_OBJECTS_ORDER_DEPENDENCE_TESTS
 )
 
 
