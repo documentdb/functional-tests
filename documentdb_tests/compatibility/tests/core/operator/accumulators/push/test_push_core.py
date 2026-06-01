@@ -68,6 +68,36 @@ PUSH_ORDER_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": "A", "result": [1, 1, 2]}],
         msg="$push should respect compound sort order within each group",
     ),
+    AccumulatorTestCase(
+        "order_three_key_mixed_sort",
+        docs=[
+            {"priority": 1, "status": "open", "ts": 3, "v": "a"},
+            {"priority": 1, "status": "open", "ts": 1, "v": "b"},
+            {"priority": 1, "status": "closed", "ts": 2, "v": "c"},
+            {"priority": 2, "status": "open", "ts": 1, "v": "d"},
+            {"priority": 1, "status": "closed", "ts": 5, "v": "e"},
+        ],
+        pipeline=[
+            {"$sort": {"priority": 1, "status": -1, "ts": 1}},
+            {"$group": {"_id": None, "result": {"$push": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": ["b", "a", "c", "e", "d"]}],
+        msg="$push should respect 3-key sort with mixed ascending and descending directions",
+    ),
+    AccumulatorTestCase(
+        "order_nested_field_sort",
+        docs=[
+            {"user": {"dept": "sales"}, "v": 10},
+            {"user": {"dept": "eng"}, "v": 20},
+            {"user": {"dept": "hr"}, "v": 30},
+        ],
+        pipeline=[
+            {"$sort": {"user.dept": 1}},
+            {"$group": {"_id": None, "result": {"$push": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": [20, 30, 10]}],
+        msg="$push should respect sort on nested field path",
+    ),
 ]
 
 # Property [Duplicate Handling]: $push preserves all duplicate values in the
@@ -164,6 +194,51 @@ PUSH_NESTED_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": [10, 20]}],
         msg="$push should resolve nested field paths to collect leaf values",
     ),
+    AccumulatorTestCase(
+        "nested_deep_array_of_objects",
+        docs=[
+            {
+                "data": {
+                    "users": [
+                        {"profile": {"name": "Alice", "scores": [85, 90]}},
+                    ],
+                },
+                "s": 1,
+            },
+            {
+                "data": {
+                    "users": [
+                        {"profile": {"name": "Bob", "scores": [70, 95]}},
+                        {"profile": {"name": "Carol", "scores": [88]}},
+                    ],
+                },
+                "s": 2,
+            },
+        ],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$push": "$data"}}},
+        ],
+        expected=[
+            {
+                "_id": None,
+                "result": [
+                    {
+                        "users": [
+                            {"profile": {"name": "Alice", "scores": [85, 90]}},
+                        ],
+                    },
+                    {
+                        "users": [
+                            {"profile": {"name": "Bob", "scores": [70, 95]}},
+                            {"profile": {"name": "Carol", "scores": [88]}},
+                        ],
+                    },
+                ],
+            }
+        ],
+        msg="$push should preserve deeply nested arrays-of-objects with embedded arrays",
+    ),
 ]
 
 # Property [Grouping Behavior]: each group produces an independent array, and
@@ -212,6 +287,69 @@ PUSH_GROUPING_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"count": 10_000}],
         msg="$push should collect exactly 10000 elements for a 10000-document group",
+    ),
+    AccumulatorTestCase(
+        "group_compound_id",
+        docs=[
+            {"region": "us", "status": "active", "v": 1},
+            {"region": "us", "status": "active", "v": 2},
+            {"region": "us", "status": "inactive", "v": 3},
+            {"region": "eu", "status": "active", "v": 4},
+            {"region": "eu", "status": "active", "v": 5},
+        ],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {
+                "$group": {
+                    "_id": {"region": "$region", "status": "$status"},
+                    "result": {"$push": "$v"},
+                }
+            },
+            {"$sort": {"_id.region": 1, "_id.status": 1}},
+        ],
+        expected=[
+            {"_id": {"region": "eu", "status": "active"}, "result": [4, 5]},
+            {"_id": {"region": "us", "status": "active"}, "result": [1, 2]},
+            {"_id": {"region": "us", "status": "inactive"}, "result": [3]},
+        ],
+        msg="$push should produce independent arrays when grouping by compound _id",
+    ),
+    AccumulatorTestCase(
+        "group_nested_field_id",
+        docs=[
+            {"user": {"dept": "eng"}, "v": 10},
+            {"user": {"dept": "eng"}, "v": 20},
+            {"user": {"dept": "sales"}, "v": 30},
+            {"user": {"dept": "sales"}, "v": 40},
+            {"user": {"dept": "hr"}, "v": 50},
+        ],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": "$user.dept", "result": {"$push": "$v"}}},
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[
+            {"_id": "eng", "result": [10, 20]},
+            {"_id": "hr", "result": [50]},
+            {"_id": "sales", "result": [30, 40]},
+        ],
+        msg="$push should group correctly when _id is a nested field path",
+    ),
+    AccumulatorTestCase(
+        "group_large_multiple_groups",
+        docs=[{"cat": f"g{i % 100}", "v": i} for i in range(10_000)],
+        pipeline=[
+            {"$group": {"_id": "$cat", "result": {"$push": "$v"}}},
+            {
+                "$project": {
+                    "_id": 1,
+                    "count": {"$size": "$result"},
+                }
+            },
+            {"$group": {"_id": None, "groups": {"$sum": 1}, "total": {"$sum": "$count"}}},
+        ],
+        expected=[{"_id": None, "groups": 100, "total": 10_000}],
+        msg="$push should produce 100 independent groups from 10000 documents",
     ),
 ]
 
