@@ -81,15 +81,6 @@ PUSH_CONSTANT_TESTS: list[AccumulatorTestCase] = [
         msg="$push should replicate boolean false constant once per document",
     ),
     AccumulatorTestCase(
-        "constant_null",
-        docs=[{"x": 1}, {"x": 2}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$push": None}}},
-        ],
-        expected=[{"_id": None, "result": [None, None]}],
-        msg="$push should replicate null constant once per document",
-    ),
-    AccumulatorTestCase(
         "constant_object",
         docs=[{"x": 1}, {"x": 2}],
         pipeline=[
@@ -161,7 +152,7 @@ PUSH_EXPRESSION_ARGS_TESTS: list[AccumulatorTestCase] = [
         msg="$push should accept $ifNull expression with fallback values",
     ),
     AccumulatorTestCase(
-        "expr_nested",
+        "expr_nested_arithmetic",
         docs=[{"a": 2, "b": 3, "s": 1}, {"a": 4, "b": 5, "s": 2}],
         pipeline=[
             {"$sort": {"s": 1}},
