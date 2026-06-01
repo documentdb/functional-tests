@@ -203,7 +203,7 @@ PUSH_NESTED_TESTS: list[AccumulatorTestCase] = [
                         {"profile": {"name": "Alice", "scores": [85, 90]}},
                     ],
                 },
-                "s": 1,
+                "profile": {"name": "bravo"},
             },
             {
                 "data": {
@@ -212,11 +212,11 @@ PUSH_NESTED_TESTS: list[AccumulatorTestCase] = [
                         {"profile": {"name": "Carol", "scores": [88]}},
                     ],
                 },
-                "s": 2,
+                "profile": {"name": "alpha"},
             },
         ],
         pipeline=[
-            {"$sort": {"s": 1}},
+            {"$sort": {"profile.name": 1}},
             {"$group": {"_id": None, "result": {"$push": "$data"}}},
         ],
         expected=[
@@ -225,19 +225,19 @@ PUSH_NESTED_TESTS: list[AccumulatorTestCase] = [
                 "result": [
                     {
                         "users": [
-                            {"profile": {"name": "Alice", "scores": [85, 90]}},
+                            {"profile": {"name": "Bob", "scores": [70, 95]}},
+                            {"profile": {"name": "Carol", "scores": [88]}},
                         ],
                     },
                     {
                         "users": [
-                            {"profile": {"name": "Bob", "scores": [70, 95]}},
-                            {"profile": {"name": "Carol", "scores": [88]}},
+                            {"profile": {"name": "Alice", "scores": [85, 90]}},
                         ],
                     },
                 ],
             }
         ],
-        msg="$push should preserve deeply nested arrays-of-objects with embedded arrays",
+        msg="$push should preserve deeply nested arrays-of-objects when sorted by nested field",
     ),
 ]
 
