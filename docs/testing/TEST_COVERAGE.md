@@ -382,6 +382,7 @@ For each invalid_type in [string, object, array, ...]:
 - Multi-stage interaction tests belong in the parent `stages/` directory, not in individual stage folders. Per `FOLDER_STRUCTURE.md`, interactions between same-level features go in the parent folder (e.g., `stages/test_stages_combination_sort.py`, `stages/test_stages_position_match.py`).
 - Test interactions where ordering affects results or where adjacent stages compose non-obviously (e.g., optimization coalescence, count-modifying vs non-count-modifying intervening stages, additive vs min-taking consecutive stages)
 - Cover common multi-stage usage patterns for the stage under test
+- Test multiple `$group` stages in a single pipeline (e.g. `$group` → `$sort` → `$group`), where each stage performs actual grouping (not just `_id: null`). The second `$group` should re-aggregate the output of the first, verifying that accumulated results (arrays, counts, etc.) can be correctly consumed as input to another `$group`.
 
 **Out of Scope**:
 - Cross-cutting concerns (views, capped collections, timeseries) belong in their own directories
@@ -438,6 +439,10 @@ For each invalid_type in [string, object, array, ...]:
 
   The expression-form of dual-form operators (`$max`, `$min`, `$sum`, `$avg`, `$first`, `$last`, etc.) is tested separately under `tests/core/operator/expressions/accumulator/$op/` and is out of scope for the
   accumulator-form file.
+
+  **Actual Grouping Requirement**: Accumulator tests must not rely exclusively on `_id: null` (single-group). Each test category (null/missing, special values, core behavior, etc.) should include at least one test with actual multi-group grouping (e.g. `_id: "$cat"`) to verify accumulators reset correctly across group boundaries.
+
+  **Multiple Accumulators in Single $group**: Test multiple accumulators of the same type in a single `$group` (e.g. `{"$group": {"_id": "$cat", "xs": {"$push": "$x"}, "ys": {"$push": "$y"}}}`) with actual grouping, not just `_id: null`. Each accumulator should independently handle its own field's null/missing values without interfering with siblings.
 
   **Expression Error Propagation**:
   Errors raised during sub-expression evaluation propagate through the accumulator without being caught:
