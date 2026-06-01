@@ -265,6 +265,24 @@ PUSH_GROUPING_TESTS: list[AccumulatorTestCase] = [
         msg="$push should produce independent arrays for each group",
     ),
     AccumulatorTestCase(
+        "group_array_field_path",
+        docs=[
+            {"cat": "A", "a": [{"b": 1}, {"b": 2}]},
+            {"cat": "A", "a": [{"b": 3}, {"b": 4}]},
+            {"cat": "B", "a": [{"b": 5}, {"b": 6}]},
+        ],
+        pipeline=[
+            {"$sort": {"a.b": 1}},
+            {"$group": {"_id": "$cat", "result": {"$push": "$a.b"}}},
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[
+            {"_id": "A", "result": [[1, 2], [3, 4]]},
+            {"_id": "B", "result": [[5, 6]]},
+        ],
+        msg="$push should collect array traversal results across groups",
+    ),
+    AccumulatorTestCase(
         "group_single_doc_per_group",
         docs=[{"cat": "A", "v": 10}, {"cat": "B", "v": 20}, {"cat": "C", "v": 30}],
         pipeline=[
