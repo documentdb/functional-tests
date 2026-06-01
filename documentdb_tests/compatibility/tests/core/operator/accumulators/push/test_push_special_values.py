@@ -125,8 +125,83 @@ PUSH_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Special Numeric Value Preservation - Mixed Types]: $push preserves
+# special float values when mixed with non-numeric types in the same group.
+PUSH_SPECIAL_MIXED_NAN_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "special_float_nan_with_non_numeric",
+        docs=[
+            {"v": FLOAT_NAN, "s": 1},
+            {"v": "hello", "s": 2},
+            {"v": True, "s": 3},
+            {"v": None, "s": 4},
+            {"v": {"a": 1}, "s": 5},
+        ],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$push": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": [float("nan"), "hello", True, None, {"a": 1}]}],
+        msg="$push should preserve float NaN alongside non-numeric types",
+    ),
+    AccumulatorTestCase(
+        "special_decimal128_with_non_numeric",
+        docs=[
+            {"v": DECIMAL128_NAN, "s": 1},
+            {"v": DECIMAL128_INFINITY, "s": 2},
+            {"v": DECIMAL128_NEGATIVE_INFINITY, "s": 3},
+            {"v": "abc", "s": 4},
+            {"v": None, "s": 5},
+        ],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$push": "$v"}}},
+        ],
+        expected=[
+            {
+                "_id": None,
+                "result": [
+                    DECIMAL128_NAN,
+                    DECIMAL128_INFINITY,
+                    DECIMAL128_NEGATIVE_INFINITY,
+                    "abc",
+                    None,
+                ],
+            }
+        ],
+        msg="$push should preserve Decimal128 special values alongside non-numeric types",
+    ),
+]
 
-@pytest.mark.parametrize("test_case", pytest_params(PUSH_SPECIAL_NUMERIC_TESTS))
+PUSH_SPECIAL_MIXED_NUMERIC_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "special_float_inf_with_non_numeric",
+        docs=[
+            {"v": FLOAT_INFINITY, "s": 1},
+            {"v": FLOAT_NEGATIVE_INFINITY, "s": 2},
+            {"v": "text", "s": 3},
+            {"v": False, "s": 4},
+            {"v": [1, 2], "s": 5},
+        ],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$push": "$v"}}},
+        ],
+        expected=[
+            {
+                "_id": None,
+                "result": [FLOAT_INFINITY, FLOAT_NEGATIVE_INFINITY, "text", False, [1, 2]],
+            }
+        ],
+        msg="$push should preserve Infinity values alongside non-numeric types",
+    ),
+]
+
+PUSH_SPECIAL_VALUES_NAN = PUSH_SPECIAL_NAN_TESTS + PUSH_SPECIAL_MIXED_NAN_TESTS
+PUSH_SPECIAL_VALUES = PUSH_SPECIAL_NUMERIC_TESTS + PUSH_SPECIAL_MIXED_NUMERIC_TESTS
+
+
+@pytest.mark.parametrize("test_case", pytest_params(PUSH_SPECIAL_VALUES))
 def test_push_special_values(collection, test_case: AccumulatorTestCase):
     """Test $push special numeric value preservation."""
     if test_case.docs:
@@ -138,7 +213,7 @@ def test_push_special_values(collection, test_case: AccumulatorTestCase):
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
-@pytest.mark.parametrize("test_case", pytest_params(PUSH_SPECIAL_NAN_TESTS))
+@pytest.mark.parametrize("test_case", pytest_params(PUSH_SPECIAL_VALUES_NAN))
 def test_push_special_values_nan(collection, test_case: AccumulatorTestCase):
     """Test $push NaN preservation."""
     if test_case.docs:
