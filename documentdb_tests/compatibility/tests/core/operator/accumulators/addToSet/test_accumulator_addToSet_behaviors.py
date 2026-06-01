@@ -173,7 +173,7 @@ def test_accumulator_addToSet_dedups_subdocuments_by_deep_equality(collection):
 
 
 @pytest.mark.engine_xfail(
-    engine="documentdb",
+    engine="pgmongo",
     reason=(
         "$addToSet accumulator on a missing field: native MongoDB skips the "
         "document; documentdb includes a null. Tracked divergence."
@@ -214,7 +214,7 @@ def test_accumulator_addToSet_skips_documents_missing_field(collection):
 
 
 @pytest.mark.engine_xfail(
-    engine="documentdb",
+    engine="pgmongo",
     reason=(
         "$addToSet is a unary accumulator and must reject array-shaped "
         "arguments with code 40237; documentdb accepts the array as a "

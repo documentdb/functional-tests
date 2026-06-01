@@ -309,7 +309,7 @@ def test_addToSet_errors_on_conflicting_set_on_same_path(collection):
 
 
 @pytest.mark.engine_xfail(
-    engine="documentdb",
+    engine="pgmongo",
     reason=(
         "documentdb silently accepts unknown modifiers (e.g. $slice) "
         "alongside $each in $addToSet; native MongoDB rejects with code 2."
@@ -717,7 +717,7 @@ def test_addToSet_errors_on_conflicting_subpath(collection):
 
 
 @pytest.mark.engine_xfail(
-    engine="documentdb",
+    engine="pgmongo",
     reason=(
         "$position is a $push modifier; native MongoDB rejects it in $addToSet "
         "with code 2 ('Found unexpected fields after $each'). documentdb "
@@ -752,7 +752,7 @@ def test_addToSet_each_with_position_modifier_errors(collection):
 
 
 @pytest.mark.engine_xfail(
-    engine="documentdb",
+    engine="pgmongo",
     reason=(
         "$sort is a $push modifier; native MongoDB rejects it in $addToSet "
         "with code 2 ('Found unexpected fields after $each'). documentdb "

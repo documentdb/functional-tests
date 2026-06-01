@@ -731,7 +731,7 @@ def test_min_via_findAndModify_returns_updated_doc(collection):
 
 
 @pytest.mark.engine_xfail(
-    engine="documentdb",
+    engine="pgmongo",
     reason=(
         "$min comparison against existing finite numeric when supplied is "
         "NaN: native MongoDB treats NaN as the smallest numeric (replaces "

@@ -624,7 +624,7 @@ def test_currentDate_errors_on_id_target(collection):
 
 
 @pytest.mark.engine_xfail(
-    engine="documentdb",
+    engine="pgmongo",
     reason=(
         "$currentDate spec with an extra field alongside $type: native "
         "MongoDB rejects with code 2 ('Unrecognized $currentDate option: "
