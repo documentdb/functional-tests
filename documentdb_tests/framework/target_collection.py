@@ -361,6 +361,16 @@ class SiblingCollection:
 
     The collection is named ``{fixture_name}{suffix}`` and created with
     the specified options. Documents are inserted if provided.
+
+    Attributes:
+        suffix: Appended to the source collection name to form the
+            sibling's name.
+        view_on_source: If True, create the sibling as a view on the
+            source collection.
+        timeseries_field: If set, create the sibling as a time-series
+            collection using this field as the time field. Ignored when
+            view_on_source is True.
+        docs: Optional documents to insert into the sibling.
     """
 
     suffix: str = "_target"
