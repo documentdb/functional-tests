@@ -344,6 +344,7 @@ def assertSuccessNaN(
     expected: Any,
     msg: Optional[str] = None,
     ignore_doc_order: bool = False,
+    ignore_order_in: Optional[list[str]] = None,
 ):
     """Assert command succeeded, treating NaN == NaN as True."""
     assertSuccess(
@@ -351,6 +352,7 @@ def assertSuccessNaN(
         _replace_nan(expected),
         msg=msg,
         ignore_doc_order=ignore_doc_order,
+        ignore_order_in=ignore_order_in,
         transform=_replace_nan,
     )
 
