@@ -57,13 +57,18 @@ class CommandTestCase(BaseTestCase):
     Attributes:
         target_collection: Describes the collection to execute against.
             Defaults to the fixture collection.
+        siblings: Optional additional collections to create alongside the
+            source before executing the command.
         indexes: Indexes to create before executing the command. Each
             entry is passed to create_index.
         docs: Documents to insert before executing the command.
         command: A callable (CommandContext -> dict) for commands that
             need fixture values, or a plain dict.
         expected: A callable (CommandContext -> dict) for results that
-            need fixture values, a plain dict, or None for error cases.
+            need fixture values, a plain dict, a list of dicts, or None
+            for error cases.
+        ignore_order_in: Optional names of result fields whose array contents
+            should be compared without regard to element order.
     """
 
     target_collection: TargetCollection = field(default_factory=TargetCollection)
@@ -97,7 +102,7 @@ class CommandTestCase(BaseTestCase):
                 target.insert_many(self.docs)
         if self.siblings:
             for sibling in self.siblings:
-                sibling.create(db, collection)
+                sibling.create(db, resolved)
         return resolved
 
     def build_command(self, ctx: CommandContext) -> dict[str, Any]:

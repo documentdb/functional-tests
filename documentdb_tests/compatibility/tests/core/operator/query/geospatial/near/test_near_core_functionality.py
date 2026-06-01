@@ -71,21 +71,21 @@ VALID_INTERACTION_TESTS: list[QueryTestCase] = [
 ]
 
 
-@pytest.mark.usefixtures("geo_2dsphere")
 @pytest.mark.parametrize(
     "test",
     pytest_params(GEOJSON_CORE_TESTS + VALID_INTERACTION_TESTS),
 )
 def test_near_core(collection, test):
     """Verifies $near core functionality."""
+    collection.create_index([("loc", "2dsphere")])
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, msg=test.msg)
 
 
-@pytest.mark.usefixtures("geo_2dsphere")
 def test_near_explicit_sort_overrides_distance(collection):
     """Verifies explicit sort overrides $near distance ordering."""
+    collection.create_index([("loc", "2dsphere")])
     collection.insert_many(
         [
             {"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}, "rank": 3},
