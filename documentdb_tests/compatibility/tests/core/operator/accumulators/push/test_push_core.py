@@ -280,13 +280,13 @@ PUSH_GROUPING_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "group_large",
-        docs=[{"v": 1} for _ in range(10_000)],
+        docs=[{"v": i} for i in range(10_000)],
         pipeline=[
+            {"$sort": {"v": 1}},
             {"$group": {"_id": None, "result": {"$push": "$v"}}},
-            {"$project": {"_id": 0, "count": {"$size": "$result"}}},
         ],
-        expected=[{"count": 10_000}],
-        msg="$push should collect exactly 10000 elements for a 10000-document group",
+        expected=[{"_id": None, "result": list(range(10_000))}],
+        msg="$push should collect all 10000 values in correct sorted order",
     ),
     AccumulatorTestCase(
         "group_compound_id",
@@ -344,12 +344,33 @@ PUSH_GROUPING_TESTS: list[AccumulatorTestCase] = [
                 "$project": {
                     "_id": 1,
                     "count": {"$size": "$result"},
+                    "total": {"$sum": "$result"},
+                    "lo": {"$min": "$result"},
+                    "hi": {"$max": "$result"},
                 }
             },
-            {"$group": {"_id": None, "groups": {"$sum": 1}, "total": {"$sum": "$count"}}},
+            {
+                "$group": {
+                    "_id": None,
+                    "groups": {"$sum": 1},
+                    "total_docs": {"$sum": "$count"},
+                    "grand_total": {"$sum": "$total"},
+                    "global_lo": {"$min": "$lo"},
+                    "global_hi": {"$max": "$hi"},
+                }
+            },
         ],
-        expected=[{"_id": None, "groups": 100, "total": 10_000}],
-        msg="$push should produce 100 independent groups from 10000 documents",
+        expected=[
+            {
+                "_id": None,
+                "groups": 100,
+                "total_docs": 10_000,
+                "grand_total": 49_995_000,
+                "global_lo": 0,
+                "global_hi": 9_999,
+            }
+        ],
+        msg="$push should produce 100 groups with correct content across 10000 documents",
     ),
 ]
 
