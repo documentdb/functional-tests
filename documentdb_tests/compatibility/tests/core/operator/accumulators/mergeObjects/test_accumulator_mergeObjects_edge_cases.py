@@ -67,6 +67,42 @@ MERGE_OBJECTS_LARGE_DOC_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Large Values]: $mergeObjects preserves large field values.
+MERGE_OBJECTS_LARGE_VALUE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "large_value_long_string",
+        docs=[{"v": {"a": "x" * 10000}}, {"v": {"b": 1}}],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[{"_id": None, "result": {"a": "x" * 10000, "b": 1}}],
+        msg="$mergeObjects should preserve very long string values",
+    ),
+    AccumulatorTestCase(
+        "large_value_deep_nesting",
+        docs=[
+            {"v": {"a": {"b": {"c": {"d": {"e": {"f": {"g": {"h": {"i": {"j": 1}}}}}}}}}}},
+            {"v": {"x": 2}},
+        ],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[
+            {
+                "_id": None,
+                "result": {
+                    "a": {"b": {"c": {"d": {"e": {"f": {"g": {"h": {"i": {"j": 1}}}}}}}}},
+                    "x": 2,
+                },
+            }
+        ],
+        msg="$mergeObjects should preserve deeply nested objects (10 levels)",
+    ),
+    AccumulatorTestCase(
+        "large_value_large_array",
+        docs=[{"v": {"a": list(range(1000))}}, {"v": {"b": 1}}],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[{"_id": None, "result": {"a": list(range(1000)), "b": 1}}],
+        msg="$mergeObjects should preserve large array fields (1000 elements)",
+    ),
+]
+
 # Property [Special Field Names]: $mergeObjects correctly handles special
 # field names including unicode, dollar-prefixed, dotted, empty string, and
 # numeric string keys.
@@ -196,6 +232,7 @@ MERGE_OBJECTS_EDGE_TESTS = (
     MERGE_OBJECTS_SINGLE_DOC_TESTS
     + MERGE_OBJECTS_MANY_DOCS_TESTS
     + MERGE_OBJECTS_LARGE_DOC_TESTS
+    + MERGE_OBJECTS_LARGE_VALUE_TESTS
     + MERGE_OBJECTS_SPECIAL_FIELD_TESTS
     + MERGE_OBJECTS_ID_FIELD_TESTS
     + MERGE_OBJECTS_DEEP_NESTING_TESTS

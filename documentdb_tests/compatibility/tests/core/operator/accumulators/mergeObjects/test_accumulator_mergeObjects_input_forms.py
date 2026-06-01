@@ -47,6 +47,26 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
         msg="$mergeObjects should accept $$REMOVE system variable",
     ),
     AccumulatorTestCase(
+        "expr_type_sysvar_root",
+        docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$$ROOT"}}},
+        ],
+        expected=[{"_id": None, "result": {"_id": 2, "x": 2}}],
+        msg="$mergeObjects should accept $$ROOT system variable",
+    ),
+    AccumulatorTestCase(
+        "expr_type_sysvar_current",
+        docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$$CURRENT"}}},
+        ],
+        expected=[{"_id": None, "result": {"_id": 2, "x": 2}}],
+        msg="$mergeObjects should accept $$CURRENT system variable",
+    ),
+    AccumulatorTestCase(
         "expr_type_operator_single",
         docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
         pipeline=[
