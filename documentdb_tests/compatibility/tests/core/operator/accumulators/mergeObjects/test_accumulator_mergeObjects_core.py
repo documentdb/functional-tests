@@ -356,6 +356,32 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Field Lookup]: $mergeObjects resolves field paths including nested
+# object paths and array index paths.
+MERGE_OBJECTS_FIELD_LOOKUP_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "field_lookup_array_index_path",
+        docs=[
+            {"v": {"0": {"b": {"x": 1}}}},
+            {"v": {"0": {"b": {"y": 2}}}},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v.0.b"}}},
+        ],
+        expected=[{"_id": None, "result": {"x": 1, "y": 2}}],
+        msg="$mergeObjects should resolve array index path on nested object",
+    ),
+    AccumulatorTestCase(
+        "field_lookup_nonexistent",
+        docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$nonexistent"}}},
+        ],
+        expected=[{"_id": None, "result": {}}],
+        msg="$mergeObjects should treat nonexistent field as missing",
+    ),
+]
+
 # Property [Constant Object Expression]: a constant object expression applies
 # the same document to every group member, with last document winning.
 MERGE_OBJECTS_CONSTANT_OBJECT_TESTS: list[AccumulatorTestCase] = [
@@ -383,6 +409,7 @@ MERGE_OBJECTS_CORE_TESTS = (
     + MERGE_OBJECTS_BSON_TYPE_TESTS
     + MERGE_OBJECTS_GROUPED_TESTS
     + MERGE_OBJECTS_EXPRESSION_TYPE_TESTS
+    + MERGE_OBJECTS_FIELD_LOOKUP_TESTS
     + MERGE_OBJECTS_CONSTANT_OBJECT_TESTS
 )
 

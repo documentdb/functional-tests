@@ -103,6 +103,20 @@ MERGE_OBJECTS_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
         msg="$mergeObjects should propagate $toObjectId conversion error from expression",
     ),
     AccumulatorTestCase(
+        "expr_error_divide_by_zero_literal",
+        docs=[{"v": 10}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$mergeObjects": {"$divide": ["$v", 0]}},
+                }
+            },
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$mergeObjects should propagate $divide by zero with literal zero divisor",
+    ),
+    AccumulatorTestCase(
         "expr_error_divide_by_zero_field_path",
         docs=[{"_id": 0, "v": 0}],
         pipeline=[
