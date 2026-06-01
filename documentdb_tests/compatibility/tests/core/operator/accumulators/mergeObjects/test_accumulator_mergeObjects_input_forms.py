@@ -15,13 +15,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 # as its operand and evaluates them per document.
 MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "expr_type_field_path",
-        docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
-        expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
-        msg="$mergeObjects should accept a simple field path",
-    ),
-    AccumulatorTestCase(
         "expr_type_nested_field_path",
         docs=[{"data": {"inner": {"a": 1}}}, {"data": {"inner": {"b": 2}}}],
         pipeline=[
@@ -39,12 +32,12 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "expr_type_sysvar_remove",
-        docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
+        docs=[{"x": 1}, {"x": 2}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$mergeObjects": "$$REMOVE"}}},
         ],
         expected=[{"_id": None, "result": {}}],
-        msg="$mergeObjects should accept $$REMOVE system variable",
+        msg="$mergeObjects should accept $$REMOVE and return empty document",
     ),
     AccumulatorTestCase(
         "expr_type_sysvar_root",
@@ -67,7 +60,7 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
         msg="$mergeObjects should accept $$CURRENT system variable",
     ),
     AccumulatorTestCase(
-        "expr_type_operator_single",
+        "expr_type_ifnull",
         docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
         pipeline=[
             {
@@ -78,7 +71,7 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
             }
         ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
-        msg="$mergeObjects should accept a single-input expression operator",
+        msg="$mergeObjects should accept $ifNull as its operand expression",
     ),
     AccumulatorTestCase(
         "expr_type_cond",
@@ -95,13 +88,13 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
         msg="$mergeObjects should accept a $cond expression",
     ),
     AccumulatorTestCase(
-        "expr_type_object_expression",
+        "expr_type_object_with_field_ref",
         docs=[{"v": 1}, {"v": 2}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$mergeObjects": {"a": "$v"}}}},
         ],
         expected=[{"_id": None, "result": {"a": 2}}],
-        msg="$mergeObjects should accept an object expression with field references",
+        msg="$mergeObjects should accept object expression with field reference, last wins",
     ),
     AccumulatorTestCase(
         "expr_type_object_with_operator",
@@ -115,7 +108,7 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
             },
         ],
         expected=[{"_id": None, "result": {"a": 10}}],
-        msg="$mergeObjects should accept an object expression containing an operator",
+        msg="$mergeObjects should accept object expression with operator, last wins",
     ),
     AccumulatorTestCase(
         "expr_type_let",
@@ -137,7 +130,7 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
 # object paths and array index paths.
 MERGE_OBJECTS_FIELD_LOOKUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "field_lookup_array_index_path",
+        "field_lookup_numeric_key_path",
         docs=[
             {"v": {"0": {"b": {"x": 1}}}},
             {"v": {"0": {"b": {"y": 2}}}},
@@ -146,31 +139,31 @@ MERGE_OBJECTS_FIELD_LOOKUP_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$mergeObjects": "$v.0.b"}}},
         ],
         expected=[{"_id": None, "result": {"x": 1, "y": 2}}],
-        msg="$mergeObjects should resolve array index path on nested object",
+        msg="$mergeObjects should traverse numeric string key as object field name",
     ),
     AccumulatorTestCase(
-        "field_lookup_nonexistent",
+        "field_lookup_nonexistent_returns_empty",
         docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$mergeObjects": "$nonexistent"}}},
         ],
         expected=[{"_id": None, "result": {}}],
-        msg="$mergeObjects should treat nonexistent field as missing",
+        msg="$mergeObjects should treat nonexistent field path as missing",
     ),
 ]
 
-# Property [Constant Object Expression]: a constant object expression applies
-# the same document to every group member, with last document winning.
+# Property [Constant Object Expression]: a constant object expression (no
+# field references or operators) is accepted and returned unchanged.
 MERGE_OBJECTS_CONSTANT_OBJECT_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "constant_object",
+        "constant_object_returned",
         docs=[{"x": 1}, {"x": 2}],
         pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": {"a": 1, "b": 2}}}}],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
         msg="$mergeObjects should accept constant object and return it",
     ),
     AccumulatorTestCase(
-        "constant_empty_object",
+        "constant_empty_object_returned",
         docs=[{"x": 1}, {"x": 2}],
         pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": {}}}}],
         expected=[{"_id": None, "result": {}}],

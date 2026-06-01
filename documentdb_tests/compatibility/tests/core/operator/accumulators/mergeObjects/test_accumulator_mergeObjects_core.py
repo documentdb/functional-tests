@@ -202,7 +202,7 @@ MERGE_OBJECTS_BSON_TYPE_TESTS: list[AccumulatorTestCase] = [
         "bson_binary_regex",
         docs=[{"v": {"a": Binary(b"\x01\x02")}}, {"v": {"b": Regex("abc", "i")}}],
         pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
-        expected=[{"_id": None, "result": {"a": b"\x01\x02", "b": Regex("abc", 2)}}],
+        expected=[{"_id": None, "result": {"a": b"\x01\x02", "b": Regex("abc", "i")}}],
         msg="$mergeObjects should preserve Binary and Regex types",
     ),
     AccumulatorTestCase(
