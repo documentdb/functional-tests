@@ -13,6 +13,7 @@ from typing import Any
 
 from pymongo.collection import Collection
 from pymongo.database import Database
+from pymongo.operations import IndexModel
 
 
 @dataclass(frozen=True)
@@ -184,19 +185,14 @@ class ExistingCollection(TargetCollection):
 class TimeseriesCollection(TargetCollection):
     """A time series collection."""
 
-    time_field: str = "ts"
-    meta_field: str = "meta"
-    granularity: str | None = None
+    timeseries_options: dict[str, Any] = field(
+        default_factory=lambda: {"timeField": "ts", "metaField": "meta"}
+    )
+    create_options: dict[str, Any] = field(default_factory=dict)
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
         name = f"{collection.name}_ts"
-        ts_opts: dict[str, Any] = {
-            "timeField": self.time_field,
-            "metaField": self.meta_field,
-        }
-        if self.granularity is not None:
-            ts_opts["granularity"] = self.granularity
-        db.create_collection(name, timeseries=ts_opts)
+        db.create_collection(name, timeseries=self.timeseries_options, **self.create_options)
         return db[name]
 
 
@@ -206,13 +202,7 @@ class SystemBucketsCollection(TimeseriesCollection):
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
         name = f"{collection.name}_ts"
-        ts_opts: dict[str, Any] = {
-            "timeField": self.time_field,
-            "metaField": self.meta_field,
-        }
-        if self.granularity is not None:
-            ts_opts["granularity"] = self.granularity
-        db.create_collection(name, timeseries=ts_opts)
+        db.create_collection(name, timeseries=self.timeseries_options, **self.create_options)
         return db[f"system.buckets.{name}"]
 
 
@@ -356,6 +346,25 @@ class ExtraCollections(TargetCollection):
 
 
 @dataclass(frozen=True)
+class CollectionWithView(TargetCollection):
+    """A collection with a view created on top of it.
+
+    Creates the source collection, then creates a view on it with
+    ``view_options``. Resolves to the source collection so tests can
+    verify the view does not affect the underlying collection.
+    """
+
+    view_options: dict[str, Any] = field(default_factory=dict)
+
+    def resolve(self, db: Database, collection: Collection) -> Collection:
+        source_name = f"{collection.name}_source"
+        db.command("create", source_name)
+        view_name = f"{collection.name}_view"
+        db.command("create", view_name, viewOn=source_name, pipeline=[], **self.view_options)
+        return db[source_name]
+
+
+@dataclass(frozen=True)
 class SiblingCollection:
     """Describes an additional collection to create alongside the source.
 
@@ -366,7 +375,10 @@ class SiblingCollection:
     suffix: str = "_target"
     view_on_source: bool = False
     timeseries_field: str | None = None
+    validator: dict[str, Any] | None = None
+    collation: dict[str, Any] | None = None
     docs: list[dict[str, Any]] | None = None
+    indexes: list[IndexModel] | None = None
 
     def create(self, db: Database, collection: Collection) -> None:
         """Create the sibling collection."""
@@ -375,7 +387,15 @@ class SiblingCollection:
             db.create_collection(name, viewOn=collection.name, pipeline=[])
         elif self.timeseries_field:
             db.create_collection(name, timeseries={"timeField": self.timeseries_field})
+        elif self.validator:
+            db.create_collection(name, validator=self.validator)
+        elif self.collation:
+            db.create_collection(name, collation=self.collation)
         else:
             db.create_collection(name)
+        if self.indexes:
+            db[name].create_indexes(self.indexes)
         if self.docs:
             db[name].insert_many(self.docs)
+        if self.indexes:
+            db[name].create_indexes(self.indexes)

@@ -19,9 +19,6 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NEGATIVE_INFINITY,
 )
 
-pytestmark = pytest.mark.usefixtures("geo_2dsphere")
-
-
 COORDINATE_BOUNDARY_ERROR_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="longitude_below_neg180",
@@ -176,6 +173,7 @@ ALL_ERROR_TESTS = COORDINATE_BOUNDARY_ERROR_TESTS + GEOJSON_STRUCTURE_ERROR_TEST
 @pytest.mark.parametrize("test", pytest_params(ALL_ERROR_TESTS))
 def test_near_errors(collection, test):
     """Verifies $near rejects invalid inputs."""
+    collection.create_index([("loc", "2dsphere")])
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertFailureCode(result, test.error_code, msg=test.msg)
 
@@ -289,6 +287,7 @@ RESTRICTION_ERROR_TESTS: list[QueryTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(RESTRICTION_ERROR_TESTS))
 def test_near_restriction_errors(collection, test):
     """Verifies $near rejects invalid operator combinations."""
+    collection.create_index([("loc", "2dsphere")])
     collection.create_index([("loc1", "2dsphere")])
     collection.create_index([("loc2", "2dsphere")])
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
@@ -297,6 +296,7 @@ def test_near_restriction_errors(collection, test):
 
 def test_near_in_aggregate_match_errors(collection):
     """Verifies $near is not permitted in aggregation pipeline $match (parse-time rejection)."""
+    collection.create_index([("loc", "2dsphere")])
     result = execute_command(
         collection,
         {
@@ -316,6 +316,7 @@ def test_near_in_aggregate_match_errors(collection):
 
 def test_near_combined_with_text_errors(collection):
     """Verifies $near cannot be combined with $text in the same query."""
+    collection.create_index([("loc", "2dsphere")])
     collection.create_index([("name", "text")])
     result = execute_command(
         collection,

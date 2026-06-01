@@ -1,7 +1,4 @@
-"""Tests for $near legacy mode — 2d index, planar distance, coordinate pairs.
-
-All legacy $near tests are consolidated here. Uses geo_2d fixture.
-"""
+"""Tests for $near legacy mode — 2d index, planar distance, coordinate pairs."""
 
 import pytest
 from bson import Decimal128, Int64
@@ -19,9 +16,6 @@ from documentdb_tests.framework.bson_type_validator import (
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-pytestmark = pytest.mark.usefixtures("geo_2d")
-
 
 LEGACY_ERROR_TESTS: list[QueryTestCase] = [
     QueryTestCase(
@@ -42,12 +36,14 @@ LEGACY_ERROR_TESTS: list[QueryTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(LEGACY_ERROR_TESTS))
 def test_near_legacy_errors(collection, test):
     """Verifies $near rejects invalid legacy inputs."""
+    collection.create_index([("loc", "2d")])
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertFailureCode(result, test.error_code, msg=test.msg)
 
 
 def test_near_legacy_distance_ordering(collection):
     """Verifies $near with 2d index returns results in distance order."""
+    collection.create_index([("loc", "2d")])
     collection.insert_many(
         [
             {"_id": 1, "loc": [5, 5]},
@@ -93,6 +89,7 @@ LEGACY_BSON_ACCEPTANCE = generate_bson_acceptance_test_cases(LEGACY_BSON_PARAMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", LEGACY_BSON_REJECTION)
 def test_near_legacy_bson_type_rejected(collection, bson_type, sample_value, spec):
     """Verifies legacy $near rejects invalid BSON types."""
+    collection.create_index([("loc", "2d")])
     result = execute_command(
         collection,
         {"find": collection.name, "filter": {"loc": {"$near": [sample_value, sample_value]}}},
@@ -103,6 +100,7 @@ def test_near_legacy_bson_type_rejected(collection, bson_type, sample_value, spe
 @pytest.mark.parametrize("bson_type,sample_value,spec", LEGACY_BSON_ACCEPTANCE)
 def test_near_legacy_bson_type_accepted(collection, bson_type, sample_value, spec):
     """Verifies legacy $near accepts valid BSON types."""
+    collection.create_index([("loc", "2d")])
     collection.insert_one({"_id": 1, "loc": [0, 0]})
     result = execute_command(
         collection,
