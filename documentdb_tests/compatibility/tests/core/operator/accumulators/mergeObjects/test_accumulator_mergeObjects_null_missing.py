@@ -176,12 +176,24 @@ MERGE_OBJECTS_CONSTANT_NULL_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Empty Collection]: empty collection produces no group output
+# (empty result set).
+MERGE_OBJECTS_EMPTY_COLLECTION_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "empty_collection",
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[],
+        msg="$mergeObjects on empty collection should return empty result set",
+    ),
+]
+
 MERGE_OBJECTS_NULL_MISSING_TESTS = (
     MERGE_OBJECTS_NULL_TESTS
     + MERGE_OBJECTS_MISSING_TESTS
     + MERGE_OBJECTS_NULL_MISSING_MIX_TESTS
     + MERGE_OBJECTS_REMOVE_TESTS
     + MERGE_OBJECTS_CONSTANT_NULL_TESTS
+    + MERGE_OBJECTS_EMPTY_COLLECTION_TESTS
 )
 
 
@@ -195,20 +207,3 @@ def test_accumulator_mergeObjects_null_missing(collection, test_case: Accumulato
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-# Property [Empty Collection]: empty collection produces no group output
-# (empty result set).
-def test_accumulator_mergeObjects_empty_collection(collection):
-    """Test $mergeObjects on empty collection returns empty result set."""
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(
-        result, [], msg="$mergeObjects on empty collection should return empty result set"
-    )
