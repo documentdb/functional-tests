@@ -64,6 +64,14 @@ ERROR_TESTS: list[UpdateTestCase] = [
         error_code=BAD_VALUE_ERROR,
         msg="$ used twice in update path should fail (cannot traverse multiple arrays)",
     ),
+    UpdateTestCase(
+        "field_exists_but_not_array",
+        setup_docs=[{"_id": 1, "arr": 5}],
+        query={"_id": 1, "arr": 5},
+        update={"$set": {"arr.$": 99}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$ on scalar field should fail even when query matches",
+    ),
 ]
 
 
