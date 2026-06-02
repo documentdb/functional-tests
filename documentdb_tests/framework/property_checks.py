@@ -234,6 +234,23 @@ class Ne(Check):
         return f"{type(self).__name__}({self.rejected!r})"
 
 
+class Gt(Check):
+    """Assert that the field is strictly greater than a value."""
+
+    def __init__(self, minimum: Any) -> None:
+        self.minimum = minimum
+
+    def check(self, value: Any, path: str) -> str | None:
+        if value is _FIELD_ABSENT:
+            return f"expected '{path}' > {self.minimum!r}, but field is missing"
+        if value <= self.minimum:
+            return f"expected '{path}' > {self.minimum!r}, got {value!r}"
+        return None
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.minimum!r})"
+
+
 class Gte(Check):
     """Assert that the field is greater than or equal to a value."""
 

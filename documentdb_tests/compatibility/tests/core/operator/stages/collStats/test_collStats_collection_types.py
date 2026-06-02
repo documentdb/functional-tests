@@ -317,7 +317,9 @@ def test_collStats_collection_types(database_client, collection, test):
 @pytest.mark.aggregate
 @pytest.mark.parametrize("sub_option", ["storageStats", "count", "queryExecStats"])
 def test_collStats_collection_types_view_on_view_error(database_client, collection, sub_option):
-    """Test that storageStats/count/queryExecStats on a view-on-view produce error 166."""
+    """Test that storageStats/count/queryExecStats on a view-on-view
+    produce COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR.
+    """
     collection.insert_one({"_id": 1})
     inner_view = f"{collection.name}_inner_view"
     outer_view = f"{collection.name}_outer_view"
@@ -378,7 +380,9 @@ def test_collStats_collection_types_timeseries_scale_invariance(database_client,
 @pytest.mark.aggregate
 def test_collStats_collection_types_timeseries_bucket_count(database_client, collection):
     """Test that count returns bucket count, not measurement count."""
-    ts_coll = TimeseriesCollection(granularity="hours").resolve(database_client, collection)
+    ts_coll = TimeseriesCollection(
+        timeseries_options={"timeField": "ts", "metaField": "meta", "granularity": "hours"}
+    ).resolve(database_client, collection)
     base = datetime(2024, 1, 1, tzinfo=timezone.utc)
     ts_coll.insert_many(
         [{"ts": base + timedelta(minutes=i), "meta": "a", "val": i} for i in range(10)]

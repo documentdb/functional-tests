@@ -185,19 +185,14 @@ class ExistingCollection(TargetCollection):
 class TimeseriesCollection(TargetCollection):
     """A time series collection."""
 
-    time_field: str = "ts"
-    meta_field: str = "meta"
-    granularity: str | None = None
+    timeseries_options: dict[str, Any] = field(
+        default_factory=lambda: {"timeField": "ts", "metaField": "meta"}
+    )
+    create_options: dict[str, Any] = field(default_factory=dict)
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
         name = f"{collection.name}_ts"
-        ts_opts: dict[str, Any] = {
-            "timeField": self.time_field,
-            "metaField": self.meta_field,
-        }
-        if self.granularity is not None:
-            ts_opts["granularity"] = self.granularity
-        db.create_collection(name, timeseries=ts_opts)
+        db.create_collection(name, timeseries=self.timeseries_options, **self.create_options)
         return db[name]
 
 
@@ -207,13 +202,7 @@ class SystemBucketsCollection(TimeseriesCollection):
 
     def resolve(self, db: Database, collection: Collection) -> Collection:
         name = f"{collection.name}_ts"
-        ts_opts: dict[str, Any] = {
-            "timeField": self.time_field,
-            "metaField": self.meta_field,
-        }
-        if self.granularity is not None:
-            ts_opts["granularity"] = self.granularity
-        db.create_collection(name, timeseries=ts_opts)
+        db.create_collection(name, timeseries=self.timeseries_options, **self.create_options)
         return db[f"system.buckets.{name}"]
 
 
@@ -381,6 +370,16 @@ class SiblingCollection:
 
     The collection is named ``{fixture_name}{suffix}`` and created with
     the specified options. Documents are inserted if provided.
+
+    Attributes:
+        suffix: Appended to the source collection name to form the
+            sibling's name.
+        view_on_source: If True, create the sibling as a view on the
+            source collection.
+        timeseries_field: If set, create the sibling as a time-series
+            collection using this field as the time field. Ignored when
+            view_on_source is True.
+        docs: Optional documents to insert into the sibling.
     """
 
     suffix: str = "_target"
