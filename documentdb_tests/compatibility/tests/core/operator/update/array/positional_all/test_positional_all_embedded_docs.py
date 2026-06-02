@@ -17,7 +17,7 @@ EMBEDDED_DOC_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [{"val": 1}, {"val": 2}, {"val": 3}]}],
         query={"_id": 1},
         update={"$set": {"arr.$[].val": 0}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [{"val": 0}, {"val": 0}, {"val": 0}]},
         msg="$[] should update field in all embedded documents",
     ),
     UpdateTestCase(
@@ -25,7 +25,10 @@ EMBEDDED_DOC_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [{"nested": {"field": 1}}, {"nested": {"field": 2}}]}],
         query={"_id": 1},
         update={"$set": {"arr.$[].nested.field": 99}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={
+            "_id": 1,
+            "arr": [{"nested": {"field": 99}}, {"nested": {"field": 99}}],
+        },
         msg="$[] updating deeply nested field should work",
     ),
     UpdateTestCase(
@@ -33,7 +36,7 @@ EMBEDDED_DOC_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "outer": {"arr": [1, 2, 3]}}],
         query={"_id": 1},
         update={"$set": {"outer.arr.$[]": 0}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "outer": {"arr": [0, 0, 0]}},
         msg="$[] on nested array field using dot notation should succeed",
     ),
     UpdateTestCase(
@@ -41,7 +44,7 @@ EMBEDDED_DOC_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [{"sub": [1, 2]}, {"sub": [3, 4]}]}],
         query={"_id": 1},
         update={"$set": {"arr.$[].sub.$[]": 0}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [{"sub": [0, 0]}, {"sub": [0, 0]}]},
         msg="Nested $[] should update all elements in all subarrays",
     ),
 ]
@@ -53,9 +56,12 @@ def test_positional_all_embedded_docs(collection, test: UpdateTestCase):
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
-    command = {
-        "update": collection.name,
-        "updates": [{"q": test.query, "u": test.update}],
-    }
-    result = execute_command(collection, command)
-    assertSuccess(result, test.expected, msg=test.msg, raw_res=True)
+    execute_command(
+        collection,
+        {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
+    )
+
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
+    )
+    assertSuccess(result, [test.expected], msg=test.msg)

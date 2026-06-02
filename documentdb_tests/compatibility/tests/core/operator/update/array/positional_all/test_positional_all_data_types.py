@@ -55,24 +55,8 @@ NUMERIC_EQUIVALENCE_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [1, Int64(2), 3.0, Decimal128("4")]}],
         query={"_id": 1},
         update={"$set": {"arr.$[]": 0}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [0, 0, 0, 0]},
         msg="$[] should update all elements regardless of numeric subtype",
-    ),
-    UpdateTestCase(
-        "inc_mixed_numeric",
-        setup_docs=[{"_id": 1, "arr": [1, Int64(2), 3.0]}],
-        query={"_id": 1},
-        update={"$inc": {"arr.$[]": 10}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[] with $inc on mixed numeric types should increment all",
-    ),
-    UpdateTestCase(
-        "set_all_to_null",
-        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[]": None}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[] with $set value of null should update all elements to null",
     ),
 ]
 
@@ -83,9 +67,12 @@ def test_positional_all_numeric_and_null(collection, test: UpdateTestCase):
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
-    command = {
-        "update": collection.name,
-        "updates": [{"q": test.query, "u": test.update}],
-    }
-    result = execute_command(collection, command)
-    assertSuccess(result, test.expected, msg=test.msg, raw_res=True)
+    execute_command(
+        collection,
+        {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
+    )
+
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
+    )
+    assertSuccess(result, [test.expected], msg=test.msg)

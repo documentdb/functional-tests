@@ -1,6 +1,7 @@
 """Tests for $[] positional-all error cases and restrictions.
 
-Covers: non-array field, null field, and upsert restrictions.
+Covers: non-array field, null field, missing field, intermediate field type
+validation, and upsert restrictions.
 """
 
 import pytest
@@ -36,6 +37,38 @@ ERROR_TESTS: list[UpdateTestCase] = [
         upsert=True,
         error_code=BAD_VALUE_ERROR,
         msg="$[] in upsert without exact equality match should fail",
+    ),
+    UpdateTestCase(
+        "missing_field",
+        setup_docs=[{"_id": 1, "x": 1}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[]": 99}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$[] on missing field should fail (path must exist)",
+    ),
+    UpdateTestCase(
+        "missing_nested_field",
+        setup_docs=[{"_id": 1, "outer": {}}],
+        query={"_id": 1},
+        update={"$set": {"outer.arr.$[]": 99}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$[] on missing nested field should fail (path must exist)",
+    ),
+    UpdateTestCase(
+        "null_query_on_missing_field",
+        setup_docs=[{"_id": 1, "x": 1}],
+        query={"arr": None},
+        update={"$set": {"arr.$[]": 99}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$[] with null query on missing field should fail (no array)",
+    ),
+    UpdateTestCase(
+        "intermediate_field_is_scalar",
+        setup_docs=[{"_id": 1, "a": {"b": "string_value"}}],
+        query={"_id": 1},
+        update={"$set": {"a.b.$[]": 99}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$[] should fail when intermediate field (a.b) is a scalar, not an array",
     ),
 ]
 
