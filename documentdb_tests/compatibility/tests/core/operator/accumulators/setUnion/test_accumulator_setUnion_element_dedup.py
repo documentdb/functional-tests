@@ -384,6 +384,52 @@ SETUNION_ALL_BSON_TYPES_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Mixed Element Types Within Array]: arrays containing a mix of
+# different BSON types are correctly unioned with cross-document deduplication
+# applied per-element regardless of surrounding element types.
+SETUNION_MIXED_ELEMENT_TYPE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "mixed_types_partial_overlap",
+        docs=[
+            {"v": [1, "a", {"id": 1}, None, [1, 2]]},
+            {"v": ["a", 2, {"id": 1}, None]},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "size": {"$size": "$result"}}},
+        ],
+        expected=[{"size": 6}],
+        msg="$setUnion should deduplicate mixed-type elements across documents",
+    ),
+    AccumulatorTestCase(
+        "mixed_types_three_docs_overlap",
+        docs=[
+            {"v": [1, "hello", True]},
+            {"v": ["hello", 2, False]},
+            {"v": [True, False, 3]},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "size": {"$size": "$result"}}},
+        ],
+        expected=[{"size": 6}],
+        msg="$setUnion should deduplicate across three docs with mixed int/string/bool elements",
+    ),
+    AccumulatorTestCase(
+        "mixed_types_nested_and_scalar",
+        docs=[
+            {"v": [{"x": 1}, [10, 20], "abc", 42]},
+            {"v": [42, "abc", [10, 20], {"x": 2}]},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "size": {"$size": "$result"}}},
+        ],
+        expected=[{"size": 5}],
+        msg="$setUnion should deduplicate mixed scalars, objects, and nested arrays",
+    ),
+]
+
 SETUNION_ELEMENT_DEDUP_TESTS = (
     SETUNION_STRING_DEDUP_TESTS
     + SETUNION_OBJECT_DEDUP_TESTS
@@ -392,6 +438,7 @@ SETUNION_ELEMENT_DEDUP_TESTS = (
     + SETUNION_BINARY_REGEX_DEDUP_TESTS
     + SETUNION_MINKEY_MAXKEY_DEDUP_TESTS
     + SETUNION_ALL_BSON_TYPES_TESTS
+    + SETUNION_MIXED_ELEMENT_TYPE_TESTS
 )
 
 
