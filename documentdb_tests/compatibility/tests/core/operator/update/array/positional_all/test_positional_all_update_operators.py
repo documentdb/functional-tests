@@ -4,31 +4,18 @@ Covers: $set, $inc, $mul, $min, $max, $unset behavior, null/missing field handli
 empty/single element arrays, and interaction with other update operators.
 """
 
-from dataclasses import dataclass
-from typing import Any
-
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
-
-
-@dataclass(frozen=True)
-class PositionalAllUpdateTest(BaseTestCase):
-    """Test case for $[] with update operators."""
-
-    setup_docs: Any = None
-    query: Any = None
-    update: Any = None
-
 
 # --- Null/Missing Field Handling ---
 
-NULL_HANDLING_SUCCESS_TESTS: list[PositionalAllUpdateTest] = [
-    PositionalAllUpdateTest(
+NULL_HANDLING_SUCCESS_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "set_null_elements_to_value",
         setup_docs=[{"_id": 1, "arr": [None, None, None]}],
         query={"_id": 1},
@@ -36,7 +23,7 @@ NULL_HANDLING_SUCCESS_TESTS: list[PositionalAllUpdateTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $set on null elements should replace all with new value",
     ),
-    PositionalAllUpdateTest(
+    UpdateTestCase(
         "set_all_to_null",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
@@ -46,8 +33,8 @@ NULL_HANDLING_SUCCESS_TESTS: list[PositionalAllUpdateTest] = [
     ),
 ]
 
-NULL_HANDLING_ERROR_TESTS: list[PositionalAllUpdateTest] = [
-    PositionalAllUpdateTest(
+NULL_HANDLING_ERROR_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "inc_on_null_elements",
         setup_docs=[{"_id": 1, "arr": [1, None, 3]}],
         query={"_id": 1},
@@ -55,7 +42,7 @@ NULL_HANDLING_ERROR_TESTS: list[PositionalAllUpdateTest] = [
         error_code=TYPE_MISMATCH_ERROR,
         msg="$[] with $inc on array containing null should fail",
     ),
-    PositionalAllUpdateTest(
+    UpdateTestCase(
         "null_field_not_array",
         setup_docs=[{"_id": 1, "arr": None}],
         query={"_id": 1},
@@ -68,8 +55,8 @@ NULL_HANDLING_ERROR_TESTS: list[PositionalAllUpdateTest] = [
 
 # --- $unset Behavior ---
 
-UNSET_TESTS: list[PositionalAllUpdateTest] = [
-    PositionalAllUpdateTest(
+UNSET_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "unset_all_elements",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
@@ -77,7 +64,7 @@ UNSET_TESTS: list[PositionalAllUpdateTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $unset should set all elements to null",
     ),
-    PositionalAllUpdateTest(
+    UpdateTestCase(
         "unset_field_in_embedded_docs",
         setup_docs=[{"_id": 1, "arr": [{"x": 1, "y": 2}, {"x": 3, "y": 4}]}],
         query={"_id": 1},
@@ -90,8 +77,8 @@ UNSET_TESTS: list[PositionalAllUpdateTest] = [
 
 # --- Interaction with Other Update Operators ---
 
-INTERACTION_TESTS: list[PositionalAllUpdateTest] = [
-    PositionalAllUpdateTest(
+INTERACTION_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "positional_all_and_set_different_fields",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3], "x": 10}],
         query={"_id": 1},
@@ -99,7 +86,7 @@ INTERACTION_TESTS: list[PositionalAllUpdateTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] on one field and $set on another should both succeed",
     ),
-    PositionalAllUpdateTest(
+    UpdateTestCase(
         "positional_all_and_positional_different_fields",
         setup_docs=[{"_id": 1, "a": [1, 2, 3], "b": [10, 20, 30]}],
         query={"_id": 1, "b": 20},
@@ -112,8 +99,8 @@ INTERACTION_TESTS: list[PositionalAllUpdateTest] = [
 
 # --- Empty and Single Element ---
 
-EDGE_CASE_TESTS: list[PositionalAllUpdateTest] = [
-    PositionalAllUpdateTest(
+EDGE_CASE_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "inc_single_element",
         setup_docs=[{"_id": 1, "arr": [42]}],
         query={"_id": 1},
@@ -121,7 +108,7 @@ EDGE_CASE_TESTS: list[PositionalAllUpdateTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $inc on single element array should increment that element",
     ),
-    PositionalAllUpdateTest(
+    UpdateTestCase(
         "mul_empty_array",
         setup_docs=[{"_id": 1, "arr": []}],
         query={"_id": 1},
@@ -136,7 +123,7 @@ ALL_SUCCESS_TESTS = NULL_HANDLING_SUCCESS_TESTS + UNSET_TESTS + INTERACTION_TEST
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_SUCCESS_TESTS))
-def test_positional_all_update_operators_success(collection, test: PositionalAllUpdateTest):
+def test_positional_all_update_operators_success(collection, test: UpdateTestCase):
     """Test $[] with update operators - success cases."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)

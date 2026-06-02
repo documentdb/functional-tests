@@ -4,28 +4,15 @@ Covers: update all elements, empty array, single element, query filtering,
 update command integration, and various update operators.
 """
 
-from dataclasses import dataclass
-from typing import Any
-
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
 
-
-@dataclass(frozen=True)
-class PositionalAllTest(BaseTestCase):
-    """Test case for $[] positional-all operator."""
-
-    setup_docs: Any = None
-    query: Any = None
-    update: Any = None
-
-
-CORE_BEHAVIOR_TESTS: list[PositionalAllTest] = [
-    PositionalAllTest(
+CORE_BEHAVIOR_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "set_all_elements",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
@@ -33,7 +20,7 @@ CORE_BEHAVIOR_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $set should update all elements",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "inc_all_elements",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
@@ -41,7 +28,7 @@ CORE_BEHAVIOR_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $inc should increment all elements",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "mul_all_elements",
         setup_docs=[{"_id": 1, "arr": [2, 3, 4]}],
         query={"_id": 1},
@@ -49,7 +36,7 @@ CORE_BEHAVIOR_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $mul should multiply all elements",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "empty_array_noop",
         setup_docs=[{"_id": 1, "arr": []}],
         query={"_id": 1},
@@ -57,7 +44,7 @@ CORE_BEHAVIOR_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 0, "ok": 1.0},
         msg="$[] on empty array should be no-op",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "single_element",
         setup_docs=[{"_id": 1, "arr": [42]}],
         query={"_id": 1},
@@ -70,8 +57,8 @@ CORE_BEHAVIOR_TESTS: list[PositionalAllTest] = [
 
 # --- Query Filtering ---
 
-QUERY_FILTERING_TESTS: list[PositionalAllTest] = [
-    PositionalAllTest(
+QUERY_FILTERING_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "only_matched_docs_updated",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3], "x": 1}, {"_id": 2, "arr": [4, 5, 6], "x": 2}],
         query={"x": 1},
@@ -79,7 +66,7 @@ QUERY_FILTERING_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] should only update elements in matched documents",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "query_not_referencing_array",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3], "x": "a"}],
         query={"x": "a"},
@@ -92,8 +79,8 @@ QUERY_FILTERING_TESTS: list[PositionalAllTest] = [
 
 # --- Update Command Integration ---
 
-COMMAND_INTEGRATION_TESTS: list[PositionalAllTest] = [
-    PositionalAllTest(
+COMMAND_INTEGRATION_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "update_one",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
@@ -106,8 +93,8 @@ COMMAND_INTEGRATION_TESTS: list[PositionalAllTest] = [
 
 # --- JS-based: $[] with various update operators ---
 
-JS_UPDATE_OPERATORS_TESTS: list[PositionalAllTest] = [
-    PositionalAllTest(
+JS_UPDATE_OPERATORS_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "unset_all",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
@@ -115,7 +102,7 @@ JS_UPDATE_OPERATORS_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $unset should set all elements to null",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "addToSet_on_array_of_arrays",
         setup_docs=[{"_id": 1, "arr": [[1, 2], [3, 4]]}],
         query={"_id": 1},
@@ -123,7 +110,7 @@ JS_UPDATE_OPERATORS_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $addToSet on array of arrays should add to each sub-array",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "pop_on_array_of_arrays",
         setup_docs=[{"_id": 1, "arr": [[1, 2, 3], [4, 5, 6]]}],
         query={"_id": 1},
@@ -131,7 +118,7 @@ JS_UPDATE_OPERATORS_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $pop on array of arrays should pop from each sub-array",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "push_on_array_of_arrays",
         setup_docs=[{"_id": 1, "arr": [[1, 2], [3, 4]]}],
         query={"_id": 1},
@@ -139,7 +126,7 @@ JS_UPDATE_OPERATORS_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $push on array of arrays should append to each sub-array",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "pull_on_array_of_arrays",
         setup_docs=[{"_id": 1, "arr": [[1, 2, 3], [2, 3, 4]]}],
         query={"_id": 1},
@@ -147,7 +134,7 @@ JS_UPDATE_OPERATORS_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $pull on array of arrays should remove matching from each sub-array",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "pullAll_on_array_of_arrays",
         setup_docs=[{"_id": 1, "arr": [[1, 2, 3], [2, 3, 4]]}],
         query={"_id": 1},
@@ -160,8 +147,8 @@ JS_UPDATE_OPERATORS_TESTS: list[PositionalAllTest] = [
 
 # --- Update Operators ---
 
-UPDATE_OPERATOR_TESTS: list[PositionalAllTest] = [
-    PositionalAllTest(
+UPDATE_OPERATOR_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "min_all",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
@@ -169,7 +156,7 @@ UPDATE_OPERATOR_TESTS: list[PositionalAllTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $min should conditionally update all elements",
     ),
-    PositionalAllTest(
+    UpdateTestCase(
         "max_all",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
@@ -190,7 +177,7 @@ ALL_TESTS = (
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_positional_all_core(collection, test: PositionalAllTest):
+def test_positional_all_core(collection, test: UpdateTestCase):
     """Test $[] positional-all update operator core behavior."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)

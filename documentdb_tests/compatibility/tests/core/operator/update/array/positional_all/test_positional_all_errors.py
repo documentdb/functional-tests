@@ -4,30 +4,16 @@ Covers: upsert restrictions, non-array field, missing field, null field,
 conflicting operators, and $inc on null elements.
 """
 
-from dataclasses import dataclass
-from typing import Any
-
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
 
-
-@dataclass(frozen=True)
-class PositionalAllErrorTest(BaseTestCase):
-    """Test case for $[] error scenarios."""
-
-    setup_docs: Any = None
-    query: Any = None
-    update: Any = None
-    upsert: bool = False
-
-
-ERROR_TESTS: list[PositionalAllErrorTest] = [
-    PositionalAllErrorTest(
+ERROR_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "non_array_field",
         setup_docs=[{"_id": 1, "x": "not_an_array"}],
         query={"_id": 1},
@@ -35,7 +21,7 @@ ERROR_TESTS: list[PositionalAllErrorTest] = [
         error_code=BAD_VALUE_ERROR,
         msg="$[] on non-array field should fail",
     ),
-    PositionalAllErrorTest(
+    UpdateTestCase(
         "null_field",
         setup_docs=[{"_id": 1, "arr": None}],
         query={"_id": 1},
@@ -43,7 +29,7 @@ ERROR_TESTS: list[PositionalAllErrorTest] = [
         error_code=BAD_VALUE_ERROR,
         msg="$[] on null field should fail",
     ),
-    PositionalAllErrorTest(
+    UpdateTestCase(
         "inc_on_null_element",
         setup_docs=[{"_id": 1, "arr": [1, None, 3]}],
         query={"_id": 1},
@@ -51,7 +37,7 @@ ERROR_TESTS: list[PositionalAllErrorTest] = [
         error_code=TYPE_MISMATCH_ERROR,
         msg="$[] with $inc on array containing null should fail",
     ),
-    PositionalAllErrorTest(
+    UpdateTestCase(
         "upsert_without_equality_match",
         setup_docs=None,
         query={"x": {"$gt": 5}},
@@ -79,8 +65,8 @@ def test_positional_all_errors(collection, test):
 
 # --- Upsert with exact equality (should succeed) ---
 
-UPSERT_SUCCESS_TESTS: list[PositionalAllErrorTest] = [
-    PositionalAllErrorTest(
+UPSERT_SUCCESS_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
         "upsert_with_equality_match",
         setup_docs=None,
         query={"_id": 1, "arr": [1, 2, 3]},
@@ -93,7 +79,7 @@ UPSERT_SUCCESS_TESTS: list[PositionalAllErrorTest] = [
 
 
 @pytest.mark.parametrize("test", pytest_params(UPSERT_SUCCESS_TESTS))
-def test_positional_all_upsert_success(collection, test: PositionalAllErrorTest):
+def test_positional_all_upsert_success(collection, test: UpdateTestCase):
     """Test $[] positional-all upsert success cases."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
