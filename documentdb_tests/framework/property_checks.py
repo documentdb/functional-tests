@@ -187,7 +187,7 @@ class HasKey(Check):
         return f"{type(self).__name__}({self.key!r})"
 
 
-class Includes(Check):
+class ContainsElement(Check):
     """Assert that a list contains the expected element."""
 
     def __init__(self, element: Any) -> None:

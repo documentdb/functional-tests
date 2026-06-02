@@ -4,7 +4,13 @@ import pytest
 
 from documentdb_tests.framework.assertions import assertProperties, assertResult
 from documentdb_tests.framework.executor import execute_command
-from documentdb_tests.framework.property_checks import Eq, Exists, HasKey, Includes, NotExists
+from documentdb_tests.framework.property_checks import (
+    ContainsElement,
+    Eq,
+    Exists,
+    HasKey,
+    NotExists,
+)
 from documentdb_tests.framework.target_collection import (
     CappedCollection,
     ClusteredCollection,
@@ -61,7 +67,7 @@ def test_dbHash_includes_capped_collections(database_client, collection):
         {
             f"collections.{coll.name}": Exists(),
             f"uuids.{coll.name}": Exists(),
-            "capped": Includes(coll.name),
+            "capped": ContainsElement(coll.name),
         },
         raw_res=True,
         msg="Should include capped in both collections and capped",
