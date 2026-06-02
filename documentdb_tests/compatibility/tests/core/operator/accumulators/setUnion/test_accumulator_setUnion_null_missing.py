@@ -166,11 +166,94 @@ SETUNION_MISSING_GROUP_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Missing Nested Paths]: when using dotted field paths like $a.b or
+# $a.b.c, documents where any segment of the path is missing or is a non-object
+# type are silently ignored — only documents where the full path resolves to an
+# array contribute to the union.
+SETUNION_MISSING_NESTED_PATH_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "nested_path_b_missing_in_one_doc",
+        docs=[
+            {"a": {"b": [1, 2]}},
+            {"a": {}},
+            {"a": {"b": [2, 3]}},
+            {"c": 1},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [1, 2, 3]}],
+        msg="$setUnion on $a.b should ignore docs where a exists but b is missing or a is missing",
+    ),
+    AccumulatorTestCase(
+        "nested_path_a_is_scalar",
+        docs=[
+            {"a": {"b": [1, 2]}},
+            {"a": "scalar"},
+            {"a": {"b": [2, 3]}},
+            {"a": 42},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [1, 2, 3]}],
+        msg="$setUnion on $a.b should ignore docs where a is a non-object scalar",
+    ),
+    AccumulatorTestCase(
+        "nested_path_three_levels_mixed_missing",
+        docs=[
+            {"a": {"b": {"c": [1, 2]}}},
+            {"a": {"b": {}}},
+            {"a": {}},
+            {"c": 1},
+            {"a": {"b": {"c": [2, 3]}}},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$a.b.c"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [1, 2, 3]}],
+        msg="$setUnion on $a.b.c should ignore docs missing at any level of the path",
+    ),
+    AccumulatorTestCase(
+        "nested_path_a_is_array_traversal_partial_missing",
+        docs=[
+            {"a": [{"b": [1, 2]}, {"b": [3]}]},
+            {"a": [{"b": [3, 4]}, {"c": 5}]},
+            {"a": [{"x": 1}]},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [[1, 2], [3], [3, 4]]}],
+        msg="$setUnion on $a.b should traverse arrays and skip elements where b is missing",
+    ),
+    AccumulatorTestCase(
+        "nested_path_a_mixed_object_array_bool",
+        docs=[
+            {"a": {"b": [10, 20]}},
+            {"a": [1, 2, 3]},
+            {"a": True},
+            {"a": {"b": [20, 30]}},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [10, 20, 30]}],
+        msg="$setUnion on $a.b should ignore docs where a is array or bool, union objects only",
+    ),
+]
+
 SETUNION_NULL_MISSING_SUCCESS_TESTS = (
     SETUNION_MISSING_FIELD_TESTS
     + SETUNION_REMOVE_TESTS
     + SETUNION_NULL_ELEMENT_TESTS
     + SETUNION_MISSING_GROUP_TESTS
+    + SETUNION_MISSING_NESTED_PATH_TESTS
 )
 
 
