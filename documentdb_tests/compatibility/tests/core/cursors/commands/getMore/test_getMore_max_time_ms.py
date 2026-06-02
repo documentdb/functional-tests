@@ -347,18 +347,22 @@ def test_getMore_max_time_ms_no_data_empty_batch(collection):
     )
 
 
-# Property [maxTimeMS Timeout Retains Cursor]: a getMore that times out with no
-# data keeps the tailable cursor open for subsequent getMore calls.
-def test_getMore_max_time_ms_timeout_retains_cursor(collection):
-    """Test a getMore timeout on a tailable cursor keeps it open for subsequent calls."""
+# Property [maxTimeMS Wait Elapsed Retains Cursor]: a getMore whose awaitData
+# maxTimeMS wait elapses with no new data keeps the tailable cursor open for
+# subsequent getMore calls.
+def test_getMore_max_time_ms_wait_elapsed_retains_cursor(collection):
+    """Test a getMore whose awaitData wait elapses keeps the cursor open for later calls."""
     capped = CappedCollection().resolve(collection.database, collection)
     capped.insert_many([{"_id": i} for i in range(5)])
     cursor_id = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 10})
+    # maxTimeMS=0 returns immediately (no wait), positioning the cursor at the tail.
     result = execute_command(
         collection,
         {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 0},
     )
     cursor_id = result["cursor"]["id"]
+    # maxTimeMS=100 lets the awaitData wait window elapse with no new data; the
+    # cursor must remain open afterward.
     result2 = execute_command(
         collection,
         {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 100},
@@ -366,7 +370,7 @@ def test_getMore_max_time_ms_timeout_retains_cursor(collection):
     assertResult(
         result2,
         expected={"ok": Eq(1.0), "cursor": {"id": Gte(1)}},
-        msg="getMore should keep a tailable cursor open after a timeout",
+        msg="getMore should keep a tailable cursor open after the awaitData wait elapses",
         raw_res=True,
     )
 
