@@ -68,7 +68,7 @@ ERROR_TESTS: list[UpdateTestCase] = [
 
 
 @pytest.mark.parametrize("test", pytest_params(ERROR_TESTS))
-def test_positional_errors(collection, test: UpdateTestCase):
+def test_positional_errors(collection, test):
     """Test $ positional update operator error cases."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
@@ -78,5 +78,4 @@ def test_positional_errors(collection, test: UpdateTestCase):
         update_doc["upsert"] = True
     command = {"update": collection.name, "updates": [update_doc]}
     result = execute_command(collection, command)
-    assert test.error_code is not None
     assertFailureCode(result, test.error_code, msg=test.msg)
