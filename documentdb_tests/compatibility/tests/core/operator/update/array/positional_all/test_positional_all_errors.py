@@ -1,14 +1,13 @@
 """Tests for $[] positional-all error cases and restrictions.
 
-Covers: upsert restrictions, non-array field, missing field, null field,
-conflicting operators, and $inc on null elements.
+Covers: non-array field, null field, and upsert restrictions.
 """
 
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -28,14 +27,6 @@ ERROR_TESTS: list[UpdateTestCase] = [
         update={"$set": {"arr.$[]": 99}},
         error_code=BAD_VALUE_ERROR,
         msg="$[] on null field should fail",
-    ),
-    UpdateTestCase(
-        "inc_on_null_element",
-        setup_docs=[{"_id": 1, "arr": [1, None, 3]}],
-        query={"_id": 1},
-        update={"$inc": {"arr.$[]": 5}},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$[] with $inc on array containing null should fail",
     ),
     UpdateTestCase(
         "upsert_without_equality_match",

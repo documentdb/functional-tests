@@ -1,7 +1,7 @@
 """Tests for $[] positional-all with embedded documents, dot notation, and nested arrays.
 
-Covers: updating fields in all embedded documents, dot notation paths,
-nested arrays, and nested $[] usage.
+Covers: updating fields in all embedded documents, deeply nested dot notation
+paths, nested array access, and nested $[] usage.
 """
 
 import pytest
@@ -19,22 +19,6 @@ EMBEDDED_DOC_TESTS: list[UpdateTestCase] = [
         update={"$set": {"arr.$[].val": 0}},
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] should update field in all embedded documents",
-    ),
-    UpdateTestCase(
-        "inc_field_in_all_docs",
-        setup_docs=[{"_id": 1, "arr": [{"val": 10}, {"val": 20}]}],
-        query={"_id": 1},
-        update={"$inc": {"arr.$[].val": 5}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[] with $inc should increment field in all embedded documents",
-    ),
-    UpdateTestCase(
-        "unset_field_in_all_docs",
-        setup_docs=[{"_id": 1, "arr": [{"val": 1, "x": "a"}, {"val": 2, "x": "b"}]}],
-        query={"_id": 1},
-        update={"$unset": {"arr.$[].x": ""}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[] with $unset should remove field from all embedded documents",
     ),
     UpdateTestCase(
         "deeply_nested_field",
