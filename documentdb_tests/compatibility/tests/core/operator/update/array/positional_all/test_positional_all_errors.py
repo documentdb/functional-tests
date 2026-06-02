@@ -63,6 +63,14 @@ ERROR_TESTS: list[UpdateTestCase] = [
         msg="$[] with null query on missing field should fail (no array)",
     ),
     UpdateTestCase(
+        "field_exists_but_not_array",
+        setup_docs=[{"_id": 1, "arr": 5}],
+        query={"_id": 1, "arr": 5},
+        update={"$set": {"arr.$[]": 99}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$[] on scalar field should fail even when query matches",
+    ),
+    UpdateTestCase(
         "intermediate_field_is_scalar",
         setup_docs=[{"_id": 1, "a": {"b": "string_value"}}],
         query={"_id": 1},
