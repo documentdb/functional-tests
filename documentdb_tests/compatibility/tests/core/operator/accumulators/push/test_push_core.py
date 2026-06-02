@@ -390,6 +390,63 @@ PUSH_GROUPING_TESTS: list[AccumulatorTestCase] = [
         ],
         msg="$push should produce 100 groups with correct content across 10000 documents",
     ),
+    # 5 groups with varying sizes: g0=500, g1=750, g2=1000, g3=1250, g4=1500
+    AccumulatorTestCase(
+        "group_large_varying_sizes",
+        docs=[
+            {"cat": f"g{gi}", "v": v}
+            for gi, size in enumerate([500, 750, 1000, 1250, 1500])
+            for v in range(
+                sum([500, 750, 1000, 1250, 1500][:gi]),
+                sum([500, 750, 1000, 1250, 1500][:gi]) + size,
+            )
+        ],
+        pipeline=[
+            {"$sort": {"v": 1}},
+            {"$group": {"_id": "$cat", "result": {"$push": "$v"}}},
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[
+            {"_id": "g0", "result": list(range(0, 500))},
+            {"_id": "g1", "result": list(range(500, 1250))},
+            {"_id": "g2", "result": list(range(1250, 2250))},
+            {"_id": "g3", "result": list(range(2250, 3500))},
+            {"_id": "g4", "result": list(range(3500, 5000))},
+        ],
+        msg="$push should produce correct content across 5 groups of varying sizes (500-1500)",
+    ),
+    AccumulatorTestCase(
+        "group_large_varying_sizes_sort_after",
+        docs=[
+            {"cat": f"g{gi}", "v": v}
+            for gi, size in enumerate([500, 750, 1000, 1250, 1500])
+            for v in range(
+                sum([500, 750, 1000, 1250, 1500][:gi]),
+                sum([500, 750, 1000, 1250, 1500][:gi]) + size,
+            )
+        ],
+        pipeline=[
+            {"$group": {"_id": "$cat", "result": {"$push": "$v"}}},
+            {"$sort": {"_id": 1}},
+            {
+                "$project": {
+                    "_id": 1,
+                    "count": {"$size": "$result"},
+                    "total": {"$sum": "$result"},
+                    "lo": {"$min": "$result"},
+                    "hi": {"$max": "$result"},
+                }
+            },
+        ],
+        expected=[
+            {"_id": "g0", "count": 500, "total": 124_750, "lo": 0, "hi": 499},
+            {"_id": "g1", "count": 750, "total": 655_875, "lo": 500, "hi": 1249},
+            {"_id": "g2", "count": 1000, "total": 1_749_500, "lo": 1250, "hi": 2249},
+            {"_id": "g3", "count": 1250, "total": 3_593_125, "lo": 2250, "hi": 3499},
+            {"_id": "g4", "count": 1500, "total": 6_374_250, "lo": 3500, "hi": 4999},
+        ],
+        msg="$push should produce correct per-group content with $sort after $group",
+    ),
 ]
 
 # Property [Field Path Resolution]: $push correctly resolves simple, nested,
