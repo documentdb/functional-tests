@@ -1,8 +1,4 @@
-"""Tests for planCacheClear command projection field type acceptance.
-
-MongoDB does not validate the type of the projection field — all BSON types
-are silently accepted and the command succeeds.
-"""
+"""Tests for planCacheClear command projection field type acceptance."""
 
 from __future__ import annotations
 
@@ -20,7 +16,7 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Projection Type Acceptance]: the projection field accepts all BSON
-# types without type validation — every type succeeds with ok: 1.0.
+# types without type validation. Every type succeeds with ok: 1.0.
 PLANCACHECLEAR_PROJECTION_TYPE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"projection_type_{tid}",

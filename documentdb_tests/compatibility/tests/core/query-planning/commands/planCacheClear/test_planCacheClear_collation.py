@@ -1,9 +1,4 @@
-"""Tests for planCacheClear command collation field support.
-
-MongoDB accepts collation in planCacheClear for query shape targeting.
-The collation field is permissive — it succeeds with or without query,
-and accepts non-document types and empty documents.
-"""
+"""Tests for planCacheClear command collation field support."""
 
 from __future__ import annotations
 
@@ -18,7 +13,7 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Collation Valid]: planCacheClear accepts valid collation with query.
-COLLATION_VALID_TESTS: list[CommandTestCase] = [
+PLANCACHECLEAR_COLLATION_VALID_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "collation_valid_en",
         command=lambda ctx: {
@@ -42,8 +37,8 @@ COLLATION_VALID_TESTS: list[CommandTestCase] = [
 ]
 
 # Property [Collation Permissiveness]: collation accepts values that would
-# normally be invalid — MongoDB silently accepts them.
-COLLATION_PERMISSIVE_TESTS: list[CommandTestCase] = [
+# normally be invalid because MongoDB silently accepts them.
+PLANCACHECLEAR_COLLATION_PERMISSIVE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "collation_without_query",
         command=lambda ctx: {
@@ -116,7 +111,7 @@ COLLATION_PERMISSIVE_TESTS: list[CommandTestCase] = [
 ]
 
 PLANCACHECLEAR_COLLATION_TESTS: list[CommandTestCase] = (
-    COLLATION_VALID_TESTS + COLLATION_PERMISSIVE_TESTS
+    PLANCACHECLEAR_COLLATION_VALID_TESTS + PLANCACHECLEAR_COLLATION_PERMISSIVE_TESTS
 )
 
 

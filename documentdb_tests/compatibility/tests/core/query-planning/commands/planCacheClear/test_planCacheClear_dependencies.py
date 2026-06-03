@@ -1,9 +1,4 @@
-"""Tests for planCacheClear command parameter independence and unknown fields.
-
-MongoDB does not enforce parameter dependencies for planCacheClear — sort,
-projection, and collation succeed without query. Unknown fields are also
-silently accepted.
-"""
+"""Tests for planCacheClear command parameter independence and unknown fields."""
 
 from __future__ import annotations
 
@@ -18,7 +13,7 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Parameter Independence]: sort, projection, and collation succeed
-# without query on MongoDB.
+# without query.
 PLANCACHECLEAR_PARAM_INDEPENDENCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "dep_sort_without_query",

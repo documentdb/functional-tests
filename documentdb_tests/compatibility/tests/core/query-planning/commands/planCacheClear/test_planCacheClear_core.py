@@ -1,8 +1,4 @@
-"""Tests for planCacheClear command core behavior.
-
-Covers basic success cases, query shape variations, parameter combinations,
-null/missing optional parameters, idempotency, and response structure.
-"""
+"""Tests for planCacheClear command core behavior."""
 
 from __future__ import annotations
 

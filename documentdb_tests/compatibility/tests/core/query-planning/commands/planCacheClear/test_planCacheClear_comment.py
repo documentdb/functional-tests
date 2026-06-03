@@ -16,7 +16,7 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Comment Type Acceptance]: comment field accepts any valid BSON type.
-COMMENT_TYPE_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+PLANCACHECLEAR_COMMENT_TYPE_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"comment_type_{tid}",
         command=lambda ctx, v=val: {"planCacheClear": ctx.collection, "comment": v},
@@ -45,10 +45,8 @@ COMMENT_TYPE_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-COMBINED_LIST: list[CommandTestCase] = COMMENT_TYPE_ACCEPTANCE_TESTS
 
-
-@pytest.mark.parametrize("test", pytest_params(COMBINED_LIST))
+@pytest.mark.parametrize("test", pytest_params(PLANCACHECLEAR_COMMENT_TYPE_ACCEPTANCE_TESTS))
 def test_planCacheClear_comment(database_client, collection, test):
     """Test planCacheClear comment field type acceptance."""
     collection = test.prepare(database_client, collection)

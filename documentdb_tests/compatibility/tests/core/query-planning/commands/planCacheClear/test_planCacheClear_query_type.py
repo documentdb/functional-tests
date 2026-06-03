@@ -1,8 +1,4 @@
-"""Tests for planCacheClear command query field type acceptance.
-
-MongoDB does not validate the type of the query field — all BSON types
-are silently accepted and the command succeeds.
-"""
+"""Tests for planCacheClear command query field type acceptance."""
 
 from __future__ import annotations
 
@@ -20,7 +16,7 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Query Type Acceptance]: the query field accepts all BSON types
-# without type validation — every type succeeds with ok: 1.0.
+# without type validation. Every type succeeds with ok: 1.0.
 PLANCACHECLEAR_QUERY_TYPE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"query_type_{tid}",

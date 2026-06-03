@@ -67,9 +67,8 @@ PLANCACHECLEAR_CLUSTERED_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Timeseries Collection]: planCacheClear on a timeseries collection
-# is rejected with COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR because timeseries
-# collections are backed by views over system.buckets.
+# Property [Timeseries Collection]: planCacheClear is not supported on
+# timeseries collections and returns COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR.
 PLANCACHECLEAR_TIMESERIES_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "timeseries_rejected",
@@ -80,12 +79,16 @@ PLANCACHECLEAR_TIMESERIES_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+PLANCACHECLEAR_COLLECTION_VARIANT_SUCCESS_TESTS: list[CommandTestCase] = (
+    PLANCACHECLEAR_REGULAR_TESTS + PLANCACHECLEAR_CAPPED_TESTS + PLANCACHECLEAR_CLUSTERED_TESTS
+)
+
+PLANCACHECLEAR_COLLECTION_VARIANT_ERROR_TESTS: list[CommandTestCase] = (
+    PLANCACHECLEAR_VIEW_TESTS + PLANCACHECLEAR_TIMESERIES_TESTS
+)
+
 PLANCACHECLEAR_COLLECTION_VARIANT_TESTS: list[CommandTestCase] = (
-    PLANCACHECLEAR_REGULAR_TESTS
-    + PLANCACHECLEAR_VIEW_TESTS
-    + PLANCACHECLEAR_CAPPED_TESTS
-    + PLANCACHECLEAR_CLUSTERED_TESTS
-    + PLANCACHECLEAR_TIMESERIES_TESTS
+    PLANCACHECLEAR_COLLECTION_VARIANT_SUCCESS_TESTS + PLANCACHECLEAR_COLLECTION_VARIANT_ERROR_TESTS
 )
 
 
