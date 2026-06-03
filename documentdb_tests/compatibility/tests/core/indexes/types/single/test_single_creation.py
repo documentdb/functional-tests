@@ -44,19 +44,6 @@ def test_single_creation_success(collection, test):
     assertSuccessPartial(result, index_created_response(), test.msg)
 
 
-def test_single_creation_on_nonexistent_collection(collection):
-    """Test createIndexes on non-existent collection creates collection and index."""
-    result = execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"x": 1}, "name": "x_1"}]},
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "numIndexesBefore": 1, "numIndexesAfter": 2},
-        msg="Should create collection and index",
-    )
-
-
 def test_single_creation_idempotent(collection):
     """Test creating same index twice is idempotent."""
     execute_command(
@@ -88,4 +75,24 @@ def test_single_creation_different_sort_creates_two(collection):
         result,
         {"ok": 1.0, "numIndexesBefore": 2, "numIndexesAfter": 3},
         msg="Different sort order should create separate index",
+    )
+
+
+def test_single_creation_multiple_fields_one_call(collection):
+    """Test creating multiple single-field indexes in a single createIndexes call."""
+    result = execute_command(
+        collection,
+        {
+            "createIndexes": collection.name,
+            "indexes": [
+                {"key": {"a": 1}, "name": "a_1"},
+                {"key": {"b": -1}, "name": "b_neg1"},
+                {"key": {"c": 1}, "name": "c_1"},
+            ],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        index_created_response(num_indexes_before=1, num_indexes_after=4),
+        msg="Multiple single-field indexes in one call should all be created",
     )

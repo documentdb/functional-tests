@@ -71,6 +71,22 @@ FIELD_QUERY_TESTS: list[IndexQueryTestCase] = [
         expected=[{"_id": 1, "b": 10}],
         msg="Missing field treated as null in query",
     ),
+    IndexQueryTestCase(
+        id="in_query",
+        indexes=({"key": {"a": 1}, "name": "a_1"},),
+        doc=({"_id": 1, "a": 1}, {"_id": 2, "a": 2}, {"_id": 3, "a": 3}),
+        filter={"a": {"$in": [1, 3]}},
+        expected=[{"_id": 1, "a": 1}, {"_id": 3, "a": 3}],
+        msg="$in query should find matching documents",
+    ),
+    IndexQueryTestCase(
+        id="ne_query",
+        indexes=({"key": {"a": 1}, "name": "a_1"},),
+        doc=({"_id": 1, "a": 1}, {"_id": 2, "a": 2}, {"_id": 3, "a": 3}),
+        filter={"a": {"$ne": 2}},
+        expected=[{"_id": 1, "a": 1}, {"_id": 3, "a": 3}],
+        msg="$ne query should exclude matching documents",
+    ),
 ]
 
 
@@ -190,3 +206,40 @@ def test_single_non_covered_query_extra_field(collection):
         {"find": collection.name, "filter": {"a": 10}, "projection": {"_id": 0, "a": 1, "b": 1}},
     )
     assertSuccess(result, [{"a": 10, "b": "x"}], msg="Should return indexed and non-indexed fields")
+
+
+HINT_TESTS: list[IndexQueryTestCase] = [
+    IndexQueryTestCase(
+        id="hint_by_name",
+        indexes=({"key": {"a": 1}, "name": "a_1"},),
+        doc=({"_id": 1, "a": 10}, {"_id": 2, "a": 20}),
+        filter={"a": 10},
+        hint="a_1",
+        expected=[{"_id": 1, "a": 10}],
+        msg="Hint by index name should return correct results",
+    ),
+    IndexQueryTestCase(
+        id="hint_by_key",
+        indexes=({"key": {"a": 1}, "name": "a_1"},),
+        doc=({"_id": 1, "a": 10}, {"_id": 2, "a": 20}),
+        filter={"a": 10},
+        hint={"a": 1},
+        expected=[{"_id": 1, "a": 10}],
+        msg="Hint by key pattern should return correct results",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(HINT_TESTS))
+def test_single_hint_usage(collection, test):
+    """Test single field index with hint."""
+    execute_command(
+        collection,
+        {"createIndexes": collection.name, "indexes": list(test.indexes)},
+    )
+    collection.insert_many(list(test.doc))
+    result = execute_command(
+        collection,
+        {"find": collection.name, "filter": test.filter, "hint": test.hint},
+    )
+    assertSuccess(result, test.expected, msg=test.msg)

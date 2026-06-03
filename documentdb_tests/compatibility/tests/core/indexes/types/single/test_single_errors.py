@@ -38,6 +38,12 @@ CREATION_ERROR_TESTS: list[IndexTestCase] = [
         error_code=CANNOT_CREATE_INDEX_ERROR,
         msg="Empty field name should fail",
     ),
+    IndexTestCase(
+        id="invalid_empty_key",
+        indexes=({"key": {}, "name": "empty_key"},),
+        error_code=CANNOT_CREATE_INDEX_ERROR,
+        msg="Empty key {} should fail",
+    ),
 ]
 
 
