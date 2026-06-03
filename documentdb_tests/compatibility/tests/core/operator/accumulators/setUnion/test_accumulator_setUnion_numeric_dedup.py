@@ -326,6 +326,42 @@ SETUNION_INFINITY_DEDUP_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Numeric Boundary Deduplication]: numeric type equivalence holds at
+# boundary values; values that cannot be exactly represented across types are
+# treated as distinct.
+SETUNION_NUMERIC_BOUNDARY_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "boundary_int32_max_as_int64",
+        docs=[{"v": [2_147_483_647]}, {"v": [Int64(2_147_483_647)]}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "size": {"$size": "$result"}}},
+        ],
+        expected=[{"size": 1}],
+        msg="$setUnion should collapse int32 max with equivalent Int64",
+    ),
+    AccumulatorTestCase(
+        "boundary_large_exact_int64_double",
+        docs=[{"v": [Int64(2**53)]}, {"v": [float(2**53)]}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "size": {"$size": "$result"}}},
+        ],
+        expected=[{"size": 1}],
+        msg="$setUnion should collapse Int64 and exact double at 2^53",
+    ),
+    AccumulatorTestCase(
+        "boundary_large_inexact_int64_double",
+        docs=[{"v": [Int64(2**53 + 1)]}, {"v": [float(2**53 + 1)]}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "size": {"$size": "$result"}}},
+        ],
+        expected=[{"size": 2}],
+        msg="$setUnion should treat Int64 and inexact double as distinct at 2^53+1",
+    ),
+]
+
 SETUNION_NUMERIC_DEDUP_TESTS = (
     SETUNION_CROSS_TYPE_NUMERIC_DEDUP_TESTS
     + SETUNION_NUMERIC_RETENTION_TESTS
@@ -333,6 +369,7 @@ SETUNION_NUMERIC_DEDUP_TESTS = (
     + SETUNION_NEGATIVE_ZERO_TESTS
     + SETUNION_NAN_DEDUP_TESTS
     + SETUNION_INFINITY_DEDUP_TESTS
+    + SETUNION_NUMERIC_BOUNDARY_TESTS
 )
 
 
