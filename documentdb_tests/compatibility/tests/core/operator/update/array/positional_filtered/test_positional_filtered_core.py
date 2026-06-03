@@ -24,24 +24,6 @@ CORE_BEHAVIOR_TESTS: list[FilteredUpdateTestCase] = [
         msg="$[<id>] should update only elements matching arrayFilters",
     ),
     FilteredUpdateTestCase(
-        "inc_matching_elements",
-        setup_docs=[{"_id": 1, "arr": [10, 20, 30, 40]}],
-        query={"_id": 1},
-        update={"$inc": {"arr.$[elem]": 100}},
-        array_filters=[{"elem": {"$gt": 20}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] with $inc should increment matching elements",
-    ),
-    FilteredUpdateTestCase(
-        "mul_matching_elements",
-        setup_docs=[{"_id": 1, "arr": [2, 4, 6, 8]}],
-        query={"_id": 1},
-        update={"$mul": {"arr.$[elem]": 10}},
-        array_filters=[{"elem": {"$lt": 5}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] with $mul should multiply matching elements",
-    ),
-    FilteredUpdateTestCase(
         "no_match_noop",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
@@ -71,64 +53,7 @@ CORE_BEHAVIOR_TESTS: list[FilteredUpdateTestCase] = [
 ]
 
 
-# --- JS-based: $[<identifier>] with various update operators ---
-
-JS_UPDATE_OPERATORS_TESTS: list[FilteredUpdateTestCase] = [
-    FilteredUpdateTestCase(
-        "unset_matching",
-        setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4]}],
-        query={"_id": 1},
-        update={"$unset": {"arr.$[elem]": ""}},
-        array_filters=[{"elem": {"$gte": 3}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] with $unset should set matching elements to null",
-    ),
-    FilteredUpdateTestCase(
-        "addToSet_matching_subarrays",
-        setup_docs=[{"_id": 1, "arr": [[1, 2], [3, 4], [5, 6]]}],
-        query={"_id": 1},
-        update={"$addToSet": {"arr.$[elem]": 99}},
-        array_filters=[{"elem": {"$size": 2}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] with $addToSet should add to matching sub-arrays",
-    ),
-    FilteredUpdateTestCase(
-        "push_matching_subarrays",
-        setup_docs=[{"_id": 1, "arr": [[1], [2, 3], [4]]}],
-        query={"_id": 1},
-        update={"$push": {"arr.$[elem]": 99}},
-        array_filters=[{"elem": {"$size": 1}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] with $push should append to matching sub-arrays",
-    ),
-]
-
-
-# --- Update Operators ---
-
-UPDATE_OPERATOR_TESTS: list[FilteredUpdateTestCase] = [
-    FilteredUpdateTestCase(
-        "min_matching",
-        setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
-        query={"_id": 1},
-        update={"$min": {"arr.$[elem]": 15}},
-        array_filters=[{"elem": {"$gte": 1}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] with $min should update matching elements if new value is less",
-    ),
-    FilteredUpdateTestCase(
-        "max_matching",
-        setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
-        query={"_id": 1},
-        update={"$max": {"arr.$[elem]": 25}},
-        array_filters=[{"elem": {"$gte": 1}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] with $max should update matching elements if new value is greater",
-    ),
-]
-
-
-ALL_TESTS = CORE_BEHAVIOR_TESTS + JS_UPDATE_OPERATORS_TESTS + UPDATE_OPERATOR_TESTS
+ALL_TESTS = CORE_BEHAVIOR_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))

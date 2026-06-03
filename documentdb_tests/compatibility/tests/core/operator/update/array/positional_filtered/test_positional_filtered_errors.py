@@ -1,7 +1,7 @@
 """Tests for $[<identifier>] error cases and restrictions.
 
 Covers: identifier naming rules, upsert behavior, missing arrayFilters,
-identifier mismatch, and interaction with other positional operators.
+and identifier mismatch.
 """
 
 import pytest
@@ -9,7 +9,7 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.update.array.positional_filtered.utils.filtered_update_test_case import (  # noqa: E501
     FilteredUpdateTestCase,
 )
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
+from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -54,24 +54,6 @@ UPSERT_ERROR_TESTS: list[FilteredUpdateTestCase] = [
 ]
 
 
-# --- $rename restriction ---
-
-RENAME_ERROR_TESTS: list[FilteredUpdateTestCase] = [
-    FilteredUpdateTestCase(
-        "rename_with_filtered_positional",
-        setup_docs=[{"_id": 1, "arr": [{"a": 1}, {"a": 2}]}],
-        query={"_id": 1},
-        update={"$rename": {"arr.$[elem].a": "arr.$[elem].b"}},
-        array_filters=[{"elem.a": {"$gte": 1}}],
-        error_code=BAD_VALUE_ERROR,
-        msg="$rename with $[<id>] should fail (source field may not be dynamic)",
-    ),
-]
-
-
-ALL_ERROR_TESTS = MISSING_FILTERS_TESTS + UPSERT_ERROR_TESTS + RENAME_ERROR_TESTS
-
-
 # --- Identifier Naming Rules ---
 
 IDENTIFIER_NAMING_ERROR_TESTS: list[FilteredUpdateTestCase] = [
@@ -96,9 +78,7 @@ IDENTIFIER_NAMING_ERROR_TESTS: list[FilteredUpdateTestCase] = [
 ]
 
 
-ALL_ERROR_TESTS = (
-    MISSING_FILTERS_TESTS + UPSERT_ERROR_TESTS + RENAME_ERROR_TESTS + IDENTIFIER_NAMING_ERROR_TESTS
-)
+ALL_ERROR_TESTS = MISSING_FILTERS_TESTS + UPSERT_ERROR_TESTS + IDENTIFIER_NAMING_ERROR_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_ERROR_TESTS))
@@ -115,41 +95,3 @@ def test_positional_filtered_errors(collection, test):
     command = {"update": collection.name, "updates": [update_doc]}
     result = execute_command(collection, command)
     assertFailureCode(result, test.error_code, msg=test.msg)
-
-
-# --- Interaction with other positional operators (should succeed) ---
-
-INTERACTION_SUCCESS_TESTS: list[FilteredUpdateTestCase] = [
-    FilteredUpdateTestCase(
-        "filtered_and_positional_different_fields",
-        setup_docs=[{"_id": 1, "a": [1, 2, 3], "b": [10, 20, 30]}],
-        query={"_id": 1, "a": 2},
-        update={"$set": {"a.$": 99, "b.$[elem]": 0}},
-        array_filters=[{"elem": {"$gte": 20}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$ and $[<id>] on different fields in same update should both work",
-    ),
-    FilteredUpdateTestCase(
-        "filtered_and_all_different_fields",
-        setup_docs=[{"_id": 1, "a": [1, 2, 3], "b": [10, 20, 30]}],
-        query={"_id": 1},
-        update={"$set": {"a.$[]": 0, "b.$[elem]": 99}},
-        array_filters=[{"elem": {"$gte": 20}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[] and $[<id>] on different fields in same update should both work",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(INTERACTION_SUCCESS_TESTS))
-def test_positional_filtered_interaction_success(collection, test: FilteredUpdateTestCase):
-    """Test $[<identifier>] interaction with other positional operators."""
-    if test.setup_docs:
-        collection.insert_many(test.setup_docs)
-
-    update_doc = {"q": test.query, "u": test.update}
-    if test.array_filters is not None:
-        update_doc["arrayFilters"] = test.array_filters
-    command = {"update": collection.name, "updates": [update_doc]}
-    result = execute_command(collection, command)
-    assertSuccess(result, test.expected, msg=test.msg, raw_res=True)

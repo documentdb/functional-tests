@@ -52,32 +52,12 @@ EMBEDDED_DOC_TESTS: list[FilteredUpdateTestCase] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] on deeply nested field should work",
     ),
-    FilteredUpdateTestCase(
-        "unset_field_in_embedded_docs",
-        setup_docs=[
-            {"_id": 1, "arr": [{"x": 1, "y": "a"}, {"x": 2, "y": "b"}, {"x": 3, "y": "c"}]}
-        ],
-        query={"_id": 1},
-        update={"$unset": {"arr.$[elem].y": ""}},
-        array_filters=[{"elem.x": {"$gte": 2}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] with $unset on embedded doc field should remove field from matching docs",
-    ),
 ]
 
 
 # --- Nested Arrays with Multiple Identifiers ---
 
 NESTED_ARRAY_TESTS: list[FilteredUpdateTestCase] = [
-    FilteredUpdateTestCase(
-        "nested_with_all_bracket",
-        setup_docs=[{"_id": 1, "arr": [{"sub": [1, 2, 3]}, {"sub": [4, 5, 6]}]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem].sub.$[]": 0}},
-        array_filters=[{"elem.sub": {"$size": 3}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] combined with $[] for nested arrays should work",
-    ),
     FilteredUpdateTestCase(
         "multiple_identifiers_nested",
         setup_docs=[

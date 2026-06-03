@@ -4,165 +4,55 @@ Covers: arrayFilters matching each BSON type, and type coercion behavior.
 """
 
 import pytest
-from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.update.array.positional_filtered.utils.filtered_update_test_case import (  # noqa: E501
     FilteredUpdateTestCase,
 )
 from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.bson_type_validator import (
+    BsonType,
+    BsonTypeTestCase,
+    generate_bson_acceptance_test_cases,
+)
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import DATE_EPOCH, OID_EPOCH, TS_EPOCH
 
-DATA_TYPE_FILTER_TESTS: list[FilteredUpdateTestCase] = [
-    FilteredUpdateTestCase(
-        "double",
-        setup_docs=[{"_id": 1, "arr": [1.5, 2.5, 3.5]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": 99.9}},
-        array_filters=[{"elem": {"$gt": 2.0}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update double elements",
-    ),
-    FilteredUpdateTestCase(
-        "int32",
-        setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": 99}},
-        array_filters=[{"elem": {"$gte": 3}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update int32 elements",
-    ),
-    FilteredUpdateTestCase(
-        "int64",
-        setup_docs=[{"_id": 1, "arr": [Int64(10), Int64(20), Int64(30)]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": Int64(99)}},
-        array_filters=[{"elem": {"$gt": Int64(15)}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update int64 elements",
-    ),
-    FilteredUpdateTestCase(
-        "decimal128",
-        setup_docs=[{"_id": 1, "arr": [Decimal128("1"), Decimal128("2"), Decimal128("3")]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": Decimal128("99")}},
-        array_filters=[{"elem": {"$gte": Decimal128("2")}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update decimal128 elements",
-    ),
-    FilteredUpdateTestCase(
-        "string",
-        setup_docs=[{"_id": 1, "arr": ["apple", "banana", "cherry"]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": "replaced"}},
-        array_filters=[{"elem": "banana"}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update string elements",
-    ),
-    FilteredUpdateTestCase(
-        "bool",
-        setup_docs=[{"_id": 1, "arr": [True, False, True]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": "replaced"}},
-        array_filters=[{"elem": False}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update bool elements",
-    ),
-    FilteredUpdateTestCase(
-        "null",
-        setup_docs=[{"_id": 1, "arr": [1, None, 3]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": "replaced"}},
-        array_filters=[{"elem": None}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update null elements",
-    ),
-    FilteredUpdateTestCase(
-        "objectid",
-        setup_docs=[{"_id": 1, "arr": [OID_EPOCH, ObjectId("111111111111111111111111")]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": "replaced"}},
-        array_filters=[{"elem": OID_EPOCH}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update ObjectId elements",
-    ),
-    FilteredUpdateTestCase(
-        "date",
-        setup_docs=[{"_id": 1, "arr": [DATE_EPOCH, DATE_EPOCH]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": "replaced"}},
-        array_filters=[{"elem": DATE_EPOCH}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update date elements",
-    ),
-    FilteredUpdateTestCase(
-        "object",
-        setup_docs=[{"_id": 1, "arr": [{"k": 1}, {"k": 2}, {"k": 3}]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem].k": 99}},
-        array_filters=[{"elem.k": {"$gte": 2}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update object elements",
-    ),
-    FilteredUpdateTestCase(
-        "bindata",
-        setup_docs=[{"_id": 1, "arr": [Binary(b"\x01"), Binary(b"\x02"), Binary(b"\x03")]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": Binary(b"\xff")}},
-        array_filters=[{"elem": Binary(b"\x02")}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update binary data elements",
-    ),
-    FilteredUpdateTestCase(
-        "timestamp",
-        setup_docs=[{"_id": 1, "arr": [TS_EPOCH, Timestamp(100, 1), Timestamp(200, 1)]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": Timestamp(999, 1)}},
-        array_filters=[{"elem": {"$gt": TS_EPOCH}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update timestamp elements",
-    ),
-    FilteredUpdateTestCase(
-        "minkey",
-        setup_docs=[{"_id": 1, "arr": [MinKey(), 1, 2]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": "replaced"}},
-        array_filters=[{"elem": MinKey()}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update MinKey elements",
-    ),
-    FilteredUpdateTestCase(
-        "maxkey",
-        setup_docs=[{"_id": 1, "arr": [1, 2, MaxKey()]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": "replaced"}},
-        array_filters=[{"elem": MaxKey()}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update MaxKey elements",
-    ),
-    FilteredUpdateTestCase(
-        "regex",
-        setup_docs=[{"_id": 1, "arr": [Regex("^a", "i"), Regex("^b", "")]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": "replaced"}},
-        array_filters=[{"elem": Regex("^a", "i")}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update regex elements",
-    ),
-    FilteredUpdateTestCase(
-        "javascript",
-        setup_docs=[{"_id": 1, "arr": [Code("function(){}"), Code("var x=1")]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": "replaced"}},
-        array_filters=[{"elem": Code("var x=1")}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should filter and update javascript elements",
+POSITIONAL_FILTERED_BSON_PARAMS = [
+    BsonTypeTestCase(
+        id="positional_filtered_update",
+        msg="$[<id>] should filter and update elements of this BSON type",
+        keyword="positional_filtered",
+        valid_types=[bt for bt in BsonType],
     ),
 ]
 
+ACCEPTANCE_CASES = generate_bson_acceptance_test_cases(POSITIONAL_FILTERED_BSON_PARAMS)
 
-# --- Type Coercion in arrayFilters ---
+
+@pytest.mark.parametrize("bson_type,sample_value,spec", ACCEPTANCE_CASES)
+def test_positional_filtered_bson_types(collection, bson_type, sample_value, spec):
+    """Test $[<identifier>] arrayFilters can match and update each BSON type."""
+    collection.insert_many([{"_id": 1, "arr": [sample_value, sample_value]}])
+
+    command = {
+        "update": collection.name,
+        "updates": [
+            {
+                "q": {"_id": 1},
+                "u": {"$set": {"arr.$[elem]": "replaced"}},
+                "arrayFilters": [{"elem": sample_value}],
+            }
+        ],
+    }
+    result = execute_command(collection, command)
+    assertSuccess(
+        result,
+        {"n": 1, "nModified": 1, "ok": 1.0},
+        msg=f"$[<id>] should filter and update {bson_type.value} elements",
+        raw_res=True,
+    )
+
 
 TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(
@@ -173,6 +63,78 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         array_filters=[{"elem": {"$gt": 2}}],
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] with $gt on mixed numeric types should compare correctly",
+    ),
+    FilteredUpdateTestCase(
+        "negative_zero_matches_zero",
+        setup_docs=[{"_id": 1, "arr": [-0.0, 1, 2]}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"elem": 0}],
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        msg="$[<id>] filter on 0 should match -0.0 (negative zero equals zero)",
+    ),
+    FilteredUpdateTestCase(
+        "int_matches_equivalent_double",
+        setup_docs=[{"_id": 1, "arr": [1.0, 2.0, 3.0]}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"elem": 2}],
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        msg="$[<id>] int filter should match equivalent double value",
+    ),
+    FilteredUpdateTestCase(
+        "int_matches_equivalent_int64",
+        setup_docs=[{"_id": 1, "arr": [Int64(10), Int64(20), Int64(30)]}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"elem": 20}],
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        msg="$[<id>] int32 filter should match equivalent int64 value",
+    ),
+    FilteredUpdateTestCase(
+        "int_matches_equivalent_decimal128",
+        setup_docs=[{"_id": 1, "arr": [Decimal128("1"), Decimal128("2"), Decimal128("3")]}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"elem": 2}],
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        msg="$[<id>] int filter should match equivalent Decimal128 value",
+    ),
+    FilteredUpdateTestCase(
+        "bool_does_not_match_numeric_one",
+        setup_docs=[{"_id": 1, "arr": [True, 1, 2]}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"elem": 1}],
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        msg="$[<id>] numeric 1 should not match bool true (different BSON types)",
+    ),
+    FilteredUpdateTestCase(
+        "bool_does_not_match_numeric_zero",
+        setup_docs=[{"_id": 1, "arr": [False, 0, 1]}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"elem": 0}],
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        msg="$[<id>] numeric 0 should not match bool false (different BSON types)",
+    ),
+    FilteredUpdateTestCase(
+        "float_nan_matches_decimal128_nan",
+        setup_docs=[{"_id": 1, "arr": [Decimal128("NaN"), 1, 2]}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"elem": float("nan")}],
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        msg="$[<id>] float NaN filter should match Decimal128 NaN",
+    ),
+    FilteredUpdateTestCase(
+        "decimal128_nan_matches_float_nan",
+        setup_docs=[{"_id": 1, "arr": [float("nan"), 1, 2]}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"elem": Decimal128("NaN")}],
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        msg="$[<id>] Decimal128 NaN filter should match float NaN",
     ),
     FilteredUpdateTestCase(
         "string_does_not_match_numeric",
@@ -195,12 +157,9 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
 ]
 
 
-ALL_TESTS = DATA_TYPE_FILTER_TESTS + TYPE_COERCION_TESTS
-
-
-@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_positional_filtered_data_types(collection, test: FilteredUpdateTestCase):
-    """Test $[<identifier>] with various BSON data types in arrayFilters."""
+@pytest.mark.parametrize("test", pytest_params(TYPE_COERCION_TESTS))
+def test_positional_filtered_type_coercion(collection, test: FilteredUpdateTestCase):
+    """Test $[<identifier>] type coercion behavior in arrayFilters."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
