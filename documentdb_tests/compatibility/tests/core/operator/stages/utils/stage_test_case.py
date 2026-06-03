@@ -46,8 +46,9 @@ def populate_collection(collection: Collection, test_case: StageTestCase) -> Col
     db.create_collection(collection.name)
     coll = test_case.target_collection.resolve(db, collection)
 
+    writable = test_case.target_collection.writable(collection, coll)
     if test_case.docs:
-        coll.insert_many(test_case.docs)
+        writable.insert_many(test_case.docs)
     if test_case.indexes:
-        coll.create_indexes(test_case.indexes)
+        writable.create_indexes(test_case.indexes)
     return coll
