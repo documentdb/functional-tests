@@ -3,31 +3,19 @@
 Covers: arrayFilters matching each BSON type, and type coercion behavior.
 """
 
-from dataclasses import dataclass
-from typing import Any
-
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.update.array.positional_filtered.utils.filtered_update_test_case import (  # noqa: E501
+    FilteredUpdateTestCase,
+)
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import DATE_EPOCH, OID_EPOCH, TS_EPOCH
 
-
-@dataclass(frozen=True)
-class FilteredTypeTest(BaseTestCase):
-    """Test case for $[<identifier>] with data types."""
-
-    setup_docs: Any = None
-    query: Any = None
-    update: Any = None
-    array_filters: Any = None
-
-
-DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
-    FilteredTypeTest(
+DATA_TYPE_FILTER_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
         "double",
         setup_docs=[{"_id": 1, "arr": [1.5, 2.5, 3.5]}],
         query={"_id": 1},
@@ -36,7 +24,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update double elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "int32",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4]}],
         query={"_id": 1},
@@ -45,7 +33,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update int32 elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "int64",
         setup_docs=[{"_id": 1, "arr": [Int64(10), Int64(20), Int64(30)]}],
         query={"_id": 1},
@@ -54,7 +42,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update int64 elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "decimal128",
         setup_docs=[{"_id": 1, "arr": [Decimal128("1"), Decimal128("2"), Decimal128("3")]}],
         query={"_id": 1},
@@ -63,7 +51,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update decimal128 elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "string",
         setup_docs=[{"_id": 1, "arr": ["apple", "banana", "cherry"]}],
         query={"_id": 1},
@@ -72,7 +60,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update string elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "bool",
         setup_docs=[{"_id": 1, "arr": [True, False, True]}],
         query={"_id": 1},
@@ -81,7 +69,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update bool elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "null",
         setup_docs=[{"_id": 1, "arr": [1, None, 3]}],
         query={"_id": 1},
@@ -90,7 +78,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update null elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "objectid",
         setup_docs=[{"_id": 1, "arr": [OID_EPOCH, ObjectId("111111111111111111111111")]}],
         query={"_id": 1},
@@ -99,7 +87,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update ObjectId elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "date",
         setup_docs=[{"_id": 1, "arr": [DATE_EPOCH, DATE_EPOCH]}],
         query={"_id": 1},
@@ -108,7 +96,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update date elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "object",
         setup_docs=[{"_id": 1, "arr": [{"k": 1}, {"k": 2}, {"k": 3}]}],
         query={"_id": 1},
@@ -117,7 +105,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update object elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "bindata",
         setup_docs=[{"_id": 1, "arr": [Binary(b"\x01"), Binary(b"\x02"), Binary(b"\x03")]}],
         query={"_id": 1},
@@ -126,7 +114,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update binary data elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "timestamp",
         setup_docs=[{"_id": 1, "arr": [TS_EPOCH, Timestamp(100, 1), Timestamp(200, 1)]}],
         query={"_id": 1},
@@ -135,7 +123,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update timestamp elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "minkey",
         setup_docs=[{"_id": 1, "arr": [MinKey(), 1, 2]}],
         query={"_id": 1},
@@ -144,7 +132,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update MinKey elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "maxkey",
         setup_docs=[{"_id": 1, "arr": [1, 2, MaxKey()]}],
         query={"_id": 1},
@@ -153,7 +141,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update MaxKey elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "regex",
         setup_docs=[{"_id": 1, "arr": [Regex("^a", "i"), Regex("^b", "")]}],
         query={"_id": 1},
@@ -162,7 +150,7 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should filter and update regex elements",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "javascript",
         setup_docs=[{"_id": 1, "arr": [Code("function(){}"), Code("var x=1")]}],
         query={"_id": 1},
@@ -176,8 +164,8 @@ DATA_TYPE_FILTER_TESTS: list[FilteredTypeTest] = [
 
 # --- Type Coercion in arrayFilters ---
 
-TYPE_COERCION_TESTS: list[FilteredTypeTest] = [
-    FilteredTypeTest(
+TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
         "mixed_numeric_gt",
         setup_docs=[{"_id": 1, "arr": [1, Int64(2), 3.0, Decimal128("4")]}],
         query={"_id": 1},
@@ -186,7 +174,7 @@ TYPE_COERCION_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] with $gt on mixed numeric types should compare correctly",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "string_does_not_match_numeric",
         setup_docs=[{"_id": 1, "arr": [5, "5", 10]}],
         query={"_id": 1},
@@ -195,7 +183,7 @@ TYPE_COERCION_TESTS: list[FilteredTypeTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] with string '5' should match string not numeric 5 (type matters)",
     ),
-    FilteredTypeTest(
+    FilteredUpdateTestCase(
         "numeric_does_not_match_string",
         setup_docs=[{"_id": 1, "arr": [5, "5", 10]}],
         query={"_id": 1},
@@ -211,7 +199,7 @@ ALL_TESTS = DATA_TYPE_FILTER_TESTS + TYPE_COERCION_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_positional_filtered_data_types(collection, test: FilteredTypeTest):
+def test_positional_filtered_data_types(collection, test: FilteredUpdateTestCase):
     """Test $[<identifier>] with various BSON data types in arrayFilters."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)

@@ -4,32 +4,20 @@ Covers: comparison operators, logical operators, element operators,
 restricted operators, multiple arrayFilters, and edge cases.
 """
 
-from dataclasses import dataclass
-from typing import Any
-
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.update.array.positional_filtered.utils.filtered_update_test_case import (  # noqa: E501
+    FilteredUpdateTestCase,
+)
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
-
-
-@dataclass(frozen=True)
-class ArrayFilterTest(BaseTestCase):
-    """Test case for arrayFilters conditions."""
-
-    setup_docs: Any = None
-    query: Any = None
-    update: Any = None
-    array_filters: Any = None
-
 
 # --- Comparison Operators in arrayFilters ---
 
-COMPARISON_TESTS: list[ArrayFilterTest] = [
-    ArrayFilterTest(
+COMPARISON_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
         "eq",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 2]}],
         query={"_id": 1},
@@ -38,7 +26,7 @@ COMPARISON_TESTS: list[ArrayFilterTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="arrayFilters with $eq should match equal elements",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "gt",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4]}],
         query={"_id": 1},
@@ -47,7 +35,7 @@ COMPARISON_TESTS: list[ArrayFilterTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="arrayFilters with $gt should match elements > value",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "gte",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4]}],
         query={"_id": 1},
@@ -56,7 +44,7 @@ COMPARISON_TESTS: list[ArrayFilterTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="arrayFilters with $gte should match elements >= value",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "lt",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4]}],
         query={"_id": 1},
@@ -65,7 +53,7 @@ COMPARISON_TESTS: list[ArrayFilterTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="arrayFilters with $lt should match elements < value",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "lte",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4]}],
         query={"_id": 1},
@@ -74,7 +62,7 @@ COMPARISON_TESTS: list[ArrayFilterTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="arrayFilters with $lte should match elements <= value",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "ne",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
@@ -83,7 +71,7 @@ COMPARISON_TESTS: list[ArrayFilterTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="arrayFilters with $ne should match elements != value",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "in",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4, 5]}],
         query={"_id": 1},
@@ -92,7 +80,7 @@ COMPARISON_TESTS: list[ArrayFilterTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="arrayFilters with $in should match elements in list",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "nin",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4, 5]}],
         query={"_id": 1},
@@ -106,8 +94,8 @@ COMPARISON_TESTS: list[ArrayFilterTest] = [
 
 # --- Logical Operators in arrayFilters ---
 
-LOGICAL_TESTS: list[ArrayFilterTest] = [
-    ArrayFilterTest(
+LOGICAL_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
         "and_multiple_conditions",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4, 5]}],
         query={"_id": 1},
@@ -116,7 +104,7 @@ LOGICAL_TESTS: list[ArrayFilterTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="arrayFilters with implicit $and should match elements meeting all conditions",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "or",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4, 5]}],
         query={"_id": 1},
@@ -125,7 +113,7 @@ LOGICAL_TESTS: list[ArrayFilterTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="arrayFilters with $or should match elements meeting any condition",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "not",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4, 5]}],
         query={"_id": 1},
@@ -139,8 +127,8 @@ LOGICAL_TESTS: list[ArrayFilterTest] = [
 
 # --- Element Operators in arrayFilters ---
 
-ELEMENT_TESTS: list[ArrayFilterTest] = [
-    ArrayFilterTest(
+ELEMENT_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
         "exists",
         setup_docs=[{"_id": 1, "arr": [{"x": 1}, {"y": 2}, {"x": 3}]}],
         query={"_id": 1},
@@ -149,7 +137,7 @@ ELEMENT_TESTS: list[ArrayFilterTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="arrayFilters with $exists should match elements with field",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "type",
         setup_docs=[{"_id": 1, "arr": [1, "two", 3, "four"]}],
         query={"_id": 1},
@@ -163,8 +151,8 @@ ELEMENT_TESTS: list[ArrayFilterTest] = [
 
 # --- Multiple arrayFilters ---
 
-MULTIPLE_FILTERS_TESTS: list[ArrayFilterTest] = [
-    ArrayFilterTest(
+MULTIPLE_FILTERS_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
         "multiple_identifiers",
         setup_docs=[{"_id": 1, "arr": [{"a": 1, "b": 10}, {"a": 2, "b": 20}, {"a": 3, "b": 30}]}],
         query={"_id": 1},
@@ -180,7 +168,7 @@ ALL_SUCCESS_TESTS = COMPARISON_TESTS + LOGICAL_TESTS + ELEMENT_TESTS + MULTIPLE_
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_SUCCESS_TESTS))
-def test_positional_filtered_array_filters_success(collection, test: ArrayFilterTest):
+def test_positional_filtered_array_filters_success(collection, test: FilteredUpdateTestCase):
     """Test $[<identifier>] arrayFilters conditions - success cases."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
@@ -195,8 +183,8 @@ def test_positional_filtered_array_filters_success(collection, test: ArrayFilter
 
 # --- Restricted Operators (should fail) ---
 
-RESTRICTED_OPERATOR_TESTS: list[ArrayFilterTest] = [
-    ArrayFilterTest(
+RESTRICTED_OPERATOR_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
         "text_in_arrayFilters",
         setup_docs=[{"_id": 1, "arr": ["hello", "world"]}],
         query={"_id": 1},
@@ -205,7 +193,7 @@ RESTRICTED_OPERATOR_TESTS: list[ArrayFilterTest] = [
         error_code=BAD_VALUE_ERROR,
         msg="arrayFilters with $text should fail",
     ),
-    ArrayFilterTest(
+    FilteredUpdateTestCase(
         "where_in_arrayFilters",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},

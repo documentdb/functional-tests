@@ -4,29 +4,17 @@ Covers: matching elements via arrayFilters, no-match, all-match, empty array,
 update command integration, and various update operators.
 """
 
-from dataclasses import dataclass
-from typing import Any
-
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.update.array.positional_filtered.utils.filtered_update_test_case import (  # noqa: E501
+    FilteredUpdateTestCase,
+)
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
 
-
-@dataclass(frozen=True)
-class PositionalFilteredTest(BaseTestCase):
-    """Test case for $[<identifier>] positional-filtered operator."""
-
-    setup_docs: Any = None
-    query: Any = None
-    update: Any = None
-    array_filters: Any = None
-
-
-CORE_BEHAVIOR_TESTS: list[PositionalFilteredTest] = [
-    PositionalFilteredTest(
+CORE_BEHAVIOR_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
         "set_matching_elements",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4, 5]}],
         query={"_id": 1},
@@ -35,7 +23,7 @@ CORE_BEHAVIOR_TESTS: list[PositionalFilteredTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] should update only elements matching arrayFilters",
     ),
-    PositionalFilteredTest(
+    FilteredUpdateTestCase(
         "inc_matching_elements",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30, 40]}],
         query={"_id": 1},
@@ -44,7 +32,7 @@ CORE_BEHAVIOR_TESTS: list[PositionalFilteredTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] with $inc should increment matching elements",
     ),
-    PositionalFilteredTest(
+    FilteredUpdateTestCase(
         "mul_matching_elements",
         setup_docs=[{"_id": 1, "arr": [2, 4, 6, 8]}],
         query={"_id": 1},
@@ -53,7 +41,7 @@ CORE_BEHAVIOR_TESTS: list[PositionalFilteredTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] with $mul should multiply matching elements",
     ),
-    PositionalFilteredTest(
+    FilteredUpdateTestCase(
         "no_match_noop",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
@@ -62,7 +50,7 @@ CORE_BEHAVIOR_TESTS: list[PositionalFilteredTest] = [
         expected={"n": 1, "nModified": 0, "ok": 1.0},
         msg="$[<id>] when no elements match should be no-op",
     ),
-    PositionalFilteredTest(
+    FilteredUpdateTestCase(
         "all_match",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
@@ -71,7 +59,7 @@ CORE_BEHAVIOR_TESTS: list[PositionalFilteredTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] when all elements match should update all",
     ),
-    PositionalFilteredTest(
+    FilteredUpdateTestCase(
         "empty_array_noop",
         setup_docs=[{"_id": 1, "arr": []}],
         query={"_id": 1},
@@ -80,37 +68,13 @@ CORE_BEHAVIOR_TESTS: list[PositionalFilteredTest] = [
         expected={"n": 1, "nModified": 0, "ok": 1.0},
         msg="$[<id>] on empty array should be no-op",
     ),
-    PositionalFilteredTest(
-        "non_matching_unchanged",
-        setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4, 5]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": 0}},
-        array_filters=[{"elem": {"$eq": 3}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should leave non-matching elements unchanged",
-    ),
-]
-
-
-# --- Update Command Integration ---
-
-COMMAND_INTEGRATION_TESTS: list[PositionalFilteredTest] = [
-    PositionalFilteredTest(
-        "update_one",
-        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": 0}},
-        array_filters=[{"elem": {"$gte": 2}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
-        msg="$[<id>] should work with updateOne",
-    ),
 ]
 
 
 # --- JS-based: $[<identifier>] with various update operators ---
 
-JS_UPDATE_OPERATORS_TESTS: list[PositionalFilteredTest] = [
-    PositionalFilteredTest(
+JS_UPDATE_OPERATORS_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
         "unset_matching",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4]}],
         query={"_id": 1},
@@ -119,7 +83,7 @@ JS_UPDATE_OPERATORS_TESTS: list[PositionalFilteredTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] with $unset should set matching elements to null",
     ),
-    PositionalFilteredTest(
+    FilteredUpdateTestCase(
         "addToSet_matching_subarrays",
         setup_docs=[{"_id": 1, "arr": [[1, 2], [3, 4], [5, 6]]}],
         query={"_id": 1},
@@ -128,7 +92,7 @@ JS_UPDATE_OPERATORS_TESTS: list[PositionalFilteredTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] with $addToSet should add to matching sub-arrays",
     ),
-    PositionalFilteredTest(
+    FilteredUpdateTestCase(
         "push_matching_subarrays",
         setup_docs=[{"_id": 1, "arr": [[1], [2, 3], [4]]}],
         query={"_id": 1},
@@ -142,8 +106,8 @@ JS_UPDATE_OPERATORS_TESTS: list[PositionalFilteredTest] = [
 
 # --- Update Operators ---
 
-UPDATE_OPERATOR_TESTS: list[PositionalFilteredTest] = [
-    PositionalFilteredTest(
+UPDATE_OPERATOR_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
         "min_matching",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
@@ -152,7 +116,7 @@ UPDATE_OPERATOR_TESTS: list[PositionalFilteredTest] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[<id>] with $min should update matching elements if new value is less",
     ),
-    PositionalFilteredTest(
+    FilteredUpdateTestCase(
         "max_matching",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
@@ -164,16 +128,11 @@ UPDATE_OPERATOR_TESTS: list[PositionalFilteredTest] = [
 ]
 
 
-ALL_TESTS = (
-    CORE_BEHAVIOR_TESTS
-    + COMMAND_INTEGRATION_TESTS
-    + JS_UPDATE_OPERATORS_TESTS
-    + UPDATE_OPERATOR_TESTS
-)
+ALL_TESTS = CORE_BEHAVIOR_TESTS + JS_UPDATE_OPERATORS_TESTS + UPDATE_OPERATOR_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_positional_filtered_core(collection, test: PositionalFilteredTest):
+def test_positional_filtered_core(collection, test: FilteredUpdateTestCase):
     """Test $[<identifier>] positional-filtered core behavior."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
