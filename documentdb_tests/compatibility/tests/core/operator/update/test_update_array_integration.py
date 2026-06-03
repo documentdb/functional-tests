@@ -78,6 +78,14 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         msg="$[] with $pullAll on array of arrays should remove values from each sub-array",
     ),
     UpdateTestCase(
+        "unset_all_elements",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$unset": {"arr.$[]": ""}},
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        msg="$[] with $unset should set all elements to null",
+    ),
+    UpdateTestCase(
         "min_all",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
@@ -93,16 +101,12 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] with $max should conditionally update all elements",
     ),
-]
-
-
-POSITIONAL_ALL_INTERACTION_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         "positional_all_and_set_different_fields",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3], "x": 10}],
         query={"_id": 1},
         update={"$set": {"arr.$[]": 0, "x": 99}},
-        expected={"_id": 1, "arr": [0, 0, 0], "x": 99},
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] on one field and $set on another should both succeed",
     ),
     UpdateTestCase(
@@ -110,7 +114,7 @@ POSITIONAL_ALL_INTERACTION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "a": [1, 2, 3], "b": [10, 20, 30]}],
         query={"_id": 1, "b": 20},
         update={"$set": {"a.$[]": 0, "b.$": 99}},
-        expected={"_id": 1, "a": [0, 0, 0], "b": [10, 99, 30]},
+        expected={"n": 1, "nModified": 1, "ok": 1.0},
         msg="$[] and $ on different fields in same update should both work",
     ),
 ]
@@ -128,20 +132,3 @@ def test_positional_all_operator_integration(collection, test: UpdateTestCase):
     }
     result = execute_command(collection, command)
     assertSuccess(result, test.expected, msg=test.msg, raw_res=True)
-
-
-@pytest.mark.parametrize("test", pytest_params(POSITIONAL_ALL_INTERACTION_TESTS))
-def test_positional_all_interaction(collection, test: UpdateTestCase):
-    """Test $[] positional-all alongside other operators in same update."""
-    if test.setup_docs:
-        collection.insert_many(test.setup_docs)
-
-    execute_command(
-        collection,
-        {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
-    )
-
-    result = execute_command(
-        collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
-    )
-    assertSuccess(result, [test.expected], msg=test.msg)

@@ -47,8 +47,6 @@ def test_positional_all_bson_types(collection, bson_type, sample_value, spec):
     assertProperties(result, {"arr.0": Eq("replaced"), "arr.1": Eq("replaced")}, msg=spec.msg)
 
 
-# --- Numeric Equivalence ---
-
 NUMERIC_EQUIVALENCE_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         "mixed_numeric_types_all_updated",

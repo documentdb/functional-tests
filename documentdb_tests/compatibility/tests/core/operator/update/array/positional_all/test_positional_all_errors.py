@@ -95,8 +95,6 @@ def test_positional_all_errors(collection, test):
     assertFailureCode(result, test.error_code, msg=test.msg)
 
 
-# --- Upsert with exact equality (should succeed) ---
-
 UPSERT_SUCCESS_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         "upsert_with_equality_match",

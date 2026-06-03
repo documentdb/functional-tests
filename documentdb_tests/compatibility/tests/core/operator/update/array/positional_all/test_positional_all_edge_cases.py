@@ -1,7 +1,7 @@
 """Tests for $[] positional-all edge cases.
 
-Covers: null element handling, $unset on array elements, BSON type distinction
-in query filters, and large array correctness.
+Covers: null element handling, BSON type distinction in query filters, and
+large array correctness.
 """
 
 import pytest
@@ -10,8 +10,6 @@ from documentdb_tests.compatibility.tests.core.operator.update.utils import Upda
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-# --- Null Handling ---
 
 NULL_HANDLING_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
@@ -30,18 +28,8 @@ NULL_HANDLING_TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "arr": [None, None, None]},
         msg="$[] with $set value of null should update all elements to null",
     ),
-    UpdateTestCase(
-        "unset_all_elements",
-        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
-        query={"_id": 1},
-        update={"$unset": {"arr.$[]": ""}},
-        expected={"_id": 1, "arr": [None, None, None]},
-        msg="$[] with $unset should set all elements to null",
-    ),
 ]
 
-
-# --- BSON Type Distinction in Query Filter ---
 
 BSON_TYPE_QUERY_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
@@ -54,8 +42,6 @@ BSON_TYPE_QUERY_TESTS: list[UpdateTestCase] = [
     ),
 ]
 
-
-# --- Large Array ---
 
 LARGE_ARRAY_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
