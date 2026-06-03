@@ -7,7 +7,9 @@ and mixed type arrays.
 import pytest
 from bson import Decimal128, Int64
 
-from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
+from documentdb_tests.compatibility.tests.core.operator.update.utils.update_test_case import (
+    UpdateTestCase,
+)
 from documentdb_tests.framework.assertions import assertProperties, assertSuccess
 from documentdb_tests.framework.bson_type_validator import (
     BsonTypeTestCase,

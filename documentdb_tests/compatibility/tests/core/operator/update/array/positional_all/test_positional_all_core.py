@@ -5,7 +5,9 @@ Covers: update all elements, empty array, single element, and query filtering.
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
+from documentdb_tests.compatibility.tests.core.operator.update.utils.update_test_case import (
+    UpdateTestCase,
+)
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params

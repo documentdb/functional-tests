@@ -6,7 +6,9 @@ validation, and upsert restrictions.
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
+from documentdb_tests.compatibility.tests.core.operator.update.utils.update_test_case import (
+    UpdateTestCase,
+)
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
