@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Initialize replica set
-        run: mongosh --eval 'rs.initiate()'
+        run: docker exec "${{ job.services.mongodb.id }}" mongosh --eval 'rs.initiate()'
 
       - uses: actions/setup-python@v6
         with:
@@ -117,7 +117,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Initialize replica set
-        run: mongosh --eval 'rs.initiate()'
+        run: docker exec "${{ job.services.mongodb.id }}" mongosh --eval 'rs.initiate()'
 
       - uses: actions/setup-python@v6
         with:
