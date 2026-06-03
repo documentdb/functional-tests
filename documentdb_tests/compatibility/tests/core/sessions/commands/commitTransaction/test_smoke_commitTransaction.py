@@ -1,12 +1,11 @@
-"""
-Smoke test for commitTransaction command.
+"""Smoke test for commitTransaction command."""
 
-Tests basic commitTransaction command functionality.
-"""
+from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailure
+from documentdb_tests.framework.assertions import assertFailureCode
+from documentdb_tests.framework.error_codes import NO_SUCH_TRANSACTION_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
 
 pytestmark = pytest.mark.smoke
@@ -15,6 +14,8 @@ pytestmark = pytest.mark.smoke
 def test_smoke_commitTransaction(collection):
     """Test basic commitTransaction command behavior."""
     result = execute_admin_command(collection, {"commitTransaction": 1})
-
-    expected_error = {"code": 125, "msg": "commitTransaction must be run within a transaction"}
-    assertFailure(result, expected_error, msg="Should support commitTransaction command")
+    assertFailureCode(
+        result,
+        NO_SUCH_TRANSACTION_ERROR,
+        msg="commitTransaction should fail with NoSuchTransaction outside a transaction",
+    )

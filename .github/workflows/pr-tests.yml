@@ -14,6 +14,7 @@ jobs:
         image: mongo:8.2.4
         ports:
           - 27017:27017
+        command: --replSet rs0
         options: >-
           --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
           --health-interval 10s
@@ -22,6 +23,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+
+      - name: Initialize replica set
+        run: mongosh --eval 'rs.initiate()'
 
       - uses: actions/setup-python@v6
         with:
@@ -33,7 +37,7 @@ jobs:
       - name: Run compatibility tests against MongoDB
         run: |
           pytest documentdb_tests/compatibility/tests \
-            --connection-string "mongodb://localhost:27017" \
+            --connection-string "mongodb://localhost:27017/?replicaSet=rs0" \
             --engine-name mongodb \
             -n auto \
             -v \
@@ -102,6 +106,7 @@ jobs:
         image: mongo:8.2.4
         ports:
           - 27017:27017
+        command: --replSet rs0
         options: >-
           --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
           --health-interval 10s
@@ -110,6 +115,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+
+      - name: Initialize replica set
+        run: mongosh --eval 'rs.initiate()'
 
       - uses: actions/setup-python@v6
         with:
@@ -125,7 +133,7 @@ jobs:
           # and the engine_xcrash marker should be removed.
           if pytest documentdb_tests/compatibility/tests \
             -m engine_xcrash -k "${{ matrix.test }}" \
-            --connection-string "mongodb://localhost:27017" \
+            --connection-string "mongodb://localhost:27017/?replicaSet=rs0" \
             --engine-name mongodb-xcrash-probe \
             --timeout=10 -v; then
             echo "::error::Test passed unexpectedly - server bug may be fixed, remove engine_xcrash marker"
