@@ -24,6 +24,10 @@ class BsonTypeTestCase(BaseTestCase):
         keyword: The operator keyword being tested (e.g. "minimum", "required").
         valid_types: List of BsonType values the keyword accepts.
             All other BSON types will be tested as rejections.
+        skip_rejection_types: Optional list of BsonType values to exclude from
+            rejection test generation. USE SPARINGLY — only for types that have
+            documented quirky behavior. If a type cleanly errors
+            or cleanly succeeds, it belongs in valid_types or as a rejection — not here.
         requires: Optional sibling fields needed alongside the keyword
             (e.g. {"minimum": 0} for exclusiveMinimum).
         default_error_code: Expected error code for rejected types.
@@ -36,6 +40,7 @@ class BsonTypeTestCase(BaseTestCase):
 
     keyword: Optional[str] = None
     valid_types: Optional[list] = None
+    skip_rejection_types: Optional[list] = None
     requires: Optional[dict] = None
     default_error_code: int = TYPE_MISMATCH_ERROR
     error_code_overrides: Optional[dict] = None
@@ -55,8 +60,9 @@ def generate_bson_rejection_test_cases(params):
     cases = []
     for spec in params:
         accepted = set(spec.valid_types)
+        skipped = set(spec.skip_rejection_types or [])
         for bson_type in BsonType:
-            if bson_type in accepted:
+            if bson_type in accepted or bson_type in skipped:
                 continue
             sample_value = BSON_TYPE_SAMPLES[bson_type]
             test_id = f"reject_{bson_type.value}_for_{spec.id}"

@@ -3,7 +3,7 @@ Tests for $ne numeric edge cases.
 
 Covers sign handling, Infinity comparisons, and cross-type Decimal128 Infinity.
 Numeric equivalence across types, negative zero, and NaN equality are tested in
-/core/bson_types/test_bson_types_ordering.py.
+/core/data-types/bson_types/.
 """
 
 import pytest
