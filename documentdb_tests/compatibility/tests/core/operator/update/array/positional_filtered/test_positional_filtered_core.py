@@ -20,7 +20,7 @@ CORE_BEHAVIOR_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 0}},
         array_filters=[{"elem": {"$gte": 3}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [1, 2, 0, 0, 0]},
         msg="$[<id>] should update only elements matching arrayFilters",
     ),
     FilteredUpdateTestCase(
@@ -29,7 +29,7 @@ CORE_BEHAVIOR_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": {"$gt": 100}}],
-        expected={"n": 1, "nModified": 0, "ok": 1.0},
+        expected={"_id": 1, "arr": [1, 2, 3]},
         msg="$[<id>] when no elements match should be no-op",
     ),
     FilteredUpdateTestCase(
@@ -38,7 +38,7 @@ CORE_BEHAVIOR_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 0}},
         array_filters=[{"elem": {"$gte": 1}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [0, 0, 0]},
         msg="$[<id>] when all elements match should update all",
     ),
     FilteredUpdateTestCase(
@@ -47,7 +47,7 @@ CORE_BEHAVIOR_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": {"$gte": 0}}],
-        expected={"n": 1, "nModified": 0, "ok": 1.0},
+        expected={"_id": 1, "arr": []},
         msg="$[<id>] on empty array should be no-op",
     ),
 ]
@@ -62,15 +62,15 @@ def test_positional_filtered_core(collection, test: FilteredUpdateTestCase):
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
-    command = {
-        "update": collection.name,
-        "updates": [
-            {
-                "q": test.query,
-                "u": test.update,
-                "arrayFilters": test.array_filters,
-            }
-        ],
-    }
-    result = execute_command(collection, command)
-    assertSuccess(result, test.expected, msg=test.msg, raw_res=True)
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": test.query, "u": test.update, "arrayFilters": test.array_filters}],
+        },
+    )
+
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
+    )
+    assertSuccess(result, [test.expected], msg=test.msg)

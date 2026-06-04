@@ -23,7 +23,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$inc": {"arr.$[elem]": 100}},
         array_filters=[{"elem": {"$gt": 20}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [10, 20, 130, 140]},
         msg="$[<id>] with $inc should increment matching elements",
     ),
     FilteredUpdateTestCase(
@@ -32,7 +32,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$mul": {"arr.$[elem]": 10}},
         array_filters=[{"elem": {"$lt": 5}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [20, 40, 6, 8]},
         msg="$[<id>] with $mul should multiply matching elements",
     ),
     FilteredUpdateTestCase(
@@ -41,7 +41,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$unset": {"arr.$[elem]": ""}},
         array_filters=[{"elem": {"$gte": 3}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [1, 2, None, None]},
         msg="$[<id>] with $unset should set matching elements to null",
     ),
     FilteredUpdateTestCase(
@@ -50,7 +50,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$addToSet": {"arr.$[elem]": 99}},
         array_filters=[{"elem": {"$size": 2}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [[1, 2, 99], [3, 4, 99], [5, 6, 99]]},
         msg="$[<id>] with $addToSet should add to matching sub-arrays",
     ),
     FilteredUpdateTestCase(
@@ -59,7 +59,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$push": {"arr.$[elem]": 99}},
         array_filters=[{"elem": {"$size": 1}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [[1, 99], [2, 3], [4, 99]]},
         msg="$[<id>] with $push should append to matching sub-arrays",
     ),
     FilteredUpdateTestCase(
@@ -68,7 +68,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$min": {"arr.$[elem]": 15}},
         array_filters=[{"elem": {"$gte": 1}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [10, 15, 15]},
         msg="$[<id>] with $min should update matching elements if new value is less",
     ),
     FilteredUpdateTestCase(
@@ -77,7 +77,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$max": {"arr.$[elem]": 25}},
         array_filters=[{"elem": {"$gte": 1}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [25, 25, 30]},
         msg="$[<id>] with $max should update matching elements if new value is greater",
     ),
     FilteredUpdateTestCase(
@@ -88,7 +88,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$unset": {"arr.$[elem].y": ""}},
         array_filters=[{"elem.x": {"$gte": 2}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [{"x": 1, "y": "a"}, {"x": 2}, {"x": 3}]},
         msg="$[<id>] with $unset on embedded doc field should remove field from matching docs",
     ),
     FilteredUpdateTestCase(
@@ -97,7 +97,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem].sub.$[]": 0}},
         array_filters=[{"elem.sub": {"$size": 3}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [{"sub": [0, 0, 0]}, {"sub": [0, 0, 0]}]},
         msg="$[<id>] combined with $[] for nested arrays should work",
     ),
     FilteredUpdateTestCase(
@@ -106,7 +106,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1, "a": 2},
         update={"$set": {"a.$": 99, "b.$[elem]": 0}},
         array_filters=[{"elem": {"$gte": 20}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "a": [1, 99, 3], "b": [10, 0, 0]},
         msg="$ and $[<id>] on different fields in same update should both work",
     ),
     FilteredUpdateTestCase(
@@ -115,7 +115,7 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"a.$[]": 0, "b.$[elem]": 99}},
         array_filters=[{"elem": {"$gte": 20}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "a": [0, 0, 0], "b": [10, 99, 99]},
         msg="$[] and $[<id>] on different fields in same update should both work",
     ),
 ]
@@ -139,12 +139,18 @@ def test_positional_filtered_integration(collection, test: FilteredUpdateTestCas
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
-    command = {
-        "update": collection.name,
-        "updates": [{"q": test.query, "u": test.update, "arrayFilters": test.array_filters}],
-    }
-    result = execute_command(collection, command)
-    assertSuccess(result, test.expected, msg=test.msg, raw_res=True)
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": test.query, "u": test.update, "arrayFilters": test.array_filters}],
+        },
+    )
+
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
+    )
+    assertSuccess(result, [test.expected], msg=test.msg)
 
 
 @pytest.mark.parametrize("test", pytest_params(POSITIONAL_FILTERED_ERROR_TESTS))

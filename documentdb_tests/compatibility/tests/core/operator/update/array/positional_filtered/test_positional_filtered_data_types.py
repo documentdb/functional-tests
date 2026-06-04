@@ -35,22 +35,25 @@ def test_positional_filtered_bson_types(collection, bson_type, sample_value, spe
     """Test $[<identifier>] arrayFilters can match and update each BSON type."""
     collection.insert_many([{"_id": 1, "arr": [sample_value, sample_value]}])
 
-    command = {
-        "update": collection.name,
-        "updates": [
-            {
-                "q": {"_id": 1},
-                "u": {"$set": {"arr.$[elem]": "replaced"}},
-                "arrayFilters": [{"elem": sample_value}],
-            }
-        ],
-    }
-    result = execute_command(collection, command)
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$set": {"arr.$[elem]": "replaced"}},
+                    "arrayFilters": [{"elem": sample_value}],
+                }
+            ],
+        },
+    )
+
+    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
     assertSuccess(
         result,
-        {"n": 1, "nModified": 1, "ok": 1.0},
+        [{"_id": 1, "arr": ["replaced", "replaced"]}],
         msg=f"$[<id>] should filter and update {bson_type.value} elements",
-        raw_res=True,
     )
 
 
@@ -61,7 +64,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": {"$gt": 2}}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [1, Int64(2), 99, 99]},
         msg="$[<id>] with $gt on mixed numeric types should compare correctly",
     ),
     FilteredUpdateTestCase(
@@ -70,7 +73,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": 0}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [99, 1, 2]},
         msg="$[<id>] filter on 0 should match -0.0 (negative zero equals zero)",
     ),
     FilteredUpdateTestCase(
@@ -79,7 +82,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": 2}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [1.0, 99, 3.0]},
         msg="$[<id>] int filter should match equivalent double value",
     ),
     FilteredUpdateTestCase(
@@ -88,7 +91,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": 20}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [Int64(10), 99, Int64(30)]},
         msg="$[<id>] int32 filter should match equivalent int64 value",
     ),
     FilteredUpdateTestCase(
@@ -97,7 +100,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": 2}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [Decimal128("1"), 99, Decimal128("3")]},
         msg="$[<id>] int filter should match equivalent Decimal128 value",
     ),
     FilteredUpdateTestCase(
@@ -106,7 +109,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": 1}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [True, 99, 2]},
         msg="$[<id>] numeric 1 should not match bool true (different BSON types)",
     ),
     FilteredUpdateTestCase(
@@ -115,7 +118,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": 0}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [False, 99, 1]},
         msg="$[<id>] numeric 0 should not match bool false (different BSON types)",
     ),
     FilteredUpdateTestCase(
@@ -124,7 +127,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": float("nan")}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [99, 1, 2]},
         msg="$[<id>] float NaN filter should match Decimal128 NaN",
     ),
     FilteredUpdateTestCase(
@@ -133,7 +136,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": Decimal128("NaN")}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [99, 1, 2]},
         msg="$[<id>] Decimal128 NaN filter should match float NaN",
     ),
     FilteredUpdateTestCase(
@@ -142,7 +145,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": "5"}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [5, 99, 10]},
         msg="$[<id>] with string '5' should match string not numeric 5 (type matters)",
     ),
     FilteredUpdateTestCase(
@@ -151,7 +154,7 @@ TYPE_COERCION_TESTS: list[FilteredUpdateTestCase] = [
         query={"_id": 1},
         update={"$set": {"arr.$[elem]": 99}},
         array_filters=[{"elem": 5}],
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [99, "5", 10]},
         msg="$[<id>] with numeric 5 should match numeric not string '5' (type matters)",
     ),
 ]
@@ -163,9 +166,15 @@ def test_positional_filtered_type_coercion(collection, test: FilteredUpdateTestC
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
-    command = {
-        "update": collection.name,
-        "updates": [{"q": test.query, "u": test.update, "arrayFilters": test.array_filters}],
-    }
-    result = execute_command(collection, command)
-    assertSuccess(result, test.expected, msg=test.msg, raw_res=True)
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": test.query, "u": test.update, "arrayFilters": test.array_filters}],
+        },
+    )
+
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
+    )
+    assertSuccess(result, [test.expected], msg=test.msg)
