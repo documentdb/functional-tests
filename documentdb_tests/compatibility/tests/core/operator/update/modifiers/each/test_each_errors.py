@@ -18,10 +18,6 @@ from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
-# Target field type validation (the field $each operates on must be an array)
-# ---------------------------------------------------------------------------
-
 TARGET_TYPE_PARAMS = [
     BsonTypeTestCase(
         id="addtoset_each_target",
@@ -59,10 +55,6 @@ def test_each_target_type_rejected(collection, bson_type, sample_value, spec):
     )
     assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
 
-
-# ---------------------------------------------------------------------------
-# Modifier error cases ($sort, $slice, $position validation)
-# ---------------------------------------------------------------------------
 
 MODIFIER_ERROR_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(

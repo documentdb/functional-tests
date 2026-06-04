@@ -25,10 +25,6 @@ from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATC
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
-# $each value type validation (the value of $each itself must be an array)
-# ---------------------------------------------------------------------------
-
 EACH_VALUE_PARAMS = [
     BsonTypeTestCase(
         id="addtoset_each_value",
@@ -88,10 +84,6 @@ def test_each_value_type_rejected(collection, bson_type, sample_value, spec):
     assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
 
 
-# ---------------------------------------------------------------------------
-# $each element type acceptance (types allowed inside the $each array)
-# ---------------------------------------------------------------------------
-
 EACH_ELEMENT_PARAMS = [
     BsonTypeTestCase(
         id="addtoset_each_element",
@@ -127,10 +119,6 @@ def test_each_element_type_accepted(collection, bson_type, sample_value, spec):
     )
     assertNotError(result, msg=f"{spec.msg} should accept {bson_type.value}")
 
-
-# ---------------------------------------------------------------------------
-# Mixed BSON types in a single $each array
-# ---------------------------------------------------------------------------
 
 MIXED_TYPE_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(

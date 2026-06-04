@@ -10,7 +10,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 CORE_TESTS: list[UpdateTestCase] = [
-    # $addToSet with $each
     UpdateTestCase(
         id="addtoset_empty_array",
         setup_docs=[{"_id": 1, "arr": [1, 2]}],
@@ -35,7 +34,6 @@ CORE_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": [1, 3, 2, 4]}],
         msg="$addToSet $each should add only non-duplicate values",
     ),
-    # $push with $each
     UpdateTestCase(
         id="push_empty_array",
         setup_docs=[{"_id": 1, "arr": [1, 2]}],
