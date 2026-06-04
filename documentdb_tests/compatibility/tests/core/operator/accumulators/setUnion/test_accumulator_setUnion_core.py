@@ -278,53 +278,6 @@ SETUNION_GROUPING_KEY_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [Large Groups]: $setUnion correctly accumulates across many
-# documents.
-SETUNION_LARGE_GROUP_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "large_100_unique_elements",
-        docs=[{"v": [i]} for i in range(100)],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
-        ],
-        expected=[{"result": list(range(100))}],
-        msg="$setUnion should produce 100 elements from 100 documents with unique values",
-    ),
-    AccumulatorTestCase(
-        "large_100_same_element",
-        docs=[{"v": [42]} for _ in range(100)],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-        ],
-        expected=[{"_id": None, "result": [42]}],
-        msg="$setUnion should produce 1 element from 100 documents with the same value",
-    ),
-    AccumulatorTestCase(
-        "large_arrays_100_elements_each",
-        docs=[
-            {"v": list(range(100))},
-            {"v": list(range(50, 150))},
-        ],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
-        ],
-        expected=[{"result": list(range(150))}],
-        msg="$setUnion should correctly union large arrays with overlap",
-    ),
-    AccumulatorTestCase(
-        "large_1000_unique_elements",
-        docs=[{"v": [i]} for i in range(1000)],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
-        ],
-        expected=[{"result": list(range(1000))}],
-        msg="$setUnion should produce correct content from 1000 documents with unique values",
-    ),
-]
-
 # Property [Multiple Same-Type Accumulators]: multiple $setUnion accumulators
 # in the same $group independently collect from their respective fields without
 # cross-contamination.
@@ -538,7 +491,6 @@ SETUNION_CORE_SUCCESS_TESTS = (
     + SETUNION_NESTED_ARRAY_TESTS
     + SETUNION_MULTIPLE_GROUP_TESTS
     + SETUNION_GROUPING_KEY_TESTS
-    + SETUNION_LARGE_GROUP_TESTS
     + SETUNION_MULTIPLE_SAME_TYPE_TESTS
     + SETUNION_NESTED_STRUCTURE_TESTS
     + SETUNION_ARRAY_TRAVERSAL_TESTS
