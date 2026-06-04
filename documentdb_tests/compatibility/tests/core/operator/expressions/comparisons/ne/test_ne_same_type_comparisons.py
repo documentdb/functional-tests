@@ -2,7 +2,7 @@
 Tests for $ne same-type comparisons.
 
 Covers date, timestamp, ObjectId, BinData, regex, UUID, and large input comparisons.
-String comparison semantics are tested in /core/bson_types/test_bson_types_ordering.py.
+String comparison semantics are tested in /core/data-types/bson_types/.
 """
 
 from datetime import datetime, timezone
