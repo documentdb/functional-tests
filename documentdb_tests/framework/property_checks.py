@@ -24,6 +24,22 @@ class Check:
         raise NotImplementedError
 
 
+class PerDoc:
+    """Apply a positional list of property-check dicts, one per result document.
+
+    A plain checks dict passed to ``assertProperties`` is broadcast to every
+    result document. ``PerDoc`` instead matches each entry against the document
+    at the same index, and requires the document count to match exactly -- use
+    it when a multi-document result needs different expectations per document.
+    """
+
+    def __init__(self, *doc_checks: dict[str, Any]) -> None:
+        self.doc_checks: list[dict[str, Any]] = list(doc_checks)
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.doc_checks!r})"
+
+
 class Exists(Check):
     """Assert that the field is present."""
 
@@ -97,6 +113,31 @@ class Eq(Check):
             return f"expected '{path}' == {self.expected!r}, but field is missing"
         if not strict_equal(value, self.expected):
             return f"expected '{path}' == {self.expected!r}, got {value!r}"
+        return None
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.expected!r})"
+
+
+class OrderedKeys(Check):
+    """Assert that a document's keys appear in exactly the expected order.
+
+    Field order is significant for some server behaviors but is ignored by
+    ordinary document comparison (``dict`` equality is order-insensitive), so
+    this check inspects the stored key sequence directly.
+    """
+
+    def __init__(self, expected: list[str]) -> None:
+        self.expected = expected
+
+    def check(self, value: Any, path: str) -> str | None:
+        if value is _FIELD_ABSENT:
+            return f"expected '{path}' to exist"
+        if not isinstance(value, dict):
+            return f"expected '{path}' to be a document, got {type(value).__name__}"
+        actual = list(value.keys())
+        if actual != self.expected:
+            return f"expected '{path}' keys in order {self.expected}, got {actual}"
         return None
 
     def __repr__(self) -> str:
