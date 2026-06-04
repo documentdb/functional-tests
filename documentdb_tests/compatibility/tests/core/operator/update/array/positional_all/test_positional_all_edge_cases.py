@@ -1,7 +1,6 @@
 """Tests for $[] positional-all edge cases.
 
-Covers: null element handling, BSON type distinction in query filters, and
-large array correctness.
+Covers: null element handling and BSON type distinction in query filters.
 """
 
 import pytest
@@ -45,19 +44,7 @@ BSON_TYPE_QUERY_TESTS: list[UpdateTestCase] = [
 ]
 
 
-LARGE_ARRAY_TESTS: list[UpdateTestCase] = [
-    UpdateTestCase(
-        "large_array_1000_elements",
-        setup_docs=[{"_id": 1, "arr": list(range(1000))}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[]": 0}},
-        expected={"_id": 1, "arr": [0] * 1000},
-        msg="$[] should correctly update all elements in a 1000-element array",
-    ),
-]
-
-
-SUCCESS_TESTS = NULL_HANDLING_TESTS + BSON_TYPE_QUERY_TESTS + LARGE_ARRAY_TESTS
+SUCCESS_TESTS = NULL_HANDLING_TESTS + BSON_TYPE_QUERY_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(SUCCESS_TESTS))

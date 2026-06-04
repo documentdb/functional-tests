@@ -20,7 +20,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
         update={"$inc": {"arr.$[]": 5}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [15, 25, 35]},
         msg="$[] with $inc should increment all elements",
     ),
     UpdateTestCase(
@@ -28,7 +28,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [1, Int64(2), 3.0]}],
         query={"_id": 1},
         update={"$inc": {"arr.$[]": 10}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [11, Int64(12), 13.0]},
         msg="$[] with $inc on mixed numeric types should increment all",
     ),
     UpdateTestCase(
@@ -36,7 +36,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [2, 3, 4]}],
         query={"_id": 1},
         update={"$mul": {"arr.$[]": 2}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [4, 6, 8]},
         msg="$[] with $mul should multiply all elements",
     ),
     UpdateTestCase(
@@ -44,7 +44,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [[1, 2], [3, 4]]}],
         query={"_id": 1},
         update={"$addToSet": {"arr.$[]": 99}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [[1, 2, 99], [3, 4, 99]]},
         msg="$[] with $addToSet on array of arrays should add to each sub-array",
     ),
     UpdateTestCase(
@@ -52,7 +52,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [[1, 2, 3], [4, 5, 6]]}],
         query={"_id": 1},
         update={"$pop": {"arr.$[]": 1}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [[1, 2], [4, 5]]},
         msg="$[] with $pop on array of arrays should pop from each sub-array",
     ),
     UpdateTestCase(
@@ -60,7 +60,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [[1, 2], [3, 4]]}],
         query={"_id": 1},
         update={"$push": {"arr.$[]": 99}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [[1, 2, 99], [3, 4, 99]]},
         msg="$[] with $push on array of arrays should append to each sub-array",
     ),
     UpdateTestCase(
@@ -68,7 +68,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [[1, 2, 3], [2, 3, 4]]}],
         query={"_id": 1},
         update={"$pull": {"arr.$[]": 2}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [[1, 3], [3, 4]]},
         msg="$[] with $pull on array of arrays should remove matching from each sub-array",
     ),
     UpdateTestCase(
@@ -76,7 +76,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [[1, 2, 3], [2, 3, 4]]}],
         query={"_id": 1},
         update={"$pullAll": {"arr.$[]": [2, 3]}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [[1], [4]]},
         msg="$[] with $pullAll on array of arrays should remove values from each sub-array",
     ),
     UpdateTestCase(
@@ -84,7 +84,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
         update={"$unset": {"arr.$[]": ""}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [None, None, None]},
         msg="$[] with $unset should set all elements to null",
     ),
     UpdateTestCase(
@@ -92,7 +92,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
         update={"$min": {"arr.$[]": 15}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [10, 15, 15]},
         msg="$[] with $min should conditionally update all elements",
     ),
     UpdateTestCase(
@@ -100,7 +100,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
         update={"$max": {"arr.$[]": 25}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [25, 25, 30]},
         msg="$[] with $max should conditionally update all elements",
     ),
     UpdateTestCase(
@@ -108,7 +108,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [1, 2, 3], "x": 10}],
         query={"_id": 1},
         update={"$set": {"arr.$[]": 0, "x": 99}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "arr": [0, 0, 0], "x": 99},
         msg="$[] on one field and $set on another should both succeed",
     ),
     UpdateTestCase(
@@ -116,7 +116,7 @@ POSITIONAL_ALL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "a": [1, 2, 3], "b": [10, 20, 30]}],
         query={"_id": 1, "b": 20},
         update={"$set": {"a.$[]": 0, "b.$": 99}},
-        expected={"n": 1, "nModified": 1, "ok": 1.0},
+        expected={"_id": 1, "a": [0, 0, 0], "b": [10, 99, 30]},
         msg="$[] and $ on different fields in same update should both work",
     ),
 ]
@@ -128,9 +128,15 @@ def test_positional_all_operator_integration(collection, test: UpdateTestCase):
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
-    command = {
-        "update": collection.name,
-        "updates": [{"q": test.query, "u": test.update}],
-    }
-    result = execute_command(collection, command)
-    assertSuccess(result, test.expected, msg=test.msg, raw_res=True)
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": test.query, "u": test.update}],
+        },
+    )
+
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
+    )
+    assertSuccess(result, [test.expected], msg=test.msg)
