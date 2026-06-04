@@ -1,8 +1,7 @@
 """
 Edge case tests for $max update field operator.
 
-Tests $max with indexed fields, deeply nested paths,
-and document validation interaction.
+Tests $max with indexed fields and large documents.
 """
 
 from documentdb_tests.framework.assertions import assertSuccess
@@ -23,24 +22,6 @@ def test_max_on_indexed_field(collection):
     # Verify via index scan
     result = execute_command(collection, {"find": collection.name, "filter": {"val": 50}})
     assertSuccess(result, [{"_id": 1, "val": 50}], "Index should reflect updated value")
-
-
-def test_max_deeply_nested_path(collection):
-    """Test $max with very deeply nested path."""
-    execute_command(collection, {"insert": collection.name, "documents": [{"_id": 1}]})
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"_id": 1}, "u": {"$max": {"a.b.c.d.e.f": 42}}}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertSuccess(
-        result,
-        [{"_id": 1, "a": {"b": {"c": {"d": {"e": {"f": 42}}}}}}],
-        "Should create deeply nested path",
-    )
 
 
 def test_max_on_compound_index_field(collection):

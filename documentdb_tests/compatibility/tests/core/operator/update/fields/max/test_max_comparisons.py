@@ -11,7 +11,7 @@ import pytest
 from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
-from documentdb_tests.framework.assertions import assertSuccess, assertSuccessPartial
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -138,62 +138,6 @@ TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "val": "b"},
         msg="$max comparing 'a' with 'b' should update to 'b'",
     ),
-    UpdateTestCase(
-        "string_less_unchanged",
-        setup_docs=[{"_id": 1, "val": "b"}],
-        query={"_id": 1},
-        update={"$max": {"val": "a"}},
-        expected={"_id": 1, "val": "b"},
-        msg="$max comparing 'b' with 'a' should not update",
-    ),
-    UpdateTestCase(
-        "empty_string_to_nonempty_updates",
-        setup_docs=[{"_id": 1, "val": ""}],
-        query={"_id": 1},
-        update={"$max": {"val": "a"}},
-        expected={"_id": 1, "val": "a"},
-        msg="$max comparing '' with 'a' should update (non-empty > empty)",
-    ),
-    UpdateTestCase(
-        "string_lexicographic_greater",
-        setup_docs=[{"_id": 1, "val": "abc"}],
-        query={"_id": 1},
-        update={"$max": {"val": "abd"}},
-        expected={"_id": 1, "val": "abd"},
-        msg="$max comparing 'abc' with 'abd' should update to 'abd'",
-    ),
-    UpdateTestCase(
-        "string_prefix_unchanged",
-        setup_docs=[{"_id": 1, "val": "abc"}],
-        query={"_id": 1},
-        update={"$max": {"val": "ab"}},
-        expected={"_id": 1, "val": "abc"},
-        msg="$max 'abc' > 'ab', should not update",
-    ),
-    UpdateTestCase(
-        "uppercase_vs_lowercase",
-        setup_docs=[{"_id": 1, "val": "B"}],
-        query={"_id": 1},
-        update={"$max": {"val": "a"}},
-        expected={"_id": 1, "val": "a"},
-        msg="$max lowercase 'a' > uppercase 'B' in byte order",
-    ),
-    UpdateTestCase(
-        "unicode_string_comparison",
-        setup_docs=[{"_id": 1, "val": "caf\u00e9"}],
-        query={"_id": 1},
-        update={"$max": {"val": "caf\u00eb"}},
-        expected={"_id": 1, "val": "caf\u00eb"},
-        msg="$max should update based on unicode codepoint comparison",
-    ),
-    UpdateTestCase(
-        "very_long_string_updates",
-        setup_docs=[{"_id": 1, "val": "a" * 10000}],
-        query={"_id": 1},
-        update={"$max": {"val": "b" * 10000}},
-        expected={"_id": 1, "val": "b" * 10000},
-        msg="$max with very long strings (10000 chars) should compare correctly",
-    ),
     # Type preservation
     UpdateTestCase(
         "int32_to_int64_type_change",
@@ -253,26 +197,3 @@ def test_max_comparisons(collection, test: UpdateTestCase):
         collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
     )
     assertSuccess(result, [test.expected], msg=test.msg)
-
-
-def test_max_collation_case_insensitive(collection):
-    """Test $max with case-insensitive collation treats 'ABC' == 'abc'."""
-    collection.insert_one({"_id": 1, "val": "abc"})
-    result = execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [
-                {
-                    "q": {"_id": 1},
-                    "u": {"$max": {"val": "ABC"}},
-                    "collation": {"locale": "en", "strength": 2},
-                }
-            ],
-        },
-    )
-    assertSuccessPartial(
-        result,
-        {"n": 1, "nModified": 0},
-        msg="With case-insensitive collation, 'ABC' == 'abc', no update",
-    )

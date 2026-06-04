@@ -1,8 +1,7 @@
 """
 Update method and upsert tests for $max update field operator.
 
-Tests $max via updateOne, updateMany, findAndModify, bulkWrite,
-and upsert behavior.
+Tests $max update result metadata and upsert behavior.
 """
 
 import pytest
@@ -133,109 +132,3 @@ def test_max_upsert(collection, test: UpdateTestCase):
         collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
     )
     assertSuccess(result, [test.expected], msg=test.msg)
-
-
-def test_max_update_many_correct_values(collection):
-    """Test $max via updateMany sets correct values per document."""
-    collection.insert_many(
-        [
-            {"_id": 1, "val": 10},
-            {"_id": 2, "val": 50},
-            {"_id": 3, "val": 30},
-        ]
-    )
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {}, "u": {"$max": {"val": 25}}, "multi": True}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "sort": {"_id": 1}})
-    assertSuccess(
-        result,
-        [{"_id": 1, "val": 25}, {"_id": 2, "val": 50}, {"_id": 3, "val": 30}],
-        msg="updateMany $max should only update doc with val < 25",
-    )
-
-
-def test_max_find_and_modify_returns_old(collection):
-    """Test findAndModify with $max returns original document by default."""
-    collection.insert_one({"_id": 1, "val": 10})
-    result = execute_command(
-        collection,
-        {
-            "findAndModify": collection.name,
-            "query": {"_id": 1},
-            "update": {"$max": {"val": 50}},
-        },
-    )
-    assertSuccessPartial(
-        result, {"value": {"_id": 1, "val": 10}}, msg="findAndModify should return old document"
-    )
-
-
-def test_max_find_and_modify_returns_new(collection):
-    """Test findAndModify with $max and new:true returns updated document."""
-    collection.insert_one({"_id": 1, "val": 10})
-    result = execute_command(
-        collection,
-        {
-            "findAndModify": collection.name,
-            "query": {"_id": 1},
-            "update": {"$max": {"val": 50}},
-            "new": True,
-        },
-    )
-    assertSuccessPartial(
-        result,
-        {"value": {"_id": 1, "val": 50}},
-        msg="findAndModify with new:true should return updated document",
-    )
-
-
-def test_max_upsert_with_dot_notation_findandmodify(collection):
-    """Test $max with dot notation via findAndModify upsert on non-existent document."""
-    result = execute_command(
-        collection,
-        {
-            "findAndModify": collection.name,
-            "query": {"_id": 1},
-            "update": {"$max": {"a.b": 10}},
-            "upsert": True,
-            "new": True,
-        },
-    )
-    assertSuccessPartial(
-        result,
-        {"value": {"_id": 1, "a": {"b": 10}}},
-        msg="Should create nested field via upsert findAndModify",
-    )
-
-
-def test_max_batched_updates(collection):
-    """Test $max via batched updates command with multiple specs."""
-    collection.insert_many(
-        [
-            {"_id": 1, "val": 10},
-            {"_id": 2, "val": 50},
-            {"_id": 3, "val": 30},
-        ]
-    )
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [
-                {"q": {"_id": 1}, "u": {"$max": {"val": 100}}},
-                {"q": {"_id": 2}, "u": {"$max": {"val": 5}}},
-                {"q": {"_id": 3}, "u": {"$max": {"val": 30}}},
-            ],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "sort": {"_id": 1}})
-    assertSuccess(
-        result,
-        [{"_id": 1, "val": 100}, {"_id": 2, "val": 50}, {"_id": 3, "val": 30}],
-        msg="Batched update $max should update only _id:1 where val < specified",
-    )

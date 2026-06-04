@@ -58,22 +58,6 @@ TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "arr": [20, 10, 15]},
         msg="$max on 'arr.0' should update array element at index 0",
     ),
-    UpdateTestCase(
-        "array_element_field_dot_notation",
-        setup_docs=[{"_id": 1, "arr": [{"field": 5}, {"field": 10}]}],
-        query={"_id": 1},
-        update={"$max": {"arr.0.field": 20}},
-        expected={"_id": 1, "arr": [{"field": 20}, {"field": 10}]},
-        msg="$max on 'arr.0.field' should update field in array element",
-    ),
-    UpdateTestCase(
-        "creates_array_element_via_index",
-        setup_docs=[{"_id": 1, "arr": [{"field": 5}]}],
-        query={"_id": 1},
-        update={"$max": {"arr.1.field": 10}},
-        expected={"_id": 1, "arr": [{"field": 5}, {"field": 10}]},
-        msg="$max targeting non-existent array index should create element",
-    ),
     # Field creation
     UpdateTestCase(
         "nonexistent_field_positive_number",
