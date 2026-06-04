@@ -24,8 +24,9 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN_PLUS_1,
 )
 
+# Property [Numeric Comparison]: $max correctly compares same-type and cross-type numerics
+# including boundaries and special values.
 TESTS: list[UpdateTestCase] = [
-    # Same-type comparisons
     UpdateTestCase(
         "int32_greater_updates",
         setup_docs=[{"_id": 1, "val": 10}],
@@ -90,7 +91,6 @@ TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "val": Decimal128("20.5")},
         msg="$max with Decimal128 specified < current should not update",
     ),
-    # Cross-type comparisons
     UpdateTestCase(
         "int32_to_int64_updates",
         setup_docs=[{"_id": 1, "val": 10}],
@@ -147,7 +147,6 @@ TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "val": 2},
         msg="$max current Double(1.5) < specified Int32(2) should update",
     ),
-    # Precision and boundary values
     UpdateTestCase(
         "double_tiny_difference",
         setup_docs=[{"_id": 1, "val": 1.0000000000000002}],
@@ -204,7 +203,6 @@ TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "val": Decimal128("9999999999999999999999999999999999")},
         msg="$max with large Decimal128 value should update",
     ),
-    # Special values: Infinity, NaN
     UpdateTestCase(
         "positive_infinity_updates",
         setup_docs=[{"_id": 1, "val": 999999999}],
@@ -279,7 +277,7 @@ TESTS: list[UpdateTestCase] = [
     ),
 ]
 
-# NaN tests use assertSuccessPartial since NaN != NaN in standard comparison
+# Property [NaN Ordering]: NaN is less than all numbers in BSON, so $max with NaN never updates.
 NAN_RESULT_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         "double_nan_unchanged",

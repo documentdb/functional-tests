@@ -15,14 +15,12 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 _EARLY = datetime(2023, 1, 1, tzinfo=timezone.utc)
-_MID = datetime(2023, 6, 15, tzinfo=timezone.utc)
 _LATE = datetime(2025, 12, 31, tzinfo=timezone.utc)
-_FAR_FUTURE = datetime(9999, 12, 31, tzinfo=timezone.utc)
 
+# Property [Core Comparison]: $max updates only when specified value is strictly greater
+# than current.
 TESTS: list[UpdateTestCase] = [
-    # Core behavior
     UpdateTestCase(
         "updates_when_specified_greater",
         setup_docs=[{"_id": 1, "score": 800}],
@@ -55,7 +53,6 @@ TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "score": 100},
         msg="$max with empty operand {} should leave document unchanged",
     ),
-    # Null handling
     UpdateTestCase(
         "null_specified_numeric_current_unchanged",
         setup_docs=[{"_id": 1, "val": 10}],
@@ -88,7 +85,7 @@ TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "val": "hello"},
         msg="$max with current null, specified string should update (String > null)",
     ),
-    # Date comparisons
+    # Date wiring (1 representative case per §19).
     UpdateTestCase(
         "date_later_updates",
         setup_docs=[{"_id": 1, "val": _EARLY}],
@@ -97,48 +94,15 @@ TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "val": _LATE},
         msg="$max with later date > current date should update",
     ),
-    UpdateTestCase(
-        "date_earlier_unchanged",
-        setup_docs=[{"_id": 1, "val": _LATE}],
-        query={"_id": 1},
-        update={"$max": {"val": _EARLY}},
-        expected={"_id": 1, "val": _LATE},
-        msg="$max with earlier date < current date should not update",
-    ),
-    UpdateTestCase(
-        "date_equal_unchanged",
-        setup_docs=[{"_id": 1, "val": _MID}],
-        query={"_id": 1},
-        update={"$max": {"val": _MID}},
-        expected={"_id": 1, "val": _MID},
-        msg="$max with identical dates should not update",
-    ),
-    UpdateTestCase(
-        "epoch_to_later_updates",
-        setup_docs=[{"_id": 1, "val": _EPOCH}],
-        query={"_id": 1},
-        update={"$max": {"val": _EARLY}},
-        expected={"_id": 1, "val": _EARLY},
-        msg="$max should update from epoch to later date",
-    ),
-    UpdateTestCase(
-        "far_future_date",
-        setup_docs=[{"_id": 1, "val": _EARLY}],
-        query={"_id": 1},
-        update={"$max": {"val": _FAR_FUTURE}},
-        expected={"_id": 1, "val": _FAR_FUTURE},
-        msg="$max should update to far future date (year 9999)",
-    ),
-    # String comparisons
+    # String wiring (1 representative case per §19).
     UpdateTestCase(
         "string_greater_updates",
         setup_docs=[{"_id": 1, "val": "a"}],
         query={"_id": 1},
         update={"$max": {"val": "b"}},
         expected={"_id": 1, "val": "b"},
-        msg="$max comparing 'a' with 'b' should update to 'b'",
+        msg="$max should update when specified string > current string",
     ),
-    # Type preservation
     UpdateTestCase(
         "int32_to_int64_type_change",
         setup_docs=[{"_id": 1, "val": 10}],

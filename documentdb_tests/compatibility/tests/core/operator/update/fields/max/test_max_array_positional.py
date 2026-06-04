@@ -13,6 +13,7 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Positional Wiring]: $max accepts $, $[], and $[elem] positional operators.
 TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         "positional_dollar_updates_matched",

@@ -14,24 +14,25 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [BSON Wiring]: $max delegates to the BSON comparison engine for cross-type ordering.
 TESTS: list[UpdateTestCase] = [
-    # Upward transition in BSON order (should update)
+    # Upward transition: Number > Null in BSON order (should update for $max).
     UpdateTestCase(
         "null_to_number_updates",
         setup_docs=[{"_id": 1, "val": None}],
         query={"_id": 1},
         update={"$max": {"val": 1}},
         expected={"_id": 1, "val": 1},
-        msg="Number > Null in BSON order, should update",
+        msg="$max should update when Number > Null in BSON order",
     ),
-    # Downward transition in BSON order (should NOT update)
+    # Downward transition: String < ObjectId in BSON order (should NOT update for $max).
     UpdateTestCase(
         "string_vs_objectid_unchanged",
         setup_docs=[{"_id": 1, "val": ObjectId("000000000000000000000001")}],
         query={"_id": 1},
         update={"$max": {"val": "zzz"}},
         expected={"_id": 1, "val": ObjectId("000000000000000000000001")},
-        msg="String < ObjectId in BSON order, should not update",
+        msg="$max should not update when String < ObjectId in BSON order",
     ),
 ]
 

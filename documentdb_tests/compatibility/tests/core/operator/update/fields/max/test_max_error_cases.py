@@ -16,6 +16,7 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Error Cases]: $max rejects conflicting operators on same field and invalid field names.
 ERROR_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         "conflict_with_min_same_field",

@@ -16,8 +16,9 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 _DATE = datetime(2023, 6, 15, tzinfo=timezone.utc)
 
+# Property [Field Paths]: $max applies via dot notation, creates non-existent fields,
+# and evaluates multiple fields independently.
 TESTS: list[UpdateTestCase] = [
-    # Dot notation
     UpdateTestCase(
         "dot_notation_greater_updates",
         setup_docs=[{"_id": 1, "embedded": {"field": 10}}],
@@ -43,14 +44,6 @@ TESTS: list[UpdateTestCase] = [
         msg="$max on non-existent 'embedded.field' should create nested path",
     ),
     UpdateTestCase(
-        "deeply_nested_creates_path",
-        setup_docs=[{"_id": 1, "other": "data"}],
-        query={"_id": 1},
-        update={"$max": {"a.b.c": 50}},
-        expected={"_id": 1, "other": "data", "a": {"b": {"c": 50}}},
-        msg="$max on 'a.b.c' should create intermediate documents",
-    ),
-    UpdateTestCase(
         "array_index_dot_notation",
         setup_docs=[{"_id": 1, "arr": [5, 10, 15]}],
         query={"_id": 1},
@@ -58,7 +51,6 @@ TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "arr": [20, 10, 15]},
         msg="$max on 'arr.0' should update array element at index 0",
     ),
-    # Field creation
     UpdateTestCase(
         "nonexistent_field_positive_number",
         setup_docs=[{"_id": 1, "other": "data"}],
@@ -115,7 +107,6 @@ TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "other": "data", "val": []},
         msg="$max on non-existent field with empty array should create field",
     ),
-    # Multiple fields
     UpdateTestCase(
         "multiple_fields_both_update",
         setup_docs=[{"_id": 1, "a": 10, "b": 20}],

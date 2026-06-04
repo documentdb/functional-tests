@@ -11,6 +11,7 @@ from documentdb_tests.framework.assertions import assertSuccess, assertSuccessPa
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Result Metadata]: $max comparison logic determines n and nModified in result.
 RESULT_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         "update_one_no_match",
@@ -18,7 +19,15 @@ RESULT_TESTS: list[UpdateTestCase] = [
         query={"_id": 999},
         update={"$max": {"val": 20}},
         expected={"n": 0, "nModified": 0},
-        msg="updateOne $max where no match: n=0, nModified=0",
+        msg="$max should report n=0, nModified=0 when no match",
+    ),
+    UpdateTestCase(
+        "idempotent_equal_no_modification",
+        setup_docs=[{"_id": 1, "val": 50}],
+        query={"_id": 1},
+        update={"$max": {"val": 50}},
+        expected={"n": 1, "nModified": 0},
+        msg="$max should report nModified=0 when specified equals current",
     ),
     UpdateTestCase(
         "update_many_partial_update",
@@ -31,10 +40,11 @@ RESULT_TESTS: list[UpdateTestCase] = [
         update={"$max": {"val": 25}},
         multi=True,
         expected={"n": 3, "nModified": 1},
-        msg="updateMany $max should modify 1 of 3 docs (only val=10 < 25)",
+        msg="$max should modify 1 of 3 docs (only val=10 < 25)",
     ),
 ]
 
+# Property [Upsert Behavior]: $max with upsert creates fields on insert and compares on match.
 UPSERT_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         "upsert_creates_doc_no_match",
@@ -70,7 +80,7 @@ UPSERT_TESTS: list[UpdateTestCase] = [
         update={"$max": {"score": 80}},
         upsert=True,
         expected={"_id": 1, "category": "A", "score": 80},
-        msg="$max upsert with filter equality should create doc with filter fields",
+        msg="$max with upsert and no match should create doc with filter fields",
     ),
     UpdateTestCase(
         "upsert_combined_with_set_on_insert",
@@ -89,15 +99,6 @@ UPSERT_TESTS: list[UpdateTestCase] = [
         upsert=True,
         expected={"_id": 1, "score": 50},
         msg="$max with $setOnInsert on existing doc should only apply $max",
-    ),
-    UpdateTestCase(
-        "upsert_with_multiple_operators",
-        setup_docs=None,
-        query={"_id": 1},
-        update={"$max": {"high": 100}, "$min": {"low": 5}, "$set": {"name": "test"}},
-        upsert=True,
-        expected={"_id": 1, "high": 100, "low": 5, "name": "test"},
-        msg="$max combined with other operators via upsert should apply all",
     ),
 ]
 
