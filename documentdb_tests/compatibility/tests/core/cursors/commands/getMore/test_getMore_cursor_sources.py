@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import datetime
 
-import pytest
-
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.property_checks import Eq, Len
@@ -101,8 +99,6 @@ def test_getMore_list_collections_cursor(collection):
         {"listCollections": 1, "cursor": {"batchSize": 1}},
     )
     cursor_id = list_result["cursor"]["id"]
-    if cursor_id == 0:
-        pytest.skip("listCollections returned all results in first batch")
     result = execute_command(
         collection,
         {"getMore": cursor_id, "collection": "$cmd.listCollections"},
@@ -133,8 +129,6 @@ def test_getMore_list_indexes_cursor(collection):
         {"listIndexes": collection.name, "cursor": {"batchSize": 1}},
     )
     cursor_id = list_result["cursor"]["id"]
-    if cursor_id == 0:
-        pytest.skip("listIndexes returned all results in first batch")
     result = execute_command(
         collection,
         {"getMore": cursor_id, "collection": collection.name},
