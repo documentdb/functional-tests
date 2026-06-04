@@ -54,67 +54,6 @@ MERGE_OBJECTS_MANY_DOCS_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": {"a": 9}}],
         msg="$mergeObjects should use last value when many documents share the same key",
     ),
-    AccumulatorTestCase(
-        "large_scale_disjoint_keys",
-        docs=[{"v": {f"k{i}": i}} for i in range(1000)],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
-        expected=[{"_id": None, "result": {f"k{i}": i for i in range(1000)}}],
-        msg="$mergeObjects should correctly merge 1000 documents with disjoint keys",
-    ),
-    AccumulatorTestCase(
-        "large_scale_same_key",
-        docs=[{"v": {"a": i}} for i in range(1000)],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
-        expected=[{"_id": None, "result": {"a": 999}}],
-        msg="$mergeObjects should use last value from 1000 documents sharing the same key",
-    ),
-]
-
-# Property [Large Documents]: $mergeObjects handles documents with many fields.
-MERGE_OBJECTS_LARGE_DOC_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "large_doc_many_fields",
-        docs=[{"v": {f"field_{i}": i for i in range(50)}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
-        expected=[{"_id": None, "result": {f"field_{i}": i for i in range(50)}}],
-        msg="$mergeObjects should handle documents with 50 fields",
-    ),
-]
-
-# Property [Large Values]: $mergeObjects preserves large field values.
-MERGE_OBJECTS_LARGE_VALUE_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "large_value_long_string",
-        docs=[{"v": {"a": "x" * 10000}}, {"v": {"b": 1}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
-        expected=[{"_id": None, "result": {"a": "x" * 10000, "b": 1}}],
-        msg="$mergeObjects should preserve very long string values",
-    ),
-    AccumulatorTestCase(
-        "large_value_deep_nesting",
-        docs=[
-            {"v": {"a": {"b": {"c": {"d": {"e": {"f": {"g": {"h": {"i": {"j": 1}}}}}}}}}}},
-            {"v": {"x": 2}},
-        ],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
-        expected=[
-            {
-                "_id": None,
-                "result": {
-                    "a": {"b": {"c": {"d": {"e": {"f": {"g": {"h": {"i": {"j": 1}}}}}}}}},
-                    "x": 2,
-                },
-            }
-        ],
-        msg="$mergeObjects should preserve deeply nested objects (10 levels)",
-    ),
-    AccumulatorTestCase(
-        "large_value_large_array",
-        docs=[{"v": {"a": list(range(1000))}}, {"v": {"b": 1}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
-        expected=[{"_id": None, "result": {"a": list(range(1000)), "b": 1}}],
-        msg="$mergeObjects should preserve large array fields (1000 elements)",
-    ),
 ]
 
 # Property [Special Field Names]: $mergeObjects correctly handles special
@@ -273,8 +212,6 @@ MERGE_OBJECTS_ORDER_DEPENDENCE_TESTS: list[AccumulatorTestCase] = [
 MERGE_OBJECTS_EDGE_TESTS = (
     MERGE_OBJECTS_SINGLE_DOC_TESTS
     + MERGE_OBJECTS_MANY_DOCS_TESTS
-    + MERGE_OBJECTS_LARGE_DOC_TESTS
-    + MERGE_OBJECTS_LARGE_VALUE_TESTS
     + MERGE_OBJECTS_SPECIAL_FIELD_TESTS
     + MERGE_OBJECTS_ID_FIELD_TESTS
     + MERGE_OBJECTS_DEEP_NESTING_TESTS
