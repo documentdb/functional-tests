@@ -1,7 +1,7 @@
 """Tests for $[<identifier>] error cases and restrictions.
 
 Covers: identifier naming rules, upsert behavior, missing arrayFilters,
-and identifier mismatch.
+identifier mismatch, restricted operators in arrayFilters, and non-array fields.
 """
 
 import pytest
@@ -13,8 +13,6 @@ from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-# --- Missing arrayFilters ---
 
 MISSING_FILTERS_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(
@@ -38,8 +36,6 @@ MISSING_FILTERS_TESTS: list[FilteredUpdateTestCase] = [
 ]
 
 
-# --- Upsert Behavior ---
-
 UPSERT_ERROR_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(
         "upsert_without_equality",
@@ -53,8 +49,6 @@ UPSERT_ERROR_TESTS: list[FilteredUpdateTestCase] = [
     ),
 ]
 
-
-# --- Identifier Naming Rules ---
 
 IDENTIFIER_NAMING_ERROR_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(
@@ -78,7 +72,48 @@ IDENTIFIER_NAMING_ERROR_TESTS: list[FilteredUpdateTestCase] = [
 ]
 
 
-ALL_ERROR_TESTS = MISSING_FILTERS_TESTS + UPSERT_ERROR_TESTS + IDENTIFIER_NAMING_ERROR_TESTS
+RESTRICTED_OPERATOR_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
+        "text_in_arrayFilters",
+        setup_docs=[{"_id": 1, "arr": ["hello", "world"]}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"$text": {"$search": "hello"}}],
+        error_code=BAD_VALUE_ERROR,
+        msg="arrayFilters with $text should fail",
+    ),
+    FilteredUpdateTestCase(
+        "where_in_arrayFilters",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"$where": "true"}],
+        error_code=BAD_VALUE_ERROR,
+        msg="arrayFilters with $where should fail",
+    ),
+]
+
+
+NON_ARRAY_FIELD_TESTS: list[FilteredUpdateTestCase] = [
+    FilteredUpdateTestCase(
+        "field_exists_but_not_array",
+        setup_docs=[{"_id": 1, "arr": 5}],
+        query={"_id": 1},
+        update={"$set": {"arr.$[elem]": 99}},
+        array_filters=[{"elem": {"$gte": 1}}],
+        error_code=BAD_VALUE_ERROR,
+        msg="$[<id>] on a scalar field (not an array) should fail",
+    ),
+]
+
+
+ALL_ERROR_TESTS = (
+    MISSING_FILTERS_TESTS
+    + UPSERT_ERROR_TESTS
+    + IDENTIFIER_NAMING_ERROR_TESTS
+    + RESTRICTED_OPERATOR_TESTS
+    + NON_ARRAY_FIELD_TESTS
+)
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_ERROR_TESTS))

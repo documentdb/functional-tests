@@ -1,7 +1,6 @@
 """Tests for $[<identifier>] positional-filtered update operator core behavior.
 
-Covers: matching elements via arrayFilters, no-match, all-match, empty array,
-update command integration, and various update operators.
+Covers: matching elements via arrayFilters, no-match, all-match, and empty array.
 """
 
 import pytest

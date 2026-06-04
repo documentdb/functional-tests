@@ -1,7 +1,7 @@
 """Tests for $[<identifier>] arrayFilters conditions.
 
 Covers: comparison operators, logical operators, element operators,
-restricted operators, multiple arrayFilters, and edge cases.
+and multiple arrayFilters.
 """
 
 import pytest
@@ -9,12 +9,9 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.update.array.positional_filtered.utils.filtered_update_test_case import (  # noqa: E501
     FilteredUpdateTestCase,
 )
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-# --- Comparison Operators in arrayFilters ---
 
 COMPARISON_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(
@@ -92,8 +89,6 @@ COMPARISON_TESTS: list[FilteredUpdateTestCase] = [
 ]
 
 
-# --- Logical Operators in arrayFilters ---
-
 LOGICAL_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(
         "and_multiple_conditions",
@@ -125,8 +120,6 @@ LOGICAL_TESTS: list[FilteredUpdateTestCase] = [
 ]
 
 
-# --- Element Operators in arrayFilters ---
-
 ELEMENT_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(
         "exists",
@@ -149,8 +142,6 @@ ELEMENT_TESTS: list[FilteredUpdateTestCase] = [
 ]
 
 
-# --- Multiple arrayFilters ---
-
 MULTIPLE_FILTERS_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(
         "multiple_identifiers",
@@ -172,7 +163,7 @@ ALL_SUCCESS_TESTS = COMPARISON_TESTS + LOGICAL_TESTS + ELEMENT_TESTS + MULTIPLE_
 
 @pytest.mark.parametrize("test", pytest_params(ALL_SUCCESS_TESTS))
 def test_positional_filtered_array_filters_success(collection, test: FilteredUpdateTestCase):
-    """Test $[<identifier>] arrayFilters conditions - success cases."""
+    """Test $[<identifier>] arrayFilters conditions."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
@@ -188,41 +179,3 @@ def test_positional_filtered_array_filters_success(collection, test: FilteredUpd
         collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
     )
     assertSuccess(result, [test.expected], msg=test.msg)
-
-
-# --- Restricted Operators (should fail) ---
-
-RESTRICTED_OPERATOR_TESTS: list[FilteredUpdateTestCase] = [
-    FilteredUpdateTestCase(
-        "text_in_arrayFilters",
-        setup_docs=[{"_id": 1, "arr": ["hello", "world"]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": 99}},
-        array_filters=[{"$text": {"$search": "hello"}}],
-        error_code=BAD_VALUE_ERROR,
-        msg="arrayFilters with $text should fail",
-    ),
-    FilteredUpdateTestCase(
-        "where_in_arrayFilters",
-        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": 99}},
-        array_filters=[{"$where": "true"}],
-        error_code=BAD_VALUE_ERROR,
-        msg="arrayFilters with $where should fail",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(RESTRICTED_OPERATOR_TESTS))
-def test_positional_filtered_array_filters_error(collection, test):
-    """Test $[<identifier>] arrayFilters restricted operators - error cases."""
-    if test.setup_docs:
-        collection.insert_many(test.setup_docs)
-
-    command = {
-        "update": collection.name,
-        "updates": [{"q": test.query, "u": test.update, "arrayFilters": test.array_filters}],
-    }
-    result = execute_command(collection, command)
-    assertFailureCode(result, test.error_code, msg=test.msg)

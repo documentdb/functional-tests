@@ -55,8 +55,6 @@ EMBEDDED_DOC_TESTS: list[FilteredUpdateTestCase] = [
 ]
 
 
-# --- Nested Arrays with Multiple Identifiers ---
-
 NESTED_ARRAY_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(
         "multiple_identifiers_nested",
@@ -83,8 +81,6 @@ NESTED_ARRAY_TESTS: list[FilteredUpdateTestCase] = [
     ),
 ]
 
-
-# --- Dot Notation ---
 
 DOT_NOTATION_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(

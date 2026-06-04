@@ -1,7 +1,7 @@
 """Integration tests for array update operators.
 
-Covers: cross-operator interactions between $, $[], $[<identifier>],
-$push, $pull, $addToSet, $pop, and $pullAll in the same update.
+Covers: $[<identifier>] combined with $inc, $mul, $unset, $addToSet,
+$push, $min, $max, and interactions with $ and $[].
 """
 
 import pytest
@@ -13,8 +13,6 @@ from documentdb_tests.framework.assertions import assertFailureCode, assertSucce
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-# --- Positional Filtered ($[<identifier>]) ---
 
 POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
     FilteredUpdateTestCase(
