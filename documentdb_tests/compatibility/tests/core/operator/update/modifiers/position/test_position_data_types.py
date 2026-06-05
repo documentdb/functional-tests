@@ -1,8 +1,7 @@
 """Tests for $position modifier data type handling.
 
 Covers: valid $position value types (int, long, whole double, whole decimal128),
-rejected $position value types, invalid numeric values (fractional, NaN, Infinity),
-and BSON type insertion at position.
+rejected $position value types, and invalid numeric values (fractional, NaN, Infinity).
 """
 
 import pytest

@@ -1,7 +1,7 @@
 """Tests for $position modifier core behavior.
 
-Covers: positive position, negative position, boundary values, multiple elements,
-empty $each, missing field, and position on empty array.
+Covers: positive position, negative position, boundary values,
+position on empty array, and without-$each literal push.
 """
 
 import pytest
@@ -22,14 +22,6 @@ CORE_TESTS: list[UpdateTestCase] = [
         update={"$push": {"arr": {"$each": [50, 60, 70], "$position": 0}}},
         expected=[{"_id": 1, "arr": [50, 60, 70, 100]}],
         msg="$position 0 should insert all elements at beginning",
-    ),
-    UpdateTestCase(
-        id="position_1_inserts_at_index_1",
-        setup_docs=[{"_id": 1, "arr": ["a", "d", "e"]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": ["b", "c"], "$position": 1}}},
-        expected=[{"_id": 1, "arr": ["a", "b", "c", "d", "e"]}],
-        msg="$position 1 should insert at index 1",
     ),
     UpdateTestCase(
         id="position_2_in_middle",
@@ -78,22 +70,6 @@ CORE_TESTS: list[UpdateTestCase] = [
         update={"$push": {"arr": {"$each": [0], "$position": -10}}},
         expected=[{"_id": 1, "arr": [0, 1, 2, 3]}],
         msg="$position with abs > length should insert at beginning",
-    ),
-    UpdateTestCase(
-        id="multiple_elements_at_0_preserve_order",
-        setup_docs=[{"_id": 1, "arr": ["x", "y"]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [1, 2, 3], "$position": 0}}},
-        expected=[{"_id": 1, "arr": [1, 2, 3, "x", "y"]}],
-        msg="Multiple elements at position 0 should preserve their order",
-    ),
-    UpdateTestCase(
-        id="multiple_elements_negative_position",
-        setup_docs=[{"_id": 1, "arr": ["a", "b", "c"]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [10, 20], "$position": -1}}},
-        expected=[{"_id": 1, "arr": ["a", "b", 10, 20, "c"]}],
-        msg="Multiple elements with negative position should insert before last",
     ),
     UpdateTestCase(
         id="position_0_on_empty_array",

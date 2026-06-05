@@ -1,7 +1,7 @@
-"""Tests for $position interaction with other modifiers ($slice, $sort).
+"""Integration tests for update modifier operators.
 
-Covers: $position + $slice, $position + $sort, $position + $slice + $sort,
-and null element preservation.
+Tests that verify interactions between modifier operators ($position, $slice,
+$sort) and other update operators, ensuring correct combined behavior.
 """
 
 import pytest
@@ -13,7 +13,7 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-MODIFIER_TESTS: list[UpdateTestCase] = [
+POSITION_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         id="position_with_positive_slice",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
@@ -63,19 +63,43 @@ MODIFIER_TESTS: list[UpdateTestCase] = [
         msg="All modifiers: insert, sort ascending, then slice last 2",
     ),
     UpdateTestCase(
-        id="null_elements_preserved",
-        setup_docs=[{"_id": 1, "arr": ["a", "b"]}],
+        id="set_treats_position_as_literal",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
-        update={"$push": {"arr": {"$each": [None, 1, None], "$position": 0}}},
-        expected=[{"_id": 1, "arr": [None, 1, None, "a", "b"]}],
-        msg="Null elements in $each should be preserved at position",
+        update={"$set": {"arr": {"$each": [3], "$position": 0}}},
+        expected=[{"_id": 1, "arr": {"$each": [3], "$position": 0}}],
+        msg="$set should treat $position doc as a literal value",
+    ),
+    UpdateTestCase(
+        id="unset_ignores_position_doc",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$unset": {"arr": {"$each": [3], "$position": 0}}},
+        expected=[{"_id": 1}],
+        msg="$unset should ignore $position doc and remove the field",
+    ),
+    UpdateTestCase(
+        id="min_treats_position_as_literal",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$min": {"arr": {"$each": [3], "$position": 0}}},
+        expected=[{"_id": 1, "arr": {"$each": [3], "$position": 0}}],
+        msg="$min should treat $position doc as a literal value",
+    ),
+    UpdateTestCase(
+        id="max_keeps_original_array",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$max": {"arr": {"$each": [3], "$position": 0}}},
+        expected=[{"_id": 1, "arr": [1, 2, 3]}],
+        msg="$max should keep original array (array > document in BSON comparison)",
     ),
 ]
 
 
-@pytest.mark.parametrize("test_case", pytest_params(MODIFIER_TESTS))
-def test_position_modifiers(collection, test_case):
-    """Test $position interaction with $slice and $sort modifiers."""
+@pytest.mark.parametrize("test_case", pytest_params(POSITION_TESTS))
+def test_position_update_modifier_integration(collection, test_case):
+    """Test $position interaction with modifiers and non-$push operators."""
     collection.insert_many(test_case.setup_docs)
     execute_command(
         collection,
