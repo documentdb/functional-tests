@@ -14,7 +14,11 @@ from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_t
     SessionOperation,
     SessionTestCase,
 )
-from documentdb_tests.framework.assertions import assertNotError, assertSuccess
+from documentdb_tests.framework.assertions import (
+    assertNotError,
+    assertSuccess,
+    assertSuccessPartial,
+)
 from documentdb_tests.framework.executor import execute_session_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -88,13 +92,7 @@ COMMIT_PERSISTENCE_TESTS: list[SessionTestCase] = [
 def test_commitTransaction_persistence(collection, test):
     """Test commitTransaction persists operations."""
     result = execute_session_command(collection, test)
-    assertSuccess(
-        result,
-        {"cursor": {"firstBatch": test.expected}},
-        msg=test.msg,
-        raw_res=True,
-        transform=lambda r: {"cursor": {"firstBatch": r["cursor"]["firstBatch"]}},
-    )
+    assertSuccess(result, test.expected, msg=test.msg)
 
 
 # ---------------------------------------------------------------------------
@@ -144,10 +142,4 @@ RESPONSE_STRUCTURE_TESTS: list[SessionTestCase] = [
 def test_commitTransaction_response(collection, test):
     """Test commitTransaction returns expected response fields."""
     result = execute_session_command(collection, test)
-    assertSuccess(
-        result,
-        test.expected_response,
-        msg=test.msg,
-        raw_res=True,
-        transform=lambda r: {"ok": r["ok"]},
-    )
+    assertSuccessPartial(result, test.expected_response, msg=test.msg)
