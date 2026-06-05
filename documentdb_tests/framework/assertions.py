@@ -361,7 +361,10 @@ def _walk_path(doc: dict, path: str) -> Any:
     """Walk doc along a dotted path, returning _FIELD_ABSENT if absent.
 
     Supports dict keys and numeric list indices (e.g. ``cursor.firstBatch.0.name``).
+    An empty path returns the document itself (for root-level checks).
     """
+    if not path:
+        return doc
     current: Any = doc
     for part in path.split("."):
         if isinstance(current, list):
