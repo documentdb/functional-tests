@@ -80,7 +80,12 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Initialize replica set
-        run: docker exec "${{ job.services.mongodb.id }}" mongosh --eval 'rs.initiate()'
+        run: |
+          docker exec "${{ job.services.mongodb.id }}" mongosh --eval '
+            rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]})
+          '
+          # Wait for the primary to be elected
+          sleep 3
 
       - uses: actions/setup-python@v6
         with:
@@ -93,7 +98,7 @@ jobs:
         run: |
           pytest documentdb_tests/compatibility/tests \
             -m replica_set \
-            --connection-string "mongodb://localhost:27017/?replicaSet=rs0" \
+            --connection-string "mongodb://localhost:27017/?directConnection=true" \
             --engine-name mongodb \
             -n auto \
             -v \
