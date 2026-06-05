@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_test_case import (
     SessionOp,
     SessionOperation,
     SessionTestCase,

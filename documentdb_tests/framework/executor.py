@@ -76,7 +76,7 @@ def execute_session_command(collection, test_case) -> Any:
     Returns:
         Result dict (commit response or readback) or Exception.
     """
-    from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (  # noqa: E501
+    from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_test_case import (  # noqa: E501
         SessionTestCase,
     )
 
