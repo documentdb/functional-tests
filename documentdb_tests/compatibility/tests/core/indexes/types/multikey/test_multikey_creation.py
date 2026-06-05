@@ -57,3 +57,21 @@ def test_multikey_becomes_multikey_on_first_array(collection):
     assertSuccess(
         result, [{"_id": 2, "a": [1, 2, 3]}], msg="Index becomes multikey on array insert"
     )
+
+
+def test_multikey_becomes_multikey_on_nested_array(collection):
+    """Test that index becomes multikey when a nested array document is inserted."""
+    execute_command(
+        collection,
+        {"createIndexes": collection.name, "indexes": [{"key": {"a": 1}, "name": "a_1"}]},
+    )
+    collection.insert_one({"_id": 1, "a": 5})
+    collection.insert_one({"_id": 2, "a": [[1, 2], [3, 4]]})
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"a": [1, 2]}, "hint": "a_1"}
+    )
+    assertSuccess(
+        result,
+        [{"_id": 2, "a": [[1, 2], [3, 4]]}],
+        msg="Index becomes multikey on nested array insert",
+    )

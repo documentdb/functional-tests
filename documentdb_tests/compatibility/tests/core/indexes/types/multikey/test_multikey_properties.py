@@ -220,7 +220,9 @@ def test_multikey_write_push_updates_index(collection):
         collection,
         {"update": collection.name, "updates": [{"q": {"_id": 1}, "u": {"$push": {"arr": 3}}}]},
     )
-    result = execute_command(collection, {"find": collection.name, "filter": {"arr": 3}})
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"arr": 3}, "hint": "arr_1"}
+    )
     assertSuccess(result, [{"_id": 1, "arr": [1, 2, 3]}], msg="Pushed element should be findable")
 
 
@@ -235,7 +237,9 @@ def test_multikey_write_pull_updates_index(collection):
         collection,
         {"update": collection.name, "updates": [{"q": {"_id": 1}, "u": {"$pull": {"arr": 2}}}]},
     )
-    result = execute_command(collection, {"find": collection.name, "filter": {"arr": 2}})
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"arr": 2}, "hint": "arr_1"}
+    )
     assertSuccess(result, [], msg="Pulled element should no longer match")
 
 
@@ -250,7 +254,9 @@ def test_multikey_write_addtoset_updates_index(collection):
         collection,
         {"update": collection.name, "updates": [{"q": {"_id": 1}, "u": {"$addToSet": {"arr": 5}}}]},
     )
-    result = execute_command(collection, {"find": collection.name, "filter": {"arr": 5}})
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"arr": 5}, "hint": "arr_1"}
+    )
     assertSuccess(result, [{"_id": 1, "arr": [1, 2, 5]}], msg="addToSet element should be findable")
 
 
