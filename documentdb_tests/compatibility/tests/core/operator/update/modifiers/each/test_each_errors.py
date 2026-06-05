@@ -1,6 +1,7 @@
 """Tests for $each modifier error cases.
 
-Covers: non-array target fields and invalid modifier values.
+Covers: non-array target fields, unsupported array operators, and invalid
+modifier values.
 """
 
 import pytest
@@ -14,7 +15,7 @@ from documentdb_tests.framework.bson_type_validator import (
     BsonTypeTestCase,
     generate_bson_rejection_test_cases,
 )
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -56,6 +57,33 @@ def test_each_target_type_rejected(collection, bson_type, sample_value, spec):
     assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
 
 
+UNSUPPORTED_OPERATOR_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        id="pop_with_each",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$pop": {"arr": {"$each": [1]}}},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$pop should not accept $each",
+    ),
+    UpdateTestCase(
+        id="pull_with_each",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$pull": {"arr": {"$each": [1]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$pull should not accept $each",
+    ),
+    UpdateTestCase(
+        id="pullAll_with_each",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$pullAll": {"arr": {"$each": [1]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$pullAll should not accept $each",
+    ),
+]
+
 MODIFIER_ERROR_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         id="unrecognized_modifier",
@@ -67,12 +95,13 @@ MODIFIER_ERROR_TESTS: list[UpdateTestCase] = [
     ),
 ]
 
+ALL_ERROR_TESTS = UNSUPPORTED_OPERATOR_TESTS + MODIFIER_ERROR_TESTS
 
-@pytest.mark.parametrize("test_case", pytest_params(MODIFIER_ERROR_TESTS))
-def test_each_modifier_errors(collection, test_case):
+
+@pytest.mark.parametrize("test_case", pytest_params(ALL_ERROR_TESTS))
+def test_each_errors(collection, test_case):
     """Test $each modifier error cases."""
-    if test_case.setup_docs:
-        collection.insert_many(test_case.setup_docs)
+    collection.insert_many(test_case.setup_docs)
     result = execute_command(
         collection,
         {

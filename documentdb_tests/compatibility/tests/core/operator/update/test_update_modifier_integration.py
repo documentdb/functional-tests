@@ -135,6 +135,14 @@ MODIFIER_INTEGRATION_TESTS: list[UpdateTestCase] = [
         ],
         msg="$push $each with nested field $sort should sort by nested path",
     ),
+    UpdateTestCase(
+        id="set_treats_each_as_literal",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$set": {"arr": {"$each": [1]}}},
+        expected=[{"_id": 1, "arr": {"$each": [1]}}],
+        msg="$set should treat $each as a literal document value",
+    ),
 ]
 
 
