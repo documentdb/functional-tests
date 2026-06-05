@@ -27,14 +27,14 @@ from documentdb_tests.framework.test_constants import (
 # empty array, the field is omitted from the result.
 ELEMMATCH_MISSING_OR_EMPTY_TESTS: list[ProjectionTestCase] = [
     ProjectionTestCase(
-        "null_field_missing",
+        "field_missing",
         doc=[{"_id": 1, "other": "value"}],
         projection={"arr": {"$elemMatch": {"$gte": 1}}},
         expected=[{"_id": 1}],
         msg="$elemMatch should omit the field when it is missing from the document",
     ),
     ProjectionTestCase(
-        "null_field_empty_array",
+        "field_empty_array",
         doc=[{"_id": 1, "arr": []}],
         projection={"arr": {"$elemMatch": {"$gte": 1}}},
         expected=[{"_id": 1}],
@@ -46,7 +46,7 @@ ELEMMATCH_MISSING_OR_EMPTY_TESTS: list[ProjectionTestCase] = [
 # the field is omitted from the result, even when the value would satisfy the condition.
 ELEMMATCH_NON_ARRAY_TYPE_TESTS: list[ProjectionTestCase] = [
     ProjectionTestCase(
-        f"null_field_type_{tid}",
+        f"non_array_field_type_{tid}",
         doc=[{"_id": 1, "arr": val}],
         projection={"arr": {"$elemMatch": {"$gte": 1}}},
         expected=[{"_id": 1}],
