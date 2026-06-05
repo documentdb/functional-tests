@@ -38,7 +38,7 @@ CORE_NO_TRANSACTION_TESTS: list[CommandTestCase] = [
 # Property [Parameter Acceptance]: all valid parameters combined are syntactically accepted.
 CORE_PARAMETER_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "all_valid_params",
+        "all_valid_params_no_parse_error",
         command={
             "commitTransaction": 1,
             "autocommit": False,
