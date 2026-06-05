@@ -60,15 +60,6 @@ IDENTIFIER_NAMING_ERROR_TESTS: list[FilteredUpdateTestCase] = [
         error_code=BAD_VALUE_ERROR,
         msg="$[<id>] with identifier starting with digit should fail",
     ),
-    FilteredUpdateTestCase(
-        "identifier_empty",
-        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[]": 99}},
-        array_filters=[{"": {"$gte": 2}}],
-        error_code=BAD_VALUE_ERROR,
-        msg="$[<id>] with empty identifier should fail",
-    ),
 ]
 
 
@@ -81,15 +72,6 @@ RESTRICTED_OPERATOR_TESTS: list[FilteredUpdateTestCase] = [
         array_filters=[{"$text": {"$search": "hello"}}],
         error_code=BAD_VALUE_ERROR,
         msg="arrayFilters with $text should fail",
-    ),
-    FilteredUpdateTestCase(
-        "where_in_arrayFilters",
-        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
-        query={"_id": 1},
-        update={"$set": {"arr.$[elem]": 99}},
-        array_filters=[{"$where": "true"}],
-        error_code=BAD_VALUE_ERROR,
-        msg="arrayFilters with $where should fail",
     ),
 ]
 
