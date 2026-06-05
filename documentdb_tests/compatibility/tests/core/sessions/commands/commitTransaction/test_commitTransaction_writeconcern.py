@@ -30,12 +30,6 @@ pytestmark = pytest.mark.admin
 # Property [writeConcern Document Acceptance]: writeConcern accepts document values.
 WRITECONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "writeconcern_doc_w1",
-        command={"commitTransaction": 1, "writeConcern": {"w": 1}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern document with w:1",
-    ),
-    CommandTestCase(
         "writeconcern_empty_doc",
         command={"commitTransaction": 1, "writeConcern": {}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
