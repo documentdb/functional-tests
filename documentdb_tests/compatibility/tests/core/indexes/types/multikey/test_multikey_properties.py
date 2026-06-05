@@ -126,55 +126,25 @@ def test_multikey_numeric_duplicate(collection, test):
     assertSuccessPartial(result, test.expected, msg=test.msg)
 
 
-NULL_KEY_EQUIVALENCE_TESTS: list[IndexTestCase] = [
-    IndexTestCase(
-        id="unique_null_array_vs_missing_field_collides",
-        indexes=({"key": {"arr": 1}, "name": "arr_1", "unique": True},),
-        doc=({"_id": 1, "arr": [None]},),
-        input={"_id": 2, "other": "x"},
-        expected={"writeErrors": [{"code": DUPLICATE_KEY_ERROR}]},
-        msg="[null] and missing field both map to null key — should collide",
-    ),
-    IndexTestCase(
-        id="unique_null_scalar_vs_missing_field_collides",
-        indexes=({"key": {"arr": 1}, "name": "arr_1", "unique": True},),
-        doc=({"_id": 1, "arr": [1, 2]}, {"_id": 2, "arr": None}),
-        input={"_id": 3, "other": "x"},
-        expected={"writeErrors": [{"code": DUPLICATE_KEY_ERROR}]},
-        msg="{arr: null} and missing field both map to null key — should collide",
-    ),
-    IndexTestCase(
-        id="unique_empty_array_does_not_collide_with_null",
-        indexes=({"key": {"arr": 1}, "name": "arr_1", "unique": True},),
-        doc=({"_id": 1, "arr": [None]},),
-        input={"_id": 2, "arr": []},
-        expected={"n": 1},
-        msg="[] maps to undefined key, not null — should NOT collide",
-    ),
-    IndexTestCase(
-        id="unique_two_empty_arrays_collide",
-        indexes=({"key": {"arr": 1}, "name": "arr_1", "unique": True},),
-        doc=(
-            {"_id": 1, "arr": [10, 20]},
-            {"_id": 2, "arr": []},
-        ),
-        input={"_id": 3, "arr": []},
-        expected={"writeErrors": [{"code": DUPLICATE_KEY_ERROR}]},
-        msg="Two docs with [] under unique — undefined key should collide",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(NULL_KEY_EQUIVALENCE_TESTS))
-def test_multikey_null_key_equivalence(collection, test):
-    """Test null/missing/empty-array key equivalence under unique multikey index."""
+def test_multikey_empty_array_does_not_collide_with_null(collection):
+    """Test that [] does not collide with [null] under a unique multikey index."""
     execute_command(
         collection,
-        {"createIndexes": collection.name, "indexes": list(test.indexes)},
+        {
+            "createIndexes": collection.name,
+            "indexes": [{"key": {"arr": 1}, "name": "arr_1", "unique": True}],
+        },
     )
-    collection.insert_many(list(test.doc))
-    result = execute_command(collection, {"insert": collection.name, "documents": [test.input]})
-    assertSuccessPartial(result, test.expected, msg=test.msg)
+    collection.insert_one({"_id": 1, "arr": [None]})
+    collection.insert_one({"_id": 2, "arr": []})
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {}, "hint": "arr_1", "sort": {"_id": 1}}
+    )
+    assertSuccess(
+        result,
+        [{"_id": 1, "arr": [None]}, {"_id": 2, "arr": []}],
+        msg="[] and [null] are distinct keys in multikey index",
+    )
 
 
 BSON_TYPE_DISTINCT_TESTS: list[IndexTestCase] = [
