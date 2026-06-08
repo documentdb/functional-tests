@@ -312,6 +312,31 @@ MULTIPLE_MERGEOBJECTS_TESTS: list[AccumulatorTestCase] = [
         ],
         msg="Multiple $mergeObjects should reset independently across group boundaries",
     ),
+    AccumulatorTestCase(
+        "multiple_mergeObjects_same_source_field",
+        docs=[
+            {"_id": 1, "cat": "a", "cfg": {"debug": True}},
+            {"_id": 2, "cat": "a", "cfg": {"verbose": False}},
+        ],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": "$cat",
+                    "merged_cfg_1": {"$mergeObjects": "$cfg"},
+                    "merged_cfg_2": {"$mergeObjects": "$cfg"},
+                }
+            },
+        ],
+        expected=[
+            {
+                "_id": "a",
+                "merged_cfg_1": {"debug": True, "verbose": False},
+                "merged_cfg_2": {"debug": True, "verbose": False},
+            }
+        ],
+        msg="Two $mergeObjects on the same source field should maintain independent state",
+    ),
 ]
 
 MERGEOBJECTS_INTEGRATION_TESTS = (
@@ -342,7 +367,7 @@ def test_accumulators_mergeObjects_integration(collection, test_case: Accumulato
         ignore_doc_order=True,
         ignore_order_in=["tags"],
     )
-    _MERGE_FIELDS = {"merged", "merged_meta", "merged_cfg"}
+    _MERGE_FIELDS = {"merged", "merged_meta", "merged_cfg", "merged_cfg_1", "merged_cfg_2"}
     actual_docs = result["cursor"]["firstBatch"]
     for actual in actual_docs:
         exp = next(
