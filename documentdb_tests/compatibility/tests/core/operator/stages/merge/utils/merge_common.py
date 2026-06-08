@@ -95,7 +95,7 @@ class MergeTestCase(StageTestCase):
         """Build the aggregate command that runs the $merge pipeline.
 
         Substitutes the ``TARGET`` sentinel with ``target`` and applies
-        ``agg_let`` and ``agg_options`` when present.
+        ``agg_options`` when present.
         """
         agg_cmd: dict[str, Any] = {
             "aggregate": collection.name,
