@@ -47,10 +47,10 @@ STARTSESSION_RESPONSE_STRUCTURE_TESTS: list[CommandTestCase] = [
         msg="startSession response should contain ok with value 1.0",
     ),
     CommandTestCase(
-        "response_key_count",
+        "response_has_expected_keys",
         command=lambda ctx: {"startSession": 1},
         expected={"id": Exists(), "timeoutMinutes": Exists(), "ok": Exists()},
-        msg="startSession response should contain exactly 3 top-level keys",
+        msg="startSession response should contain id, timeoutMinutes, and ok",
     ),
 ]
 
@@ -73,7 +73,7 @@ def test_startSession_response_structure(database_client, collection, test):
 def test_startSession_unique_ids(collection):
     """Test startSession returns unique session IDs."""
     results = [execute_command(collection, {"startSession": 1}) for _ in range(5)]
-    ids = [r["id"]["id"] for r in results if not isinstance(r, Exception)]
+    ids = [r["id"]["id"] for r in results]
     unique_count = len(set(ids))
     assertSuccessPartial(
         {"unique": unique_count, "total": len(ids)},
