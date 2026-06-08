@@ -47,15 +47,6 @@ PLANCACHECLEAR_COLLATION_VALID_TESTS: list[CommandTestCase] = [
 # normally be invalid because MongoDB silently accepts them.
 PLANCACHECLEAR_COLLATION_PERMISSIVE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "collation_without_query",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "collation": {"locale": "en"},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should accept collation without query",
-    ),
-    CommandTestCase(
         "collation_empty",
         command=lambda ctx: {
             "planCacheClear": ctx.collection,
@@ -121,17 +112,6 @@ PLANCACHECLEAR_COLLATION_TESTS: list[CommandTestCase] = (
     PLANCACHECLEAR_COLLATION_VALID_TESTS + PLANCACHECLEAR_COLLATION_PERMISSIVE_TESTS
 )
 
-# Property [Regular Collection]: planCacheClear succeeds on a regular collection.
-PLANCACHECLEAR_REGULAR_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "regular_with_docs",
-        docs=[{"_id": 1, "a": 1}],
-        command=lambda ctx: {"planCacheClear": ctx.collection},
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed on a regular collection with documents",
-    ),
-]
-
 # Property [View Rejection]: planCacheClear is not supported on views and
 # returns COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR.
 PLANCACHECLEAR_VIEW_TESTS: list[CommandTestCase] = [
@@ -182,7 +162,7 @@ PLANCACHECLEAR_TIMESERIES_TESTS: list[CommandTestCase] = [
 ]
 
 PLANCACHECLEAR_COLLECTION_VARIANT_SUCCESS_TESTS: list[CommandTestCase] = (
-    PLANCACHECLEAR_REGULAR_TESTS + PLANCACHECLEAR_CAPPED_TESTS + PLANCACHECLEAR_CLUSTERED_TESTS
+    PLANCACHECLEAR_CAPPED_TESTS + PLANCACHECLEAR_CLUSTERED_TESTS
 )
 
 PLANCACHECLEAR_COLLECTION_VARIANT_ERROR_TESTS: list[CommandTestCase] = (

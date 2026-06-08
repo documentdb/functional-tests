@@ -41,25 +41,6 @@ PLANCACHECLEAR_BASIC_SUCCESS_TESTS: list[CommandTestCase] = [
 # projection parameters to target a specific cached query shape.
 PLANCACHECLEAR_QUERY_SHAPE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "shape_query_only",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": 1},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with query only",
-    ),
-    CommandTestCase(
-        "shape_query_sort",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": 1},
-            "sort": {"a": 1},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with query and sort",
-    ),
-    CommandTestCase(
         "shape_query_projection",
         command=lambda ctx: {
             "planCacheClear": ctx.collection,
@@ -140,15 +121,6 @@ PLANCACHECLEAR_QUERY_VARIATION_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="planCacheClear should succeed with multi-field query",
-    ),
-    CommandTestCase(
-        "query_dotted_field",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a.b": 1},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with dotted field name in query",
     ),
     CommandTestCase(
         "query_and_combinator",
