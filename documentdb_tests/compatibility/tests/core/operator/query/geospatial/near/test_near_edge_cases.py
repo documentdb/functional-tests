@@ -9,9 +9,6 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.usefixtures("geo_2dsphere")
-
-
 COORDINATE_BOUNDARY_SUCCESS_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="longitude_neg180",
@@ -154,6 +151,7 @@ EXTREME_COORDINATE_TESTS: list[QueryTestCase] = [
 )
 def test_near_edge_cases(collection, test):
     """Verifies $near handles boundary and extreme coordinate cases."""
+    collection.create_index([("loc", "2dsphere")])
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, msg=test.msg)

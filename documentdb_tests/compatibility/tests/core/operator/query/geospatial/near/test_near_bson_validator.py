@@ -17,8 +17,6 @@ from documentdb_tests.framework.bson_type_validator import (
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 
-pytestmark = pytest.mark.usefixtures("geo_2dsphere")
-
 GEOJSON_BSON_PARAMS = [
     BsonTypeTestCase(
         id="geometry",
@@ -68,6 +66,7 @@ def _build_geojson_filter(spec, sample_value):
 @pytest.mark.parametrize("bson_type,sample_value,spec", GEOJSON_REJECTION)
 def test_near_bson_type_rejected(collection, bson_type, sample_value, spec):
     """Verifies $near rejects invalid BSON types."""
+    collection.create_index([("loc", "2dsphere")])
     result = execute_command(
         collection,
         {"find": collection.name, "filter": _build_geojson_filter(spec, sample_value)},
@@ -78,6 +77,7 @@ def test_near_bson_type_rejected(collection, bson_type, sample_value, spec):
 @pytest.mark.parametrize("bson_type,sample_value,spec", GEOJSON_ACCEPTANCE)
 def test_near_bson_type_accepted(collection, bson_type, sample_value, spec):
     """Verifies $near accepts valid BSON types."""
+    collection.create_index([("loc", "2dsphere")])
     collection.insert_one({"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}})
     result = execute_command(
         collection,
