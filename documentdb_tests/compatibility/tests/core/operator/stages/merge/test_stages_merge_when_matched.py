@@ -199,16 +199,17 @@ MERGE_WHEN_MATCHED_FAIL_ERROR_TESTS: list[MergeTestCase] = [
     ),
 ]
 
-# Property [whenMatched Fail No Rollback]: documents written before the
-# failure (unmatched inserts) are not rolled back.
-MERGE_WHEN_MATCHED_FAIL_NO_ROLLBACK_TESTS: list[MergeTestCase] = [
+# Property [whenMatched Fail Non-Match Inserted]: when whenMatched is "fail"
+# and a results document matches, the aggregation still inserts every unmatched
+# document, regardless of processing order relative to the matching document.
+MERGE_WHEN_MATCHED_FAIL_NON_MATCH_INSERTED_TESTS: list[MergeTestCase] = [
     MergeTestCase(
-        "when_matched_fail_no_rollback",
-        target_docs=[{"_id": 1, "x": 99}],
-        docs=[{"_id": 1, "a": 10}, {"_id": 2, "a": 20}],
+        "when_matched_fail_non_match_inserted",
+        target_docs=[{"_id": 2, "x": 99}],
+        docs=[{"_id": 1, "a": 10}, {"_id": 2, "a": 20}, {"_id": 3, "a": 30}],
         pipeline=[{"$merge": {"into": TARGET, "whenMatched": "fail"}}],
-        expected=[{"_id": 1, "x": 99}, {"_id": 2, "a": 20}],
-        msg="$merge fail should not roll back unmatched documents inserted before the error",
+        expected=[{"_id": 1, "a": 10}, {"_id": 2, "x": 99}, {"_id": 3, "a": 30}],
+        msg="$merge fail should still insert unmatched documents even when one match fails",
     ),
 ]
 
@@ -218,7 +219,7 @@ MERGE_WHEN_MATCHED_CASES = (
     + MERGE_WHEN_MATCHED_REPLACE_TESTS
     + MERGE_ID_IMMUTABILITY_ERROR_TESTS
     + MERGE_WHEN_MATCHED_FAIL_ERROR_TESTS
-    + MERGE_WHEN_MATCHED_FAIL_NO_ROLLBACK_TESTS
+    + MERGE_WHEN_MATCHED_FAIL_NON_MATCH_INSERTED_TESTS
 )
 
 
