@@ -12,7 +12,6 @@ from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     CONFLICTING_UPDATE_OPERATORS_ERROR,
-    FAILED_TO_PARSE_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -291,27 +290,27 @@ def test_bit_operand_type_errors(collection, test: BitErrorTest):
 
 
 # Property [Operation Key Rejection]: $bit rejects unknown operation keys with
-# FAILED_TO_PARSE_ERROR.
+# BAD_VALUE_ERROR.
 OPERATION_KEY_ERROR_TESTS: list[BitErrorTest] = [
     BitErrorTest(
         "op_invalid_key",
         setup_doc={"_id": 1, "v": 10},
         update={"$bit": {"v": {"invalid": 10}}},
-        error_code=FAILED_TO_PARSE_ERROR,
+        error_code=BAD_VALUE_ERROR,
         msg="$bit should reject unknown operation key.",
     ),
     BitErrorTest(
         "op_not_key",
         setup_doc={"_id": 1, "v": 10},
         update={"$bit": {"v": {"not": 10}}},
-        error_code=FAILED_TO_PARSE_ERROR,
+        error_code=BAD_VALUE_ERROR,
         msg="$bit should reject 'not' as operation key.",
     ),
     BitErrorTest(
         "op_empty_sub_doc",
         setup_doc={"_id": 1, "v": 10},
         update={"$bit": {"v": {}}},
-        error_code=FAILED_TO_PARSE_ERROR,
+        error_code=BAD_VALUE_ERROR,
         msg="$bit should reject empty operations sub-document.",
     ),
 ]
