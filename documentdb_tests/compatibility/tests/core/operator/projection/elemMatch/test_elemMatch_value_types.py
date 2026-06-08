@@ -104,56 +104,9 @@ ELEMMATCH_BSON_TYPE_TESTS: list[ProjectionTestCase] = [
 # Property [String and Unicode]: string elements are matched by exact byte-level
 # comparison without Unicode normalization, so precomposed and decomposed forms
 # remain distinct.
+# Comprehensive byte-level string semantics are foundational and tested with the
+# string BSON type; this is a single representative case.
 ELEMMATCH_STRING_UNICODE_TESTS: list[ProjectionTestCase] = [
-    ProjectionTestCase(
-        "string_empty",
-        doc=[{"_id": 1, "arr": ["x", ""]}],
-        projection={"arr": {"$elemMatch": {"$eq": ""}}},
-        expected=[{"_id": 1, "arr": [""]}],
-        msg="$elemMatch should match an empty string literally",
-    ),
-    ProjectionTestCase(
-        "string_null_byte",
-        doc=[{"_id": 1, "arr": ["x", "a\x00b"]}],
-        projection={"arr": {"$elemMatch": {"$eq": "a\x00b"}}},
-        expected=[{"_id": 1, "arr": ["a\x00b"]}],
-        msg="$elemMatch should match a string containing a null byte literally",
-    ),
-    ProjectionTestCase(
-        "string_dollar_prefix",
-        doc=[{"_id": 1, "arr": ["x", "$field"]}],
-        projection={"arr": {"$elemMatch": {"$eq": "$field"}}},
-        expected=[{"_id": 1, "arr": ["$field"]}],
-        msg="$elemMatch should match a dollar-prefixed string literally",
-    ),
-    ProjectionTestCase(
-        "string_whitespace",
-        doc=[{"_id": 1, "arr": ["x", "  \t\n "]}],
-        projection={"arr": {"$elemMatch": {"$eq": "  \t\n "}}},
-        expected=[{"_id": 1, "arr": ["  \t\n "]}],
-        msg="$elemMatch should match a whitespace-only string literally",
-    ),
-    ProjectionTestCase(
-        "string_bom",
-        doc=[{"_id": 1, "arr": ["x", "\ufeffhi"]}],  # U+FEFF byte order mark.
-        projection={"arr": {"$elemMatch": {"$eq": "\ufeffhi"}}},
-        expected=[{"_id": 1, "arr": ["\ufeffhi"]}],
-        msg="$elemMatch should preserve and match a byte order mark exactly",
-    ),
-    ProjectionTestCase(
-        "string_zwsp",
-        doc=[{"_id": 1, "arr": ["x", "a\u200bb"]}],  # U+200B zero-width space.
-        projection={"arr": {"$elemMatch": {"$eq": "a\u200bb"}}},
-        expected=[{"_id": 1, "arr": ["a\u200bb"]}],
-        msg="$elemMatch should preserve and match a zero-width space exactly",
-    ),
-    ProjectionTestCase(
-        "string_zwj",
-        doc=[{"_id": 1, "arr": ["x", "a\u200db"]}],  # U+200D zero-width joiner.
-        projection={"arr": {"$elemMatch": {"$eq": "a\u200db"}}},
-        expected=[{"_id": 1, "arr": ["a\u200db"]}],
-        msg="$elemMatch should preserve and match a zero-width joiner exactly",
-    ),
     ProjectionTestCase(
         "string_precomposed_does_not_match_decomposed",
         doc=[{"_id": 1, "arr": ["x", "e\u0301"]}],  # Precomposed U+00E9.
@@ -161,38 +114,27 @@ ELEMMATCH_STRING_UNICODE_TESTS: list[ProjectionTestCase] = [
         expected=[{"_id": 1}],
         msg="$elemMatch should not match a precomposed form against a decomposed form",
     ),
+]
+
+# Property [Numeric Cross-Type Matching]: a numeric condition matches array
+# elements of any numeric type by value, regardless of the element's numeric type.
+# Comprehensive cross-type numeric semantics are foundational and tested with the
+# numeric BSON types; this is a single representative case.
+ELEMMATCH_NUMERIC_WIRING_TESTS: list[ProjectionTestCase] = [
     ProjectionTestCase(
-        "string_decomposed_matches_decomposed",
-        doc=[{"_id": 1, "arr": ["x", "e\u0301"]}],  # Decomposed e + U+0301.
-        projection={"arr": {"$elemMatch": {"$eq": "e\u0301"}}},
-        expected=[{"_id": 1, "arr": ["e\u0301"]}],
-        msg="$elemMatch should match identical decomposed forms exactly",
-    ),
-    ProjectionTestCase(
-        "string_cjk",
-        doc=[{"_id": 1, "arr": ["x", "\u4f60\u597d"]}],  # CJK characters.
-        projection={"arr": {"$elemMatch": {"$eq": "\u4f60\u597d"}}},
-        expected=[{"_id": 1, "arr": ["\u4f60\u597d"]}],
-        msg="$elemMatch should match CJK strings exactly",
-    ),
-    ProjectionTestCase(
-        "string_emoji",
-        doc=[{"_id": 1, "arr": ["x", "\U0001f600\U0001f389"]}],  # Emoji.
-        projection={"arr": {"$elemMatch": {"$eq": "\U0001f600\U0001f389"}}},
-        expected=[{"_id": 1, "arr": ["\U0001f600\U0001f389"]}],
-        msg="$elemMatch should match emoji strings exactly",
-    ),
-    ProjectionTestCase(
-        "string_accented",
-        doc=[{"_id": 1, "arr": ["x", "caf\u00e9"]}],  # Precomposed accented.
-        projection={"arr": {"$elemMatch": {"$eq": "caf\u00e9"}}},
-        expected=[{"_id": 1, "arr": ["caf\u00e9"]}],
-        msg="$elemMatch should match accented strings exactly",
+        "numeric_eq_int_matches_double",
+        doc=[{"_id": 1, "arr": [5.0]}],
+        projection={"arr": {"$elemMatch": {"$eq": 5}}},
+        expected=[{"_id": 1, "arr": [5.0]}],
+        msg="$elemMatch int condition should match a double element by value",
     ),
 ]
 
 VALUE_TYPES_TESTS = (
-    ELEMMATCH_NULL_MATCHING_TESTS + ELEMMATCH_BSON_TYPE_TESTS + ELEMMATCH_STRING_UNICODE_TESTS
+    ELEMMATCH_NULL_MATCHING_TESTS
+    + ELEMMATCH_BSON_TYPE_TESTS
+    + ELEMMATCH_STRING_UNICODE_TESTS
+    + ELEMMATCH_NUMERIC_WIRING_TESTS
 )
 
 
