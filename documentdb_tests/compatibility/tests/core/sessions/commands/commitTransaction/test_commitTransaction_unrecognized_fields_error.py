@@ -100,7 +100,7 @@ UNRECOGNIZED_TESTS: list[CommandTestCase] = (
 
 
 @pytest.mark.parametrize("test", pytest_params(UNRECOGNIZED_TESTS))
-def test_commitTransaction_unrecognized_fields(collection, test):
+def test_commitTransaction_unrecognized_fields_error(collection, test):
     """Test commitTransaction unrecognized field handling."""
     result = execute_admin_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)

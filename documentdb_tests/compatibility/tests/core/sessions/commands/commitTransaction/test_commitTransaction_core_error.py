@@ -97,7 +97,7 @@ CORE_TESTS: list[CommandTestCase] = (
 
 
 @pytest.mark.parametrize("test", pytest_params(CORE_TESTS))
-def test_commitTransaction_core(collection, test):
+def test_commitTransaction_core_error(collection, test):
     """Test commitTransaction core behavior."""
     result = execute_admin_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)
@@ -115,7 +115,7 @@ ADMIN_DB_TESTS: list[CommandTestCase] = [
 
 
 @pytest.mark.parametrize("test", pytest_params(ADMIN_DB_TESTS))
-def test_commitTransaction_admin_db_required(collection, test):
+def test_commitTransaction_admin_db_required_error(collection, test):
     """Test commitTransaction requires admin database."""
     result = execute_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)

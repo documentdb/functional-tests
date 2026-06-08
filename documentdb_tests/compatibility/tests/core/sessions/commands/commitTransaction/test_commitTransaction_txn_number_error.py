@@ -123,7 +123,7 @@ TXN_NUMBER_TESTS: list[CommandTestCase] = (
 
 
 @pytest.mark.parametrize("test", pytest_params(TXN_NUMBER_TESTS))
-def test_commitTransaction_txn_number(collection, test):
+def test_commitTransaction_txn_number_error(collection, test):
     """Test commitTransaction txnNumber parameter validation."""
     result = execute_admin_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)

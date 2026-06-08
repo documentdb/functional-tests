@@ -420,7 +420,7 @@ WRITECONCERN_TESTS: list[CommandTestCase] = (
 
 
 @pytest.mark.parametrize("test", pytest_params(WRITECONCERN_TESTS))
-def test_commitTransaction_writeconcern(collection, test):
+def test_commitTransaction_writeconcern_error(collection, test):
     """Test commitTransaction writeConcern parameter validation."""
     result = execute_admin_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)
