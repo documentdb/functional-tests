@@ -1,4 +1,4 @@
-"""Tests for planCacheClear command on different collection types."""
+"""Tests for planCacheClear command collation and collection type support."""
 
 from __future__ import annotations
 
@@ -17,6 +17,108 @@ from documentdb_tests.framework.target_collection import (
     ClusteredCollection,
     TimeseriesCollection,
     ViewCollection,
+)
+
+# Property [Collation Valid]: planCacheClear accepts valid collation with query.
+PLANCACHECLEAR_COLLATION_VALID_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "collation_valid_en",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "query": {"a": 1},
+            "collation": {"locale": "en"},
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should accept collation with locale 'en'",
+    ),
+    CommandTestCase(
+        "collation_valid_fr_strength",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "query": {"a": 1},
+            "collation": {"locale": "fr", "strength": 2},
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should accept collation with locale 'fr' and strength 2",
+    ),
+]
+
+# Property [Collation Permissiveness]: collation accepts values that would
+# normally be invalid because MongoDB silently accepts them.
+PLANCACHECLEAR_COLLATION_PERMISSIVE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "collation_without_query",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "collation": {"locale": "en"},
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should accept collation without query",
+    ),
+    CommandTestCase(
+        "collation_empty",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "query": {"a": 1},
+            "collation": {},
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should accept empty collation document",
+    ),
+    CommandTestCase(
+        "collation_type_string",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "query": {"a": 1},
+            "collation": "en",
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should accept string as collation field",
+    ),
+    CommandTestCase(
+        "collation_type_int",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "query": {"a": 1},
+            "collation": 123,
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should accept int as collation field",
+    ),
+    CommandTestCase(
+        "collation_type_bool",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "query": {"a": 1},
+            "collation": True,
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should accept bool as collation field",
+    ),
+    CommandTestCase(
+        "collation_type_array",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "query": {"a": 1},
+            "collation": [1],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should accept array as collation field",
+    ),
+    CommandTestCase(
+        "collation_type_null",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "query": {"a": 1},
+            "collation": None,
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should treat null collation as omitted",
+    ),
+]
+
+PLANCACHECLEAR_COLLATION_TESTS: list[CommandTestCase] = (
+    PLANCACHECLEAR_COLLATION_VALID_TESTS + PLANCACHECLEAR_COLLATION_PERMISSIVE_TESTS
 )
 
 # Property [Regular Collection]: planCacheClear succeeds on a regular collection.
@@ -91,10 +193,14 @@ PLANCACHECLEAR_COLLECTION_VARIANT_TESTS: list[CommandTestCase] = (
     PLANCACHECLEAR_COLLECTION_VARIANT_SUCCESS_TESTS + PLANCACHECLEAR_COLLECTION_VARIANT_ERROR_TESTS
 )
 
+PLANCACHECLEAR_COLLATION_COLLECTION_TESTS: list[CommandTestCase] = (
+    PLANCACHECLEAR_COLLATION_TESTS + PLANCACHECLEAR_COLLECTION_VARIANT_TESTS
+)
 
-@pytest.mark.parametrize("test", pytest_params(PLANCACHECLEAR_COLLECTION_VARIANT_TESTS))
-def test_planCacheClear_collection_variants(database_client, collection, test):
-    """Test planCacheClear command on different collection types."""
+
+@pytest.mark.parametrize("test", pytest_params(PLANCACHECLEAR_COLLATION_COLLECTION_TESTS))
+def test_planCacheClear_collation_collection(database_client, collection, test):
+    """Test planCacheClear collation and collection type support."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))

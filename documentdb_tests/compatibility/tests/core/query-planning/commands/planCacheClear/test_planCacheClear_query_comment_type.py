@@ -1,4 +1,4 @@
-"""Tests for planCacheClear command query field type acceptance."""
+"""Tests for planCacheClear command query and comment field type acceptance."""
 
 from __future__ import annotations
 
@@ -72,14 +72,46 @@ PLANCACHECLEAR_QUERY_FIELD_NAME_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-PLANCACHECLEAR_QUERY_ALL_TESTS: list[CommandTestCase] = (
-    PLANCACHECLEAR_QUERY_TYPE_TESTS + PLANCACHECLEAR_QUERY_FIELD_NAME_TESTS
+# Property [Comment Type Acceptance]: comment field accepts any valid BSON type.
+PLANCACHECLEAR_COMMENT_TYPE_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        f"comment_type_{tid}",
+        command=lambda ctx, v=val: {"planCacheClear": ctx.collection, "comment": v},
+        expected={"ok": 1.0},
+        msg=f"planCacheClear should accept {tid} as comment field",
+    )
+    for tid, val in [
+        ("string", "test"),
+        ("int", 42),
+        ("int64", Int64(1)),
+        ("double", 1.5),
+        ("decimal128", Decimal128("1")),
+        ("bool_true", True),
+        ("bool_false", False),
+        ("null", None),
+        ("array", [1, 2, 3]),
+        ("object", {"key": "value"}),
+        ("binary", Binary(b"\x00")),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("regex", Regex(".*")),
+        ("timestamp", Timestamp(0, 0)),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
+]
+
+PLANCACHECLEAR_QUERY_COMMENT_TYPE_TESTS: list[CommandTestCase] = (
+    PLANCACHECLEAR_QUERY_TYPE_TESTS
+    + PLANCACHECLEAR_QUERY_FIELD_NAME_TESTS
+    + PLANCACHECLEAR_COMMENT_TYPE_ACCEPTANCE_TESTS
 )
 
 
-@pytest.mark.parametrize("test", pytest_params(PLANCACHECLEAR_QUERY_ALL_TESTS))
-def test_planCacheClear_query_type(database_client, collection, test):
-    """Test planCacheClear command query field type acceptance."""
+@pytest.mark.parametrize("test", pytest_params(PLANCACHECLEAR_QUERY_COMMENT_TYPE_TESTS))
+def test_planCacheClear_query_comment_type(database_client, collection, test):
+    """Test planCacheClear command query and comment field type acceptance."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
