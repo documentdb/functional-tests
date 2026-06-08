@@ -12,6 +12,7 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
@@ -470,7 +471,7 @@ CREATE_CLUSTERED_COMPATIBILITY_TESTS: list[CommandTestCase] = [
                 "fields": [{"path": "ssn", "bsonType": "string", "keyId": Binary(uuid4().bytes, 4)}]
             },
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="Clustered with encryptedFields should succeed",
         marks=(pytest.mark.replica_set,),
     ),
