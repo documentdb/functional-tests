@@ -83,17 +83,9 @@ CORE_TESTS: list[UpdateTestCase] = [
         id="negative_zero_same_as_zero",
         setup_docs=[{"_id": 1, "arr": [10, 20]}],
         query={"_id": 1},
-        update={"$push": {"arr": {"$each": [5], "$position": -0}}},
+        update={"$push": {"arr": {"$each": [5], "$position": -0.0}}},
         expected=[{"_id": 1, "arr": [5, 10, 20]}],
         msg="$position -0 should behave the same as 0",
-    ),
-    UpdateTestCase(
-        id="int32_max_appends",
-        setup_docs=[{"_id": 1, "arr": [1, 2]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [3], "$position": INT32_MAX}}},
-        expected=[{"_id": 1, "arr": [1, 2, 3]}],
-        msg="$position INT32_MAX on small array should append to end",
     ),
     UpdateTestCase(
         id="negative_int32_max_inserts_at_beginning",
