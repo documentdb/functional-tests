@@ -1,4 +1,4 @@
-"""Tests for planCacheClear command collation and collection type support."""
+"""Tests for planCacheClear command collation and collection type success cases."""
 
 from __future__ import annotations
 
@@ -9,14 +9,11 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.target_collection import (
     CappedCollection,
     ClusteredCollection,
-    TimeseriesCollection,
-    ViewCollection,
 )
 
 # Property [Collation Valid]: planCacheClear accepts valid collation with query.
@@ -108,23 +105,6 @@ PLANCACHECLEAR_COLLATION_PERMISSIVE_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-PLANCACHECLEAR_COLLATION_TESTS: list[CommandTestCase] = (
-    PLANCACHECLEAR_COLLATION_VALID_TESTS + PLANCACHECLEAR_COLLATION_PERMISSIVE_TESTS
-)
-
-# Property [View Rejection]: planCacheClear is not supported on views and
-# returns COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR.
-PLANCACHECLEAR_VIEW_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "view_rejected",
-        target_collection=ViewCollection(),
-        docs=[{"_id": 1, "a": 1}],
-        command=lambda ctx: {"planCacheClear": ctx.collection},
-        error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
-        msg="planCacheClear should reject views with CommandNotSupportedOnView error",
-    ),
-]
-
 # Property [Capped Collection]: planCacheClear succeeds on capped collections.
 PLANCACHECLEAR_CAPPED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -149,38 +129,17 @@ PLANCACHECLEAR_CLUSTERED_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Timeseries Collection]: planCacheClear is not supported on
-# timeseries collections and returns COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR.
-PLANCACHECLEAR_TIMESERIES_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "timeseries_rejected",
-        target_collection=TimeseriesCollection(),
-        command=lambda ctx: {"planCacheClear": ctx.collection},
-        error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
-        msg="planCacheClear should reject timeseries collection (backed by view)",
-    ),
-]
-
-PLANCACHECLEAR_COLLECTION_VARIANT_SUCCESS_TESTS: list[CommandTestCase] = (
-    PLANCACHECLEAR_CAPPED_TESTS + PLANCACHECLEAR_CLUSTERED_TESTS
-)
-
-PLANCACHECLEAR_COLLECTION_VARIANT_ERROR_TESTS: list[CommandTestCase] = (
-    PLANCACHECLEAR_VIEW_TESTS + PLANCACHECLEAR_TIMESERIES_TESTS
-)
-
-PLANCACHECLEAR_COLLECTION_VARIANT_TESTS: list[CommandTestCase] = (
-    PLANCACHECLEAR_COLLECTION_VARIANT_SUCCESS_TESTS + PLANCACHECLEAR_COLLECTION_VARIANT_ERROR_TESTS
-)
-
 PLANCACHECLEAR_COLLATION_COLLECTION_TESTS: list[CommandTestCase] = (
-    PLANCACHECLEAR_COLLATION_TESTS + PLANCACHECLEAR_COLLECTION_VARIANT_TESTS
+    PLANCACHECLEAR_COLLATION_VALID_TESTS
+    + PLANCACHECLEAR_COLLATION_PERMISSIVE_TESTS
+    + PLANCACHECLEAR_CAPPED_TESTS
+    + PLANCACHECLEAR_CLUSTERED_TESTS
 )
 
 
 @pytest.mark.parametrize("test", pytest_params(PLANCACHECLEAR_COLLATION_COLLECTION_TESTS))
 def test_planCacheClear_collation_collection(database_client, collection, test):
-    """Test planCacheClear collation and collection type support."""
+    """Test planCacheClear collation and collection type success cases."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
