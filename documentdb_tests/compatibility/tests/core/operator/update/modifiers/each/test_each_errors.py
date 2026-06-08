@@ -1,0 +1,112 @@
+"""Tests for $each modifier error cases.
+
+Covers: non-array target fields, unsupported array operators, and invalid
+modifier values.
+"""
+
+import pytest
+
+from documentdb_tests.compatibility.tests.core.operator.update.utils.update_test_case import (
+    UpdateTestCase,
+)
+from documentdb_tests.framework.assertions import assertFailureCode, assertResult
+from documentdb_tests.framework.bson_type_validator import (
+    BsonType,
+    BsonTypeTestCase,
+    generate_bson_rejection_test_cases,
+)
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, FAILED_TO_PARSE_ERROR
+from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+
+TARGET_TYPE_PARAMS = [
+    BsonTypeTestCase(
+        id="addtoset_each_target",
+        msg="$addToSet $each target field type",
+        keyword="$each",
+        valid_types=[BsonType.ARRAY],
+        default_error_code=BAD_VALUE_ERROR,
+    ),
+    BsonTypeTestCase(
+        id="push_each_target",
+        msg="$push $each target field type",
+        keyword="$each",
+        valid_types=[BsonType.ARRAY],
+        default_error_code=BAD_VALUE_ERROR,
+    ),
+]
+
+TARGET_REJECTION_CASES = generate_bson_rejection_test_cases(TARGET_TYPE_PARAMS)
+
+
+@pytest.mark.parametrize("bson_type,sample_value,spec", TARGET_REJECTION_CASES)
+def test_each_target_type_rejected(collection, bson_type, sample_value, spec):
+    """Test $each rejects non-array target fields."""
+    collection.insert_one({"_id": 1, "arr": sample_value})
+    if spec.id == "addtoset_each_target":
+        update = {"$addToSet": {"arr": {"$each": [1]}}}
+    else:
+        update = {"$push": {"arr": {"$each": [1]}}}
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": update}],
+        },
+    )
+    assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
+
+
+UNSUPPORTED_OPERATOR_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        id="pop_with_each",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$pop": {"arr": {"$each": [1]}}},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$pop should not accept $each",
+    ),
+    UpdateTestCase(
+        id="pull_with_each",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$pull": {"arr": {"$each": [1]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$pull should not accept $each",
+    ),
+    UpdateTestCase(
+        id="pullAll_with_each",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$pullAll": {"arr": {"$each": [1]}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$pullAll should not accept $each",
+    ),
+]
+
+MODIFIER_ERROR_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        id="unrecognized_modifier",
+        setup_docs=[{"_id": 1, "arr": [1]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [2], "$xxx": 1}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$push $each with unrecognized modifier should fail",
+    ),
+]
+
+ALL_ERROR_TESTS = UNSUPPORTED_OPERATOR_TESTS + MODIFIER_ERROR_TESTS
+
+
+@pytest.mark.parametrize("test_case", pytest_params(ALL_ERROR_TESTS))
+def test_each_errors(collection, test_case):
+    """Test $each modifier error cases."""
+    collection.insert_many(test_case.setup_docs)
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": test_case.query, "u": test_case.update}],
+        },
+    )
+    assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
