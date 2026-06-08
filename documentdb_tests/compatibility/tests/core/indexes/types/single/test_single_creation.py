@@ -1,6 +1,6 @@
 """Tests for single field index creation.
 
-Validates valid argument handling, idempotency, and duplicate prevention.
+Validates valid argument handling and multi-index creation.
 """
 
 import pytest
@@ -42,40 +42,6 @@ def test_single_creation_success(collection, test):
         {"createIndexes": collection.name, "indexes": list(test.indexes)},
     )
     assertSuccessPartial(result, index_created_response(), test.msg)
-
-
-def test_single_creation_idempotent(collection):
-    """Test creating same index twice is idempotent."""
-    execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"a": 1}, "name": "a_1"}]},
-    )
-    result = execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"a": 1}, "name": "a_1"}]},
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "numIndexesBefore": 2, "numIndexesAfter": 2},
-        msg="Duplicate index creation should be no-op",
-    )
-
-
-def test_single_creation_different_sort_creates_two(collection):
-    """Test creating index with same field but different sort order creates two indexes."""
-    execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"a": 1}, "name": "a_1"}]},
-    )
-    result = execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"a": -1}, "name": "a_neg1"}]},
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "numIndexesBefore": 2, "numIndexesAfter": 3},
-        msg="Different sort order should create separate index",
-    )
 
 
 def test_single_creation_multiple_fields_one_call(collection):

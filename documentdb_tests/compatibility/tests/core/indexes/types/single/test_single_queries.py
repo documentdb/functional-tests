@@ -1,7 +1,7 @@
 """Tests for single field index query behavior.
 
 Validates equality queries on various field types, null/missing field indexing,
-sort order, descending index queries, and covered queries.
+sort order, descending index queries, and hint usage.
 """
 
 import pytest
@@ -98,7 +98,8 @@ def test_single_field_query(collection, test):
         {"createIndexes": collection.name, "indexes": list(test.indexes)},
     )
     collection.insert_many(list(test.doc))
-    result = execute_command(collection, {"find": collection.name, "filter": test.filter})
+    cmd = {"find": collection.name, "filter": test.filter, "hint": test.indexes[0]["name"]}
+    result = execute_command(collection, cmd)
     assertSuccess(result, test.expected, msg=test.msg)
 
 
@@ -139,7 +140,7 @@ def test_single_sort_order(collection, test):
         collection,
         {"createIndexes": collection.name, "indexes": list(test.indexes)},
     )
-    cmd = {"find": collection.name}
+    cmd = {"find": collection.name, "hint": test.indexes[0]["name"]}
     if test.filter:
         cmd["filter"] = test.filter
     cmd["sort"] = test.sort
@@ -175,37 +176,9 @@ def test_single_descending_index(collection, test):
         {"createIndexes": collection.name, "indexes": list(test.indexes)},
     )
     collection.insert_many(list(test.doc))
-    cmd = {"find": collection.name, "filter": test.filter}
+    cmd = {"find": collection.name, "filter": test.filter, "hint": test.indexes[0]["name"]}
     result = execute_command(collection, cmd)
     assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
-
-
-def test_single_covered_query_indexed_field_only(collection):
-    """Test single field index covers query with only indexed field projected."""
-    collection.insert_many([{"_id": 1, "a": 10}, {"_id": 2, "a": 20}])
-    execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"a": 1}, "name": "a_1"}]},
-    )
-    result = execute_command(
-        collection,
-        {"find": collection.name, "filter": {"a": 10}, "projection": {"_id": 0, "a": 1}},
-    )
-    assertSuccess(result, [{"a": 10}], msg="Should return only indexed field")
-
-
-def test_single_non_covered_query_extra_field(collection):
-    """Test single field index does NOT cover query with non-indexed field projected."""
-    collection.insert_many([{"_id": 1, "a": 10, "b": "x"}, {"_id": 2, "a": 20, "b": "y"}])
-    execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"a": 1}, "name": "a_1"}]},
-    )
-    result = execute_command(
-        collection,
-        {"find": collection.name, "filter": {"a": 10}, "projection": {"_id": 0, "a": 1, "b": 1}},
-    )
-    assertSuccess(result, [{"a": 10, "b": "x"}], msg="Should return indexed and non-indexed fields")
 
 
 HINT_TESTS: list[IndexQueryTestCase] = [

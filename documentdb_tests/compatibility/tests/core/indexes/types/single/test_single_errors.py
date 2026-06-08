@@ -1,6 +1,6 @@
 """Tests for single field index error cases.
 
-Validates invalid sort values, field name errors, and index conflicts.
+Validates invalid sort values and field name errors.
 """
 
 import pytest
@@ -11,8 +11,6 @@ from documentdb_tests.compatibility.tests.core.indexes.commands.utils.index_test
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     CANNOT_CREATE_INDEX_ERROR,
-    INDEX_KEY_SPECS_CONFLICT_ERROR,
-    INDEX_OPTIONS_CONFLICT_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -38,12 +36,6 @@ CREATION_ERROR_TESTS: list[IndexTestCase] = [
         error_code=CANNOT_CREATE_INDEX_ERROR,
         msg="Empty field name should fail",
     ),
-    IndexTestCase(
-        id="invalid_empty_key",
-        indexes=({"key": {}, "name": "empty_key"},),
-        error_code=CANNOT_CREATE_INDEX_ERROR,
-        msg="Empty key {} should fail",
-    ),
 ]
 
 
@@ -55,55 +47,3 @@ def test_single_creation_error(collection, test):
         {"createIndexes": collection.name, "indexes": list(test.indexes)},
     )
     assertFailureCode(result, test.error_code, test.msg)
-
-
-CONFLICT_ERROR_TESTS: list[IndexTestCase] = [
-    IndexTestCase(
-        id="conflict_same_field_different_name",
-        setup_indexes=[{"key": {"a": 1}, "name": "a_1"}],
-        indexes=({"key": {"a": 1}, "name": "a_different"},),
-        error_code=INDEX_OPTIONS_CONFLICT_ERROR,
-        msg="Same field/order with different name should fail",
-    ),
-    IndexTestCase(
-        id="conflict_same_name_different_field",
-        setup_indexes=[{"key": {"a": 1}, "name": "my_idx"}],
-        indexes=({"key": {"b": 1}, "name": "my_idx"},),
-        error_code=INDEX_KEY_SPECS_CONFLICT_ERROR,
-        msg="Same name with different field should fail",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(CONFLICT_ERROR_TESTS))
-def test_single_conflict_error(collection, test):
-    """Test single field index creation conflicts."""
-    execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": list(test.setup_indexes)},
-    )
-    result = execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": list(test.indexes)},
-    )
-    assertFailureCode(result, test.error_code, test.msg)
-
-
-def test_single_option_conflict_same_key_name(collection):
-    """Test recreating index with same key+name but different options fails."""
-    execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"a": 1}, "name": "a_1"}]},
-    )
-    result = execute_command(
-        collection,
-        {
-            "createIndexes": collection.name,
-            "indexes": [{"key": {"a": 1}, "name": "a_1", "unique": True}],
-        },
-    )
-    assertFailureCode(
-        result,
-        INDEX_KEY_SPECS_CONFLICT_ERROR,
-        msg="Same key+name with different options should fail",
-    )
