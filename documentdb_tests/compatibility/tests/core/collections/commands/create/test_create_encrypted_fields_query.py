@@ -24,6 +24,7 @@ from documentdb_tests.framework.error_codes import (
     ENCRYPTED_FIELD_RANGE_TYPE_ERROR,
     ENCRYPTED_FIELD_STR_LENGTH_ERROR,
     ENCRYPTED_FIELD_TEXT_SEARCH_TYPE_ERROR,
+    ENCRYPTED_FIELD_TRIM_FACTOR_OUT_OF_RANGE_ERROR,
     FAILED_TO_PARSE_ERROR,
     TYPE_MISMATCH_ERROR,
 )
@@ -460,7 +461,7 @@ CREATE_ENCRYPTED_FIELDS_QUERY_ERROR_TESTS: list[CommandTestCase] = [
         msg="sparsity must be integer, not fractional",
     ),
     CommandTestCase(
-        id="ef_err_trim_factor_fractional",
+        id="ef_err_trim_factor_too_large",
         command=lambda ctx: {
             "create": f"{ctx.collection}_custom",
             "encryptedFields": {
@@ -469,13 +470,13 @@ CREATE_ENCRYPTED_FIELDS_QUERY_ERROR_TESTS: list[CommandTestCase] = [
                         "path": "num",
                         "keyId": Binary(uuid4().bytes, 4),
                         "bsonType": "int",
-                        "queries": {"queryType": "range", "trimFactor": 0.5},
+                        "queries": {"queryType": "range", "trimFactor": 1000000},
                     }
                 ]
             },
         },
-        error_code=FAILED_TO_PARSE_ERROR,
-        msg="trimFactor must be integer, not fractional",
+        error_code=ENCRYPTED_FIELD_TRIM_FACTOR_OUT_OF_RANGE_ERROR,
+        msg="trimFactor must be less than the bit width of the field type",
         marks=(pytest.mark.replica_set,),
     ),
     CommandTestCase(
