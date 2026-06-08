@@ -93,6 +93,13 @@ REPLACEROOT_ID_HANDLING_TESTS: list[StageTestCase] = [
         msg="$replaceRoot should pass through an array _id with no type enforcement",
     ),
     StageTestCase(
+        "idhandling_null_id_no_type_enforcement",
+        docs=[{"_id": 1, "data": {"_id": None, "name": "x"}}],
+        pipeline=[{"$replaceRoot": {"newRoot": "$data"}}],
+        expected=[{"_id": None, "name": "x"}],
+        msg="$replaceRoot should pass through a null _id with no type enforcement",
+    ),
+    StageTestCase(
         "idhandling_regex_id_no_type_enforcement",
         docs=[{"_id": 1, "data": {"_id": Regex("abc", "i"), "name": "x"}}],
         pipeline=[{"$replaceRoot": {"newRoot": "$data"}}],
@@ -114,7 +121,9 @@ REPLACEROOT_ID_HANDLING_TESTS: list[StageTestCase] = [
 
 # Property [Object-Literal Field-Value Semantics]: a field whose value in the
 # constructed newRoot literal is $$REMOVE or a missing reference is omitted from
-# the result, and a literal whose every field is omitted yields the empty document.
+# the result; a literal whose every field is omitted yields the empty document;
+# and within a nested sub-object the (now empty) sub-object is kept rather than
+# dropping its parent.
 REPLACEROOT_OBJECT_LITERAL_FIELD_VALUE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "objlit_remove_value_omits_field",
@@ -150,6 +159,20 @@ REPLACEROOT_OBJECT_LITERAL_FIELD_VALUE_TESTS: list[StageTestCase] = [
         pipeline=[{"$replaceRoot": {"newRoot": {"a": "$a", "b": "$$REMOVE"}}}],
         expected=[{"a": 1}],
         msg="$replaceRoot should omit a field set to $$REMOVE that exists in the input",
+    ),
+    StageTestCase(
+        "objlit_nested_sole_remove_keeps_subobject",
+        docs=[{"_id": 1, "a": 1}],
+        pipeline=[{"$replaceRoot": {"newRoot": {"a": {"b": "$$REMOVE"}}}}],
+        expected=[{"a": {}}],
+        msg="$replaceRoot should keep an emptied sub-object rather than dropping its parent field",
+    ),
+    StageTestCase(
+        "objlit_nested_partial_remove_keeps_siblings",
+        docs=[{"_id": 1, "a": 1}],
+        pipeline=[{"$replaceRoot": {"newRoot": {"a": {"x": "$a", "y": "$$REMOVE"}}}}],
+        expected=[{"a": {"x": 1}}],
+        msg="$replaceRoot should keep surviving siblings when one sub-object field is omitted",
     ),
 ]
 
