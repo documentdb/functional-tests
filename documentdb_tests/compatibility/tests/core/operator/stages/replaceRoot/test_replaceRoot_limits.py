@@ -6,6 +6,13 @@ from typing import Any
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.stages.replaceRoot.utils import (
+    BIG_STORED_STRING_BYTES,
+    BOUNDARY_PAD_BYTES,
+    MAX_OUTPUT_DOC_SIZE,
+    MAX_STORED_NESTING_DEPTH,
+    OVER_LIMIT_PAD_BYTES,
+)
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
     populate_collection,
@@ -27,29 +34,8 @@ def _nest(depth: int, leaf: Any) -> Any:
     return value
 
 
-# The maximum sub-object nesting depth below a document root that insertion
-# accepts; one level deeper overflows.
-_MAX_STORED_NESTING_DEPTH = 179
-
 # The maximum object nesting depth accepted in a constructed newRoot literal.
 _MAX_NESTING_DEPTH = 197
-
-# The maximum output document size, in bytes, the stage accepts.
-_MAX_OUTPUT_BYTES = 16_793_600
-
-# Size in bytes of a stored string within the input-document limit that supplies
-# the bulk of the size boundary output.
-_BIG_STORED_STRING_BYTES = 16_000_000
-
-# Bytes the output document {"s": <big>, "pad": <pad>} adds on top of its two
-# string payloads, used to solve for the pad length at a target size.
-_OUTPUT_FRAMING_BYTES = 23
-
-# Pad payload sizes in bytes that bring the constructed output document
-# {"s": <big>, "pad": <pad>} exactly to the maximum accepted size and one byte over
-# it.
-_BOUNDARY_PAD_BYTES = _MAX_OUTPUT_BYTES - _OUTPUT_FRAMING_BYTES - _BIG_STORED_STRING_BYTES
-_OVER_LIMIT_PAD_BYTES = _MAX_OUTPUT_BYTES + 1 - _OUTPUT_FRAMING_BYTES - _BIG_STORED_STRING_BYTES
 
 
 # Property [Deeply Nested Promotion Accepted]: a sub-document stored at the
@@ -57,9 +43,9 @@ _OVER_LIMIT_PAD_BYTES = _MAX_OUTPUT_BYTES + 1 - _OUTPUT_FRAMING_BYTES - _BIG_STO
 REPLACEROOT_DEEP_PROMOTION_TESTS: list[StageTestCase] = [
     StageTestCase(
         "deep_promotion_max_stored_depth",
-        docs=[{"_id": 1, "data": _nest(depth=_MAX_STORED_NESTING_DEPTH, leaf=1)}],
+        docs=[{"_id": 1, "data": _nest(depth=MAX_STORED_NESTING_DEPTH, leaf=1)}],
         pipeline=[{"$replaceRoot": {"newRoot": "$data"}}],
-        expected=[_nest(depth=_MAX_STORED_NESTING_DEPTH, leaf=1)],
+        expected=[_nest(depth=MAX_STORED_NESTING_DEPTH, leaf=1)],
         msg="$replaceRoot should accept promoting a sub-document stored at the maximum depth",
     ),
 ]
@@ -70,16 +56,16 @@ REPLACEROOT_DEEP_PROMOTION_TESTS: list[StageTestCase] = [
 REPLACEROOT_SIZE_BOUNDARY_TESTS: list[StageTestCase] = [
     StageTestCase(
         "size_boundary_max_output_accepted",
-        docs=[{"_id": 1, "data": {"s": "x" * _BIG_STORED_STRING_BYTES}}],
+        docs=[{"_id": 1, "data": {"s": "x" * BIG_STORED_STRING_BYTES}}],
         pipeline=[
             {
                 "$replaceRoot": {
-                    "newRoot": {"$mergeObjects": ["$data", {"pad": "y" * _BOUNDARY_PAD_BYTES}]}
+                    "newRoot": {"$mergeObjects": ["$data", {"pad": "y" * BOUNDARY_PAD_BYTES}]}
                 }
             },
             {"$project": {"_id": 0, "size": {"$bsonSize": "$$ROOT"}}},
         ],
-        expected=[{"size": _MAX_OUTPUT_BYTES}],
+        expected=[{"size": MAX_OUTPUT_DOC_SIZE}],
         msg="$replaceRoot should accept a constructed output document at the maximum size",
     ),
 ]
@@ -102,11 +88,11 @@ REPLACEROOT_NESTING_BOUNDARY_TESTS: list[StageTestCase] = [
 REPLACEROOT_SIZE_LIMIT_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "size_limit_one_over_rejected",
-        docs=[{"_id": 1, "data": {"s": "x" * _BIG_STORED_STRING_BYTES}}],
+        docs=[{"_id": 1, "data": {"s": "x" * BIG_STORED_STRING_BYTES}}],
         pipeline=[
             {
                 "$replaceRoot": {
-                    "newRoot": {"$mergeObjects": ["$data", {"pad": "y" * _OVER_LIMIT_PAD_BYTES}]}
+                    "newRoot": {"$mergeObjects": ["$data", {"pad": "y" * OVER_LIMIT_PAD_BYTES}]}
                 }
             }
         ],
@@ -127,7 +113,7 @@ REPLACEROOT_NESTING_LIMIT_ERROR_TESTS: list[StageTestCase] = [
     ),
 ]
 
-REPLACEROOT_LIMITS_TESTS = (
+REPLACEROOT_LIMITS_TESTS: list[StageTestCase] = (
     REPLACEROOT_DEEP_PROMOTION_TESTS
     + REPLACEROOT_SIZE_BOUNDARY_TESTS
     + REPLACEROOT_NESTING_BOUNDARY_TESTS
