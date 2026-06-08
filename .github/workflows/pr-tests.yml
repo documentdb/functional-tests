@@ -96,7 +96,7 @@ jobs:
 
       - name: Run replica set tests against MongoDB
         run: |
-          pytest documentdb_tests/compatibility/tests/core/sessions/ \
+          pytest documentdb_tests/compatibility/tests/ \
             -m replica_set \
             --connection-string "mongodb://localhost:27017/?directConnection=true" \
             --engine-name mongodb \
