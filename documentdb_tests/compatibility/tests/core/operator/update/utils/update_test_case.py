@@ -14,3 +14,4 @@ class UpdateTestCase(BaseTestCase):
     query: Any = None
     update: Any = None
     upsert: bool = False
+    multi: bool = False
