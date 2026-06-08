@@ -46,14 +46,20 @@ PLANCACHECLEAR_FIELD_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [Namespace Edge Cases]: empty string collection name produces
-# INVALID_NAMESPACE_ERROR.
+# Property [Namespace Edge Cases]: empty string and null byte collection
+# names produce INVALID_NAMESPACE_ERROR.
 PLANCACHECLEAR_NAMESPACE_EDGE_CASE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "namespace_empty_string",
         command=lambda ctx: {"planCacheClear": ""},
         error_code=INVALID_NAMESPACE_ERROR,
         msg="planCacheClear should reject empty string as collection name",
+    ),
+    CommandTestCase(
+        "namespace_null_byte",
+        command=lambda ctx: {"planCacheClear": "test\x00coll"},
+        error_code=INVALID_NAMESPACE_ERROR,
+        msg="planCacheClear should reject collection name containing null byte",
     ),
 ]
 
