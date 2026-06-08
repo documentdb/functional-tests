@@ -13,7 +13,7 @@ from documentdb_tests.framework.executor import execute_admin_command, execute_c
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 
-# Property [Database Agnostic]: startSession works on any database.
+# Property [Test Database]: startSession succeeds on the test database.
 STARTSESSION_TEST_DB_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "test_db",
@@ -23,6 +23,7 @@ STARTSESSION_TEST_DB_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [Admin Database]: startSession succeeds on the admin database.
 STARTSESSION_ADMIN_DB_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "admin_db",
