@@ -32,7 +32,6 @@ ERROR_TESTS: list[UpdateTestCase] = [
         error_code=BAD_VALUE_ERROR,
         msg="$slice with $addToSet should fail",
     ),
-    # --- Non-push operators with $slice doc ---
     UpdateTestCase(
         id="slice_with_pop",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
@@ -81,8 +80,6 @@ def test_update_slice_errors(collection, test_case):
     )
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
 
-
-# --- Non-array target field type rejection via BsonTypeValidator ---
 
 TARGET_TYPE_PARAMS = [
     BsonTypeTestCase(

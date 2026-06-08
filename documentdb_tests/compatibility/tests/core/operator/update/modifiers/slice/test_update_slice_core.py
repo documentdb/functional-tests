@@ -15,7 +15,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 CORE_TESTS: list[UpdateTestCase] = [
-    # --- Positive slice (keep first N) ---
     UpdateTestCase(
         id="positive_slice_1_keeps_first",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
@@ -32,7 +31,6 @@ CORE_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": [1, 2, 3, 4]}],
         msg="$slice larger than combined array should keep all",
     ),
-    # --- Negative slice (keep last N) ---
     UpdateTestCase(
         id="negative_slice_1_keeps_last",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
@@ -49,7 +47,6 @@ CORE_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": [1, 2, 3, 4]}],
         msg="$slice with abs larger than combined array should keep all",
     ),
-    # --- Zero slice (empty array) ---
     UpdateTestCase(
         id="zero_slice_empties",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
@@ -58,7 +55,6 @@ CORE_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": []}],
         msg="$slice 0 should empty the array",
     ),
-    # --- Empty $each with $slice (trim existing array) ---
     UpdateTestCase(
         id="empty_each_positive_slice",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3, 4, 5]}],
@@ -83,7 +79,6 @@ CORE_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": []}],
         msg="Empty $each with $slice 0 should empty the array",
     ),
-    # --- Edge cases ---
     UpdateTestCase(
         id="missing_field_creates_then_slices",
         setup_docs=[{"_id": 1}],
@@ -132,7 +127,6 @@ CORE_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": [1, 2, 3]}],
         msg="$slice -N equal to combined length should keep all",
     ),
-    # --- Null element handling ---
     UpdateTestCase(
         id="null_elements_counted_in_slice",
         setup_docs=[{"_id": 1, "arr": [None, 1, None, 2]}],
@@ -149,7 +143,6 @@ CORE_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": [None, 3]}],
         msg="Pushed null elements participate in combined array before slice",
     ),
-    # --- $push without $each treats doc as literal ---
     UpdateTestCase(
         id="without_each_pushes_literal",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
@@ -158,7 +151,6 @@ CORE_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": [1, 2, 3, {"$slice": -2}]}],
         msg="$push without $each should treat modifier doc as literal element",
     ),
-    # --- Multiple elements pushed then sliced ---
     UpdateTestCase(
         id="push_3_slice_first_3",
         setup_docs=[{"_id": 1, "arr": [89, 90]}],

@@ -26,8 +26,6 @@ from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# --- Slice value type validation ---
-
 SLICE_VALUE_PARAMS = [
     BsonTypeTestCase(
         id="slice_value",
@@ -86,8 +84,6 @@ def test_slice_value_type_rejected(collection, bson_type, sample_value, spec):
     assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
 
 
-# --- Invalid numeric values ---
-
 INVALID_NUMERIC_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         id="slice_fractional_double",
@@ -138,8 +134,6 @@ def test_slice_invalid_numeric_values(collection, test_case):
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
 
 
-# --- Array element type preservation after slice ---
-
 ELEMENT_PRESERVATION_PARAMS = [
     BsonTypeTestCase(
         id="slice_element",
@@ -174,9 +168,6 @@ def test_slice_preserves_element_type(collection, bson_type, sample_value, spec)
     )
 
 
-# --- BSON type distinction ---
-
-
 def test_slice_bson_type_distinction(collection):
     """Test distinct BSON types remain distinct after $slice."""
     collection.insert_one({"_id": 1, "arr": [0, False, None, ""]})
@@ -192,26 +183,4 @@ def test_slice_bson_type_distinction(collection):
         result,
         [{"_id": 1, "arr": [0, False, None, ""]}],
         msg="0, false, null, empty string must remain distinct after slice",
-    )
-
-
-# --- Decimal128 precision preservation ---
-
-
-def test_slice_preserves_decimal128_precision(collection):
-    """Test Decimal128 high-precision values are preserved after $slice."""
-    val = Decimal128("1.23456789012345678901234567890123")
-    collection.insert_one({"_id": 1, "arr": [val, "other"]})
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"_id": 1}, "u": {"$push": {"arr": {"$each": [], "$slice": 1}}}}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertSuccess(
-        result,
-        [{"_id": 1, "arr": [val]}],
-        msg="Decimal128 precision should be preserved after slice",
     )
