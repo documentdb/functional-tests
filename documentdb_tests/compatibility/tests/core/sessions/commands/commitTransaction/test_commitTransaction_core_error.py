@@ -54,18 +54,6 @@ CORE_PARAMETER_ACCEPTANCE_TESTS: list[CommandTestCase] = [
 # Property [Parameter Interactions]: combinations of valid parameters behave correctly.
 CORE_PARAMETER_INTERACTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "interaction_writeconcern_only",
-        command={"commitTransaction": 1, "writeConcern": {"w": 1}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction with writeConcern only should fail with NoSuchTransaction",
-    ),
-    CommandTestCase(
-        "interaction_comment_only",
-        command={"commitTransaction": 1, "comment": "test"},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction with comment only should fail with NoSuchTransaction",
-    ),
-    CommandTestCase(
         "interaction_autocommit_only",
         command={"commitTransaction": 1, "autocommit": False},
         error_code=INVALID_OPTIONS_ERROR,

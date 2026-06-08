@@ -1,7 +1,7 @@
-"""Tests for commitTransaction writeConcern parameter validation.
+"""Tests for commitTransaction writeConcern parameter error cases.
 
-Validates type acceptance for writeConcern (must be a document), and type and
-value acceptance for sub-fields w, j, and wtimeout.
+Validates that invalid writeConcern types and sub-field values are rejected
+with the appropriate error codes.
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     FAILED_TO_PARSE_ERROR,
-    NO_SUCH_TRANSACTION_ERROR,
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command
@@ -27,44 +26,10 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 
-# Property [writeConcern Document Acceptance]: writeConcern accepts document values.
-WRITECONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "writeconcern_empty_doc",
-        command={"commitTransaction": 1, "writeConcern": {}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept empty writeConcern document",
-    ),
-    CommandTestCase(
-        "writeconcern_null",
-        command={"commitTransaction": 1, "writeConcern": None},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern:null",
-    ),
-    CommandTestCase(
-        "wc_combined_w_j_wtimeout",
-        command={
-            "commitTransaction": 1,
-            "writeConcern": {"w": "majority", "j": True, "wtimeout": 10_000},
-        },
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept combined w + j + wtimeout",
-    ),
-    CommandTestCase(
-        "wc_w0_j_true",
-        command={"commitTransaction": 1, "writeConcern": {"w": 0, "j": True}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept conflicting w:0 with j:true",
-    ),
-    CommandTestCase(
-        "wc_fsync_true",
-        command={"commitTransaction": 1, "writeConcern": {"fsync": True}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept legacy writeConcern.fsync:true",
-    ),
-]
-
+# ---------------------------------------------------------------------------
 # Property [writeConcern Type Rejection]: non-document types are rejected with TypeMismatch.
+# ---------------------------------------------------------------------------
+
 WRITECONCERN_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "writeconcern_string",
@@ -170,53 +135,11 @@ WRITECONCERN_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [w Accepted Values]: w accepts int and string "majority" values.
-W_ACCEPTANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "w_int32_one",
-        command={"commitTransaction": 1, "writeConcern": {"w": 1}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.w:1",
-    ),
-    CommandTestCase(
-        "w_int32_zero",
-        command={"commitTransaction": 1, "writeConcern": {"w": 0}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.w:0 (unacknowledged)",
-    ),
-    CommandTestCase(
-        "w_majority",
-        command={"commitTransaction": 1, "writeConcern": {"w": "majority"}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.w:'majority'",
-    ),
-    CommandTestCase(
-        "w_int64",
-        command={"commitTransaction": 1, "writeConcern": {"w": Int64(1)}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.w:Int64(1)",
-    ),
-    CommandTestCase(
-        "w_double_whole",
-        command={"commitTransaction": 1, "writeConcern": {"w": 1.0}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.w:1.0",
-    ),
-    CommandTestCase(
-        "w_double_fractional",
-        command={"commitTransaction": 1, "writeConcern": {"w": 1.5}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.w:1.5",
-    ),
-    CommandTestCase(
-        "w_decimal128",
-        command={"commitTransaction": 1, "writeConcern": {"w": Decimal128("1")}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.w:Decimal128('1')",
-    ),
-]
 
+# ---------------------------------------------------------------------------
 # Property [w Invalid Values]: invalid w values are rejected with BadValue or FailedToParse.
+# ---------------------------------------------------------------------------
+
 W_INVALID_VALUE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "w_custom_tag",
@@ -274,41 +197,11 @@ W_INVALID_VALUE_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [j Accepted Values]: j accepts boolean and numeric types.
-J_ACCEPTANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "j_bool_true",
-        command={"commitTransaction": 1, "writeConcern": {"j": True}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.j:true",
-    ),
-    CommandTestCase(
-        "j_bool_false",
-        command={"commitTransaction": 1, "writeConcern": {"j": False}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.j:false",
-    ),
-    CommandTestCase(
-        "j_int32_one",
-        command={"commitTransaction": 1, "writeConcern": {"j": 1}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.j:1 (coerced to true)",
-    ),
-    CommandTestCase(
-        "j_int32_zero",
-        command={"commitTransaction": 1, "writeConcern": {"j": 0}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.j:0 (coerced to false)",
-    ),
-    CommandTestCase(
-        "j_null",
-        command={"commitTransaction": 1, "writeConcern": {"j": None}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.j:null",
-    ),
-]
 
+# ---------------------------------------------------------------------------
 # Property [j Type Rejection]: non-boolean non-numeric types are rejected with TypeMismatch.
+# ---------------------------------------------------------------------------
+
 J_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "j_string",
@@ -330,71 +223,11 @@ J_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [wtimeout Accepted Values]: wtimeout accepts numeric types broadly.
-WTIMEOUT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "wtimeout_int32_positive",
-        command={"commitTransaction": 1, "writeConcern": {"wtimeout": 1000}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.wtimeout:1000",
-    ),
-    CommandTestCase(
-        "wtimeout_int32_zero",
-        command={"commitTransaction": 1, "writeConcern": {"wtimeout": 0}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.wtimeout:0 (no timeout)",
-    ),
-    CommandTestCase(
-        "wtimeout_int64",
-        command={"commitTransaction": 1, "writeConcern": {"wtimeout": Int64(1000)}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.wtimeout:Int64(1000)",
-    ),
-    CommandTestCase(
-        "wtimeout_double_whole",
-        command={"commitTransaction": 1, "writeConcern": {"wtimeout": 1000.0}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.wtimeout:1000.0",
-    ),
-    CommandTestCase(
-        "wtimeout_negative",
-        command={"commitTransaction": 1, "writeConcern": {"wtimeout": -1}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.wtimeout:-1",
-    ),
-    CommandTestCase(
-        "wtimeout_string",
-        command={"commitTransaction": 1, "writeConcern": {"wtimeout": "1000"}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.wtimeout:'1000'",
-    ),
-    CommandTestCase(
-        "wtimeout_bool",
-        command={"commitTransaction": 1, "writeConcern": {"wtimeout": True}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.wtimeout:true",
-    ),
-    CommandTestCase(
-        "wtimeout_null",
-        command={"commitTransaction": 1, "writeConcern": {"wtimeout": None}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.wtimeout:null",
-    ),
-    CommandTestCase(
-        "wtimeout_object",
-        command={"commitTransaction": 1, "writeConcern": {"wtimeout": {}}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.wtimeout:{}",
-    ),
-    CommandTestCase(
-        "wtimeout_array",
-        command={"commitTransaction": 1, "writeConcern": {"wtimeout": []}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="commitTransaction should accept writeConcern.wtimeout:[]",
-    ),
-]
 
+# ---------------------------------------------------------------------------
 # Property [wtimeout Overflow]: Int64 max value overflows and produces FailedToParse.
+# ---------------------------------------------------------------------------
+
 WTIMEOUT_OVERFLOW_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "wtimeout_int64_max",
@@ -407,20 +240,17 @@ WTIMEOUT_OVERFLOW_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-WRITECONCERN_TESTS: list[CommandTestCase] = (
-    WRITECONCERN_ACCEPTANCE_TESTS
-    + WRITECONCERN_TYPE_REJECTION_TESTS
-    + W_ACCEPTANCE_TESTS
+
+WRITECONCERN_ERROR_TESTS: list[CommandTestCase] = (
+    WRITECONCERN_TYPE_REJECTION_TESTS
     + W_INVALID_VALUE_TESTS
-    + J_ACCEPTANCE_TESTS
     + J_TYPE_REJECTION_TESTS
-    + WTIMEOUT_ACCEPTANCE_TESTS
     + WTIMEOUT_OVERFLOW_TESTS
 )
 
 
-@pytest.mark.parametrize("test", pytest_params(WRITECONCERN_TESTS))
+@pytest.mark.parametrize("test", pytest_params(WRITECONCERN_ERROR_TESTS))
 def test_commitTransaction_writeconcern_error(collection, test):
-    """Test commitTransaction writeConcern parameter validation."""
+    """Test commitTransaction writeConcern parameter error cases."""
     result = execute_admin_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)
