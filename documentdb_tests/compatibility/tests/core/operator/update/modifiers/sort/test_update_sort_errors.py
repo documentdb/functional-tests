@@ -149,6 +149,27 @@ UNRECOGNIZED_MODIFIER_TESTS: list[UpdateTestCase] = [
     ),
 ]
 
+CONTAINING_ARRAY_FIELD_PATH_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        id="sort_by_containing_array_field_path",
+        setup_docs=[
+            {
+                "_id": 1,
+                "arr": [{"score": 3}, {"score": 1}, {"score": 2}],
+            }
+        ],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"arr.score": 1}}}},
+        expected=[
+            {
+                "_id": 1,
+                "arr": [{"score": 3}, {"score": 1}, {"score": 2}],
+            }
+        ],
+        msg="Sort by containing array field path has no matching fields, order unchanged",
+    ),
+]
+
 PUSH_WITHOUT_EACH_LITERAL_TESTS: list[UpdateTestCase] = []
 
 ALL_ERROR_TESTS = (
@@ -176,6 +197,21 @@ def test_update_sort_errors(collection, test_case):
 @pytest.mark.parametrize("test_case", pytest_params(MISSING_EACH_TESTS))
 def test_update_sort_without_each(collection, test_case):
     """Test $push with $sort but no $each pushes literal document."""
+    collection.insert_many(test_case.setup_docs)
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": test_case.query, "u": test_case.update}],
+        },
+    )
+    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
+
+
+@pytest.mark.parametrize("test_case", pytest_params(CONTAINING_ARRAY_FIELD_PATH_TESTS))
+def test_update_sort_containing_array_path(collection, test_case):
+    """Test $sort with field path referencing the containing array."""
     collection.insert_many(test_case.setup_docs)
     execute_command(
         collection,

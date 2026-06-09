@@ -26,6 +26,14 @@ from documentdb_tests.framework.test_constants import (
 
 NUMERIC_EQUIVALENCE_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
+        id="doubles_sort_ascending",
+        setup_docs=[{"_id": 1, "arr": [3.5, 1.2, 4.8, 2.1]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": 1}}},
+        expected=[{"_id": 1, "arr": [1.2, 2.1, 3.5, 4.8]}],
+        msg="Array of doubles should sort numerically ascending",
+    ),
+    UpdateTestCase(
         id="cross_type_numeric_sort",
         setup_docs=[{"_id": 1, "arr": [Int64(3), 1, 2.0, Decimal128("4")]}],
         query={"_id": 1},
@@ -284,6 +292,111 @@ MIXED_BSON_TYPE_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": [3, "text", {"score": 1}, {"score": 5}]}],
         msg="Non-document elements with document sort should sort by BSON type",
     ),
+    UpdateTestCase(
+        id="sort_array_of_arrays",
+        setup_docs=[{"_id": 1, "arr": [[3, 1], [1, 2], [2, 3]]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": 1}}},
+        expected=[{"_id": 1, "arr": [[1, 2], [2, 3], [3, 1]]}],
+        msg="Array of arrays should sort by array comparison rules",
+    ),
+]
+
+DOCUMENT_FIELD_TYPE_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        id="document_sort_by_double_field",
+        setup_docs=[{"_id": 1, "arr": [{"val": 3.5}, {"val": 1.2}, {"val": 2.8}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"val": 1}}}},
+        expected=[{"_id": 1, "arr": [{"val": 1.2}, {"val": 2.8}, {"val": 3.5}]}],
+        msg="Document sort by double field should order correctly",
+    ),
+    UpdateTestCase(
+        id="document_sort_by_long_field",
+        setup_docs=[
+            {
+                "_id": 1,
+                "arr": [
+                    {"val": Int64(300)},
+                    {"val": Int64(100)},
+                    {"val": Int64(200)},
+                ],
+            }
+        ],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"val": 1}}}},
+        expected=[
+            {
+                "_id": 1,
+                "arr": [
+                    {"val": Int64(100)},
+                    {"val": Int64(200)},
+                    {"val": Int64(300)},
+                ],
+            }
+        ],
+        msg="Document sort by Int64 field should order correctly",
+    ),
+    UpdateTestCase(
+        id="document_sort_by_string_field",
+        setup_docs=[
+            {
+                "_id": 1,
+                "arr": [
+                    {"val": "cherry"},
+                    {"val": "apple"},
+                    {"val": "banana"},
+                ],
+            }
+        ],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"val": 1}}}},
+        expected=[
+            {
+                "_id": 1,
+                "arr": [
+                    {"val": "apple"},
+                    {"val": "banana"},
+                    {"val": "cherry"},
+                ],
+            }
+        ],
+        msg="Document sort by string field should order lexicographically",
+    ),
+    UpdateTestCase(
+        id="document_sort_by_bool_field",
+        setup_docs=[{"_id": 1, "arr": [{"val": True}, {"val": False}, {"val": True}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"val": 1}}}},
+        expected=[{"_id": 1, "arr": [{"val": False}, {"val": True}, {"val": True}]}],
+        msg="Document sort by bool field should order false before true",
+    ),
+    UpdateTestCase(
+        id="document_sort_by_date_field",
+        setup_docs=[
+            {
+                "_id": 1,
+                "arr": [
+                    {"val": datetime(2024, 6, 1, tzinfo=timezone.utc)},
+                    {"val": datetime(2020, 1, 1, tzinfo=timezone.utc)},
+                    {"val": datetime(2022, 3, 15, tzinfo=timezone.utc)},
+                ],
+            }
+        ],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"val": 1}}}},
+        expected=[
+            {
+                "_id": 1,
+                "arr": [
+                    {"val": datetime(2020, 1, 1, tzinfo=timezone.utc)},
+                    {"val": datetime(2022, 3, 15, tzinfo=timezone.utc)},
+                    {"val": datetime(2024, 6, 1, tzinfo=timezone.utc)},
+                ],
+            }
+        ],
+        msg="Document sort by date field should order chronologically",
+    ),
 ]
 
 DATE_SORT_TESTS: list[UpdateTestCase] = [
@@ -312,6 +425,32 @@ DATE_SORT_TESTS: list[UpdateTestCase] = [
             }
         ],
         msg="Dates should sort chronologically (earliest first)",
+    ),
+    UpdateTestCase(
+        id="dates_sort_descending",
+        setup_docs=[
+            {
+                "_id": 1,
+                "arr": [
+                    datetime(2024, 6, 1, tzinfo=timezone.utc),
+                    datetime(2020, 1, 1, tzinfo=timezone.utc),
+                    datetime(2022, 3, 15, tzinfo=timezone.utc),
+                ],
+            }
+        ],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": -1}}},
+        expected=[
+            {
+                "_id": 1,
+                "arr": [
+                    datetime(2024, 6, 1, tzinfo=timezone.utc),
+                    datetime(2022, 3, 15, tzinfo=timezone.utc),
+                    datetime(2020, 1, 1, tzinfo=timezone.utc),
+                ],
+            }
+        ],
+        msg="Dates should sort reverse chronologically (latest first)",
     ),
 ]
 
@@ -394,6 +533,21 @@ def test_update_sort_bson_type_distinction(collection, test_case):
 @pytest.mark.parametrize("test_case", pytest_params(MIXED_BSON_TYPE_TESTS))
 def test_update_sort_mixed_bson_types(collection, test_case):
     """Test $sort with mixed BSON types follows BSON comparison order."""
+    collection.insert_many(test_case.setup_docs)
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": test_case.query, "u": test_case.update}],
+        },
+    )
+    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
+
+
+@pytest.mark.parametrize("test_case", pytest_params(DOCUMENT_FIELD_TYPE_TESTS))
+def test_update_sort_document_field_types(collection, test_case):
+    """Test $sort by document field for each BSON type."""
     collection.insert_many(test_case.setup_docs)
     execute_command(
         collection,

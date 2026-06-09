@@ -83,6 +83,14 @@ DOCUMENT_SORT_TESTS: list[UpdateTestCase] = [
         msg="$sort by document field descending should order highest first",
     ),
     UpdateTestCase(
+        id="empty_each_document_sort_descending",
+        setup_docs=[{"_id": 1, "arr": [{"x": 1}, {"x": 3}, {"x": 2}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"x": -1}}}},
+        expected=[{"_id": 1, "arr": [{"x": 3}, {"x": 2}, {"x": 1}]}],
+        msg="Empty $each with document sort descending should sort existing array",
+    ),
+    UpdateTestCase(
         id="multi_key_sort",
         setup_docs=[
             {
