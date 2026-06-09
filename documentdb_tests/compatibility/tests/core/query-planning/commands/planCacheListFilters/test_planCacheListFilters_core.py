@@ -1,8 +1,11 @@
-"""Tests for planCacheListFilters command core behavior."""
+"""Tests for planCacheListFilters command core behavior and field acceptance."""
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
     CommandContext,
@@ -14,6 +17,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.target_collection import (
     CappedCollection,
     ClusteredCollection,
+    NamedCollection,
 )
 
 # Property [Basic Success]: planCacheListFilters returns ok: 1.0 and empty
@@ -79,17 +83,183 @@ LIST_FILTERS_NULL_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [Unknown Fields Accepted]: planCacheListFilters silently accepts
+# unrecognized fields without error.
+LIST_FILTERS_UNKNOWN_FIELD_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "unknown_field_foo",
+        command=lambda ctx: {"planCacheListFilters": ctx.collection, "foo": "bar"},
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should silently accept unknown field",
+    ),
+    CommandTestCase(
+        "case_variation_Comment",
+        command=lambda ctx: {
+            "planCacheListFilters": ctx.collection,
+            "Comment": "test",
+        },
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should treat capitalized Comment as unknown field",
+    ),
+    CommandTestCase(
+        "case_variation_Query",
+        command=lambda ctx: {
+            "planCacheListFilters": ctx.collection,
+            "Query": {"a": 1},
+        },
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should treat capitalized Query as unknown field",
+    ),
+    CommandTestCase(
+        "case_variation_Sort",
+        command=lambda ctx: {
+            "planCacheListFilters": ctx.collection,
+            "Sort": {"a": 1},
+        },
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should treat capitalized Sort as unknown field",
+    ),
+]
+
+# Property [Collection Name Edge Cases]: planCacheListFilters succeeds with
+# special characters, unicode, and long collection names.
+LIST_FILTERS_NAME_EDGE_CASE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "name_long",
+        target_collection=NamedCollection(suffix="_" + "a" * 150),
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should succeed with a long collection name",
+    ),
+    CommandTestCase(
+        "name_hyphen",
+        target_collection=NamedCollection(suffix="_my-coll"),
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should succeed with hyphen in name",
+    ),
+    CommandTestCase(
+        "name_unicode",
+        target_collection=NamedCollection(suffix="_\u00e9"),
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should succeed with unicode name",
+    ),
+    CommandTestCase(
+        "name_single_char",
+        target_collection=NamedCollection(suffix="_x"),
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should succeed with single-character suffix name",
+    ),
+    CommandTestCase(
+        "name_underscores",
+        target_collection=NamedCollection(suffix="_my_test_coll"),
+        docs=[{"_id": 1}],
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should succeed with underscores in name",
+    ),
+]
+
+# Property [Comment Edge Cases]: planCacheListFilters succeeds with edge-case
+# comment values.
+LIST_FILTERS_COMMENT_EDGE_CASE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "comment_long",
+        command=lambda ctx: {
+            "planCacheListFilters": ctx.collection,
+            "comment": "x" * 10_000,
+        },
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should succeed with very long comment",
+    ),
+    CommandTestCase(
+        "comment_empty_string",
+        command=lambda ctx: {
+            "planCacheListFilters": ctx.collection,
+            "comment": "",
+        },
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should succeed with empty string comment",
+    ),
+    CommandTestCase(
+        "comment_deeply_nested",
+        command=lambda ctx: {
+            "planCacheListFilters": ctx.collection,
+            "comment": {"a": {"b": {"c": {"d": {"e": 1}}}}},
+        },
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should succeed with deeply nested object comment",
+    ),
+    CommandTestCase(
+        "comment_mixed_array",
+        command=lambda ctx: {
+            "planCacheListFilters": ctx.collection,
+            "comment": [1, "two", True, None, {"a": 1}],
+        },
+        expected={"filters": [], "ok": 1.0},
+        msg="planCacheListFilters should succeed with array of mixed types as comment",
+    ),
+]
+
+_BSON_TYPE_VALUES = [
+    ("document", {"a": 1}),
+    ("empty_document", {}),
+    ("string", "test"),
+    ("int32", 123),
+    ("int64", Int64(1)),
+    ("double", 1.5),
+    ("decimal128", Decimal128("1")),
+    ("bool_true", True),
+    ("bool_false", False),
+    ("null", None),
+    ("array", [1, 2]),
+    ("empty_array", []),
+    ("binary", Binary(b"\x00")),
+    ("objectid", ObjectId()),
+    ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+    ("regex", Regex(".*")),
+    ("timestamp", Timestamp(0, 0)),
+    ("code", Code("function(){}")),
+    ("minkey", MinKey()),
+    ("maxkey", MaxKey()),
+]
+
+# Property [Comment Type Acceptance]: the comment field accepts any valid
+# BSON type.
+LIST_FILTERS_COMMENT_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        f"comment_{tid}",
+        command=lambda ctx, v=val: {
+            "planCacheListFilters": ctx.collection,
+            "comment": v,
+        },
+        expected={"filters": [], "ok": 1.0},
+        msg=f"planCacheListFilters should accept comment of type {tid}",
+    )
+    for tid, val in _BSON_TYPE_VALUES
+]
+
 LIST_FILTERS_CORE_TESTS: list[CommandTestCase] = (
     LIST_FILTERS_BASIC_TESTS
     + LIST_FILTERS_CAPPED_TESTS
     + LIST_FILTERS_CLUSTERED_TESTS
     + LIST_FILTERS_NULL_TESTS
+    + LIST_FILTERS_UNKNOWN_FIELD_TESTS
+    + LIST_FILTERS_NAME_EDGE_CASE_TESTS
+    + LIST_FILTERS_COMMENT_EDGE_CASE_TESTS
+    + LIST_FILTERS_COMMENT_TYPE_TESTS
 )
 
 
 @pytest.mark.parametrize("test", pytest_params(LIST_FILTERS_CORE_TESTS))
 def test_planCacheListFilters_core(database_client, collection, test):
-    """Test planCacheListFilters command core behavior."""
+    """Test planCacheListFilters command core behavior and field acceptance."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
