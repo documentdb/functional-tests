@@ -26,10 +26,22 @@ def test_smoke_accumulator_mergeObjects(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$group": {"_id": "$category", "merged": {"$mergeObjects": "$data"}}}],
+            "pipeline": [
+                {"$sort": {"_id": 1}},
+                {"$group": {"_id": "$category", "merged": {"$mergeObjects": "$data"}}},
+            ],
             "cursor": {},
         },
     )
 
     expected = [{"_id": "A", "merged": {"x": 1, "y": 2, "z": 3}}]
     assertSuccess(result, expected, msg="Should support $mergeObjects accumulator")
+    actual = result["cursor"]["firstBatch"][0]
+    actual_keys = list(actual["merged"].keys())
+    expected_keys = list(expected[0]["merged"].keys())
+    if actual_keys != expected_keys:
+        raise AssertionError(
+            f"[KEY_ORDER_MISMATCH] Should support $mergeObjects accumulator\n"
+            f"Expected key order: {expected_keys}\n"
+            f"Actual key order:   {actual_keys}"
+        )
