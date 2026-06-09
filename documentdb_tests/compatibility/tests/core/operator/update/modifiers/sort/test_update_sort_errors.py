@@ -1,7 +1,7 @@
 """Tests for $sort update modifier error cases.
 
-Covers: missing $each, $sort with $addToSet, target not array,
-and containing array field path behavior.
+Covers: missing $each, $sort with incompatible operators ($addToSet, $pull,
+$pullAll, $pop), target not array, and containing array field path behavior.
 """
 
 import pytest
@@ -84,7 +84,7 @@ MISSING_EACH_TESTS: list[UpdateTestCase] = [
     ),
 ]
 
-ADDTOSET_WITH_SORT_TESTS: list[UpdateTestCase] = [
+INCOMPATIBLE_OPERATOR_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         id="addtoset_with_sort",
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
@@ -92,6 +92,30 @@ ADDTOSET_WITH_SORT_TESTS: list[UpdateTestCase] = [
         update={"$addToSet": {"arr": {"$each": [4], "$sort": 1}}},
         error_code=BAD_VALUE_ERROR,
         msg="$addToSet with $sort should fail — $sort only works with $push",
+    ),
+    UpdateTestCase(
+        id="pull_with_each_sort",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$pull": {"arr": {"$each": [1], "$sort": 1}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$pull with $each/$sort should fail — $sort only works with $push",
+    ),
+    UpdateTestCase(
+        id="pullAll_with_each_sort",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$pullAll": {"arr": {"$each": [1], "$sort": 1}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$pullAll with $each/$sort should fail — $sort only works with $push",
+    ),
+    UpdateTestCase(
+        id="pop_with_each_sort",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$pop": {"arr": {"$each": [1], "$sort": 1}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$pop with $each/$sort should fail — $sort only works with $push",
     ),
 ]
 
@@ -129,7 +153,7 @@ CONTAINING_ARRAY_FIELD_PATH_TESTS: list[UpdateTestCase] = [
 
 PUSH_WITHOUT_EACH_LITERAL_TESTS: list[UpdateTestCase] = []
 
-ALL_ERROR_TESTS = ADDTOSET_WITH_SORT_TESTS + TARGET_NOT_ARRAY_TESTS + SORT_VALUE_VALIDATION_TESTS
+ALL_ERROR_TESTS = INCOMPATIBLE_OPERATOR_TESTS + TARGET_NOT_ARRAY_TESTS + SORT_VALUE_VALIDATION_TESTS
 
 ALL_SUCCESS_TESTS = MISSING_EACH_TESTS + CONTAINING_ARRAY_FIELD_PATH_TESTS
 
