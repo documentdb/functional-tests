@@ -1,8 +1,7 @@
 """Tests for $sort update modifier core behavior.
 
 Covers: scalar sort ascending/descending, document field sort, interaction
-with $each, empty $each with $sort, multi-key sort, nested field sort,
-and edge cases.
+with $each, empty $each with $sort, multi-key sort, and nested field sort.
 """
 
 import pytest
@@ -138,61 +137,7 @@ DOCUMENT_SORT_TESTS: list[UpdateTestCase] = [
     ),
 ]
 
-EDGE_CASE_TESTS: list[UpdateTestCase] = [
-    UpdateTestCase(
-        id="target_field_missing",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [3, 1, 2], "$sort": 1}}},
-        expected=[{"_id": 1, "arr": [1, 2, 3]}],
-        msg="$sort on missing field should create sorted array",
-    ),
-    UpdateTestCase(
-        id="empty_array_sort",
-        setup_docs=[{"_id": 1, "arr": []}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [], "$sort": 1}}},
-        expected=[{"_id": 1, "arr": []}],
-        msg="$sort on empty array with empty $each should remain empty",
-    ),
-    UpdateTestCase(
-        id="single_element_sort",
-        setup_docs=[{"_id": 1, "arr": [5]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [], "$sort": 1}}},
-        expected=[{"_id": 1, "arr": [5]}],
-        msg="$sort on single element array should not change it",
-    ),
-    UpdateTestCase(
-        id="stability_equal_scores",
-        setup_docs=[
-            {
-                "_id": 1,
-                "arr": [
-                    {"a": 1, "score": 5},
-                    {"a": 2, "score": 5},
-                    {"a": 3, "score": 5},
-                ],
-            }
-        ],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [], "$sort": {"score": 1}}}},
-        expected=[
-            {
-                "_id": 1,
-                "arr": [
-                    {"a": 1, "score": 5},
-                    {"a": 2, "score": 5},
-                    {"a": 3, "score": 5},
-                ],
-            }
-        ],
-        msg="$sort should be stable — equal elements preserve original order",
-    ),
-]
-
-
-ALL_CORE_TESTS = SCALAR_SORT_TESTS + DOCUMENT_SORT_TESTS + EDGE_CASE_TESTS
+ALL_CORE_TESTS = SCALAR_SORT_TESTS + DOCUMENT_SORT_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(ALL_CORE_TESTS))

@@ -14,6 +14,65 @@ from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+SORT_VALUE_VALIDATION_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        id="sort_direction_zero",
+        setup_docs=[{"_id": 1, "arr": [3, 1, 2]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": 0}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort: 0 should fail with BadValue",
+    ),
+    UpdateTestCase(
+        id="sort_direction_two",
+        setup_docs=[{"_id": 1, "arr": [3, 1, 2]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": 2}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort: 2 should fail with BadValue",
+    ),
+    UpdateTestCase(
+        id="sort_field_direction_zero",
+        setup_docs=[{"_id": 1, "arr": [{"a": 1}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"a": 0}}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort: {a: 0} should fail with BadValue",
+    ),
+    UpdateTestCase(
+        id="sort_field_direction_string",
+        setup_docs=[{"_id": 1, "arr": [{"a": 1}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"a": "asc"}}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort: {a: 'asc'} should fail with BadValue",
+    ),
+    UpdateTestCase(
+        id="sort_empty_object",
+        setup_docs=[{"_id": 1, "arr": [{"a": 1}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {}}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort: {} (empty object) should fail with BadValue",
+    ),
+    UpdateTestCase(
+        id="sort_trailing_dot_key",
+        setup_docs=[{"_id": 1, "arr": [{"a": 1}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"a.": 1}}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort with trailing dot in key path should fail",
+    ),
+    UpdateTestCase(
+        id="sort_empty_string_key",
+        setup_docs=[{"_id": 1, "arr": [{"a": 1}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"": 1}}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort with empty string key should fail",
+    ),
+]
+
 MISSING_EACH_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         id="sort_without_each_pushes_literal",
@@ -70,7 +129,7 @@ CONTAINING_ARRAY_FIELD_PATH_TESTS: list[UpdateTestCase] = [
 
 PUSH_WITHOUT_EACH_LITERAL_TESTS: list[UpdateTestCase] = []
 
-ALL_ERROR_TESTS = ADDTOSET_WITH_SORT_TESTS + TARGET_NOT_ARRAY_TESTS
+ALL_ERROR_TESTS = ADDTOSET_WITH_SORT_TESTS + TARGET_NOT_ARRAY_TESTS + SORT_VALUE_VALIDATION_TESTS
 
 ALL_SUCCESS_TESTS = MISSING_EACH_TESTS + CONTAINING_ARRAY_FIELD_PATH_TESTS
 
