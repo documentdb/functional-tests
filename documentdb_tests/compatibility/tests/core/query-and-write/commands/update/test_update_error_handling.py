@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -56,4 +56,4 @@ def test_update_errors(collection, test: UpdateErrorTest):
     """Test update command error cases."""
     collection.insert_one({"_id": 1, "x": 1})
     result = execute_command(collection, {"update": collection.name, "updates": test.updates})
-    assertFailureCode(result, test.error_code, msg=test.msg)
+    assertResult(result, error_code=test.error_code, msg=test.msg)

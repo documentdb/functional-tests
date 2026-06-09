@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     FAILED_TO_PARSE_ERROR,
     INVALID_NAMESPACE_ERROR,
@@ -129,4 +129,4 @@ def test_update_field_validation(collection, test: FieldValidationTest):
     else:
         cmd = _DYNAMIC_COMMANDS[test.id](collection.name)
     result = execute_command(collection, cmd)
-    assertFailureCode(result, test.error_code, msg=test.msg)
+    assertResult(result, error_code=test.error_code, msg=test.msg)

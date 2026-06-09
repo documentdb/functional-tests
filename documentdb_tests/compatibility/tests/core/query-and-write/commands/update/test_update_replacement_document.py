@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
+from documentdb_tests.framework.assertions import assertResult, assertSuccess
 from documentdb_tests.framework.error_codes import FAILED_TO_PARSE_ERROR, IMMUTABLE_FIELD_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -110,7 +110,7 @@ def test_update_replacement_errors(collection, test: ReplaceErrorTest):
     else:
         collection.insert_one(test.setup_docs)
     result = execute_command(collection, {"update": collection.name, "updates": test.updates})
-    assertFailureCode(result, test.error_code, msg=test.msg)
+    assertResult(result, error_code=test.error_code, msg=test.msg)
 
 
 def test_update_replacement_always_counts_as_modified(collection):
