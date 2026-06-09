@@ -1,8 +1,8 @@
 """Tests for $sort update modifier data type behavior.
 
-Covers: BSON type sort ordering, numeric equivalence across types,
-null/missing field handling, NaN/Infinity positioning, Decimal128 precision,
-and BSON type distinction (false ≠ 0, true ≠ 1).
+Covers: sort spec type validation, BSON type sort ordering, numeric equivalence
+across types, null/missing field handling, NaN/Infinity positioning,
+Decimal128 precision, and BSON type distinction (false ≠ 0, true ≠ 1).
 """
 
 import math
@@ -14,7 +14,17 @@ from bson import Decimal128, Int64
 from documentdb_tests.compatibility.tests.core.operator.update.utils.update_test_case import (
     UpdateTestCase,
 )
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import (
+    assertFailureCode,
+    assertResult,
+    assertSuccess,
+)
+from documentdb_tests.framework.bson_type_validator import (
+    BsonType,
+    BsonTypeTestCase,
+    generate_bson_rejection_test_cases,
+)
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
@@ -23,6 +33,86 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
 )
+
+# --- Sort spec type validation (framework + manual) ---
+
+SORT_SPEC_TYPE_PARAMS = [
+    BsonTypeTestCase(
+        id="sort_spec_value",
+        msg="$sort spec value type",
+        keyword="$sort",
+        valid_types=[],
+        skip_rejection_types=[
+            BsonType.INT,
+            BsonType.LONG,
+            BsonType.DOUBLE,
+            BsonType.DECIMAL,
+            BsonType.OBJECT,
+        ],
+        default_error_code=BAD_VALUE_ERROR,
+    ),
+]
+
+SORT_SPEC_REJECTION_CASES = generate_bson_rejection_test_cases(SORT_SPEC_TYPE_PARAMS)
+
+SORT_VALUE_VALIDATION_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        id="sort_direction_zero",
+        setup_docs=[{"_id": 1, "arr": [3, 1, 2]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": 0}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort: 0 should fail with BadValue",
+    ),
+    UpdateTestCase(
+        id="sort_direction_two",
+        setup_docs=[{"_id": 1, "arr": [3, 1, 2]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": 2}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort: 2 should fail with BadValue",
+    ),
+    UpdateTestCase(
+        id="sort_field_direction_zero",
+        setup_docs=[{"_id": 1, "arr": [{"a": 1}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"a": 0}}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort: {a: 0} should fail with BadValue",
+    ),
+    UpdateTestCase(
+        id="sort_field_direction_string",
+        setup_docs=[{"_id": 1, "arr": [{"a": 1}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"a": "asc"}}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort: {a: 'asc'} should fail with BadValue",
+    ),
+    UpdateTestCase(
+        id="sort_empty_object",
+        setup_docs=[{"_id": 1, "arr": [{"a": 1}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {}}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort: {} (empty object) should fail with BadValue",
+    ),
+    UpdateTestCase(
+        id="sort_trailing_dot_key",
+        setup_docs=[{"_id": 1, "arr": [{"a": 1}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"a.": 1}}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort with trailing dot in key path should fail",
+    ),
+    UpdateTestCase(
+        id="sort_empty_string_key",
+        setup_docs=[{"_id": 1, "arr": [{"a": 1}]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"": 1}}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="$sort with empty string key should fail",
+    ),
+]
 
 NUMERIC_EQUIVALENCE_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
@@ -543,6 +633,43 @@ def test_update_sort_mixed_bson_types(collection, test_case):
     )
     result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
     assertSuccess(result, test_case.expected, msg=test_case.msg)
+
+
+@pytest.mark.parametrize("bson_type,sample_value,spec", SORT_SPEC_REJECTION_CASES)
+def test_update_sort_spec_type_rejected(collection, bson_type, sample_value, spec):
+    """Test $sort rejects invalid BSON types as sort spec value."""
+    collection.insert_one({"_id": 1, "arr": [3, 1, 2]})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$push": {"arr": {"$each": [], "$sort": sample_value}}},
+                }
+            ],
+        },
+    )
+    assertFailureCode(
+        result,
+        spec.expected_code(bson_type),
+        msg=f"{spec.msg} should reject {bson_type.value}",
+    )
+
+
+@pytest.mark.parametrize("test_case", pytest_params(SORT_VALUE_VALIDATION_TESTS))
+def test_update_sort_value_validation(collection, test_case):
+    """Test $sort rejects invalid values within conditionally-valid types."""
+    collection.insert_many(test_case.setup_docs)
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": test_case.query, "u": test_case.update}],
+        },
+    )
+    assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(DOCUMENT_FIELD_TYPE_TESTS))
