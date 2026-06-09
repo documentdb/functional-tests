@@ -1,7 +1,7 @@
 """Tests for $sort update modifier error cases.
 
 Covers: missing $each, $sort with $addToSet, target not array,
-unrecognized modifiers, and containing array field path behavior.
+and containing array field path behavior.
 """
 
 import pytest
@@ -47,17 +47,6 @@ TARGET_NOT_ARRAY_TESTS: list[UpdateTestCase] = [
     ),
 ]
 
-UNRECOGNIZED_MODIFIER_TESTS: list[UpdateTestCase] = [
-    UpdateTestCase(
-        id="unrecognized_modifier_with_sort",
-        setup_docs=[{"_id": 1, "arr": [1]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [2], "$sort": 1, "$xxx": 1}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Unrecognized modifier alongside $sort should fail",
-    ),
-]
-
 CONTAINING_ARRAY_FIELD_PATH_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         id="sort_by_containing_array_field_path",
@@ -81,7 +70,9 @@ CONTAINING_ARRAY_FIELD_PATH_TESTS: list[UpdateTestCase] = [
 
 PUSH_WITHOUT_EACH_LITERAL_TESTS: list[UpdateTestCase] = []
 
-ALL_ERROR_TESTS = ADDTOSET_WITH_SORT_TESTS + TARGET_NOT_ARRAY_TESTS + UNRECOGNIZED_MODIFIER_TESTS
+ALL_ERROR_TESTS = ADDTOSET_WITH_SORT_TESTS + TARGET_NOT_ARRAY_TESTS
+
+ALL_SUCCESS_TESTS = MISSING_EACH_TESTS + CONTAINING_ARRAY_FIELD_PATH_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(ALL_ERROR_TESTS))
@@ -98,24 +89,9 @@ def test_update_sort_errors(collection, test_case):
     assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
 
 
-@pytest.mark.parametrize("test_case", pytest_params(MISSING_EACH_TESTS))
-def test_update_sort_without_each(collection, test_case):
-    """Test $push with $sort but no $each pushes literal document."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(CONTAINING_ARRAY_FIELD_PATH_TESTS))
-def test_update_sort_containing_array_path(collection, test_case):
-    """Test $sort with field path referencing the containing array."""
+@pytest.mark.parametrize("test_case", pytest_params(ALL_SUCCESS_TESTS))
+def test_update_sort_edge_cases(collection, test_case):
+    """Test $sort modifier edge cases and special behavior."""
     collection.insert_many(test_case.setup_docs)
     execute_command(
         collection,

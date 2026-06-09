@@ -545,84 +545,21 @@ DATE_SORT_TESTS: list[UpdateTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test_case", pytest_params(NUMERIC_EQUIVALENCE_TESTS))
-def test_update_sort_numeric_equivalence(collection, test_case):
-    """Test $sort with cross-type numeric equivalence."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
+ALL_DATA_TYPE_TESTS = (
+    NUMERIC_EQUIVALENCE_TESTS
+    + NULL_MISSING_TESTS
+    + NAN_INFINITY_TESTS
+    + DECIMAL128_TESTS
+    + BSON_TYPE_DISTINCTION_TESTS
+    + MIXED_BSON_TYPE_TESTS
+    + DOCUMENT_FIELD_TYPE_TESTS
+    + DATE_SORT_TESTS
+)
 
 
-@pytest.mark.parametrize("test_case", pytest_params(NULL_MISSING_TESTS))
-def test_update_sort_null_missing(collection, test_case):
-    """Test $sort null and missing field handling."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(NAN_INFINITY_TESTS))
-def test_update_sort_nan_infinity(collection, test_case):
-    """Test $sort NaN and Infinity positioning."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(DECIMAL128_TESTS))
-def test_update_sort_decimal128(collection, test_case):
-    """Test $sort Decimal128 precision and ordering."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(BSON_TYPE_DISTINCTION_TESTS))
-def test_update_sort_bson_type_distinction(collection, test_case):
-    """Test $sort BSON type distinction (false ≠ 0, true ≠ 1)."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(MIXED_BSON_TYPE_TESTS))
-def test_update_sort_mixed_bson_types(collection, test_case):
-    """Test $sort with mixed BSON types follows BSON comparison order."""
+@pytest.mark.parametrize("test_case", pytest_params(ALL_DATA_TYPE_TESTS))
+def test_update_sort_data_types(collection, test_case):
+    """Test $sort data type behavior."""
     collection.insert_many(test_case.setup_docs)
     execute_command(
         collection,
@@ -670,33 +607,3 @@ def test_update_sort_value_validation(collection, test_case):
         },
     )
     assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(DOCUMENT_FIELD_TYPE_TESTS))
-def test_update_sort_document_field_types(collection, test_case):
-    """Test $sort by document field for each BSON type."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(DATE_SORT_TESTS))
-def test_update_sort_dates(collection, test_case):
-    """Test $sort with date values."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)

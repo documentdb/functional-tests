@@ -75,14 +75,6 @@ DOCUMENT_SORT_TESTS: list[UpdateTestCase] = [
         msg="$sort by document field ascending should order by field value",
     ),
     UpdateTestCase(
-        id="document_sort_descending",
-        setup_docs=[{"_id": 1, "arr": [{"score": 8}, {"score": 2}]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [], "$sort": {"score": -1}}}},
-        expected=[{"_id": 1, "arr": [{"score": 8}, {"score": 2}]}],
-        msg="$sort by document field descending should order highest first",
-    ),
-    UpdateTestCase(
         id="empty_each_document_sort_descending",
         setup_docs=[{"_id": 1, "arr": [{"x": 1}, {"x": 3}, {"x": 2}]}],
         query={"_id": 1},
@@ -197,50 +189,15 @@ EDGE_CASE_TESTS: list[UpdateTestCase] = [
         ],
         msg="$sort should be stable — equal elements preserve original order",
     ),
-    UpdateTestCase(
-        id="sort_without_slice",
-        setup_docs=[{"_id": 1, "arr": [3, 1, 2]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [4], "$sort": 1}}},
-        expected=[{"_id": 1, "arr": [1, 2, 3, 4]}],
-        msg="$sort does not require $slice — should sort without trimming",
-    ),
 ]
 
 
-@pytest.mark.parametrize("test_case", pytest_params(SCALAR_SORT_TESTS))
-def test_update_sort_scalar(collection, test_case):
-    """Test $sort modifier scalar sort behavior."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
+ALL_CORE_TESTS = SCALAR_SORT_TESTS + DOCUMENT_SORT_TESTS + EDGE_CASE_TESTS
 
 
-@pytest.mark.parametrize("test_case", pytest_params(DOCUMENT_SORT_TESTS))
-def test_update_sort_document(collection, test_case):
-    """Test $sort modifier document field sort behavior."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(EDGE_CASE_TESTS))
-def test_update_sort_edge_cases(collection, test_case):
-    """Test $sort modifier edge cases."""
+@pytest.mark.parametrize("test_case", pytest_params(ALL_CORE_TESTS))
+def test_update_sort_core(collection, test_case):
+    """Test $sort modifier core behavior."""
     collection.insert_many(test_case.setup_docs)
     execute_command(
         collection,

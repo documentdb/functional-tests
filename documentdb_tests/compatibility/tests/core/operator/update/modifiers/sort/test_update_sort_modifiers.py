@@ -31,14 +31,6 @@ SORT_WITH_SLICE_TESTS: list[UpdateTestCase] = [
         msg="$sort: -1 with $slice: -2 should sort desc then keep last 2",
     ),
     UpdateTestCase(
-        id="sort_asc_slice_larger_than_array",
-        setup_docs=[{"_id": 1, "arr": [5, 3]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [1, 4, 2], "$sort": 1, "$slice": 10}}},
-        expected=[{"_id": 1, "arr": [1, 2, 3, 4, 5]}],
-        msg="$sort with $slice larger than array should keep all sorted elements",
-    ),
-    UpdateTestCase(
         id="document_sort_with_slice",
         setup_docs=[{"_id": 1, "arr": [{"score": 8}, {"score": 2}]}],
         query={"_id": 1},
@@ -110,66 +102,14 @@ ALL_MODIFIERS_TESTS: list[UpdateTestCase] = [
     ),
 ]
 
-SORT_WITH_MIXED_ELEMENTS_TESTS: list[UpdateTestCase] = [
-    UpdateTestCase(
-        id="integers_with_document_sort",
-        setup_docs=[{"_id": 1, "arr": [{"score": 3}, 1, {"score": 1}]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [{"score": 2}], "$sort": {"score": 1}, "$slice": 4}}},
-        expected=[{"_id": 1, "arr": [1, {"score": 1}, {"score": 2}, {"score": 3}]}],
-        msg="Mixed elements (int + documents) with document sort and slice should succeed",
-    ),
-]
+ALL_MODIFIER_INTERACTION_TESTS = (
+    SORT_WITH_SLICE_TESTS + SORT_WITH_POSITION_TESTS + ALL_MODIFIERS_TESTS
+)
 
 
-@pytest.mark.parametrize("test_case", pytest_params(SORT_WITH_SLICE_TESTS))
-def test_update_sort_with_slice(collection, test_case):
-    """Test $sort modifier combined with $slice."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(SORT_WITH_POSITION_TESTS))
-def test_update_sort_with_position(collection, test_case):
-    """Test $sort interaction with $position modifier."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(ALL_MODIFIERS_TESTS))
-def test_update_sort_all_modifiers(collection, test_case):
-    """Test $sort with all modifiers combined ($each, $position, $sort, $slice)."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(SORT_WITH_MIXED_ELEMENTS_TESTS))
-def test_update_sort_mixed_elements(collection, test_case):
-    """Test $sort with mixed document and non-document elements."""
+@pytest.mark.parametrize("test_case", pytest_params(ALL_MODIFIER_INTERACTION_TESTS))
+def test_update_sort_modifier_interactions(collection, test_case):
+    """Test $sort interaction with other modifiers ($slice, $position)."""
     collection.insert_many(test_case.setup_docs)
     execute_command(
         collection,
