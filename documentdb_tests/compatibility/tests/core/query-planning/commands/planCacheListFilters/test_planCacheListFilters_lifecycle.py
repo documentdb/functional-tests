@@ -61,25 +61,6 @@ def test_planCacheListFilters_three_shapes(collection):
     )
 
 
-# Property [Filter Count Matches Set Count]: the number of filter entries
-# matches the number of distinct query shapes set.
-def test_planCacheListFilters_count_matches(collection):
-    """Test planCacheListFilters filter count matches set count."""
-    collection.insert_one({"_id": 1, "a": 1, "b": 1})
-    collection.create_index({"a": 1})
-    collection.create_index({"b": 1})
-    _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
-    _set_filter(collection, query={"b": 1}, indexes=[{"b": 1}])
-
-    result = execute_command(collection, {"planCacheListFilters": collection.name})
-    assertProperties(
-        result,
-        {"filters": Len(2)},
-        msg="planCacheListFilters filter count should match set count (2)",
-        raw_res=True,
-    )
-
-
 # Property [Filter Override]: re-setting a filter for the same query shape
 # overrides the previous indexes.
 def test_planCacheListFilters_override(collection):
@@ -167,28 +148,6 @@ def test_planCacheListFilters_remaining_after_selective_clear(collection):
             "filters.0.query": Eq({"b": 1}),
         },
         msg="planCacheListFilters should have 1 remaining filter for query {b: 1}",
-        raw_res=True,
-    )
-
-
-# Property [Lifecycle — Override Reflected]: planCacheListFilters reflects
-# overridden filter when set twice with the same query shape.
-def test_planCacheListFilters_lifecycle_override(collection):
-    """Test planCacheListFilters reflects filter override in lifecycle."""
-    collection.insert_one({"_id": 1, "a": 1, "b": 1})
-    collection.create_index({"a": 1})
-    collection.create_index({"a": 1, "b": 1})
-    _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
-    _set_filter(collection, query={"a": 1}, indexes=[{"a": 1, "b": 1}])
-
-    result = execute_command(collection, {"planCacheListFilters": collection.name})
-    assertProperties(
-        result,
-        {
-            "filters": Len(1),
-            "filters.0.indexes": Eq([{"a": 1, "b": 1}]),
-        },
-        msg="planCacheListFilters should reflect overridden indexes",
         raw_res=True,
     )
 

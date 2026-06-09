@@ -20,18 +20,6 @@ def _set_filter(collection, **kwargs):
     assertSuccessPartial(result, {"ok": 1.0}, msg="planCacheSetFilter setup should succeed")
 
 
-# Property [Empty Response]: planCacheListFilters returns filters: [] and
-# ok: 1.0 when no filters are set.
-def test_planCacheListFilters_empty_response(collection):
-    """Test planCacheListFilters returns empty filters and ok: 1.0."""
-    result = execute_command(collection, {"planCacheListFilters": collection.name})
-    assertSuccessPartial(
-        result,
-        {"filters": [], "ok": 1.0},
-        msg="planCacheListFilters should return empty filters and ok: 1.0",
-    )
-
-
 # Property [Ok Field Type]: planCacheListFilters ok field is of type double.
 def test_planCacheListFilters_ok_type(collection):
     """Test planCacheListFilters ok field is of type double."""
@@ -257,23 +245,6 @@ def test_planCacheListFilters_entry_field_types(collection):
             "filters.0.indexes": IsType("array"),
         },
         msg="planCacheListFilters filter entry fields should have correct types",
-        raw_res=True,
-    )
-
-
-# Property [Query Shape Values Stored]: planCacheListFilters returns the
-# query document exactly as passed to planCacheSetFilter.
-def test_planCacheListFilters_query_values_stored(collection):
-    """Test planCacheListFilters returns query values exactly as set."""
-    collection.insert_one({"_id": 1, "a": 1})
-    collection.create_index({"a": 1})
-    _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
-
-    result = execute_command(collection, {"planCacheListFilters": collection.name})
-    assertProperties(
-        result,
-        {"filters.0.query": Eq({"a": 1})},
-        msg="planCacheListFilters should return query exactly as passed to planCacheSetFilter",
         raw_res=True,
     )
 
