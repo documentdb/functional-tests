@@ -1,5 +1,7 @@
 """Tests for planCacheListFilters command field type acceptance."""
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 
 import pytest
@@ -46,15 +48,13 @@ LIST_FILTERS_COMMENT_TYPE_TESTS: list[CommandTestCase] = [
             "comment": v,
         },
         expected={"filters": [], "ok": 1.0},
-        msg=f"comment={tid} should be accepted",
+        msg=f"planCacheListFilters should accept comment of type {tid}",
     )
     for tid, val in _BSON_TYPE_VALUES
 ]
 
-LIST_FILTERS_FIELD_TYPE_TESTS: list[CommandTestCase] = LIST_FILTERS_COMMENT_TYPE_TESTS
 
-
-@pytest.mark.parametrize("test", pytest_params(LIST_FILTERS_FIELD_TYPE_TESTS))
+@pytest.mark.parametrize("test", pytest_params(LIST_FILTERS_COMMENT_TYPE_TESTS))
 def test_planCacheListFilters_field_types(database_client, collection, test):
     """Test planCacheListFilters command field type acceptance."""
     collection = test.prepare(database_client, collection)

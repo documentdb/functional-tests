@@ -1,5 +1,7 @@
 """Tests for planCacheListFilters command core behavior."""
 
+from __future__ import annotations
+
 import pytest
 
 from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (

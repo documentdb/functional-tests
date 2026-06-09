@@ -1,27 +1,24 @@
 """Tests for planCacheListFilters filter lifecycle and integration."""
 
+from __future__ import annotations
+
 from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.property_checks import Eq, Len
 
 
 def _set_filter(collection, **kwargs):
-    """Set an index filter via planCacheSetFilter."""
+    """Set an index filter via planCacheSetFilter (test setup)."""
     cmd = {"planCacheSetFilter": collection.name, **kwargs}
     result = execute_command(collection, cmd)
     assertSuccessPartial(result, {"ok": 1.0}, msg="planCacheSetFilter setup should succeed")
 
 
 def _clear_filters(collection, **kwargs):
-    """Clear index filters via planCacheClearFilters."""
+    """Clear index filters via planCacheClearFilters (test setup)."""
     cmd = {"planCacheClearFilters": collection.name, **kwargs}
     result = execute_command(collection, cmd)
     assertSuccessPartial(result, {"ok": 1.0}, msg="planCacheClearFilters setup should succeed")
-
-
-def _list_filters(collection):
-    """Run planCacheListFilters and return the raw result."""
-    return execute_command(collection, {"planCacheListFilters": collection.name})
 
 
 # Property [Multiple Filters — Two Shapes]: planCacheListFilters returns both
@@ -34,13 +31,11 @@ def test_planCacheListFilters_two_shapes(collection):
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
     _set_filter(collection, query={"b": 1}, indexes=[{"b": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
-        {
-            "filters": Len(2),
-        },
-        msg="should return 2 filters for 2 query shapes",
+        {"filters": Len(2)},
+        msg="planCacheListFilters should return 2 filters for 2 query shapes",
         raw_res=True,
     )
 
@@ -57,11 +52,11 @@ def test_planCacheListFilters_three_shapes(collection):
     _set_filter(collection, query={"b": 1}, indexes=[{"b": 1}])
     _set_filter(collection, query={"c": 1}, indexes=[{"c": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters": Len(3)},
-        msg="should return 3 filters for 3 query shapes",
+        msg="planCacheListFilters should return 3 filters for 3 query shapes",
         raw_res=True,
     )
 
@@ -76,11 +71,11 @@ def test_planCacheListFilters_count_matches(collection):
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
     _set_filter(collection, query={"b": 1}, indexes=[{"b": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters": Len(2)},
-        msg="filter count should match set count (2)",
+        msg="planCacheListFilters filter count should match set count (2)",
         raw_res=True,
     )
 
@@ -95,14 +90,14 @@ def test_planCacheListFilters_override(collection):
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1, "b": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {
             "filters": Len(1),
             "filters.0.indexes": Eq([{"a": 1, "b": 1}]),
         },
-        msg="should have 1 filter with overridden indexes",
+        msg="planCacheListFilters should have 1 filter with overridden indexes",
         raw_res=True,
     )
 
@@ -111,7 +106,7 @@ def test_planCacheListFilters_override(collection):
 # filters before any filters are set.
 def test_planCacheListFilters_empty_before_set(collection):
     """Test planCacheListFilters returns empty filters before any are set."""
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertSuccessPartial(
         result,
         {"filters": [], "ok": 1.0},
@@ -127,11 +122,11 @@ def test_planCacheListFilters_present_after_set(collection):
     collection.create_index({"a": 1})
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters": Len(1)},
-        msg="should have 1 filter after set",
+        msg="planCacheListFilters should have 1 filter after set",
         raw_res=True,
     )
 
@@ -145,7 +140,7 @@ def test_planCacheListFilters_empty_after_clear_all(collection):
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
     _clear_filters(collection)
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertSuccessPartial(
         result,
         {"filters": [], "ok": 1.0},
@@ -164,14 +159,14 @@ def test_planCacheListFilters_remaining_after_selective_clear(collection):
     _set_filter(collection, query={"b": 1}, indexes=[{"b": 1}])
     _clear_filters(collection, query={"a": 1})
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {
             "filters": Len(1),
             "filters.0.query": Eq({"b": 1}),
         },
-        msg="should have 1 remaining filter for query {b: 1}",
+        msg="planCacheListFilters should have 1 remaining filter for query {b: 1}",
         raw_res=True,
     )
 
@@ -186,14 +181,14 @@ def test_planCacheListFilters_lifecycle_override(collection):
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1, "b": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {
             "filters": Len(1),
             "filters.0.indexes": Eq([{"a": 1, "b": 1}]),
         },
-        msg="should reflect overridden indexes",
+        msg="planCacheListFilters should reflect overridden indexes",
         raw_res=True,
     )
 
@@ -212,7 +207,7 @@ def test_planCacheListFilters_collection_isolation(database_client, collection):
         assertSuccessPartial(
             result,
             {"filters": [], "ok": 1.0},
-            msg="Filters on collection A should not appear on collection B",
+            msg="planCacheListFilters should not show filters from another collection",
         )
     finally:
         database_client.drop_collection(other_coll.name)
@@ -227,13 +222,13 @@ def test_planCacheListFilters_index_dropped(collection):
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
     collection.drop_index("a_1")
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {
             "filters": Len(1),
             "filters.0.query": Eq({"a": 1}),
         },
-        msg="filter should persist after index is dropped",
+        msg="planCacheListFilters should still return filter after index is dropped",
         raw_res=True,
     )

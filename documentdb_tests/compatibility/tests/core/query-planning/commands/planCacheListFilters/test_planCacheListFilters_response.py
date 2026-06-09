@@ -1,5 +1,7 @@
 """Tests for planCacheListFilters response structure and filter content."""
 
+from __future__ import annotations
+
 from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.property_checks import (
@@ -12,22 +14,17 @@ from documentdb_tests.framework.property_checks import (
 
 
 def _set_filter(collection, **kwargs):
-    """Set an index filter via planCacheSetFilter."""
+    """Set an index filter via planCacheSetFilter (test setup)."""
     cmd = {"planCacheSetFilter": collection.name, **kwargs}
     result = execute_command(collection, cmd)
     assertSuccessPartial(result, {"ok": 1.0}, msg="planCacheSetFilter setup should succeed")
-
-
-def _list_filters(collection):
-    """Run planCacheListFilters and return the raw result."""
-    return execute_command(collection, {"planCacheListFilters": collection.name})
 
 
 # Property [Empty Response]: planCacheListFilters returns filters: [] and
 # ok: 1.0 when no filters are set.
 def test_planCacheListFilters_empty_response(collection):
     """Test planCacheListFilters returns empty filters and ok: 1.0."""
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertSuccessPartial(
         result,
         {"filters": [], "ok": 1.0},
@@ -38,11 +35,11 @@ def test_planCacheListFilters_empty_response(collection):
 # Property [Ok Field Type]: planCacheListFilters ok field is of type double.
 def test_planCacheListFilters_ok_type(collection):
     """Test planCacheListFilters ok field is of type double."""
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"ok": IsType("double")},
-        msg="ok field should be of type double",
+        msg="planCacheListFilters ok field should be of type double",
         raw_res=True,
     )
 
@@ -51,11 +48,11 @@ def test_planCacheListFilters_ok_type(collection):
 # type array even when empty.
 def test_planCacheListFilters_filters_type(collection):
     """Test planCacheListFilters filters field is of type array."""
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters": IsType("array")},
-        msg="filters field should be of type array",
+        msg="planCacheListFilters filters field should be of type array",
         raw_res=True,
     )
 
@@ -68,7 +65,7 @@ def test_planCacheListFilters_single_filter(collection):
     collection.create_index({"a": 1})
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {
@@ -76,7 +73,7 @@ def test_planCacheListFilters_single_filter(collection):
             "filters.0.query": Eq({"a": 1}),
             "filters.0.indexes": Eq([{"a": 1}]),
         },
-        msg="should return one filter entry with matching query and indexes",
+        msg="planCacheListFilters should return one filter entry with matching query and indexes",
         raw_res=True,
     )
 
@@ -89,11 +86,11 @@ def test_planCacheListFilters_default_sort(collection):
     collection.create_index({"a": 1})
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters.0.sort": Eq({})},
-        msg="sort should default to empty document",
+        msg="planCacheListFilters should default sort to empty document",
         raw_res=True,
     )
 
@@ -106,11 +103,11 @@ def test_planCacheListFilters_default_projection(collection):
     collection.create_index({"a": 1})
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters.0.projection": Eq({})},
-        msg="projection should default to empty document",
+        msg="planCacheListFilters should default projection to empty document",
         raw_res=True,
     )
 
@@ -123,11 +120,11 @@ def test_planCacheListFilters_with_sort(collection):
     collection.create_index({"a": 1, "b": 1})
     _set_filter(collection, query={"a": 1}, sort={"b": 1}, indexes=[{"a": 1, "b": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters.0.sort": Eq({"b": 1})},
-        msg="sort should match what was provided to planCacheSetFilter",
+        msg="planCacheListFilters should return sort matching planCacheSetFilter",
         raw_res=True,
     )
 
@@ -140,11 +137,11 @@ def test_planCacheListFilters_with_projection(collection):
     collection.create_index({"a": 1})
     _set_filter(collection, query={"a": 1}, projection={"a": 1}, indexes=[{"a": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters.0.projection": Eq({"a": 1})},
-        msg="projection should match what was provided to planCacheSetFilter",
+        msg="planCacheListFilters should return projection matching planCacheSetFilter",
         raw_res=True,
     )
 
@@ -157,14 +154,14 @@ def test_planCacheListFilters_with_collation(collection):
     collection.create_index({"a": 1})
     _set_filter(collection, query={"a": 1}, collation={"locale": "en"}, indexes=[{"a": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {
             "filters.0.collation": Exists(),
             "filters.0.collation.locale": Eq("en"),
         },
-        msg="collation should be present with locale en",
+        msg="planCacheListFilters should return collation with locale en",
         raw_res=True,
     )
 
@@ -182,14 +179,14 @@ def test_planCacheListFilters_with_full_collation(collection):
         indexes=[{"a": 1}],
     )
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {
             "filters.0.collation.locale": Eq("fr"),
             "filters.0.collation.strength": Eq(2),
         },
-        msg="collation should include locale fr and strength 2",
+        msg="planCacheListFilters should return collation with locale fr and strength 2",
         raw_res=True,
     )
 
@@ -209,7 +206,7 @@ def test_planCacheListFilters_all_shape_params(collection):
         indexes=[{"a": 1}],
     )
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {
@@ -219,7 +216,7 @@ def test_planCacheListFilters_all_shape_params(collection):
             "filters.0.collation": Exists(),
             "filters.0.indexes": Eq([{"a": 1}]),
         },
-        msg="all shape parameters should be present in filter entry",
+        msg="planCacheListFilters should return all shape parameters in filter entry",
         raw_res=True,
     )
 
@@ -233,13 +230,11 @@ def test_planCacheListFilters_multiple_indexes(collection):
     collection.create_index({"a": 1, "b": 1})
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}, {"a": 1, "b": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
-        {
-            "filters.0.indexes": Len(2),
-        },
-        msg="indexes should contain both specified indexes",
+        {"filters.0.indexes": Len(2)},
+        msg="planCacheListFilters should return both specified indexes",
         raw_res=True,
     )
 
@@ -252,7 +247,7 @@ def test_planCacheListFilters_entry_field_types(collection):
     collection.create_index({"a": 1})
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {
@@ -261,7 +256,7 @@ def test_planCacheListFilters_entry_field_types(collection):
             "filters.0.projection": IsType("object"),
             "filters.0.indexes": IsType("array"),
         },
-        msg="filter entry fields should have correct types",
+        msg="planCacheListFilters filter entry fields should have correct types",
         raw_res=True,
     )
 
@@ -274,11 +269,11 @@ def test_planCacheListFilters_query_values_stored(collection):
     collection.create_index({"a": 1})
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters.0.query": Eq({"a": 1})},
-        msg="query should be exactly as passed to planCacheSetFilter",
+        msg="planCacheListFilters should return query exactly as passed to planCacheSetFilter",
         raw_res=True,
     )
 
@@ -291,11 +286,11 @@ def test_planCacheListFilters_index_by_name(collection):
     collection.create_index({"a": 1}, name="a_1")
     _set_filter(collection, query={"a": 1}, indexes=["a_1"])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters.0.indexes": ContainsElement("a_1")},
-        msg="indexes should contain the index name 'a_1'",
+        msg="planCacheListFilters should return index name in indexes array",
         raw_res=True,
     )
 
@@ -308,10 +303,10 @@ def test_planCacheListFilters_index_by_key_pattern(collection):
     collection.create_index({"a": 1})
     _set_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
 
-    result = _list_filters(collection)
+    result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertProperties(
         result,
         {"filters.0.indexes": ContainsElement({"a": 1})},
-        msg="indexes should contain the key pattern {a: 1}",
+        msg="planCacheListFilters should return key pattern in indexes array",
         raw_res=True,
     )

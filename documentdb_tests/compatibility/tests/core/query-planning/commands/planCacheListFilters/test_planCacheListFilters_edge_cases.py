@@ -1,5 +1,7 @@
 """Tests for planCacheListFilters command edge cases and permissiveness."""
 
+from __future__ import annotations
+
 import pytest
 
 from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
