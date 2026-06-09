@@ -6,7 +6,7 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.target_collection import (
@@ -276,3 +276,16 @@ def test_planCacheClearFilters_core(database_client, collection, test):
         msg=test.msg,
         raw_res=True,
     )
+
+
+# Property [Repeated Clear All]: Running planCacheClearFilters multiple times
+# in succession without setting any filters always succeeds.
+def test_planCacheClearFilters_repeated_clear_all(collection):
+    """Test planCacheClearFilters succeeds when called multiple times in succession."""
+    for i in range(3):
+        result = execute_command(collection, {"planCacheClearFilters": collection.name})
+        assertSuccessPartial(
+            result,
+            {"ok": 1.0},
+            msg=f"planCacheClearFilters call {i + 1} of 3 should succeed",
+        )

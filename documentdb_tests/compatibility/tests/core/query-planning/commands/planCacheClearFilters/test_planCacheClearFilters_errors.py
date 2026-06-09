@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 import pytest
-from bson import Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
     CommandContext,
@@ -107,6 +107,12 @@ CLEAR_FILTERS_NAME_TYPE_ERROR_TESTS: list[CommandTestCase] = [
         command={"planCacheClearFilters": ObjectId()},
         error_code=INVALID_NAMESPACE_ERROR,
         msg="ObjectId collection name should be rejected as invalid type",
+    ),
+    CommandTestCase(
+        "name_type_binary",
+        command={"planCacheClearFilters": Binary(b"\x00")},
+        error_code=INVALID_NAMESPACE_ERROR,
+        msg="Binary collection name should be rejected as invalid type",
     ),
     CommandTestCase(
         "name_type_datetime",
