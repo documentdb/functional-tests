@@ -19,13 +19,6 @@ from documentdb_tests.framework.property_checks import (
     Len,
 )
 
-
-def _setup_filter(collection, **kwargs):
-    """Set an index filter via planCacheSetFilter."""
-    result = execute_command(collection, {"planCacheSetFilter": collection.name, **kwargs})
-    assert result["ok"] == 1.0, "planCacheSetFilter setup should succeed"
-
-
 # Property [Ok Field Type]: planCacheListFilters ok field is of type double.
 LIST_FILTERS_OK_TYPE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -55,7 +48,10 @@ LIST_FILTERS_SINGLE_ENTRY_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={
@@ -77,7 +73,10 @@ LIST_FILTERS_DEFAULTS_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters.0.sort": Eq({})},
@@ -88,7 +87,10 @@ LIST_FILTERS_DEFAULTS_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters.0.projection": Eq({})},
@@ -106,7 +108,15 @@ LIST_FILTERS_SHAPE_FIELDS_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1, "b": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1, "b": 1}),
-            _setup_filter(coll, query={"a": 1}, sort={"b": 1}, indexes=[{"a": 1, "b": 1}]),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "sort": {"b": 1},
+                    "indexes": [{"a": 1, "b": 1}],
+                },
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters.0.sort": Eq({"b": 1})},
@@ -117,7 +127,15 @@ LIST_FILTERS_SHAPE_FIELDS_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(coll, query={"a": 1}, projection={"a": 1}, indexes=[{"a": 1}]),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "projection": {"a": 1},
+                    "indexes": [{"a": 1}],
+                },
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters.0.projection": Eq({"a": 1})},
@@ -133,11 +151,14 @@ LIST_FILTERS_COLLATION_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(
+            execute_command(
                 coll,
-                query={"a": 1},
-                collation={"locale": "en"},
-                indexes=[{"a": 1}],
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "collation": {"locale": "en"},
+                    "indexes": [{"a": 1}],
+                },
             ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -152,11 +173,14 @@ LIST_FILTERS_COLLATION_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(
+            execute_command(
                 coll,
-                query={"a": 1},
-                collation={"locale": "fr", "strength": 2},
-                indexes=[{"a": 1}],
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "collation": {"locale": "fr", "strength": 2},
+                    "indexes": [{"a": 1}],
+                },
             ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -176,13 +200,16 @@ LIST_FILTERS_ALL_PARAMS_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1, "b": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(
+            execute_command(
                 coll,
-                query={"a": 1},
-                sort={"b": 1},
-                projection={"a": 1},
-                collation={"locale": "en"},
-                indexes=[{"a": 1}],
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "sort": {"b": 1},
+                    "projection": {"a": 1},
+                    "collation": {"locale": "en"},
+                    "indexes": [{"a": 1}],
+                },
             ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -206,7 +233,14 @@ LIST_FILTERS_MULTI_INDEX_TESTS: list[CommandTestCase] = [
         setup=lambda coll: (
             coll.create_index({"a": 1}),
             coll.create_index({"a": 1, "b": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}, {"a": 1, "b": 1}]),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "indexes": [{"a": 1}, {"a": 1, "b": 1}],
+                },
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters.0.indexes": Len(2)},
@@ -222,7 +256,10 @@ LIST_FILTERS_ENTRY_TYPES_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={
@@ -245,7 +282,10 @@ LIST_FILTERS_INDEX_SPEC_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}, name="a_1"),
-            _setup_filter(coll, query={"a": 1}, indexes=["a_1"]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": ["a_1"]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters.0.indexes": ContainsElement("a_1")},
@@ -256,7 +296,10 @@ LIST_FILTERS_INDEX_SPEC_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters.0.indexes": ContainsElement({"a": 1})},

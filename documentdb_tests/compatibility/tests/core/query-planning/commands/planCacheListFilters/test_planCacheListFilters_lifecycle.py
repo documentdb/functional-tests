@@ -13,19 +13,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Len
 
-
-def _setup_filter(collection, **kwargs):
-    """Set an index filter via planCacheSetFilter."""
-    result = execute_command(collection, {"planCacheSetFilter": collection.name, **kwargs})
-    assert result["ok"] == 1.0, "planCacheSetFilter setup should succeed"
-
-
-def _clear_filters(collection, **kwargs):
-    """Clear index filters via planCacheClearFilters."""
-    result = execute_command(collection, {"planCacheClearFilters": collection.name, **kwargs})
-    assert result["ok"] == 1.0, "planCacheClearFilters setup should succeed"
-
-
 # Property [Multiple Filters — Two Shapes]: planCacheListFilters returns both
 # filters when two different query shapes are set.
 LIST_FILTERS_MULTIPLE_TESTS: list[CommandTestCase] = [
@@ -35,8 +22,14 @@ LIST_FILTERS_MULTIPLE_TESTS: list[CommandTestCase] = [
         setup=lambda coll: (
             coll.create_index({"a": 1}),
             coll.create_index({"b": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(coll, query={"b": 1}, indexes=[{"b": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"b": 1}, "indexes": [{"b": 1}]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Len(2)},
@@ -49,9 +42,18 @@ LIST_FILTERS_MULTIPLE_TESTS: list[CommandTestCase] = [
             coll.create_index({"a": 1}),
             coll.create_index({"b": 1}),
             coll.create_index({"c": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(coll, query={"b": 1}, indexes=[{"b": 1}]),
-            _setup_filter(coll, query={"c": 1}, indexes=[{"c": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"b": 1}, "indexes": [{"b": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"c": 1}, "indexes": [{"c": 1}]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Len(3)},
@@ -68,8 +70,18 @@ LIST_FILTERS_OVERRIDE_TESTS: list[CommandTestCase] = [
         setup=lambda coll: (
             coll.create_index({"a": 1}),
             coll.create_index({"a": 1, "b": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1, "b": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "indexes": [{"a": 1, "b": 1}],
+                },
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={
@@ -99,7 +111,10 @@ LIST_FILTERS_PRESENT_AFTER_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Len(1)},
@@ -115,8 +130,11 @@ LIST_FILTERS_CLEAR_ALL_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _clear_filters(coll),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(coll, {"planCacheClearFilters": coll.name}),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Eq([]), "ok": Eq(1.0)},
@@ -133,9 +151,18 @@ LIST_FILTERS_SELECTIVE_CLEAR_TESTS: list[CommandTestCase] = [
         setup=lambda coll: (
             coll.create_index({"a": 1}),
             coll.create_index({"b": 1}),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(coll, query={"b": 1}, indexes=[{"b": 1}]),
-            _clear_filters(coll, query={"a": 1}),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"b": 1}, "indexes": [{"b": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheClearFilters": coll.name, "query": {"a": 1}},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={
@@ -154,7 +181,10 @@ LIST_FILTERS_INDEX_DROPPED_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}, name="a_1"),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
             coll.drop_index("a_1"),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -194,7 +224,10 @@ def test_planCacheListFilters_collection_isolation(database_client, collection):
     """Test planCacheListFilters is scoped to the specific collection."""
     collection.insert_one({"_id": 1, "a": 1})
     collection.create_index({"a": 1})
-    _setup_filter(collection, query={"a": 1}, indexes=[{"a": 1}])
+    execute_command(
+        collection,
+        {"planCacheSetFilter": collection.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+    )
 
     other_coll = database_client.create_collection(f"{collection.name}_other")
     try:
