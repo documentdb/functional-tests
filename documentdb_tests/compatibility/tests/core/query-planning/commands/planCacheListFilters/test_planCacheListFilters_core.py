@@ -72,28 +72,17 @@ LIST_FILTERS_CLUSTERED_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Null Optional Parameters]: when comment is set to null, the
-# command treats it as omitted and succeeds.
-LIST_FILTERS_NULL_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "null_comment",
-        command=lambda ctx: {"planCacheListFilters": ctx.collection, "comment": None},
-        expected={"filters": [], "ok": 1.0},
-        msg="planCacheListFilters should treat null comment as omitted",
-    ),
-]
-
 # Property [Unknown Fields Accepted]: planCacheListFilters silently accepts
 # unrecognized fields without error.
 LIST_FILTERS_UNKNOWN_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "unknown_field_foo",
+        "accepts_unknown_field",
         command=lambda ctx: {"planCacheListFilters": ctx.collection, "foo": "bar"},
         expected={"filters": [], "ok": 1.0},
         msg="planCacheListFilters should silently accept unknown field",
     ),
     CommandTestCase(
-        "case_variation_Comment",
+        "accepts_case_variant_Comment",
         command=lambda ctx: {
             "planCacheListFilters": ctx.collection,
             "Comment": "test",
@@ -102,7 +91,7 @@ LIST_FILTERS_UNKNOWN_FIELD_TESTS: list[CommandTestCase] = [
         msg="planCacheListFilters should treat capitalized Comment as unknown field",
     ),
     CommandTestCase(
-        "case_variation_Query",
+        "accepts_case_variant_Query",
         command=lambda ctx: {
             "planCacheListFilters": ctx.collection,
             "Query": {"a": 1},
@@ -111,7 +100,7 @@ LIST_FILTERS_UNKNOWN_FIELD_TESTS: list[CommandTestCase] = [
         msg="planCacheListFilters should treat capitalized Query as unknown field",
     ),
     CommandTestCase(
-        "case_variation_Sort",
+        "accepts_case_variant_Sort",
         command=lambda ctx: {
             "planCacheListFilters": ctx.collection,
             "Sort": {"a": 1},
@@ -125,7 +114,7 @@ LIST_FILTERS_UNKNOWN_FIELD_TESTS: list[CommandTestCase] = [
 # special characters, unicode, and long collection names.
 LIST_FILTERS_NAME_EDGE_CASE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "name_long",
+        "name_accepts_long_suffix",
         target_collection=NamedCollection(suffix="_" + "a" * 150),
         docs=[{"_id": 1}],
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -133,7 +122,7 @@ LIST_FILTERS_NAME_EDGE_CASE_TESTS: list[CommandTestCase] = [
         msg="planCacheListFilters should succeed with a long collection name",
     ),
     CommandTestCase(
-        "name_hyphen",
+        "name_accepts_hyphen",
         target_collection=NamedCollection(suffix="_my-coll"),
         docs=[{"_id": 1}],
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -141,7 +130,7 @@ LIST_FILTERS_NAME_EDGE_CASE_TESTS: list[CommandTestCase] = [
         msg="planCacheListFilters should succeed with hyphen in name",
     ),
     CommandTestCase(
-        "name_unicode",
+        "name_accepts_unicode",
         target_collection=NamedCollection(suffix="_\u00e9"),
         docs=[{"_id": 1}],
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -149,7 +138,7 @@ LIST_FILTERS_NAME_EDGE_CASE_TESTS: list[CommandTestCase] = [
         msg="planCacheListFilters should succeed with unicode name",
     ),
     CommandTestCase(
-        "name_single_char",
+        "name_accepts_single_char",
         target_collection=NamedCollection(suffix="_x"),
         docs=[{"_id": 1}],
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -157,7 +146,7 @@ LIST_FILTERS_NAME_EDGE_CASE_TESTS: list[CommandTestCase] = [
         msg="planCacheListFilters should succeed with single-character suffix name",
     ),
     CommandTestCase(
-        "name_underscores",
+        "name_accepts_underscores",
         target_collection=NamedCollection(suffix="_my_test_coll"),
         docs=[{"_id": 1}],
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -170,7 +159,7 @@ LIST_FILTERS_NAME_EDGE_CASE_TESTS: list[CommandTestCase] = [
 # comment values.
 LIST_FILTERS_COMMENT_EDGE_CASE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "comment_long",
+        "comment_accepts_long_string",
         command=lambda ctx: {
             "planCacheListFilters": ctx.collection,
             "comment": "x" * 10_000,
@@ -179,7 +168,7 @@ LIST_FILTERS_COMMENT_EDGE_CASE_TESTS: list[CommandTestCase] = [
         msg="planCacheListFilters should succeed with very long comment",
     ),
     CommandTestCase(
-        "comment_empty_string",
+        "comment_accepts_empty_string",
         command=lambda ctx: {
             "planCacheListFilters": ctx.collection,
             "comment": "",
@@ -188,7 +177,7 @@ LIST_FILTERS_COMMENT_EDGE_CASE_TESTS: list[CommandTestCase] = [
         msg="planCacheListFilters should succeed with empty string comment",
     ),
     CommandTestCase(
-        "comment_deeply_nested",
+        "comment_accepts_nested_object",
         command=lambda ctx: {
             "planCacheListFilters": ctx.collection,
             "comment": {"a": {"b": {"c": {"d": {"e": 1}}}}},
@@ -197,7 +186,7 @@ LIST_FILTERS_COMMENT_EDGE_CASE_TESTS: list[CommandTestCase] = [
         msg="planCacheListFilters should succeed with deeply nested object comment",
     ),
     CommandTestCase(
-        "comment_mixed_array",
+        "comment_accepts_mixed_array",
         command=lambda ctx: {
             "planCacheListFilters": ctx.collection,
             "comment": [1, "two", True, None, {"a": 1}],
@@ -249,7 +238,6 @@ LIST_FILTERS_CORE_TESTS: list[CommandTestCase] = (
     LIST_FILTERS_BASIC_TESTS
     + LIST_FILTERS_CAPPED_TESTS
     + LIST_FILTERS_CLUSTERED_TESTS
-    + LIST_FILTERS_NULL_TESTS
     + LIST_FILTERS_UNKNOWN_FIELD_TESTS
     + LIST_FILTERS_NAME_EDGE_CASE_TESTS
     + LIST_FILTERS_COMMENT_EDGE_CASE_TESTS

@@ -228,7 +228,7 @@ LIST_FILTERS_ALL_PARAMS_TESTS: list[CommandTestCase] = [
 # indexes specified in planCacheSetFilter.
 LIST_FILTERS_MULTI_INDEX_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "multiple_indexes",
+        "entry_indexes_contains_all_specified",
         docs=[{"_id": 1, "a": 1, "b": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
@@ -252,7 +252,7 @@ LIST_FILTERS_MULTI_INDEX_TESTS: list[CommandTestCase] = [
 # and indexes is an array.
 LIST_FILTERS_ENTRY_TYPES_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "entry_field_types",
+        "entry_fields_have_correct_types",
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),

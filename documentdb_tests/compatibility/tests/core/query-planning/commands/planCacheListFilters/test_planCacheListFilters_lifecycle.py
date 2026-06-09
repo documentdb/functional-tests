@@ -96,7 +96,7 @@ LIST_FILTERS_OVERRIDE_TESTS: list[CommandTestCase] = [
 # filters before any filters are set.
 LIST_FILTERS_EMPTY_BEFORE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "empty_before_set",
+        "returns_empty_before_any_set",
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Eq([]), "ok": Eq(1.0)},
         msg="planCacheListFilters should return empty filters initially",
@@ -107,7 +107,7 @@ LIST_FILTERS_EMPTY_BEFORE_TESTS: list[CommandTestCase] = [
 # filter after planCacheSetFilter is called.
 LIST_FILTERS_PRESENT_AFTER_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "present_after_set",
+        "returns_filter_after_set",
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
@@ -126,7 +126,7 @@ LIST_FILTERS_PRESENT_AFTER_TESTS: list[CommandTestCase] = [
 # empty filters after planCacheClearFilters clears all filters.
 LIST_FILTERS_CLEAR_ALL_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "empty_after_clear_all",
+        "returns_empty_after_clear_all",
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
@@ -146,7 +146,7 @@ LIST_FILTERS_CLEAR_ALL_TESTS: list[CommandTestCase] = [
 # query shape, the remaining filter is still returned.
 LIST_FILTERS_SELECTIVE_CLEAR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "remaining_after_selective_clear",
+        "returns_remaining_after_selective_clear",
         docs=[{"_id": 1, "a": 1, "b": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}),
@@ -177,7 +177,7 @@ LIST_FILTERS_SELECTIVE_CLEAR_TESTS: list[CommandTestCase] = [
 # index is dropped.
 LIST_FILTERS_INDEX_DROPPED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "index_dropped",
+        "filter_persists_after_index_dropped",
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
             coll.create_index({"a": 1}, name="a_1"),
