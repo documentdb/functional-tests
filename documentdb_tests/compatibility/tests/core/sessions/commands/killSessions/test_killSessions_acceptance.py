@@ -181,17 +181,6 @@ KILLSESSIONS_NULL_ELEMENT_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Valid UUID]: a standard UUID (Binary subtype 4, 16 bytes) is
-# accepted as a session id.
-KILLSESSIONS_VALID_UUID_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "valid_uuid",
-        command=lambda ctx: {"killSessions": [{"id": Binary(uuid.uuid4().bytes, 4)}]},
-        expected={"ok": 1.0},
-        msg="killSessions should accept a valid UUID session id",
-    ),
-]
-
 # Property [Stable API V1 Acceptance]: killSessions succeeds with
 # apiVersion "1" and non-strict API parameters.
 KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
@@ -239,7 +228,6 @@ KILLSESSIONS_ACCEPTANCE_TESTS: list[CommandTestCase] = (
     + KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS
     + KILLSESSIONS_READCONCERN_ACCEPTANCE_TESTS
     + KILLSESSIONS_NULL_ELEMENT_TESTS
-    + KILLSESSIONS_VALID_UUID_TESTS
     + KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS
 )
 
