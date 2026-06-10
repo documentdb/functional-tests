@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 import pytest
-from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from pymongo.collection import Collection
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
@@ -66,12 +66,12 @@ QUERYSETTINGS_DEBUG_SHAPE_BSON_TYPE_ERROR_TESTS: list[StageTestCase] = [
     for tid, val in [
         ("null", None),
         ("int32", 42),
-        ("int64", INT64_ZERO),
-        ("double", DOUBLE_ZERO),
-        ("decimal128", DECIMAL128_ZERO),
+        ("int64", Int64(42)),
+        ("double", 42.0),
+        ("decimal128", Decimal128("42")),
         ("string", "hello"),
-        ("object", {"a": 1}),
-        ("array", [True]),
+        ("object", {"k": "v"}),
+        ("array", ["x"]),
         ("objectid", ObjectId()),
         ("datetime", datetime(2024, 1, 1)),
         ("timestamp", Timestamp(0, 0)),
