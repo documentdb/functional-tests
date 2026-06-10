@@ -25,7 +25,6 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq, Exists
 
 pytestmark = pytest.mark.no_parallel
 
@@ -137,30 +136,12 @@ KILLSESSIONS_COMMENT_TYPE_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [Success Response Structure]: a successful killSessions
-# response contains ok: 1.0 (double).
-KILLSESSIONS_SUCCESS_RESPONSE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "success_ok_field",
-        command={"killSessions": []},
-        expected={"ok": Eq(1.0)},
-        msg="killSessions success response should contain ok: 1.0",
-    ),
-    CommandTestCase(
-        "success_expected_keys",
-        command={"killSessions": []},
-        expected={"ok": Exists()},
-        msg="killSessions success response should contain ok field",
-    ),
-]
-
 KILLSESSIONS_CORE_TESTS: list[CommandTestCase] = (
     KILLSESSIONS_EMPTY_ARRAY_TESTS
     + KILLSESSIONS_RANDOM_UUID_TESTS
     + KILLSESSIONS_DUPLICATE_TESTS
     + KILLSESSIONS_LARGE_ARRAY_TESTS
     + KILLSESSIONS_COMMENT_TYPE_TESTS
-    + KILLSESSIONS_SUCCESS_RESPONSE_TESTS
 )
 
 
@@ -178,18 +159,7 @@ def test_killSessions_core(collection, test):
 
 
 # Property [Database Context]: killSessions succeeds when run on
-# different databases.
-def test_killSessions_on_test_database(collection):
-    """Test killSessions succeeds when run on the test database."""
-    result = execute_command(collection, {"killSessions": []})
-    assertResult(
-        result,
-        expected={"ok": 1.0},
-        msg="killSessions should succeed on test database",
-        raw_res=True,
-    )
-
-
+# the admin database (not just the default test database).
 def test_killSessions_on_admin_database(collection):
     """Test killSessions succeeds when run on the admin database."""
     result = execute_admin_command(collection, {"killSessions": []})
