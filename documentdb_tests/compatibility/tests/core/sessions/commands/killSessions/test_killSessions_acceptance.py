@@ -23,6 +23,8 @@ from documentdb_tests.framework.test_constants import (
     INT64_ZERO,
 )
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [maxTimeMS Acceptance]: maxTimeMS accepts values at both
 # boundaries of the valid range across all numeric types.
 KILLSESSIONS_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
@@ -78,7 +80,6 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="killSessions should ignore a single unknown field",
-        marks=(pytest.mark.no_parallel,),
     ),
     CommandTestCase(
         "unrecognized_multiple",
@@ -89,7 +90,6 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="killSessions should ignore multiple unknown fields",
-        marks=(pytest.mark.no_parallel,),
     ),
     CommandTestCase(
         "unrecognized_dollar_prefix",
@@ -99,7 +99,6 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="killSessions should ignore dollar-prefixed unknown field",
-        marks=(pytest.mark.no_parallel,),
     ),
     CommandTestCase(
         "unrecognized_other_command",
@@ -109,7 +108,6 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="killSessions should ignore field from another command",
-        marks=(pytest.mark.no_parallel,),
     ),
     CommandTestCase(
         "unrecognized_case_variant",
@@ -119,7 +117,6 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="killSessions should ignore case-variant of command name",
-        marks=(pytest.mark.no_parallel,),
     ),
 ]
 
@@ -189,14 +186,12 @@ KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command={"killSessions": [], "apiVersion": "1"},
         expected={"ok": 1.0},
         msg="killSessions should succeed with apiVersion 1",
-        marks=(pytest.mark.no_parallel,),
     ),
     CommandTestCase(
         "api_version_1_strict_false",
         command={"killSessions": [], "apiVersion": "1", "apiStrict": False},
         expected={"ok": 1.0},
         msg="killSessions should succeed with apiVersion 1 and apiStrict false",
-        marks=(pytest.mark.no_parallel,),
     ),
     CommandTestCase(
         "api_version_1_deprecation_true",
@@ -207,7 +202,6 @@ KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="killSessions should succeed with apiVersion 1 and apiDeprecationErrors true",
-        marks=(pytest.mark.no_parallel,),
     ),
     CommandTestCase(
         "api_version_1_deprecation_false",
@@ -218,7 +212,6 @@ KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="killSessions should succeed with apiVersion 1 and apiDeprecationErrors false",
-        marks=(pytest.mark.no_parallel,),
     ),
 ]
 
