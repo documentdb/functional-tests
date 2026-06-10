@@ -143,6 +143,29 @@ def test_createIndexes_same_key_same_name_noop(collection):
     )
 
 
+def test_createIndexes_different_direction_creates_two(collection):
+    """Test creating index with same field but different sort order creates two indexes."""
+    execute_command(
+        collection,
+        {
+            "createIndexes": collection.name,
+            "indexes": [{"key": {"a": 1}, "name": "a_1"}],
+        },
+    )
+    result = execute_command(
+        collection,
+        {
+            "createIndexes": collection.name,
+            "indexes": [{"key": {"a": -1}, "name": "a_neg1"}],
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0, "numIndexesBefore": 2, "numIndexesAfter": 3},
+        "Different sort order should create separate index",
+    )
+
+
 def test_createIndexes_num_indexes_before_includes_id(collection):
     """Test numIndexesBefore reflects count including _id index."""
     collection.insert_one({"_id": 1})
