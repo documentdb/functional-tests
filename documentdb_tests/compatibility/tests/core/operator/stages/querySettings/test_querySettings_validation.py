@@ -99,9 +99,13 @@ QUERYSETTINGS_VALIDATION_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(QUERYSETTINGS_VALIDATION_TESTS))
 def test_querySettings_validation(collection: Collection, test_case: StageTestCase):
     """Test $querySettings empty-result, stage-document, and unknown-field validation."""
+    pipeline = test_case.pipeline
+    # The $querySettings store is cluster-wide, so scope result reads to this collection.
+    if test_case.error_code is None:
+        pipeline = pipeline + [{"$match": {"representativeQuery.find": collection.name}}]
     result = execute_admin_command(
         collection,
-        {"aggregate": 1, "pipeline": test_case.pipeline, "cursor": {}},
+        {"aggregate": 1, "pipeline": pipeline, "cursor": {}},
     )
     assertResult(
         result,

@@ -195,11 +195,13 @@ def _teardown_query_settings(collection: Collection, query_settings: list[dict[s
 def test_querySettings_structure(collection: Collection, test_case: QuerySettingsStructureTestCase):
     """Test $querySettings returned document structure."""
     query_settings = test_case.query_settings(collection)
-    _setup_query_settings(collection, query_settings, test_case.settings_comment)
+    # The $querySettings store is cluster-wide, so scope the read to this collection.
+    pipeline = test_case.pipeline + [{"$match": {"representativeQuery.find": collection.name}}]
     try:
+        _setup_query_settings(collection, query_settings, test_case.settings_comment)
         result = execute_admin_command(
             collection,
-            {"aggregate": 1, "pipeline": test_case.pipeline, "cursor": {}},
+            {"aggregate": 1, "pipeline": pipeline, "cursor": {}},
         )
         expected = (
             test_case.expected(collection) if callable(test_case.expected) else test_case.expected
