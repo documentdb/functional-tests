@@ -1,5 +1,5 @@
 """
-Field handling tests for $inc update field operator.
+Field path tests for $inc update field operator.
 
 Tests sign handling, missing fields, argument variations, and dot notation.
 """
@@ -21,14 +21,6 @@ SIGN_TESTS: list[UpdateTestCase] = [
         update={"$inc": {"val": 0}},
         expected={"_id": 1, "val": 10},
         msg="$inc should leave field unchanged when increment is zero",
-    ),
-    UpdateTestCase(
-        "positive_inc_on_positive",
-        setup_docs=[{"_id": 1, "val": 10}],
-        query={"_id": 1},
-        update={"$inc": {"val": 5}},
-        expected={"_id": 1, "val": 15},
-        msg="$inc should add positive increment to positive field",
     ),
     UpdateTestCase(
         "negative_inc_on_positive",
@@ -139,6 +131,14 @@ DOT_NOTATION_TESTS: list[UpdateTestCase] = [
         msg="$inc should work on embedded field via dot notation",
     ),
     UpdateTestCase(
+        "deeply_nested_field",
+        setup_docs=[{"_id": 1, "a": {"b": {"c": {"d": 5}}}}],
+        query={"_id": 1},
+        update={"$inc": {"a.b.c.d": 1}},
+        expected={"_id": 1, "a": {"b": {"c": {"d": 6}}}},
+        msg="$inc should work on deeply nested field via dot notation",
+    ),
+    UpdateTestCase(
         "array_index",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
@@ -160,8 +160,8 @@ ALL_FIELD_TESTS = SIGN_TESTS + MISSING_FIELD_TESTS + ARGUMENT_TESTS + DOT_NOTATI
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_FIELD_TESTS))
-def test_inc_field_handling(collection, test: UpdateTestCase):
-    """Test $inc field handling behavior."""
+def test_inc_field_paths(collection, test: UpdateTestCase):
+    """Test $inc with various field paths and targeting."""
     collection.insert_many(test.setup_docs)
 
     execute_command(

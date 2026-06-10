@@ -1,11 +1,12 @@
 """
 Special value tests for $inc update field operator.
 
-Tests NaN, Infinity, negative zero, and Decimal128 precision edge cases.
+Tests NaN, Infinity, negative zero, Decimal128 precision edge cases,
+int32/int64 overflow boundaries, and double overflow to Infinity.
 """
 
 import pytest
-from bson import Decimal128
+from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
 from documentdb_tests.framework.assertions import assertSuccess, assertSuccessNaN
@@ -20,10 +21,19 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_ZERO,
     DECIMAL128_SMALL_EXPONENT,
+    DOUBLE_MAX,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
+    INT32_MAX,
+    INT32_MAX_MINUS_1,
+    INT32_MIN,
+    INT32_MIN_PLUS_1,
+    INT64_MAX,
+    INT64_MAX_MINUS_1,
+    INT64_MIN,
+    INT64_MIN_PLUS_1,
 )
 
 # Property [NaN Propagation]: any arithmetic involving NaN produces NaN.
@@ -308,10 +318,111 @@ DECIMAL128_PRECISION_TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "val": DECIMAL128_LARGE_EXPONENT},
         msg="$inc should preserve large exponent Decimal128 when incremented by zero",
     ),
+    UpdateTestCase(
+        "decimal128_trailing_zeros_plus_zero",
+        setup_docs=[{"_id": 1, "val": Decimal128("1.000")}],
+        query={"_id": 1},
+        update={"$inc": {"val": Decimal128("0")}},
+        expected={"_id": 1, "val": Decimal128("1.000")},
+        msg="$inc should preserve Decimal128 trailing zeros when incremented by zero",
+    ),
+]
+
+# Property [Int32 Overflow]: $inc promotes int32 to int64 when result exceeds int32 range.
+INT32_OVERFLOW_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        "int32_max_plus_1",
+        setup_docs=[{"_id": 1, "val": INT32_MAX}],
+        query={"_id": 1},
+        update={"$inc": {"val": 1}},
+        expected={"_id": 1, "val": Int64(2_147_483_648)},
+        msg="$inc should promote INT32_MAX + 1 to int64",
+    ),
+    UpdateTestCase(
+        "int32_max_plus_int32_max",
+        setup_docs=[{"_id": 1, "val": INT32_MAX}],
+        query={"_id": 1},
+        update={"$inc": {"val": INT32_MAX}},
+        expected={"_id": 1, "val": Int64(4_294_967_294)},
+        msg="$inc should promote INT32_MAX + INT32_MAX to int64",
+    ),
+    UpdateTestCase(
+        "int32_min_minus_1",
+        setup_docs=[{"_id": 1, "val": INT32_MIN}],
+        query={"_id": 1},
+        update={"$inc": {"val": -1}},
+        expected={"_id": 1, "val": Int64(-2_147_483_649)},
+        msg="$inc should promote INT32_MIN - 1 to int64",
+    ),
+    UpdateTestCase(
+        "int32_min_plus_int32_min",
+        setup_docs=[{"_id": 1, "val": INT32_MIN}],
+        query={"_id": 1},
+        update={"$inc": {"val": INT32_MIN}},
+        expected={"_id": 1, "val": Int64(-4_294_967_296)},
+        msg="$inc should promote INT32_MIN + INT32_MIN to int64",
+    ),
+    UpdateTestCase(
+        "int32_max_minus_1_plus_1_stays_int32",
+        setup_docs=[{"_id": 1, "val": INT32_MAX_MINUS_1}],
+        query={"_id": 1},
+        update={"$inc": {"val": 1}},
+        expected={"_id": 1, "val": INT32_MAX},
+        msg="$inc should stay int32 when result is exactly INT32_MAX",
+    ),
+    UpdateTestCase(
+        "int32_min_plus_1_minus_1_stays_int32",
+        setup_docs=[{"_id": 1, "val": INT32_MIN_PLUS_1}],
+        query={"_id": 1},
+        update={"$inc": {"val": -1}},
+        expected={"_id": 1, "val": INT32_MIN},
+        msg="$inc should stay int32 when result is exactly INT32_MIN",
+    ),
+]
+
+# Property [Int64 Boundary]: $inc stays int64 when result is at the int64 boundary.
+INT64_BOUNDARY_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        "int64_max_minus_1_plus_1_stays_int64",
+        setup_docs=[{"_id": 1, "val": INT64_MAX_MINUS_1}],
+        query={"_id": 1},
+        update={"$inc": {"val": 1}},
+        expected={"_id": 1, "val": INT64_MAX},
+        msg="$inc should stay int64 when result is exactly INT64_MAX",
+    ),
+    UpdateTestCase(
+        "int64_min_plus_1_minus_1_stays_int64",
+        setup_docs=[{"_id": 1, "val": INT64_MIN_PLUS_1}],
+        query={"_id": 1},
+        update={"$inc": {"val": -1}},
+        expected={"_id": 1, "val": INT64_MIN},
+        msg="$inc should stay int64 when result is exactly INT64_MIN",
+    ),
+]
+
+# Property [Double Overflow]: $inc produces Infinity when double exceeds max finite value.
+DOUBLE_OVERFLOW_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        "double_max_plus_double_max",
+        setup_docs=[{"_id": 1, "val": DOUBLE_MAX}],
+        query={"_id": 1},
+        update={"$inc": {"val": DOUBLE_MAX}},
+        expected={"_id": 1, "val": float("inf")},
+        msg="$inc should produce Infinity when DOUBLE_MAX + DOUBLE_MAX overflows",
+    ),
+    UpdateTestCase(
+        "negative_double_max_plus_negative_double_max",
+        setup_docs=[{"_id": 1, "val": -DOUBLE_MAX}],
+        query={"_id": 1},
+        update={"$inc": {"val": -DOUBLE_MAX}},
+        expected={"_id": 1, "val": float("-inf")},
+        msg="$inc should produce -Infinity when -DOUBLE_MAX + -DOUBLE_MAX overflows",
+    ),
 ]
 
 ALL_NAN_TESTS = NAN_TESTS + NAN_INFINITY_TESTS + INFINITY_TESTS
 ALL_ZERO_PRECISION_TESTS = NEGATIVE_ZERO_TESTS + DECIMAL128_PRECISION_TESTS
+ALL_OVERFLOW_TESTS = INT32_OVERFLOW_TESTS + INT64_BOUNDARY_TESTS + DOUBLE_OVERFLOW_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_NAN_TESTS))
@@ -331,6 +442,20 @@ def test_inc_nan_and_infinity(collection, test: UpdateTestCase):
 @pytest.mark.parametrize("test", pytest_params(ALL_ZERO_PRECISION_TESTS))
 def test_inc_negative_zero_and_precision(collection, test: UpdateTestCase):
     """Test $inc negative zero and Decimal128 precision behavior."""
+    collection.insert_many(test.setup_docs)
+
+    execute_command(
+        collection,
+        {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
+    )
+
+    result = execute_command(collection, {"find": collection.name, "filter": test.query})
+    assertSuccess(result, [test.expected], msg=test.msg)
+
+
+@pytest.mark.parametrize("test", pytest_params(ALL_OVERFLOW_TESTS))
+def test_inc_overflow(collection, test: UpdateTestCase):
+    """Test $inc overflow and boundary behavior with successful updates."""
     collection.insert_many(test.setup_docs)
 
     execute_command(

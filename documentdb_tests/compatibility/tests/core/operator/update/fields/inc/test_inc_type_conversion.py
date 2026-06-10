@@ -1,8 +1,9 @@
 """
 Numeric type conversion tests for $inc update field operator.
 
-Tests all 16 numeric type combinations (existing field type x increment type)
-and verifies correct output type promotion rules.
+Tests all numeric type combinations (existing field type x increment type),
+verifies correct output type promotion rules, and covers fractional-increment
+promotion (e.g. int32 + 0.5 -> double).
 """
 
 import pytest

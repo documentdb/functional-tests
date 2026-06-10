@@ -1,7 +1,7 @@
 """
 Update method and upsert tests for $inc update field operator.
 
-Tests $inc update result metadata and upsert behavior.
+Tests $inc update result metadata, upsert, and findAndModify behavior.
 """
 
 import pytest
@@ -94,3 +94,27 @@ def test_inc_upsert(collection, test: UpdateTestCase):
         collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
     )
     assertSuccess(result, [test.expected], msg=test.msg)
+
+
+# Property [findAndModify Context]: $inc via findAndModify with new:true returns the
+# post-increment document.
+def test_inc_find_and_modify_returns_after(collection):
+    """Test $inc via findAndModify with new:true returns the incremented document."""
+    collection.insert_one({"_id": 1, "name": "Alice", "count": 10})
+
+    result = execute_command(
+        collection,
+        {
+            "findAndModify": collection.name,
+            "query": {"_id": 1},
+            "update": {"$inc": {"count": 5}},
+            "new": True,
+        },
+    )
+
+    expected = {"ok": 1.0, "value": {"_id": 1, "name": "Alice", "count": 15}}
+    assertSuccessPartial(
+        result,
+        expected,
+        msg="$inc via findAndModify with new:true should return the incremented document",
+    )
