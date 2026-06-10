@@ -32,12 +32,6 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-
-def _random_uuid() -> Binary:
-    """Generate a random UUID as Binary subtype 4."""
-    return Binary(uuid.uuid4().bytes, subtype=4)
-
-
 # Property [Non-Document Array Elements]: array elements that are not
 # documents are rejected (except null, which is silently accepted).
 KILLSESSIONS_ELEMENT_TYPE_ERROR_TESTS: list[CommandTestCase] = [
@@ -77,7 +71,7 @@ KILLSESSIONS_NULL_ELEMENT_TESTS: list[CommandTestCase] = [
     ),
     CommandTestCase(
         "element_null_after_valid",
-        command=lambda ctx: {"killSessions": [{"id": _random_uuid()}, None]},
+        command=lambda ctx: {"killSessions": [{"id": Binary(uuid.uuid4().bytes, 4)}, None]},
         expected={"ok": 1.0},
         msg="killSessions should accept null element after valid element",
     ),
@@ -94,7 +88,7 @@ KILLSESSIONS_INVALID_DOC_ERROR_TESTS: list[CommandTestCase] = [
     ),
     CommandTestCase(
         "element_wrong_field",
-        command=lambda ctx: {"killSessions": [{"notId": _random_uuid()}]},
+        command=lambda ctx: {"killSessions": [{"notId": Binary(uuid.uuid4().bytes, 4)}]},
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="killSessions should reject document with wrong field name",
     ),
@@ -111,7 +105,7 @@ KILLSESSIONS_INVALID_DOC_ERROR_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_MIXED_ELEMENT_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "mixed_valid_then_int",
-        command=lambda ctx: {"killSessions": [{"id": _random_uuid()}, 1]},
+        command=lambda ctx: {"killSessions": [{"id": Binary(uuid.uuid4().bytes, 4)}, 1]},
         error_code=TYPE_MISMATCH_ERROR,
         msg="killSessions should reject int element after valid element",
     ),
@@ -177,7 +171,7 @@ KILLSESSIONS_UUID_SIZE_ERROR_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_EXTRA_FIELDS_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "extra_field_alongside_id",
-        command=lambda ctx: {"killSessions": [{"id": _random_uuid(), "extra": 1}]},
+        command=lambda ctx: {"killSessions": [{"id": Binary(uuid.uuid4().bytes, 4), "extra": 1}]},
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="killSessions should reject extra fields alongside id",
     ),
@@ -188,7 +182,7 @@ KILLSESSIONS_EXTRA_FIELDS_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_VALID_UUID_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "valid_uuid",
-        command=lambda ctx: {"killSessions": [{"id": _random_uuid()}]},
+        command=lambda ctx: {"killSessions": [{"id": Binary(uuid.uuid4().bytes, 4)}]},
         expected={"ok": 1.0},
         msg="killSessions should accept a valid UUID session id",
     ),

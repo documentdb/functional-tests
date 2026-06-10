@@ -18,11 +18,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.no_parallel
 
 
-def _random_uuid() -> Binary:
-    """Generate a random UUID as Binary subtype 4."""
-    return Binary(uuid.uuid4().bytes, subtype=4)
-
-
 # Property [Empty Array]: killSessions with an empty array succeeds.
 KILLSESSIONS_EMPTY_ARRAY_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -38,19 +33,26 @@ KILLSESSIONS_EMPTY_ARRAY_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_RANDOM_UUID_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "random_uuid_single",
-        command=lambda ctx: {"killSessions": [{"id": _random_uuid()}]},
+        command=lambda ctx: {"killSessions": [{"id": Binary(uuid.uuid4().bytes, 4)}]},
         expected={"ok": 1.0},
         msg="killSessions should succeed with a random non-matching UUID",
     ),
     CommandTestCase(
         "random_uuid_two",
-        command=lambda ctx: {"killSessions": [{"id": _random_uuid()}, {"id": _random_uuid()}]},
+        command=lambda ctx: {
+            "killSessions": [
+                {"id": Binary(uuid.uuid4().bytes, 4)},
+                {"id": Binary(uuid.uuid4().bytes, 4)},
+            ]
+        },
         expected={"ok": 1.0},
         msg="killSessions should succeed with two random UUIDs",
     ),
     CommandTestCase(
         "random_uuid_five",
-        command=lambda ctx: {"killSessions": [{"id": _random_uuid()} for _ in range(5)]},
+        command=lambda ctx: {
+            "killSessions": [{"id": Binary(uuid.uuid4().bytes, 4)} for _ in range(5)]
+        },
         expected={"ok": 1.0},
         msg="killSessions should succeed with five random UUIDs",
     ),
@@ -77,7 +79,9 @@ KILLSESSIONS_DUPLICATE_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_LARGE_ARRAY_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "large_array_100",
-        command=lambda ctx: {"killSessions": [{"id": _random_uuid()} for _ in range(100)]},
+        command=lambda ctx: {
+            "killSessions": [{"id": Binary(uuid.uuid4().bytes, 4)} for _ in range(100)]
+        },
         expected={"ok": 1.0},
         msg="killSessions should handle 100 session identifiers",
     ),
