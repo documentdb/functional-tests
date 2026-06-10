@@ -21,7 +21,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.target_collection import ViewCollection
 
-
 # Property [Non-Existent Collection]: planCacheSetFilter rejects a non-existent collection.
 SET_FILTER_NON_EXISTENT_TESTS: list[CommandTestCase] = [
     CommandTestCase(

@@ -1,4 +1,4 @@
-"""Tests for planCacheSetFilter core behavior."""
+"""Tests for planCacheSetFilter core behavior and query shape semantics."""
 
 from __future__ import annotations
 
@@ -8,10 +8,17 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.assertions import assertProperties, assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq, Exists, Len
 from documentdb_tests.framework.target_collection import CappedCollection
+
+
+def _setup_filter(collection, **kwargs):
+    """Set an index filter via planCacheSetFilter."""
+    result = execute_command(collection, {"planCacheSetFilter": collection.name, **kwargs})
+    assert result["ok"] == 1.0, "planCacheSetFilter setup should succeed"
 
 
 # Property [Success Response]: planCacheSetFilter returns ok:1.0 on success.
@@ -50,7 +57,7 @@ SET_FILTER_SUCCESS_TESTS: list[CommandTestCase] = [
             "indexes": [{"item": 1, "date": 1}],
         },
         expected={"ok": 1.0},
-        msg="planCacheSetFilter should accept a full shape with query, sort, projection, and collation",
+        msg="planCacheSetFilter should accept a full shape with sort, projection, and collation",
     ),
     CommandTestCase(
         "capped_collection",
@@ -251,7 +258,8 @@ SET_FILTER_INDEX_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Optional Field Edge Cases]: planCacheSetFilter accepts edge-case values for optional fields.
+# Property [Optional Field Edge Cases]: planCacheSetFilter accepts edge-case values for
+# optional fields.
 SET_FILTER_OPTIONAL_EDGE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "sort_empty_document",
@@ -388,11 +396,46 @@ SET_FILTER_CORE_TESTS: list[CommandTestCase] = (
 )
 
 
+# Property [Index By Name]: indexes can be specified as index name strings.
+SET_FILTER_INDEX_NAME_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "index_by_name",
+        docs=[{"_id": 1, "x": 1}],
+        setup=lambda coll: coll.create_index("x"),
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"x": 1},
+            "indexes": ["x_1"],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept index name string",
+    ),
+    CommandTestCase(
+        "mixed_index_specs",
+        docs=[{"_id": 1, "x": 1, "y": 1}],
+        setup=lambda coll: coll.create_index("y"),
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"x": 1},
+            "indexes": [{"x": 1}, "y_1"],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept mix of spec documents and name strings",
+    ),
+]
+
+SET_FILTER_ALL_CORE_TESTS: list[CommandTestCase] = (
+    SET_FILTER_CORE_TESTS + SET_FILTER_INDEX_NAME_TESTS
+)
+
+
 @pytest.mark.admin
-@pytest.mark.parametrize("test", pytest_params(SET_FILTER_CORE_TESTS))
+@pytest.mark.parametrize("test", pytest_params(SET_FILTER_ALL_CORE_TESTS))
 def test_planCacheSetFilter_cases(database_client, collection, test):
     """Test planCacheSetFilter cases."""
     collection = test.prepare(database_client, collection)
+    if test.setup:
+        test.setup(collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
     assertResult(
@@ -404,43 +447,156 @@ def test_planCacheSetFilter_cases(database_client, collection, test):
     )
 
 
-def test_planCacheSetFilter_index_by_name(collection):
-    """Test planCacheSetFilter accepts index name strings."""
-    collection.insert_one({"_id": 1, "x": 1})
-    collection.create_index("x")
+# Property [Query Shape Semantics]: planCacheSetFilter manages filters by query shape.
+SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "query_only_shape",
+        docs=[{"_id": 1, "status": 1}],
+        setup=lambda coll: _setup_filter(coll, query={"status": 1}, indexes=[{"status": 1}]),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": Len(1)},
+        msg="planCacheListFilters should show the query-only shape filter",
+    ),
+    CommandTestCase(
+        "full_shape_verification",
+        docs=[{"_id": 1, "item": 1, "date": 1, "qty": 1}],
+        setup=lambda coll: _setup_filter(
+            coll,
+            query={"item": 1},
+            sort={"date": 1},
+            projection={"qty": 1},
+            collation={"locale": "en"},
+            indexes=[{"item": 1, "date": 1}],
+        ),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": Len(1)},
+        msg="planCacheListFilters should return exactly 1 filter for full shape",
+    ),
+    CommandTestCase(
+        "override",
+        docs=[{"_id": 1, "a": 1}],
+        setup=lambda coll: (
+            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            _setup_filter(coll, query={"a": 1}, indexes=[{"b": 1}]),
+        ),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": Len(1)},
+        msg="planCacheListFilters should show 1 filter after override",
+    ),
+    CommandTestCase(
+        "different_shapes_independent",
+        docs=[{"_id": 1, "a": 1, "b": 1}],
+        setup=lambda coll: (
+            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            _setup_filter(coll, query={"b": 1}, indexes=[{"b": 1}]),
+        ),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": Len(2)},
+        msg="planCacheListFilters should show 2 independent filters",
+    ),
+    CommandTestCase(
+        "sort_creates_distinct_shape",
+        docs=[{"_id": 1, "a": 1, "b": 1}],
+        setup=lambda coll: (
+            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            _setup_filter(
+                coll,
+                query={"a": 1},
+                sort={"b": 1},
+                indexes=[{"a": 1, "b": 1}],
+            ),
+        ),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": Len(2)},
+        msg="Sort should create a distinct shape (2 filters expected)",
+    ),
+    CommandTestCase(
+        "projection_creates_distinct_shape",
+        docs=[{"_id": 1, "a": 1}],
+        setup=lambda coll: (
+            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            _setup_filter(
+                coll,
+                query={"a": 1},
+                projection={"a": 1},
+                indexes=[{"a": 1}],
+            ),
+        ),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": Len(2)},
+        msg="Projection should create a distinct shape (2 filters expected)",
+    ),
+    CommandTestCase(
+        "collation_creates_distinct_shape",
+        docs=[{"_id": 1, "a": 1}],
+        setup=lambda coll: (
+            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+            _setup_filter(
+                coll,
+                query={"a": 1},
+                collation={"locale": "en"},
+                indexes=[{"a": 1}],
+            ),
+        ),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": Len(2)},
+        msg="Collation should create a distinct shape (2 filters expected)",
+    ),
+]
 
-    result = execute_command(
-        collection,
-        {
-            "planCacheSetFilter": collection.name,
-            "query": {"x": 1},
-            "indexes": ["x_1"],
+# Property [ListFilters Output]: planCacheListFilters returns filter shape fields.
+SET_FILTER_LIST_OUTPUT_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "list_filters_output_full",
+        docs=[{"_id": 1, "a": 1}],
+        setup=lambda coll: _setup_filter(
+            coll,
+            query={"a": 1},
+            sort={"b": 1},
+            projection={"c": 1},
+            collation={"locale": "en"},
+            indexes=[{"a": 1, "b": 1}],
+        ),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={
+            "filters": Len(1),
+            "filters.0": {
+                "query": Exists(),
+                "sort": Exists(),
+                "projection": Exists(),
+                "indexes": Exists(),
+            },
         },
-    )
-    assertResult(
-        result,
-        expected={"ok": 1.0},
-        msg="planCacheSetFilter should accept index name string",
-        raw_res=True,
-    )
-
-
-def test_planCacheSetFilter_mixed_index_specs(collection):
-    """Test planCacheSetFilter accepts mix of spec documents and name strings."""
-    collection.insert_one({"_id": 1, "x": 1, "y": 1})
-    collection.create_index("y")
-
-    result = execute_command(
-        collection,
-        {
-            "planCacheSetFilter": collection.name,
-            "query": {"x": 1},
-            "indexes": [{"x": 1}, "y_1"],
+        msg="planCacheListFilters should return all shape fields",
+    ),
+    CommandTestCase(
+        "list_filters_omitted_optional",
+        docs=[{"_id": 1, "a": 1}],
+        setup=lambda coll: _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={
+            "filters": Len(1),
+            "filters.0": {
+                "query": Eq({"a": 1}),
+                "indexes": Eq([{"a": 1}]),
+            },
         },
-    )
-    assertResult(
-        result,
-        expected={"ok": 1.0},
-        msg="planCacheSetFilter should accept mix of spec documents and name strings",
-        raw_res=True,
-    )
+        msg="planCacheListFilters should show query and indexes for query-only filter",
+    ),
+]
+
+SET_FILTER_SHAPE_ALL_TESTS: list[CommandTestCase] = (
+    SET_FILTER_SHAPE_TESTS + SET_FILTER_LIST_OUTPUT_TESTS
+)
+
+
+@pytest.mark.admin
+@pytest.mark.parametrize("test", pytest_params(SET_FILTER_SHAPE_ALL_TESTS))
+def test_planCacheSetFilter_shapes(database_client, collection, test):
+    """Test planCacheSetFilter query shape semantics and listFilters output."""
+    collection = test.prepare(database_client, collection)
+    if test.setup:
+        test.setup(collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
+    assertProperties(result, test.build_expected(ctx), msg=test.msg, raw_res=True)
