@@ -8,7 +8,7 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.framework.assertions import assertProperties
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Len
@@ -67,4 +67,10 @@ def test_planCacheSetFilter_clear_filters(database_client, collection, test):
         test.setup(collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
-    assertProperties(result, test.build_expected(ctx), msg=test.msg, raw_res=True)
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
+    )
