@@ -44,8 +44,7 @@ from documentdb_tests.framework.test_constants import (
 
 pytestmark = pytest.mark.no_parallel
 
-# Property [maxTimeMS Type Rejection]: non-numeric maxTimeMS values
-# produce TYPE_MISMATCH_ERROR (14).
+# Property [maxTimeMS Type Rejection]: non-numeric maxTimeMS values are rejected.
 KILLALLSESSIONS_MAXTIMEMS_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"maxtimems_type_{tid}",
@@ -70,8 +69,7 @@ KILLALLSESSIONS_MAXTIMEMS_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [maxTimeMS Value Rejection — Fractional]: fractional maxTimeMS
-# values are rejected with FAILED_TO_PARSE_ERROR (9).
+# Property [maxTimeMS Value Rejection — Fractional]: fractional maxTimeMS values are rejected.
 KILLALLSESSIONS_MAXTIMEMS_FRACTIONAL_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"maxtimems_fractional_{tid}",
@@ -86,8 +84,7 @@ KILLALLSESSIONS_MAXTIMEMS_FRACTIONAL_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [maxTimeMS Value Rejection — NaN/Infinity]: NaN and Infinity
-# values are rejected with FAILED_TO_PARSE_ERROR (9).
+# Property [maxTimeMS Value Rejection — NaN/Infinity]: NaN and Infinity values are rejected.
 KILLALLSESSIONS_MAXTIMEMS_NAN_INF_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"maxtimems_value_{tid}",
@@ -107,10 +104,8 @@ KILLALLSESSIONS_MAXTIMEMS_NAN_INF_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [maxTimeMS Value Rejection — Negative]: negative maxTimeMS
-# values are rejected with BAD_VALUE_ERROR (2).
-# Property [maxTimeMS Value Rejection — Overflow]: values exceeding
-# INT32_MAX are rejected with BAD_VALUE_ERROR (2).
+# Property [maxTimeMS Range Rejection]: negative values and values exceeding
+# the size limit are rejected.
 KILLALLSESSIONS_MAXTIMEMS_RANGE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"maxtimems_range_{tid}",

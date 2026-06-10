@@ -19,8 +19,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = pytest.mark.no_parallel
 
-# Property [User Entry Not Object]: non-object entries in the user array
-# are rejected with TYPE_MISMATCH_ERROR (14).
+# Property [User Entry Not Object]: non-object entries in the user array are rejected.
 KILLALLSESSIONS_ENTRY_NOT_OBJECT_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"entry_{tid}",
@@ -37,7 +36,7 @@ KILLALLSESSIONS_ENTRY_NOT_OBJECT_TESTS: list[CommandTestCase] = [
 ]
 
 # Property [User Entry Missing Fields]: user array entries with missing
-# required fields are rejected with MISSING_FIELD_ERROR (40414).
+# required fields are rejected.
 KILLALLSESSIONS_MISSING_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "empty_object",
@@ -97,8 +96,7 @@ KILLALLSESSIONS_INVALID_DB_TYPE_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [User Entry Extra Fields]: extra fields in user array entries
-# are rejected with UNRECOGNIZED_COMMAND_FIELD_ERROR (40415).
+# Property [User Entry Extra Fields]: extra fields in user array entries are rejected.
 KILLALLSESSIONS_EXTRA_FIELDS_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "extra_field",

@@ -25,6 +25,7 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     API_STRICT_ERROR,
     API_VERSION_ERROR,
+    API_VERSION_REQUIRED_ERROR,
     INVALID_OPTIONS_ERROR,
     TYPE_MISMATCH_ERROR,
 )
@@ -33,8 +34,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = pytest.mark.no_parallel
 
-# Property [writeConcern Type Rejection]: non-document writeConcern values
-# produce TYPE_MISMATCH_ERROR (14).
+# Property [writeConcern Type Rejection]: non-document writeConcern values are rejected.
 KILLALLSESSIONS_WRITECONCERN_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"writeconcern_type_{tid}",
@@ -63,8 +63,7 @@ KILLALLSESSIONS_WRITECONCERN_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [writeConcern Document Rejection]: document writeConcern values
-# are rejected with INVALID_OPTIONS_ERROR (72).
+# Property [writeConcern Document Rejection]: document writeConcern values are rejected.
 KILLALLSESSIONS_WRITECONCERN_DOC_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"writeconcern_doc_{tid}",
@@ -95,6 +94,7 @@ KILLALLSESSIONS_API_STRICT_ERROR_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [API Version Rejection]: invalid apiVersion values are rejected.
 KILLALLSESSIONS_API_VERSION_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_2",
@@ -116,13 +116,13 @@ KILLALLSESSIONS_API_MISSING_VERSION_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_strict_without_version",
         command=lambda ctx: {"killAllSessions": [], "apiStrict": True},
-        error_code=4886600,
+        error_code=API_VERSION_REQUIRED_ERROR,
         msg="killAllSessions should reject apiStrict without apiVersion",
     ),
     CommandTestCase(
         "api_deprecation_without_version",
         command=lambda ctx: {"killAllSessions": [], "apiDeprecationErrors": True},
-        error_code=4886600,
+        error_code=API_VERSION_REQUIRED_ERROR,
         msg="killAllSessions should reject apiDeprecationErrors without apiVersion",
     ),
 ]
