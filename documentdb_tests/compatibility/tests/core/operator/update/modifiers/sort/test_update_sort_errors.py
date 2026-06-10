@@ -10,7 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.update.utils.update_test
     UpdateTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult, assertSuccess
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -114,8 +114,8 @@ INCOMPATIBLE_OPERATOR_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
         query={"_id": 1},
         update={"$pop": {"arr": {"$each": [1], "$sort": 1}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="$pop with $each/$sort should fail — $sort only works with $push",
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$pop with $each/$sort should fail — $pop expects 1 or -1",
     ),
 ]
 
