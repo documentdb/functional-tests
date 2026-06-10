@@ -120,6 +120,22 @@ KILLSESSIONS_API_VERSION_ERROR_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [Error Response Structure]: a failed killSessions response
+# contains ok: 0.0, code (int), errmsg (string), and codeName (string).
+KILLSESSIONS_ERROR_RESPONSE_STRUCTURE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "error_response_structure",
+        command=lambda ctx: {"killSessions": 1},
+        expected={
+            "ok": Eq(0.0),
+            "code": IsType("int"),
+            "errmsg": IsType("string"),
+            "codeName": IsType("string"),
+        },
+        msg="Error response should contain ok, code, errmsg, codeName",
+    ),
+]
+
 KILLSESSIONS_FIELD_TYPE_AND_API_ERROR_TESTS: list[CommandTestCase] = (
     KILLSESSIONS_FIELD_TYPE_ERROR_TESTS
     + KILLSESSIONS_STABLE_API_STRICT_ERROR_TESTS
@@ -140,20 +156,15 @@ def test_killSessions_field_type_error(collection, test):
     )
 
 
-# Property [Error Response Structure]: a failed killSessions response
-# contains ok: 0.0, code (int), errmsg (string), and codeName (string).
-def test_killSessions_error_response_structure(collection):
-    """Test killSessions error response contains ok, code, errmsg, codeName."""
-    result = execute_command(collection, {"killSessions": 1})
+@pytest.mark.parametrize("test", pytest_params(KILLSESSIONS_ERROR_RESPONSE_STRUCTURE_TESTS))
+def test_killSessions_error_response_structure(collection, test):
+    """Test killSessions error response structure fields."""
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
     details = getattr(result, "details", {})
     assertProperties(
         details,
-        {
-            "ok": Eq(0.0),
-            "code": IsType("int"),
-            "errmsg": IsType("string"),
-            "codeName": IsType("string"),
-        },
-        msg="Error response should contain ok, code, errmsg, codeName",
+        test.build_expected(ctx),
+        msg=test.msg,
         raw_res=True,
     )
