@@ -8,7 +8,7 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.framework.assertions import assertProperties, assertResult
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Exists, Len
@@ -411,24 +411,6 @@ SET_FILTER_ALL_CORE_TESTS: list[CommandTestCase] = (
 )
 
 
-@pytest.mark.admin
-@pytest.mark.parametrize("test", pytest_params(SET_FILTER_ALL_CORE_TESTS))
-def test_planCacheSetFilter_cases(database_client, collection, test):
-    """Test planCacheSetFilter cases."""
-    collection = test.prepare(database_client, collection)
-    if test.setup:
-        test.setup(collection)
-    ctx = CommandContext.from_collection(collection)
-    result = execute_command(collection, test.build_command(ctx))
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
-
-
 # Property [Query Shape Semantics]: planCacheSetFilter manages filters by query shape.
 SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -616,14 +598,22 @@ SET_FILTER_SHAPE_ALL_TESTS: list[CommandTestCase] = (
     SET_FILTER_SHAPE_TESTS + SET_FILTER_LIST_OUTPUT_TESTS
 )
 
+SET_FILTER_ALL_TESTS: list[CommandTestCase] = SET_FILTER_ALL_CORE_TESTS + SET_FILTER_SHAPE_ALL_TESTS
+
 
 @pytest.mark.admin
-@pytest.mark.parametrize("test", pytest_params(SET_FILTER_SHAPE_ALL_TESTS))
-def test_planCacheSetFilter_shapes(database_client, collection, test):
-    """Test planCacheSetFilter query shape semantics and listFilters output."""
+@pytest.mark.parametrize("test", pytest_params(SET_FILTER_ALL_TESTS))
+def test_planCacheSetFilter(database_client, collection, test):
+    """Test planCacheSetFilter core behavior and query shape semantics."""
     collection = test.prepare(database_client, collection)
     if test.setup:
         test.setup(collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
-    assertProperties(result, test.build_expected(ctx), msg=test.msg, raw_res=True)
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
+    )
