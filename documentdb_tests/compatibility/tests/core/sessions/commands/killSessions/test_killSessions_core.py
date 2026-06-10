@@ -136,6 +136,17 @@ KILLSESSIONS_COMMENT_TYPE_TESTS: list[CommandTestCase] = [
     ]
 ]
 
+# Property [Database Context]: killSessions succeeds when run on
+# the admin database (not just the default test database).
+KILLSESSIONS_ADMIN_DB_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "admin_database",
+        command=lambda ctx: {"killSessions": []},
+        expected={"ok": 1.0},
+        msg="killSessions should succeed on admin database",
+    ),
+]
+
 KILLSESSIONS_CORE_TESTS: list[CommandTestCase] = (
     KILLSESSIONS_EMPTY_ARRAY_TESTS
     + KILLSESSIONS_RANDOM_UUID_TESTS
@@ -158,14 +169,14 @@ def test_killSessions_core(collection, test):
     )
 
 
-# Property [Database Context]: killSessions succeeds when run on
-# the admin database (not just the default test database).
-def test_killSessions_on_admin_database(collection):
-    """Test killSessions succeeds when run on the admin database."""
-    result = execute_admin_command(collection, {"killSessions": []})
+@pytest.mark.parametrize("test", pytest_params(KILLSESSIONS_ADMIN_DB_TESTS))
+def test_killSessions_admin_db(collection, test):
+    """Test killSessions on admin database."""
+    ctx = CommandContext.from_collection(collection)
+    result = execute_admin_command(collection, test.build_command(ctx))
     assertResult(
         result,
-        expected={"ok": 1.0},
-        msg="killSessions should succeed on admin database",
+        expected=test.build_expected(ctx),
+        msg=test.msg,
         raw_res=True,
     )
