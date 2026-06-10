@@ -123,33 +123,10 @@ SET_FILTER_QUERY_PREDICATE_TESTS: list[CommandTestCase] = [
         expected={"ok": 1.0},
         msg="planCacheSetFilter should accept logical operators in query",
     ),
-    CommandTestCase(
-        "multi_field_sort",
-        docs=[{"_id": 1, "a": 1, "b": 1, "c": 1}],
-        command=lambda ctx: {
-            "planCacheSetFilter": ctx.collection,
-            "query": {"a": 1},
-            "sort": {"b": 1, "c": -1},
-            "indexes": [{"a": 1, "b": 1, "c": -1}],
-        },
-        expected={"ok": 1.0},
-        msg="planCacheSetFilter should accept multi-field sort",
-    ),
 ]
 
 # Property [Index Specification]: planCacheSetFilter accepts various index specification formats.
 SET_FILTER_INDEX_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "single_index",
-        docs=[{"_id": 1, "x": 1}],
-        command=lambda ctx: {
-            "planCacheSetFilter": ctx.collection,
-            "query": {"x": 1},
-            "indexes": [{"x": 1}],
-        },
-        expected={"ok": 1.0},
-        msg="planCacheSetFilter should accept a single index specification",
-    ),
     CommandTestCase(
         "compound_index",
         docs=[{"_id": 1, "x": 1, "y": 1}],
@@ -254,6 +231,18 @@ SET_FILTER_INDEX_TESTS: list[CommandTestCase] = [
 # Property [Optional Field Edge Cases]: planCacheSetFilter accepts edge-case values for
 # optional fields.
 SET_FILTER_OPTIONAL_EDGE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "multi_field_sort",
+        docs=[{"_id": 1, "a": 1, "b": 1, "c": 1}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"a": 1},
+            "sort": {"b": 1, "c": -1},
+            "indexes": [{"a": 1, "b": 1, "c": -1}],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept multi-field sort",
+    ),
     CommandTestCase(
         "sort_empty_document",
         docs=[{"_id": 1, "a": 1}],
@@ -485,8 +474,11 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
             ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
-        expected={"filters": Len(1)},
-        msg="planCacheListFilters should show 1 filter after override",
+        expected={
+            "filters": Len(1),
+            "filters.0.indexes": Eq([{"b": 1}]),
+        },
+        msg="Setting the same shape twice should override with the latest indexes",
     ),
     CommandTestCase(
         "different_shapes_independent",
