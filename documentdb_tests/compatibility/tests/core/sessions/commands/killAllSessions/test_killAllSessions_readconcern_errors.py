@@ -34,8 +34,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = pytest.mark.no_parallel
 
-# Property [readConcern Type Rejection]: non-document readConcern values
-# produce TYPE_MISMATCH_ERROR (14).
+# Property [readConcern Type Rejection]: non-document readConcern values are rejected.
 KILLALLSESSIONS_READCONCERN_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"readconcern_type_{tid}",
@@ -63,8 +62,7 @@ KILLALLSESSIONS_READCONCERN_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [readConcern Level Rejection]: unsupported readConcern levels
-# are rejected with INVALID_OPTIONS_ERROR (72).
+# Property [readConcern Level Rejection]: unsupported readConcern levels are rejected.
 KILLALLSESSIONS_READCONCERN_LEVEL_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"readconcern_level_{tid}",
@@ -83,8 +81,7 @@ KILLALLSESSIONS_READCONCERN_LEVEL_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [readConcern Invalid Level]: invalid readConcern level strings
-# are rejected with BAD_VALUE_ERROR (2).
+# Property [readConcern Invalid Level]: invalid readConcern level strings are rejected.
 KILLALLSESSIONS_READCONCERN_INVALID_LEVEL_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"readconcern_invalid_level_{tid}",
@@ -102,7 +99,7 @@ KILLALLSESSIONS_READCONCERN_INVALID_LEVEL_ERROR_TESTS: list[CommandTestCase] = [
 ]
 
 # Property [readConcern Level Type Rejection]: non-string, non-null types
-# for the readConcern level field are rejected with TYPE_MISMATCH_ERROR (14).
+# for the readConcern level field are rejected.
 KILLALLSESSIONS_READCONCERN_LEVEL_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"readconcern_level_type_{tid}",

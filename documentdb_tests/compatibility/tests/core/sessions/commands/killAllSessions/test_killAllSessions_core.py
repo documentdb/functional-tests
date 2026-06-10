@@ -34,11 +34,8 @@ KILLALLSESSIONS_RESPONSE_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Empty Array]: killAllSessions with an empty array kills all sessions.
-# Property [Single User Entry]: killAllSessions with a single {user, db} entry succeeds.
-# Property [Multiple User Entries]: killAllSessions with multiple entries succeeds.
-# Property [Non-Existent User]: killAllSessions with a non-existent user succeeds silently.
-# Property [Duplicate User Entries]: killAllSessions with duplicate entries succeeds.
+# Property [User Array Formats]: killAllSessions accepts various user array
+# formats including empty, single, multiple, non-existent, and duplicate entries.
 KILLALLSESSIONS_USER_ARRAY_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "empty_array",
@@ -86,12 +83,8 @@ KILLALLSESSIONS_USER_ARRAY_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Null Array Element Acceptance]: null elements in the user array
-# are silently accepted without error.
-# Property [Empty String User/DB]: killAllSessions with empty string user or db values.
-# Property [Unicode User/DB Names]: killAllSessions with unicode characters.
-# Property [Special Characters in Names]: killAllSessions with special characters.
-# Property [Large User Array]: killAllSessions with many user entries succeeds.
+# Property [Edge Cases]: killAllSessions handles edge cases including null
+# entries, empty strings, unicode, special characters, and large arrays.
 KILLALLSESSIONS_EDGE_CASE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "null_array_entry",
@@ -233,6 +226,7 @@ def test_killAllSessions_core(collection, test):
     )
 
 
+# Property [Admin Database]: killAllSessions succeeds on the admin database.
 def test_killAllSessions_admin_database(collection):
     """Test killAllSessions succeeds on the admin database."""
     result = execute_admin_command(collection, {"killAllSessions": []})
@@ -244,6 +238,7 @@ def test_killAllSessions_admin_database(collection):
     )
 
 
+# Property [Kill After Start]: killAllSessions succeeds after starting a session.
 def test_killAllSessions_kill_after_start(collection):
     """Test killAllSessions after starting a session succeeds."""
     execute_command(collection, {"startSession": 1})
