@@ -379,6 +379,8 @@ def _walk_path(doc: dict, path: str) -> Any:
     if not path:
         return doc
     current: Any = doc
+    if path == "":
+        return current
     for part in path.split("."):
         if isinstance(current, list):
             if not part.isdigit() or int(part) >= len(current):
