@@ -1,19 +1,31 @@
-"""Tests for killSessions core behavior and response structure."""
+"""Tests for killSessions core behavior, comment acceptance, and response structure."""
 
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 import pytest
-from bson import Binary
+from bson import (
+    Binary,
+    Code,
+    Decimal128,
+    Int64,
+    MaxKey,
+    MinKey,
+    ObjectId,
+    Regex,
+    Timestamp,
+)
 
 from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq, Exists
 
 pytestmark = pytest.mark.no_parallel
 
@@ -87,11 +99,68 @@ KILLSESSIONS_LARGE_ARRAY_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [comment Field Universal Type Acceptance]: all BSON types
+# representable by pymongo are accepted for the comment field without
+# restriction.
+KILLSESSIONS_COMMENT_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        f"comment_{tid}",
+        command=lambda ctx, v=val: {
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "comment": v,
+        },
+        expected={"ok": 1.0},
+        msg=f"killSessions should accept {tid} comment",
+    )
+    for tid, val in [
+        ("string", "test comment"),
+        ("string_empty", ""),
+        ("int32", 42),
+        ("int64", Int64(123)),
+        ("double", 3.14),
+        ("decimal128", Decimal128("1.5")),
+        ("bool_true", True),
+        ("bool_false", False),
+        ("null", None),
+        ("object", {"key": "value"}),
+        ("object_empty", {}),
+        ("array", [1, "two", 3.0]),
+        ("array_empty", []),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("binary", Binary(b"\x01\x02\x03")),
+        ("regex", Regex(".*", "i")),
+        ("timestamp", Timestamp(1, 1)),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
+]
+
+# Property [Success Response Structure]: a successful killSessions
+# response contains ok: 1.0 (double).
+KILLSESSIONS_SUCCESS_RESPONSE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "success_ok_field",
+        command={"killSessions": []},
+        expected={"ok": Eq(1.0)},
+        msg="killSessions success response should contain ok: 1.0",
+    ),
+    CommandTestCase(
+        "success_expected_keys",
+        command={"killSessions": []},
+        expected={"ok": Exists()},
+        msg="killSessions success response should contain ok field",
+    ),
+]
+
 KILLSESSIONS_CORE_TESTS: list[CommandTestCase] = (
     KILLSESSIONS_EMPTY_ARRAY_TESTS
     + KILLSESSIONS_RANDOM_UUID_TESTS
     + KILLSESSIONS_DUPLICATE_TESTS
     + KILLSESSIONS_LARGE_ARRAY_TESTS
+    + KILLSESSIONS_COMMENT_TYPE_TESTS
+    + KILLSESSIONS_SUCCESS_RESPONSE_TESTS
 )
 
 
@@ -103,7 +172,30 @@ def test_killSessions_core(collection, test):
     assertResult(
         result,
         expected=test.build_expected(ctx),
-        error_code=test.error_code,
         msg=test.msg,
+        raw_res=True,
+    )
+
+
+# Property [Database Context]: killSessions succeeds when run on
+# different databases.
+def test_killSessions_on_test_database(collection):
+    """Test killSessions succeeds when run on the test database."""
+    result = execute_command(collection, {"killSessions": []})
+    assertResult(
+        result,
+        expected={"ok": 1.0},
+        msg="killSessions should succeed on test database",
+        raw_res=True,
+    )
+
+
+def test_killSessions_on_admin_database(collection):
+    """Test killSessions succeeds when run on the admin database."""
+    result = execute_admin_command(collection, {"killSessions": []})
+    assertResult(
+        result,
+        expected={"ok": 1.0},
+        msg="killSessions should succeed on admin database",
         raw_res=True,
     )

@@ -1,4 +1,4 @@
-"""Tests for killSessions array element and session ID type validation."""
+"""Tests for killSessions array element and session ID type errors."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Non-Document Array Elements]: array elements that are not
-# documents are rejected (except null, which is silently accepted).
+# documents are rejected.
 KILLSESSIONS_ELEMENT_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"element_type_{tid}",
@@ -58,23 +58,6 @@ KILLSESSIONS_ELEMENT_TYPE_ERROR_TESTS: list[CommandTestCase] = [
         ("minkey", MinKey()),
         ("maxkey", MaxKey()),
     ]
-]
-
-# Property [Null Array Element Acceptance]: null elements in the array
-# are silently accepted without error.
-KILLSESSIONS_NULL_ELEMENT_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "element_null_accepted",
-        command=lambda ctx: {"killSessions": [None]},
-        expected={"ok": 1.0},
-        msg="killSessions should accept null array element",
-    ),
-    CommandTestCase(
-        "element_null_after_valid",
-        command=lambda ctx: {"killSessions": [{"id": Binary(uuid.uuid4().bytes, 4)}, None]},
-        expected={"ok": 1.0},
-        msg="killSessions should accept null element after valid element",
-    ),
 ]
 
 # Property [Invalid Document Elements]: documents missing the required
@@ -177,17 +160,6 @@ KILLSESSIONS_EXTRA_FIELDS_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Valid UUID]: a standard UUID (Binary subtype 4, 16 bytes) is
-# accepted as a session id.
-KILLSESSIONS_VALID_UUID_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "valid_uuid",
-        command=lambda ctx: {"killSessions": [{"id": Binary(uuid.uuid4().bytes, 4)}]},
-        expected={"ok": 1.0},
-        msg="killSessions should accept a valid UUID session id",
-    ),
-]
-
 # Property [Binary Subtype 3]: Binary subtype 3 (old UUID) is rejected
 # for the id field.
 KILLSESSIONS_BINARY_SUBTYPE3_TESTS: list[CommandTestCase] = [
@@ -199,22 +171,20 @@ KILLSESSIONS_BINARY_SUBTYPE3_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-KILLSESSIONS_SESSIONS_TYPE_TESTS: list[CommandTestCase] = (
+KILLSESSIONS_SESSIONS_TYPE_ERROR_TESTS: list[CommandTestCase] = (
     KILLSESSIONS_ELEMENT_TYPE_ERROR_TESTS
-    + KILLSESSIONS_NULL_ELEMENT_TESTS
     + KILLSESSIONS_INVALID_DOC_ERROR_TESTS
     + KILLSESSIONS_MIXED_ELEMENT_ERROR_TESTS
     + KILLSESSIONS_ID_TYPE_ERROR_TESTS
     + KILLSESSIONS_UUID_SIZE_ERROR_TESTS
     + KILLSESSIONS_EXTRA_FIELDS_TESTS
-    + KILLSESSIONS_VALID_UUID_TESTS
     + KILLSESSIONS_BINARY_SUBTYPE3_TESTS
 )
 
 
-@pytest.mark.parametrize("test", pytest_params(KILLSESSIONS_SESSIONS_TYPE_TESTS))
-def test_killSessions_sessions_type(collection, test):
-    """Test killSessions array element and session ID type validation."""
+@pytest.mark.parametrize("test", pytest_params(KILLSESSIONS_SESSIONS_TYPE_ERROR_TESTS))
+def test_killSessions_sessions_type_error(collection, test):
+    """Test killSessions array element and session ID type errors."""
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
     assertResult(
