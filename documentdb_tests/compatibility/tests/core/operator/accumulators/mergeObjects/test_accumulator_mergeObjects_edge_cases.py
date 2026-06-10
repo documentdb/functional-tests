@@ -1,0 +1,281 @@
+"""Tests for $mergeObjects accumulator: edge cases and special field names."""
+
+from __future__ import annotations
+
+import pytest
+
+from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
+    AccumulatorTestCase,
+)
+from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+
+# Property [Single Document]: a single-document group returns the document
+# as-is without modification.
+MERGE_OBJECTS_SINGLE_DOC_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "single_doc_passthrough",
+        docs=[{"v": {"a": 1, "b": 2}}],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
+        msg="$mergeObjects should return the document unchanged for a single-document group",
+    ),
+    AccumulatorTestCase(
+        "single_doc_empty",
+        docs=[{"v": {}}],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[{"_id": None, "result": {}}],
+        msg="$mergeObjects should return empty document for a single empty document",
+    ),
+    AccumulatorTestCase(
+        "single_doc_nested",
+        docs=[{"v": {"a": {"b": {"c": 1}}}}],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[{"_id": None, "result": {"a": {"b": {"c": 1}}}}],
+        msg="$mergeObjects should preserve nested structure in single-document group",
+    ),
+]
+
+# Property [Many Documents]: $mergeObjects correctly merges many documents in
+# a group.
+MERGE_OBJECTS_MANY_DOCS_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "many_docs_disjoint",
+        docs=[{"s": i, "v": {f"k{i}": i}} for i in range(20)],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {f"k{i}": i for i in range(20)}}],
+        msg="$mergeObjects should correctly merge 20 documents with disjoint keys",
+    ),
+    AccumulatorTestCase(
+        "many_docs_same_key",
+        docs=[{"s": i, "v": {"a": i}} for i in range(10)],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": 9}}],
+        msg="$mergeObjects should use last value when many documents share the same key",
+    ),
+]
+
+# Property [Special Field Names]: $mergeObjects correctly handles special
+# field names including unicode, dollar-prefixed, dotted, empty string, and
+# numeric string keys.
+MERGE_OBJECTS_SPECIAL_FIELD_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "special_unicode_keys",
+        docs=[{"s": 1, "v": {"\u65e5\u672c\u8a9e": 1}}, {"s": 2, "v": {"\u4e2d\u6587": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"\u65e5\u672c\u8a9e": 1, "\u4e2d\u6587": 2}}],
+        msg="$mergeObjects should preserve Unicode field names",
+    ),
+    AccumulatorTestCase(
+        "special_dollar_prefix",
+        docs=[{"s": 1, "v": {"$a": 1}}, {"s": 2, "v": {"$b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"$a": 1, "$b": 2}}],
+        msg="$mergeObjects should preserve dollar-prefixed field names",
+    ),
+    AccumulatorTestCase(
+        "special_dotted_keys",
+        docs=[{"s": 1, "v": {"a.b": 1}}, {"s": 2, "v": {"c.d": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a.b": 1, "c.d": 2}}],
+        msg="$mergeObjects should preserve dotted field names as literal keys",
+    ),
+    AccumulatorTestCase(
+        "special_empty_string_key",
+        docs=[{"s": 1, "v": {"": 1}}, {"s": 2, "v": {"a": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"": 1, "a": 2}}],
+        msg="$mergeObjects should preserve empty string field names",
+    ),
+    AccumulatorTestCase(
+        "special_numeric_string_keys",
+        docs=[{"s": 1, "v": {"0": "zero"}}, {"s": 2, "v": {"1": "one"}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"0": "zero", "1": "one"}}],
+        msg="$mergeObjects should preserve numeric string field names",
+    ),
+    AccumulatorTestCase(
+        "special_long_field_name",
+        docs=[{"s": 1, "v": {"a" * 200: 1}}, {"s": 2, "v": {"b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a" * 200: 1, "b": 2}}],
+        msg="$mergeObjects should preserve very long field names",
+    ),
+    AccumulatorTestCase(
+        "special_dollar_overlap",
+        docs=[{"s": 1, "v": {"$a": 1}}, {"s": 2, "v": {"$a": 99}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"$a": 99}}],
+        msg="$mergeObjects should apply last-wins to dollar-prefixed overlapping keys",
+    ),
+]
+
+# Property [_id Field Handling]: $mergeObjects treats _id as a normal field
+# in the merged result.
+MERGE_OBJECTS_ID_FIELD_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "id_field_merged",
+        docs=[{"s": 1, "v": {"_id": 100, "a": 1}}, {"s": 2, "v": {"b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"_id": 100, "a": 1, "b": 2}}],
+        msg="$mergeObjects should include _id from merged documents as a normal field",
+    ),
+    AccumulatorTestCase(
+        "id_field_overwritten",
+        docs=[{"s": 1, "v": {"_id": 1, "a": 1}}, {"s": 2, "v": {"_id": 2, "b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"_id": 2, "a": 1, "b": 2}}],
+        msg="$mergeObjects should overwrite _id with last value, like any other field",
+    ),
+]
+
+# Property [Deeply Nested Structure]: $mergeObjects preserves deeply nested
+# structures in the merged result.
+MERGE_OBJECTS_DEEP_NESTING_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "deep_nesting_preserved",
+        docs=[
+            {"s": 1, "v": {"a": {"b": {"c": {"d": {"e": 1}}}}}},
+            {"s": 2, "v": {"f": 2}},
+        ],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": {"b": {"c": {"d": {"e": 1}}}}, "f": 2}}],
+        msg="$mergeObjects should preserve deeply nested document structure",
+    ),
+    AccumulatorTestCase(
+        "deep_nesting_overwrite",
+        docs=[
+            {"s": 1, "v": {"a": {"b": {"c": 1}}}},
+            {"s": 2, "v": {"a": {"x": 2}}},
+        ],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": {"x": 2}}}],
+        msg="$mergeObjects should replace entire nested structure on overwrite",
+    ),
+]
+
+# Property [Order Dependence]: $mergeObjects is order-dependent; the last
+# document's value wins for overlapping keys. Different sort orders produce
+# different results.
+MERGE_OBJECTS_ORDER_DEPENDENCE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "order_dependent_asc",
+        docs=[{"_id": 1, "v": {"a": 1}}, {"_id": 2, "v": {"a": 2}}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": 2}}],
+        msg="$mergeObjects with ascending sort should use value from last document",
+    ),
+    AccumulatorTestCase(
+        "order_dependent_desc",
+        docs=[{"_id": 1, "v": {"a": 1}}, {"_id": 2, "v": {"a": 2}}],
+        pipeline=[
+            {"$sort": {"_id": -1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": 1}}],
+        msg="$mergeObjects with descending sort should use value from last document",
+    ),
+    AccumulatorTestCase(
+        "order_dependent_compound_sort",
+        docs=[
+            {"_id": 1, "priority": 1, "status": "active", "v": {"a": "first"}},
+            {"_id": 2, "priority": 1, "status": "active", "v": {"a": "second"}},
+            {"_id": 3, "priority": 2, "status": "inactive", "v": {"a": "third"}},
+        ],
+        pipeline=[
+            {"$sort": {"priority": 1, "status": -1, "_id": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": "third"}}],
+        msg="$mergeObjects with compound mixed-direction sort should use last value",
+    ),
+    AccumulatorTestCase(
+        "order_dependent_nested_field_sort",
+        docs=[
+            {"_id": 1, "user": {"dept": "eng"}, "v": {"a": 1}},
+            {"_id": 2, "user": {"dept": "sales"}, "v": {"a": 2}},
+            {"_id": 3, "user": {"dept": "eng"}, "v": {"a": 3}},
+        ],
+        pipeline=[
+            {"$sort": {"user.dept": 1, "_id": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": 2}}],
+        msg="$mergeObjects with nested field path sort should use last document's value",
+    ),
+]
+
+MERGE_OBJECTS_EDGE_TESTS = (
+    MERGE_OBJECTS_SINGLE_DOC_TESTS
+    + MERGE_OBJECTS_MANY_DOCS_TESTS
+    + MERGE_OBJECTS_SPECIAL_FIELD_TESTS
+    + MERGE_OBJECTS_ID_FIELD_TESTS
+    + MERGE_OBJECTS_DEEP_NESTING_TESTS
+    + MERGE_OBJECTS_ORDER_DEPENDENCE_TESTS
+)
+
+
+@pytest.mark.parametrize("test_case", pytest_params(MERGE_OBJECTS_EDGE_TESTS))
+def test_accumulator_mergeObjects_edge_cases(collection, test_case: AccumulatorTestCase):
+    """Test $mergeObjects edge cases."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
+    actual_docs = result["cursor"]["firstBatch"]
+    for actual, exp in zip(actual_docs, test_case.expected):
+        if "result" in exp and isinstance(exp["result"], dict):
+            actual_keys = list(actual["result"].keys())
+            expected_keys = list(exp["result"].keys())
+            if actual_keys != expected_keys:
+                raise AssertionError(
+                    f"[KEY_ORDER_MISMATCH] {test_case.msg}\n"
+                    f"Expected key order: {expected_keys}\n"
+                    f"Actual key order:   {actual_keys}"
+                )

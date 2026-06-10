@@ -8,7 +8,8 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_case import (
     QueryTestCase,
 )
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -158,3 +159,25 @@ def test_geoWithin_logical_operators(collection, test):
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
     assertSuccess(result, test.expected, ignore_doc_order=True)
+
+
+def test_text_combined_with_near(collection):
+    """Test $text combined with $nearSphere returns error."""
+    collection.create_index([("content", "text")])
+    collection.create_index([("loc", "2dsphere")])
+    collection.insert_many(
+        [
+            {"_id": 1, "content": "hello", "loc": {"type": "Point", "coordinates": [0, 0]}},
+        ]
+    )
+    result = execute_command(
+        collection,
+        {
+            "find": collection.name,
+            "filter": {
+                "$text": {"$search": "hello"},
+                "loc": {"$nearSphere": {"$geometry": {"type": "Point", "coordinates": [0, 0]}}},
+            },
+        },
+    )
+    assertFailureCode(result, BAD_VALUE_ERROR, msg="Should reject $text combined with $near")
