@@ -4,6 +4,7 @@ Keep sorted by error code number. No duplicates.
 """
 
 BAD_VALUE_ERROR = 2
+NO_SUCH_KEY_ERROR = 4
 GRAPH_CONTAINS_CYCLE_ERROR = 5
 FAILED_TO_PARSE_ERROR = 9
 UNAUTHORIZED_ERROR = 13
