@@ -1,4 +1,4 @@
-"""Tests for killSessions writeConcern, Stable API, and unrecognized fields."""
+"""Tests for killSessions writeConcern field errors."""
 
 from __future__ import annotations
 
@@ -28,20 +28,6 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-# Property [writeConcern Null Acceptance]: null writeConcern is treated
-# as omitted and accepted.
-KILLSESSIONS_WRITECONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "writeconcern_null",
-        command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
-            "writeConcern": None,
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should accept null writeConcern",
-    ),
-]
 
 # Property [writeConcern Type Rejection]: all non-document, non-null BSON
 # types for the writeConcern field are rejected.
@@ -96,73 +82,14 @@ KILLSESSIONS_WRITECONCERN_DOC_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [Unrecognized Fields]: unknown fields in the command document
-# are silently ignored.
-KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "unrecognized_single",
-        command=lambda ctx: {
-            "killSessions": [],
-            "unknownField": 1,
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should ignore a single unknown field",
-        marks=(pytest.mark.no_parallel,),
-    ),
-    CommandTestCase(
-        "unrecognized_multiple",
-        command=lambda ctx: {
-            "killSessions": [],
-            "foo": 1,
-            "bar": 2,
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should ignore multiple unknown fields",
-        marks=(pytest.mark.no_parallel,),
-    ),
-    CommandTestCase(
-        "unrecognized_dollar_prefix",
-        command=lambda ctx: {
-            "killSessions": [],
-            "$unknown": 1,
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should ignore dollar-prefixed unknown field",
-        marks=(pytest.mark.no_parallel,),
-    ),
-    CommandTestCase(
-        "unrecognized_other_command",
-        command=lambda ctx: {
-            "killSessions": [],
-            "query": {"x": 1},
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should ignore field from another command",
-        marks=(pytest.mark.no_parallel,),
-    ),
-    CommandTestCase(
-        "unrecognized_case_variant",
-        command=lambda ctx: {
-            "killSessions": [],
-            "KillSessions": 1,
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should ignore case-variant of command name",
-        marks=(pytest.mark.no_parallel,),
-    ),
-]
-
-KILLSESSIONS_OPTIONS_TESTS: list[CommandTestCase] = (
-    KILLSESSIONS_WRITECONCERN_ACCEPTANCE_TESTS
-    + KILLSESSIONS_WRITECONCERN_TYPE_ERROR_TESTS
-    + KILLSESSIONS_WRITECONCERN_DOC_ERROR_TESTS
-    + KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS
+KILLSESSIONS_OPTIONS_ERROR_TESTS: list[CommandTestCase] = (
+    KILLSESSIONS_WRITECONCERN_TYPE_ERROR_TESTS + KILLSESSIONS_WRITECONCERN_DOC_ERROR_TESTS
 )
 
 
-@pytest.mark.parametrize("test", pytest_params(KILLSESSIONS_OPTIONS_TESTS))
-def test_killSessions_options(collection, test):
-    """Test killSessions writeConcern and unrecognized fields."""
+@pytest.mark.parametrize("test", pytest_params(KILLSESSIONS_OPTIONS_ERROR_TESTS))
+def test_killSessions_options_error(collection, test):
+    """Test killSessions writeConcern field errors."""
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
     assertResult(

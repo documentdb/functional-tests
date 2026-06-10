@@ -1,4 +1,4 @@
-"""Tests for killSessions maxTimeMS field."""
+"""Tests for killSessions maxTimeMS field errors."""
 
 from __future__ import annotations
 
@@ -34,49 +34,13 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_NAN,
-    DECIMAL128_NEGATIVE_ZERO,
     DECIMAL128_ONE_AND_HALF,
-    DECIMAL128_ZERO,
-    DOUBLE_NEGATIVE_ZERO,
-    DOUBLE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
     FLOAT_NEGATIVE_NAN,
-    INT32_MAX,
     INT32_OVERFLOW,
-    INT64_ZERO,
 )
-
-# Property [maxTimeMS Acceptance]: maxTimeMS accepts values at both
-# boundaries of the valid range across all numeric types.
-KILLSESSIONS_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        f"maxtimems_{tid}",
-        command=lambda ctx, v=val: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
-            "maxTimeMS": v,
-        },
-        expected={"ok": 1.0},
-        msg=f"killSessions should accept {tid} maxTimeMS",
-    )
-    for tid, val in [
-        # Lower boundary (0) in all representations.
-        ("int32_zero", 0),
-        ("int64_zero", INT64_ZERO),
-        ("double_zero", DOUBLE_ZERO),
-        ("double_negative_zero", DOUBLE_NEGATIVE_ZERO),
-        ("decimal128_zero", DECIMAL128_ZERO),
-        ("decimal128_negative_zero", DECIMAL128_NEGATIVE_ZERO),
-        # Upper boundary (INT32_MAX) in all representations.
-        ("int32_max", INT32_MAX),
-        ("int64_max", Int64(INT32_MAX)),
-        ("double_max", float(INT32_MAX)),
-        ("decimal128_max", Decimal128(str(INT32_MAX))),
-        # Null treated as omitted.
-        ("null", None),
-    ]
-]
 
 # Property [maxTimeMS Type Rejection]: all non-numeric, non-null BSON
 # types for maxTimeMS are rejected.
@@ -158,16 +122,14 @@ KILLSESSIONS_MAXTIMEMS_VALUE_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-KILLSESSIONS_MAXTIMEMS_TESTS: list[CommandTestCase] = (
-    KILLSESSIONS_MAXTIMEMS_ACCEPTANCE_TESTS
-    + KILLSESSIONS_MAXTIMEMS_TYPE_ERROR_TESTS
-    + KILLSESSIONS_MAXTIMEMS_VALUE_ERROR_TESTS
+KILLSESSIONS_MAXTIMEMS_ERROR_TESTS: list[CommandTestCase] = (
+    KILLSESSIONS_MAXTIMEMS_TYPE_ERROR_TESTS + KILLSESSIONS_MAXTIMEMS_VALUE_ERROR_TESTS
 )
 
 
-@pytest.mark.parametrize("test", pytest_params(KILLSESSIONS_MAXTIMEMS_TESTS))
-def test_killSessions_maxtimems(collection, test):
-    """Test killSessions maxTimeMS field."""
+@pytest.mark.parametrize("test", pytest_params(KILLSESSIONS_MAXTIMEMS_ERROR_TESTS))
+def test_killSessions_maxtimems_error(collection, test):
+    """Test killSessions maxTimeMS field errors."""
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
     assertResult(

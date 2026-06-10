@@ -1,4 +1,4 @@
-"""Tests for killSessions readConcern field."""
+"""Tests for killSessions readConcern field errors."""
 
 from __future__ import annotations
 
@@ -31,47 +31,6 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-# Property [readConcern Acceptance]: readConcern with level "local", null,
-# empty document, or null level is accepted without error.
-KILLSESSIONS_READCONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "readconcern_local",
-        command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
-            "readConcern": {"level": "local"},
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should accept readConcern with level local",
-    ),
-    CommandTestCase(
-        "readconcern_null",
-        command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
-            "readConcern": None,
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should accept null readConcern",
-    ),
-    CommandTestCase(
-        "readconcern_empty_doc",
-        command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
-            "readConcern": {},
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should accept empty readConcern document",
-    ),
-    CommandTestCase(
-        "readconcern_level_null",
-        command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
-            "readConcern": {"level": None},
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should accept readConcern with null level",
-    ),
-]
 
 # Property [readConcern Level Rejection]: readConcern with levels other
 # than "local" is rejected.
@@ -217,18 +176,17 @@ KILLSESSIONS_READCONCERN_LEVEL_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-KILLSESSIONS_READCONCERN_TESTS: list[CommandTestCase] = (
-    KILLSESSIONS_READCONCERN_ACCEPTANCE_TESTS
-    + KILLSESSIONS_READCONCERN_LEVEL_ERROR_TESTS
+KILLSESSIONS_READCONCERN_ERROR_TESTS: list[CommandTestCase] = (
+    KILLSESSIONS_READCONCERN_LEVEL_ERROR_TESTS
     + KILLSESSIONS_READCONCERN_TYPE_ERROR_TESTS
     + KILLSESSIONS_READCONCERN_SUBFIELD_ERROR_TESTS
     + KILLSESSIONS_READCONCERN_LEVEL_TYPE_ERROR_TESTS
 )
 
 
-@pytest.mark.parametrize("test", pytest_params(KILLSESSIONS_READCONCERN_TESTS))
-def test_killSessions_readconcern(collection, test):
-    """Test killSessions readConcern field."""
+@pytest.mark.parametrize("test", pytest_params(KILLSESSIONS_READCONCERN_ERROR_TESTS))
+def test_killSessions_readconcern_error(collection, test):
+    """Test killSessions readConcern field errors."""
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
     assertResult(
