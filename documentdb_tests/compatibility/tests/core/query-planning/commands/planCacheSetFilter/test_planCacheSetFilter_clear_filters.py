@@ -13,19 +13,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Len
 
-
-def _setup_filter(collection, **kwargs):
-    """Set an index filter via planCacheSetFilter."""
-    result = execute_command(collection, {"planCacheSetFilter": collection.name, **kwargs})
-    assert result["ok"] == 1.0, "planCacheSetFilter setup should succeed"
-
-
-def _clear_filters(collection, **kwargs):
-    """Clear index filters via planCacheClearFilters."""
-    result = execute_command(collection, {"planCacheClearFilters": collection.name, **kwargs})
-    assert result["ok"] == 1.0, "planCacheClearFilters setup should succeed"
-
-
 # Property [ClearFilters Interaction]: planCacheClearFilters removes filters
 # set by planCacheSetFilter.
 SET_FILTER_CLEAR_TESTS: list[CommandTestCase] = [
@@ -33,9 +20,18 @@ SET_FILTER_CLEAR_TESTS: list[CommandTestCase] = [
         "clear_specific_filter",
         docs=[{"_id": 1, "a": 1, "b": 1}],
         setup=lambda coll: (
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(coll, query={"b": 1}, indexes=[{"b": 1}]),
-            _clear_filters(coll, query={"a": 1}),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"b": 1}, "indexes": [{"b": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheClearFilters": coll.name, "query": {"a": 1}},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Len(1)},
@@ -45,9 +41,15 @@ SET_FILTER_CLEAR_TESTS: list[CommandTestCase] = [
         "clear_all_filters",
         docs=[{"_id": 1, "a": 1, "b": 1}],
         setup=lambda coll: (
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(coll, query={"b": 1}, indexes=[{"b": 1}]),
-            _clear_filters(coll),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"b": 1}, "indexes": [{"b": 1}]},
+            ),
+            execute_command(coll, {"planCacheClearFilters": coll.name}),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Len(0)},

@@ -14,13 +14,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Exists, Len
 from documentdb_tests.framework.target_collection import CappedCollection
 
-
-def _setup_filter(collection, **kwargs):
-    """Set an index filter via planCacheSetFilter."""
-    result = execute_command(collection, {"planCacheSetFilter": collection.name, **kwargs})
-    assert result["ok"] == 1.0, "planCacheSetFilter setup should succeed"
-
-
 # Property [Success Response]: planCacheSetFilter returns ok:1.0 on success.
 SET_FILTER_SUCCESS_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -452,7 +445,10 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "query_only_shape",
         docs=[{"_id": 1, "status": 1}],
-        setup=lambda coll: _setup_filter(coll, query={"status": 1}, indexes=[{"status": 1}]),
+        setup=lambda coll: execute_command(
+            coll,
+            {"planCacheSetFilter": coll.name, "query": {"status": 1}, "indexes": [{"status": 1}]},
+        ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Len(1)},
         msg="planCacheListFilters should show the query-only shape filter",
@@ -460,13 +456,16 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "full_shape_verification",
         docs=[{"_id": 1, "item": 1, "date": 1, "qty": 1}],
-        setup=lambda coll: _setup_filter(
+        setup=lambda coll: execute_command(
             coll,
-            query={"item": 1},
-            sort={"date": 1},
-            projection={"qty": 1},
-            collation={"locale": "en"},
-            indexes=[{"item": 1, "date": 1}],
+            {
+                "planCacheSetFilter": coll.name,
+                "query": {"item": 1},
+                "sort": {"date": 1},
+                "projection": {"qty": 1},
+                "collation": {"locale": "en"},
+                "indexes": [{"item": 1, "date": 1}],
+            },
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Len(1)},
@@ -476,8 +475,14 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
         "override",
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(coll, query={"a": 1}, indexes=[{"b": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"b": 1}]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Len(1)},
@@ -487,8 +492,14 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
         "different_shapes_independent",
         docs=[{"_id": 1, "a": 1, "b": 1}],
         setup=lambda coll: (
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(coll, query={"b": 1}, indexes=[{"b": 1}]),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"b": 1}, "indexes": [{"b": 1}]},
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Len(2)},
@@ -498,12 +509,18 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
         "sort_creates_distinct_shape",
         docs=[{"_id": 1, "a": 1, "b": 1}],
         setup=lambda coll: (
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(
+            execute_command(
                 coll,
-                query={"a": 1},
-                sort={"b": 1},
-                indexes=[{"a": 1, "b": 1}],
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "sort": {"b": 1},
+                    "indexes": [{"a": 1, "b": 1}],
+                },
             ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -514,12 +531,18 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
         "projection_creates_distinct_shape",
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(
+            execute_command(
                 coll,
-                query={"a": 1},
-                projection={"a": 1},
-                indexes=[{"a": 1}],
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "projection": {"a": 1},
+                    "indexes": [{"a": 1}],
+                },
             ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -530,12 +553,18 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
         "collation_creates_distinct_shape",
         docs=[{"_id": 1, "a": 1}],
         setup=lambda coll: (
-            _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
-            _setup_filter(
+            execute_command(
                 coll,
-                query={"a": 1},
-                collation={"locale": "en"},
-                indexes=[{"a": 1}],
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "collation": {"locale": "en"},
+                    "indexes": [{"a": 1}],
+                },
             ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
@@ -549,13 +578,16 @@ SET_FILTER_LIST_OUTPUT_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "list_filters_output_full",
         docs=[{"_id": 1, "a": 1}],
-        setup=lambda coll: _setup_filter(
+        setup=lambda coll: execute_command(
             coll,
-            query={"a": 1},
-            sort={"b": 1},
-            projection={"c": 1},
-            collation={"locale": "en"},
-            indexes=[{"a": 1, "b": 1}],
+            {
+                "planCacheSetFilter": coll.name,
+                "query": {"a": 1},
+                "sort": {"b": 1},
+                "projection": {"c": 1},
+                "collation": {"locale": "en"},
+                "indexes": [{"a": 1, "b": 1}],
+            },
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={
@@ -572,7 +604,10 @@ SET_FILTER_LIST_OUTPUT_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "list_filters_omitted_optional",
         docs=[{"_id": 1, "a": 1}],
-        setup=lambda coll: _setup_filter(coll, query={"a": 1}, indexes=[{"a": 1}]),
+        setup=lambda coll: execute_command(
+            coll,
+            {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+        ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={
             "filters": Len(1),
