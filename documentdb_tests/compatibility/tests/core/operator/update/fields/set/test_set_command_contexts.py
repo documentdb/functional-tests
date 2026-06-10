@@ -1,7 +1,8 @@
 """
 Tests for $set update operator - command contexts.
 
-Covers positional operators, upsert, nModified semantics, and cross-type same-value behavior.
+Covers positional operators ($, $[], $[identifier] with arrayFilters),
+upsert, multi-update, nModified semantics, and cross-type same-value behavior.
 """
 
 import pytest
@@ -47,6 +48,30 @@ def test_set_command_contexts(collection, test):
     )
     result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
     assertSuccess(result, test.expected, msg=test.msg)
+
+
+def test_set_with_filtered_positional(collection):
+    """Test $set with $[identifier] and declared arrayFilters updates matching elements."""
+    collection.insert_one({"_id": 1, "grades": [50, 80, 90, 40, 70]})
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$set": {"grades.$[elem]": 100}},
+                    "arrayFilters": [{"elem": {"$gte": 80}}],
+                }
+            ],
+        },
+    )
+    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
+    assertSuccess(
+        result,
+        [{"_id": 1, "grades": [50, 100, 100, 40, 70]}],
+        msg="$[identifier] with arrayFilters should update only matching elements",
+    )
 
 
 SET_CROSS_TYPE_TESTS: list[UpdateTestCase] = [

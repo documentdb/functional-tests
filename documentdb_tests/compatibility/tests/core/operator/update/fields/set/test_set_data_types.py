@@ -1,12 +1,15 @@
 """
 Tests for $set update operator - data type handling.
 
-Verifies type overwrite, BSON numeric type distinction, Decimal128 precision,
+Verifies type overwrite, BSON type preservation (int32, int64, double, bool,
+Date, ObjectId, Timestamp, Binary, Decimal128), Decimal128 precision,
 double special values, and value shapes.
 """
 
+from datetime import datetime, timezone
+
 import pytest
-from bson import Decimal128, Int64
+from bson import Binary, Decimal128, Int64, ObjectId, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.update.utils.update_test_case import (
     UpdateTestCase,
@@ -84,6 +87,38 @@ SET_DATA_TYPE_TESTS: list[UpdateTestCase] = [
         update={"$set": {"field": False}},
         expected=[{"_id": 1, "field": False}],
         msg="Should preserve bool (not coerce to int 0)",
+    ),
+    UpdateTestCase(
+        id="date_utc",
+        setup_docs=[{"_id": 1, "field": "placeholder"}],
+        query={"_id": 1},
+        update={"$set": {"field": datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc)}},
+        expected=[{"_id": 1, "field": datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc)}],
+        msg="Should preserve Date type",
+    ),
+    UpdateTestCase(
+        id="objectid_value",
+        setup_docs=[{"_id": 1, "field": "placeholder"}],
+        query={"_id": 1},
+        update={"$set": {"field": ObjectId("507f1f77bcf86cd799439011")}},
+        expected=[{"_id": 1, "field": ObjectId("507f1f77bcf86cd799439011")}],
+        msg="Should preserve ObjectId type",
+    ),
+    UpdateTestCase(
+        id="timestamp_value",
+        setup_docs=[{"_id": 1, "field": "placeholder"}],
+        query={"_id": 1},
+        update={"$set": {"field": Timestamp(1700000000, 1)}},
+        expected=[{"_id": 1, "field": Timestamp(1700000000, 1)}],
+        msg="Should preserve Timestamp type",
+    ),
+    UpdateTestCase(
+        id="binary_user_subtype",
+        setup_docs=[{"_id": 1, "field": "placeholder"}],
+        query={"_id": 1},
+        update={"$set": {"field": Binary(b"\x00\x01\x02\x03", 128)}},
+        expected=[{"_id": 1, "field": Binary(b"\x00\x01\x02\x03", 128)}],
+        msg="Should preserve Binary type",
     ),
     UpdateTestCase(
         id="decimal128_one",
