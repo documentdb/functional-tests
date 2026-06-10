@@ -62,6 +62,8 @@ class CommandTestCase(BaseTestCase):
         indexes: Indexes to create before executing the command. Each
             entry is passed to create_index.
         docs: Documents to insert before executing the command.
+        setup: Optional callable ``(collection) -> None`` invoked after
+            ``prepare`` to perform additional imperative setup.
         command: A callable (CommandContext -> dict) for commands that
             need fixture values, or a plain dict.
         expected: A callable (CommandContext -> dict) for results that
@@ -75,6 +77,7 @@ class CommandTestCase(BaseTestCase):
     siblings: list[SiblingCollection] | None = None
     indexes: list[IndexModel] | None = None
     docs: list[dict[str, Any]] | None = None
+    setup: Callable[..., Any] | None = None
     command: dict[str, Any] | Callable[..., dict[str, Any]] | None = None
     expected: dict[str, Any] | list[dict[str, Any]] | Callable[..., dict[str, Any]] | None = None
     ignore_order_in: list[str] | None = None
