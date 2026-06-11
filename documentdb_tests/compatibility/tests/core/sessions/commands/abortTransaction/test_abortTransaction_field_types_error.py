@@ -197,7 +197,7 @@ FIELD_TYPE_TESTS: list[CommandTestCase] = [
 
 
 @pytest.mark.parametrize("test", pytest_params(FIELD_TYPE_TESTS))
-def test_abortTransaction_field_types(collection, test):
-    """Test abortTransaction command field type acceptance."""
+def test_abortTransaction_field_types_error(collection, test):
+    """Test abortTransaction field type error cases."""
     result = execute_admin_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)

@@ -155,7 +155,7 @@ COMMENT_TYPE_TESTS: list[CommandTestCase] = [
 
 
 @pytest.mark.parametrize("test", pytest_params(COMMENT_TYPE_TESTS))
-def test_abortTransaction_comment(collection, test):
-    """Test abortTransaction comment parameter type acceptance."""
+def test_abortTransaction_comment_error(collection, test):
+    """Test abortTransaction comment error cases."""
     result = execute_admin_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)

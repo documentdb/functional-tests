@@ -110,7 +110,7 @@ AUTOCOMMIT_TESTS: list[CommandTestCase] = (
 
 
 @pytest.mark.parametrize("test", pytest_params(AUTOCOMMIT_TESTS))
-def test_abortTransaction_autocommit(collection, test):
-    """Test abortTransaction autocommit parameter validation."""
+def test_abortTransaction_autocommit_error(collection, test):
+    """Test abortTransaction autocommit error cases."""
     result = execute_admin_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)
