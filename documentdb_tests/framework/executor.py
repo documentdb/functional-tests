@@ -104,8 +104,21 @@ def execute_session_command(collection, test_case) -> Any:
 
     # 5. Return commit response or readback.
     if test_case.expected_response is not None:
-        # Still do a readback so the validator sees execute_command usage.
-        execute_command(collection, {"find": collection.name, "filter": {}})
+        # Verify that committed data actually persisted (the raw admin
+        # command path bypasses pymongo's session bookkeeping, so the
+        # driver may auto-abort on exit; the abort is a server no-op
+        # after a real commit, but we assert persistence explicitly).
+        if not isinstance(commit_result, Exception) and test_case.ops:
+            readback = execute_command(
+                collection,
+                {"find": collection.name, "filter": test_case.readback_filter},
+            )
+            assert not isinstance(readback, Exception), f"Readback after commit failed: {readback}"
+            cursor = readback.get("cursor", {})
+            docs = cursor.get("firstBatch", [])
+            assert len(docs) > 0, (
+                "Committed transaction data did not persist — " "readback returned 0 documents"
+            )
         return commit_result
 
     return execute_command(
