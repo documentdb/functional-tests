@@ -2,7 +2,20 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
+from bson import (
+    Binary,
+    Code,
+    Decimal128,
+    Int64,
+    MaxKey,
+    MinKey,
+    ObjectId,
+    Regex,
+    Timestamp,
+)
 
 from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
     CommandContext,
@@ -29,8 +42,21 @@ STARTSESSION_RC_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
     for tid, val in [
         ("string", "local"),
         ("int32", 1),
-        ("bool", True),
-        ("array", []),
+        ("int64", Int64(1)),
+        ("double", 1.0),
+        ("decimal128", Decimal128("1")),
+        ("bool_true", True),
+        ("bool_false", False),
+        ("empty_array", []),
+        ("non_empty_array", [1, 2]),
+        ("binary", Binary(b"\x00\x01\x02")),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("regex", Regex(".*", "i")),
+        ("timestamp", Timestamp(1, 1)),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
     ]
 ]
 
