@@ -9,21 +9,11 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.error_codes import CURSOR_NOT_FOUND_ERROR
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = pytest.mark.no_parallel
-
-# Property [Test Database]: killAllSessions succeeds on the test database
-# and returns ok: 1.0.
-KILLALLSESSIONS_TEST_DB_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "test_database",
-        command=lambda ctx: {"killAllSessions": []},
-        expected={"ok": 1.0},
-        msg="killAllSessions should succeed on the test database",
-    ),
-]
 
 # Property [User Array Formats]: killAllSessions accepts various user array
 # formats including empty, single, multiple, non-existent, and duplicate entries.
@@ -149,16 +139,6 @@ KILLALLSESSIONS_EDGE_CASE_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Idempotent Behavior]: calling killAllSessions multiple times succeeds.
-KILLALLSESSIONS_IDEMPOTENT_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "idempotent",
-        command=lambda ctx: {"killAllSessions": []},
-        expected={"ok": 1.0},
-        msg="killAllSessions should succeed on repeated calls",
-    ),
-]
-
 # Property [Unrecognized Field Acceptance]: unknown fields are silently ignored.
 KILLALLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -188,10 +168,8 @@ KILLALLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
 ]
 
 KILLALLSESSIONS_CORE_TESTS: list[CommandTestCase] = (
-    KILLALLSESSIONS_TEST_DB_TESTS
-    + KILLALLSESSIONS_USER_ARRAY_TESTS
+    KILLALLSESSIONS_USER_ARRAY_TESTS
     + KILLALLSESSIONS_EDGE_CASE_TESTS
-    + KILLALLSESSIONS_IDEMPOTENT_TESTS
     + KILLALLSESSIONS_UNRECOGNIZED_FIELD_TESTS
 )
 
@@ -222,14 +200,53 @@ def test_killAllSessions_admin_database(collection):
     )
 
 
-# Property [Kill After Start]: killAllSessions succeeds after starting a session.
-def test_killAllSessions_kill_after_start(collection):
-    """Test killAllSessions after starting a session succeeds."""
-    execute_command(collection, {"startSession": 1})
+# Property [Idempotent Behavior]: calling killAllSessions multiple times succeeds.
+def test_killAllSessions_idempotent(collection):
+    """Test killAllSessions succeeds on repeated calls."""
+    execute_command(collection, {"killAllSessions": []})
     result = execute_command(collection, {"killAllSessions": []})
     assertResult(
         result,
         expected={"ok": 1.0},
-        msg="killAllSessions after startSession should succeed",
+        msg="killAllSessions should succeed on second call",
+        raw_res=True,
+    )
+
+
+# Property [Kill After Start]: killAllSessions kills an active session.
+def test_killAllSessions_kill_after_start(collection):
+    """Test killAllSessions kills an active session.
+
+    Opens a cursor under a session, kills all sessions, then verifies
+    that getMore fails with CursorNotFound — proving the kill closed
+    the cursor.
+    """
+    client = collection.database.client
+    db = collection.database
+    session = client.start_session()
+
+    # Insert enough docs to require a getMore.
+    collection.insert_many([{"_id": i} for i in range(10)], session=session)
+
+    # Open a cursor with a small batch so the first batch doesn't exhaust it.
+    find_result = db.command(
+        {"find": collection.name, "batchSize": 2},
+        session=session,
+    )
+    cursor_id = find_result["cursor"]["id"]
+
+    # Kill all sessions.
+    execute_command(collection, {"killAllSessions": []})
+
+    # getMore on the killed session's cursor should fail.
+    get_more_result = execute_command(
+        collection,
+        {"getMore": cursor_id, "collection": collection.name},
+        session=session,
+    )
+    assertResult(
+        get_more_result,
+        error_code=CURSOR_NOT_FOUND_ERROR,
+        msg="getMore should fail after killAllSessions",
         raw_res=True,
     )
