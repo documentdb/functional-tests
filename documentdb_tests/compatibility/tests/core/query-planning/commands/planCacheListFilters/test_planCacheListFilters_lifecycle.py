@@ -36,6 +36,33 @@ LIST_FILTERS_MULTIPLE_TESTS: list[CommandTestCase] = [
         msg="planCacheListFilters should return 2 filters for 2 query shapes",
     ),
     CommandTestCase(
+        "same_query_different_sort",
+        docs=[{"_id": 1, "a": 1}],
+        setup=lambda coll: (
+            coll.create_index({"a": 1}),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "indexes": [{"a": 1}],
+                },
+            ),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "sort": {"a": -1},
+                    "indexes": [{"a": 1}],
+                },
+            ),
+        ),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": Len(2)},
+        msg="planCacheListFilters should return 2 filters when query matches but sort differs",
+    ),
+    CommandTestCase(
         "three_shapes",
         docs=[{"_id": 1, "a": 1, "b": 1, "c": 1}],
         setup=lambda coll: (
