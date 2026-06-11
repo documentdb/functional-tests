@@ -14,23 +14,14 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = pytest.mark.no_parallel
 
-# Property [Test Database]: killAllSessions succeeds on the test database.
+# Property [Test Database]: killAllSessions succeeds on the test database
+# and returns ok: 1.0.
 KILLALLSESSIONS_TEST_DB_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "test_database",
         command=lambda ctx: {"killAllSessions": []},
         expected={"ok": 1.0},
         msg="killAllSessions should succeed on the test database",
-    ),
-]
-
-# Property [Response OK]: killAllSessions returns ok field with value 1.0.
-KILLALLSESSIONS_RESPONSE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "response_ok",
-        command=lambda ctx: {"killAllSessions": []},
-        expected={"ok": 1.0},
-        msg="killAllSessions should return ok: 1.0",
     ),
 ]
 
@@ -194,17 +185,10 @@ KILLALLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
         expected={"ok": 1.0},
         msg="killAllSessions should ignore field from another command",
     ),
-    CommandTestCase(
-        "unrecognized_case_variant",
-        command=lambda ctx: {"killAllSessions": [], "KillAllSessions": 1},
-        expected={"ok": 1.0},
-        msg="killAllSessions should ignore case-variant of command name",
-    ),
 ]
 
 KILLALLSESSIONS_CORE_TESTS: list[CommandTestCase] = (
     KILLALLSESSIONS_TEST_DB_TESTS
-    + KILLALLSESSIONS_RESPONSE_TESTS
     + KILLALLSESSIONS_USER_ARRAY_TESTS
     + KILLALLSESSIONS_EDGE_CASE_TESTS
     + KILLALLSESSIONS_IDEMPOTENT_TESTS

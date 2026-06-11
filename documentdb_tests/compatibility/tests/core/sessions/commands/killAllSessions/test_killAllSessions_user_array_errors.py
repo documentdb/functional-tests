@@ -2,7 +2,20 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
+from bson import (
+    Binary,
+    Code,
+    Decimal128,
+    Int64,
+    MaxKey,
+    MinKey,
+    ObjectId,
+    Regex,
+    Timestamp,
+)
 
 from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
     CommandContext,
@@ -29,9 +42,21 @@ KILLALLSESSIONS_ENTRY_NOT_OBJECT_TESTS: list[CommandTestCase] = [
     )
     for tid, val in [
         ("string", "notAnObject"),
-        ("int", 123),
-        ("bool", True),
+        ("int32", 123),
+        ("int64", Int64(1)),
+        ("double", 1.0),
+        ("decimal128", Decimal128("1")),
+        ("bool_true", True),
+        ("bool_false", False),
         ("array", [1, 2]),
+        ("binary", Binary(b"\x00\x01\x02")),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("regex", Regex(".*")),
+        ("timestamp", Timestamp(1, 1)),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
     ]
 ]
 
@@ -66,15 +91,37 @@ KILLALLSESSIONS_INVALID_USER_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx, v=val: {
             "killAllSessions": [{"user": v, "db": "admin"}],
         },
-        error_code=error,
+        error_code=TYPE_MISMATCH_ERROR,
         msg=f"killAllSessions should reject {tid} user field",
     )
-    for tid, val, error in [
-        ("int", 123, TYPE_MISMATCH_ERROR),
-        ("bool", True, TYPE_MISMATCH_ERROR),
-        ("array", [], TYPE_MISMATCH_ERROR),
-        ("null", None, MISSING_FIELD_ERROR),
+    for tid, val in [
+        ("int32", 123),
+        ("int64", Int64(1)),
+        ("double", 1.0),
+        ("decimal128", Decimal128("1")),
+        ("bool_true", True),
+        ("bool_false", False),
+        ("array", []),
+        ("object", {"a": 1}),
+        ("binary", Binary(b"\x00\x01\x02")),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("regex", Regex(".*")),
+        ("timestamp", Timestamp(1, 1)),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
     ]
+] + [
+    # Null produces a missing field error rather than a type mismatch.
+    CommandTestCase(
+        "user_null",
+        command=lambda ctx: {
+            "killAllSessions": [{"user": None, "db": "admin"}],
+        },
+        error_code=MISSING_FIELD_ERROR,
+        msg="killAllSessions should reject null user field",
+    ),
 ]
 
 # Property [User Entry Invalid DB Type]: non-string db field in array
@@ -85,15 +132,37 @@ KILLALLSESSIONS_INVALID_DB_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx, v=val: {
             "killAllSessions": [{"user": "test", "db": v}],
         },
-        error_code=error,
+        error_code=TYPE_MISMATCH_ERROR,
         msg=f"killAllSessions should reject {tid} db field",
     )
-    for tid, val, error in [
-        ("int", 123, TYPE_MISMATCH_ERROR),
-        ("bool", True, TYPE_MISMATCH_ERROR),
-        ("array", [], TYPE_MISMATCH_ERROR),
-        ("null", None, MISSING_FIELD_ERROR),
+    for tid, val in [
+        ("int32", 123),
+        ("int64", Int64(1)),
+        ("double", 1.0),
+        ("decimal128", Decimal128("1")),
+        ("bool_true", True),
+        ("bool_false", False),
+        ("array", []),
+        ("object", {"a": 1}),
+        ("binary", Binary(b"\x00\x01\x02")),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("regex", Regex(".*")),
+        ("timestamp", Timestamp(1, 1)),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
     ]
+] + [
+    # Null produces a missing field error rather than a type mismatch.
+    CommandTestCase(
+        "db_null",
+        command=lambda ctx: {
+            "killAllSessions": [{"user": "test", "db": None}],
+        },
+        error_code=MISSING_FIELD_ERROR,
+        msg="killAllSessions should reject null db field",
+    ),
 ]
 
 # Property [User Entry Extra Fields]: extra fields in user array entries are rejected.
