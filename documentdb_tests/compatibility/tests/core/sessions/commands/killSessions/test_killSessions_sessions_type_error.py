@@ -115,7 +115,7 @@ KILLSESSIONS_ID_TYPE_ERROR_TESTS: list[CommandTestCase] = [
         ("array", []),
         ("object", {}),
         ("objectid", ObjectId()),
-        ("binary_subtype0", Binary(b"\x00" * 16, subtype=0)),
+        ("binary_subtype0", Binary(b"\xde\xad" * 8, subtype=0)),
         ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
         ("regex", Regex(".*")),
         ("timestamp", Timestamp(1, 1)),
@@ -166,7 +166,7 @@ KILLSESSIONS_EXTRA_FIELDS_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_BINARY_SUBTYPE3_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "id_binary_subtype3",
-        command=lambda ctx: {"killSessions": [{"id": Binary(b"\x00" * 16, subtype=3)}]},
+        command=lambda ctx: {"killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=3)}]},
         error_code=TYPE_MISMATCH_ERROR,
         msg="killSessions should reject Binary subtype 3 as session id",
     ),

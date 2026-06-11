@@ -38,7 +38,7 @@ KILLSESSIONS_READCONCERN_LEVEL_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_majority",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"level": "majority"},
         },
         error_code=INVALID_OPTIONS_ERROR,
@@ -47,7 +47,7 @@ KILLSESSIONS_READCONCERN_LEVEL_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_available",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"level": "available"},
         },
         error_code=INVALID_OPTIONS_ERROR,
@@ -56,7 +56,7 @@ KILLSESSIONS_READCONCERN_LEVEL_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_linearizable",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"level": "linearizable"},
         },
         error_code=INVALID_OPTIONS_ERROR,
@@ -65,7 +65,7 @@ KILLSESSIONS_READCONCERN_LEVEL_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_snapshot",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"level": "snapshot"},
         },
         error_code=INVALID_OPTIONS_ERROR,
@@ -74,7 +74,7 @@ KILLSESSIONS_READCONCERN_LEVEL_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_level_invalid_name",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"level": "invalid"},
         },
         error_code=BAD_VALUE_ERROR,
@@ -83,7 +83,7 @@ KILLSESSIONS_READCONCERN_LEVEL_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_level_empty_string",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"level": ""},
         },
         error_code=BAD_VALUE_ERROR,
@@ -97,7 +97,7 @@ KILLSESSIONS_READCONCERN_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"readconcern_type_{tid}",
         command=lambda ctx, v=val: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": v,
         },
         error_code=TYPE_MISMATCH_ERROR,
@@ -129,7 +129,7 @@ KILLSESSIONS_READCONCERN_SUBFIELD_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_unknown_subfield",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"bogusField": 1},
         },
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
@@ -138,7 +138,7 @@ KILLSESSIONS_READCONCERN_SUBFIELD_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_afterclustertime_valid_timestamp",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"afterClusterTime": Timestamp(1, 1)},
         },
         error_code=ILLEGAL_OPERATION_ERROR,
@@ -152,7 +152,7 @@ KILLSESSIONS_READCONCERN_LEVEL_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"readconcern_level_type_{tid}",
         command=lambda ctx, v=val: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"level": v},
         },
         error_code=TYPE_MISMATCH_ERROR,

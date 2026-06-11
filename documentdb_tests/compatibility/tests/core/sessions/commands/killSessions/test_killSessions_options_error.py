@@ -35,7 +35,7 @@ KILLSESSIONS_WRITECONCERN_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"writeconcern_type_{tid}",
         command=lambda ctx, v=val: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "writeConcern": v,
         },
         error_code=TYPE_MISMATCH_ERROR,
@@ -68,7 +68,7 @@ KILLSESSIONS_WRITECONCERN_DOC_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"writeconcern_doc_{tid}",
         command=lambda ctx, v=val: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "writeConcern": v,
         },
         error_code=INVALID_OPTIONS_ERROR,
