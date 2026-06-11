@@ -6,7 +6,7 @@ type distinction, and _id field ordering.
 """
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Dict, cast
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, Regex
@@ -174,8 +174,7 @@ def test_insert_id_equivalence(collection, test: CommandTestCase):
     collection = test.prepare(collection.database, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
-    expected = test.build_expected(ctx)
-    assert isinstance(expected, dict)
+    expected = cast(Dict[str, Any], test.build_expected(ctx))
     assertSuccessPartial(result, expected, msg=test.msg)
 
 
@@ -206,8 +205,7 @@ def test_insert_id_distinction(collection, test: CommandTestCase):
     collection = test.prepare(collection.database, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
-    expected = test.build_expected(ctx)
-    assert isinstance(expected, dict)
+    expected = cast(Dict[str, Any], test.build_expected(ctx))
     assertSuccessPartial(result, expected, msg=test.msg)
 
 
