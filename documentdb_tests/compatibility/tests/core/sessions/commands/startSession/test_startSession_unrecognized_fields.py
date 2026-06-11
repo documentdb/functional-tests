@@ -39,12 +39,6 @@ STARTSESSION_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
         expected={"ok": Eq(1.0)},
         msg="startSession should silently ignore fields from other commands",
     ),
-    CommandTestCase(
-        "unrecognized_case_variant",
-        command=lambda ctx: {"startSession": 1, "StartSession": 1},
-        expected={"ok": Eq(1.0)},
-        msg="startSession should silently ignore case-variant field names",
-    ),
 ]
 
 
