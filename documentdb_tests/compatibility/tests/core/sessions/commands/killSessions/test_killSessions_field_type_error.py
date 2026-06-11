@@ -83,7 +83,7 @@ KILLSESSIONS_FIELD_TYPE_ERROR_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_STABLE_API_STRICT_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_strict_true",
-        command={
+        command=lambda ctx: {
             "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "apiVersion": "1",
             "apiStrict": True,
@@ -98,25 +98,34 @@ KILLSESSIONS_STABLE_API_STRICT_ERROR_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_API_VERSION_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_2",
-        command={"killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}], "apiVersion": "2"},
+        command=lambda ctx: {
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "apiVersion": "2",
+        },
         error_code=API_VERSION_ERROR,
         msg="killSessions should reject apiVersion 2",
     ),
     CommandTestCase(
         "api_version_empty",
-        command={"killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}], "apiVersion": ""},
+        command=lambda ctx: {
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "apiVersion": "",
+        },
         error_code=API_VERSION_ERROR,
         msg="killSessions should reject empty apiVersion",
     ),
     CommandTestCase(
         "api_strict_without_version",
-        command={"killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}], "apiStrict": True},
+        command=lambda ctx: {
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "apiStrict": True,
+        },
         error_code=API_PARAMS_WITHOUT_VERSION_ERROR,
         msg="killSessions should reject apiStrict without apiVersion",
     ),
     CommandTestCase(
         "api_deprecation_without_version",
-        command={
+        command=lambda ctx: {
             "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "apiDeprecationErrors": True,
         },

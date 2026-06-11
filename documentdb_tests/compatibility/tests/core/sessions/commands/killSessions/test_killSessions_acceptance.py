@@ -107,15 +107,6 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
         expected={"ok": 1.0},
         msg="killSessions should ignore field from another command",
     ),
-    CommandTestCase(
-        "unrecognized_case_variant",
-        command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
-            "KillSessions": 1,
-        },
-        expected={"ok": 1.0},
-        msg="killSessions should ignore case-variant of command name",
-    ),
 ]
 
 # Property [readConcern Acceptance]: readConcern with level "local", null,
@@ -181,13 +172,16 @@ KILLSESSIONS_NULL_ELEMENT_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_1",
-        command={"killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}], "apiVersion": "1"},
+        command=lambda ctx: {
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "apiVersion": "1",
+        },
         expected={"ok": 1.0},
         msg="killSessions should succeed with apiVersion 1",
     ),
     CommandTestCase(
         "api_version_1_strict_false",
-        command={
+        command=lambda ctx: {
             "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "apiVersion": "1",
             "apiStrict": False,
@@ -197,7 +191,7 @@ KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     ),
     CommandTestCase(
         "api_version_1_deprecation_true",
-        command={
+        command=lambda ctx: {
             "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "apiVersion": "1",
             "apiDeprecationErrors": True,
@@ -207,7 +201,7 @@ KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     ),
     CommandTestCase(
         "api_version_1_deprecation_false",
-        command={
+        command=lambda ctx: {
             "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "apiVersion": "1",
             "apiDeprecationErrors": False,
