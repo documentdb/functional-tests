@@ -295,5 +295,4 @@ def test_redact_validation_cases(collection, test_case: StageTestCase):
         expected=test_case.expected,
         error_code=test_case.error_code,
         msg=test_case.msg,
-        ignore_doc_order=True,
     )
