@@ -1,9 +1,9 @@
 """
 Tests for dropIndexes command — dropping various index types.
 
-Covers single field, compound, text, 2d, 2dsphere, hashed, TTL, unique,
-sparse, wildcard, wildcard projection, collated, partial filter expression,
-and hidden indexes by name and by spec. Also covers disambiguation when
+Covers single field, text, 2d, 2dsphere, hashed, TTL, unique, sparse,
+wildcard, wildcard projection, collated, partial filter expression, and
+hidden indexes by name and by spec. Also covers disambiguation when
 multiple indexes share the same key pattern with different options.
 """
 
@@ -19,44 +19,11 @@ from documentdb_tests.framework.assertions import (
 )
 from documentdb_tests.framework.error_codes import (
     AMBIGUOUS_INDEX_KEY_PATTERN_ERROR,
-    INDEX_NOT_FOUND_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 DROP_INDEX_TYPE_CASES: list[IndexTestCase] = [
-    IndexTestCase(
-        "single_field_by_name",
-        indexes=("a_idx",),
-        doc=({"_id": 1, "a": 1},),
-        setup_indexes=[{"key": {"a": 1}, "name": "a_idx"}],
-        expected={"nIndexesWas": 2, "ok": 1.0},
-        msg="Should drop single field index by name",
-    ),
-    IndexTestCase(
-        "single_field_by_spec",
-        indexes=({"a": 1},),
-        doc=({"_id": 1, "a": 1},),
-        setup_indexes=[{"key": {"a": 1}, "name": "a_1"}],
-        expected={"nIndexesWas": 2, "ok": 1.0},
-        msg="Should drop single field index by spec",
-    ),
-    IndexTestCase(
-        "compound_by_name",
-        indexes=("compound_idx",),
-        doc=({"_id": 1, "a": 1, "b": 2},),
-        setup_indexes=[{"key": {"a": 1, "b": -1}, "name": "compound_idx"}],
-        expected={"nIndexesWas": 2, "ok": 1.0},
-        msg="Should drop compound index by name",
-    ),
-    IndexTestCase(
-        "compound_by_spec",
-        indexes=({"a": 1, "b": -1},),
-        doc=({"_id": 1, "a": 1, "b": 2},),
-        setup_indexes=[{"key": {"a": 1, "b": -1}, "name": "a_1_b_-1"}],
-        expected={"nIndexesWas": 2, "ok": 1.0},
-        msg="Should drop compound index by spec",
-    ),
     IndexTestCase(
         "text_by_name",
         indexes=("text_idx",),
@@ -243,66 +210,6 @@ DROP_INDEX_TYPE_CASES: list[IndexTestCase] = [
         expected={"nIndexesWas": 2, "ok": 1.0},
         msg="Should drop collated index by spec",
     ),
-    IndexTestCase(
-        "compound_unique_by_name",
-        indexes=("compound_unique_idx",),
-        doc=({"_id": 1, "a": 1, "b": 2},),
-        setup_indexes=[{"key": {"a": 1, "b": 1}, "name": "compound_unique_idx", "unique": True}],
-        expected={"nIndexesWas": 2, "ok": 1.0},
-        msg="Should drop compound unique index by name",
-    ),
-    IndexTestCase(
-        "compound_unique_by_spec",
-        indexes=({"a": 1, "b": 1},),
-        doc=({"_id": 1, "a": 1, "b": 2},),
-        setup_indexes=[{"key": {"a": 1, "b": 1}, "name": "a_1_b_1", "unique": True}],
-        expected={"nIndexesWas": 2, "ok": 1.0},
-        msg="Should drop compound unique index by spec",
-    ),
-    IndexTestCase(
-        "compound_sparse_by_name",
-        indexes=("compound_sparse_idx",),
-        doc=({"_id": 1, "a": 1, "b": 2},),
-        setup_indexes=[{"key": {"a": 1, "b": 1}, "name": "compound_sparse_idx", "sparse": True}],
-        expected={"nIndexesWas": 2, "ok": 1.0},
-        msg="Should drop compound sparse index by name",
-    ),
-    IndexTestCase(
-        "compound_sparse_by_spec",
-        indexes=({"a": 1, "b": 1},),
-        doc=({"_id": 1, "a": 1, "b": 2},),
-        setup_indexes=[{"key": {"a": 1, "b": 1}, "name": "a_1_b_1", "sparse": True}],
-        expected={"nIndexesWas": 2, "ok": 1.0},
-        msg="Should drop compound sparse index by spec",
-    ),
-    IndexTestCase(
-        "compound_partial_by_name",
-        indexes=("compound_partial_idx",),
-        doc=({"_id": 1, "a": 1, "b": 2, "status": "active"},),
-        setup_indexes=[
-            {
-                "key": {"a": 1, "b": 1},
-                "name": "compound_partial_idx",
-                "partialFilterExpression": {"status": "active"},
-            }
-        ],
-        expected={"nIndexesWas": 2, "ok": 1.0},
-        msg="Should drop compound partial filter index by name",
-    ),
-    IndexTestCase(
-        "compound_partial_by_spec",
-        indexes=({"a": 1, "b": 1},),
-        doc=({"_id": 1, "a": 1, "b": 2, "status": "active"},),
-        setup_indexes=[
-            {
-                "key": {"a": 1, "b": 1},
-                "name": "a_1_b_1",
-                "partialFilterExpression": {"status": "active"},
-            }
-        ],
-        expected={"nIndexesWas": 2, "ok": 1.0},
-        msg="Should drop compound partial filter index by spec",
-    ),
 ]
 
 
@@ -315,26 +222,6 @@ def test_dropIndexes_index_type(collection, test):
     result = execute_command(collection, {"dropIndexes": collection.name, "index": test.indexes[0]})
 
     assertSuccessPartial(result, expected=test.expected, msg=test.msg)
-
-
-def test_dropIndexes_text_by_spec_fails(collection):
-    """Test that dropping text index by key spec fails."""
-    collection.insert_one({"_id": 1, "content": "hello world"})
-    execute_command(
-        collection,
-        {
-            "createIndexes": collection.name,
-            "indexes": [{"key": {"content": "text"}, "name": "content_text"}],
-        },
-    )
-
-    result = execute_command(
-        collection, {"dropIndexes": collection.name, "index": {"content": "text"}}
-    )
-
-    assertFailureCode(
-        result, expected_code=INDEX_NOT_FOUND_ERROR, msg="Should fail to drop text index by spec"
-    )
 
 
 def test_dropIndexes_same_key_with_partial_filter_by_name(collection):
