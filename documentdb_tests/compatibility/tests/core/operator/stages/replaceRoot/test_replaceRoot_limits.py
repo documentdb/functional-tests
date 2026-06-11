@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.operator.stages.replaceRoot.utils import (
+from documentdb_tests.compatibility.tests.core.operator.stages.utils.shared_limits import (
     BIG_STORED_STRING_BYTES,
     BOUNDARY_PAD_BYTES,
     MAX_OUTPUT_DOC_SIZE,
