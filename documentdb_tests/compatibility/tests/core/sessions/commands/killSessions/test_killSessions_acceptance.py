@@ -23,8 +23,6 @@ from documentdb_tests.framework.test_constants import (
     INT64_ZERO,
 )
 
-pytestmark = pytest.mark.no_parallel
-
 # Property [maxTimeMS Acceptance]: maxTimeMS accepts values at both
 # boundaries of the valid range across all numeric types.
 KILLSESSIONS_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
@@ -75,7 +73,7 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "unrecognized_single",
         command=lambda ctx: {
-            "killSessions": [],
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "unknownField": 1,
         },
         expected={"ok": 1.0},
@@ -84,7 +82,7 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "unrecognized_multiple",
         command=lambda ctx: {
-            "killSessions": [],
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "foo": 1,
             "bar": 2,
         },
@@ -94,7 +92,7 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "unrecognized_dollar_prefix",
         command=lambda ctx: {
-            "killSessions": [],
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "$unknown": 1,
         },
         expected={"ok": 1.0},
@@ -103,7 +101,7 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "unrecognized_other_command",
         command=lambda ctx: {
-            "killSessions": [],
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "query": {"x": 1},
         },
         expected={"ok": 1.0},
@@ -112,7 +110,7 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "unrecognized_case_variant",
         command=lambda ctx: {
-            "killSessions": [],
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "KillSessions": 1,
         },
         expected={"ok": 1.0},
@@ -183,20 +181,24 @@ KILLSESSIONS_NULL_ELEMENT_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_1",
-        command={"killSessions": [], "apiVersion": "1"},
+        command={"killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}], "apiVersion": "1"},
         expected={"ok": 1.0},
         msg="killSessions should succeed with apiVersion 1",
     ),
     CommandTestCase(
         "api_version_1_strict_false",
-        command={"killSessions": [], "apiVersion": "1", "apiStrict": False},
+        command={
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "apiVersion": "1",
+            "apiStrict": False,
+        },
         expected={"ok": 1.0},
         msg="killSessions should succeed with apiVersion 1 and apiStrict false",
     ),
     CommandTestCase(
         "api_version_1_deprecation_true",
         command={
-            "killSessions": [],
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "apiVersion": "1",
             "apiDeprecationErrors": True,
         },
@@ -206,7 +208,7 @@ KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_1_deprecation_false",
         command={
-            "killSessions": [],
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
             "apiVersion": "1",
             "apiDeprecationErrors": False,
         },

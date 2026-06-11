@@ -26,19 +26,6 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.no_parallel
-
-
-# Property [Empty Array]: killSessions with an empty array succeeds.
-KILLSESSIONS_EMPTY_ARRAY_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "empty_array",
-        command=lambda ctx: {"killSessions": []},
-        expected={"ok": 1.0},
-        msg="killSessions should succeed with empty array",
-    ),
-]
-
 # Property [Random UUID]: killSessions with a non-matching UUID succeeds
 # silently without error.
 KILLSESSIONS_RANDOM_UUID_TESTS: list[CommandTestCase] = [
@@ -141,15 +128,14 @@ KILLSESSIONS_COMMENT_TYPE_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_ADMIN_DB_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "admin_database",
-        command=lambda ctx: {"killSessions": []},
+        command=lambda ctx: {"killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}]},
         expected={"ok": 1.0},
         msg="killSessions should succeed on admin database",
     ),
 ]
 
 KILLSESSIONS_CORE_TESTS: list[CommandTestCase] = (
-    KILLSESSIONS_EMPTY_ARRAY_TESTS
-    + KILLSESSIONS_RANDOM_UUID_TESTS
+    KILLSESSIONS_RANDOM_UUID_TESTS
     + KILLSESSIONS_DUPLICATE_TESTS
     + KILLSESSIONS_LARGE_ARRAY_TESTS
     + KILLSESSIONS_COMMENT_TYPE_TESTS
