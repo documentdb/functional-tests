@@ -355,27 +355,13 @@ ALL_EDGE_CASE_TESTS = (
     + BSON_TYPE_DISTINCTION_TESTS
     + MIXED_BSON_TYPE_TESTS
     + DATE_SORT_TESTS
+    + BEHAVIOR_TESTS
 )
 
 
 @pytest.mark.parametrize("test_case", pytest_params(ALL_EDGE_CASE_TESTS))
 def test_update_sort_edge_cases(collection, test_case):
-    """Test $sort edge case data type behavior."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(BEHAVIOR_TESTS))
-def test_update_sort_behaviors(collection, test_case):
-    """Test $sort modifier behavioral cases that succeed (no error)."""
+    """Test $sort edge case, data type, and behavioral cases that succeed."""
     collection.insert_many(test_case.setup_docs)
     execute_command(
         collection,
