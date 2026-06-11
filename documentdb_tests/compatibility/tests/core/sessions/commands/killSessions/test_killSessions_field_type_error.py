@@ -33,8 +33,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, IsType
 
-pytestmark = pytest.mark.no_parallel
-
 # Property [Command Field Type Rejection]: the killSessions command field
 # expects an array. All non-array BSON types are rejected.
 KILLSESSIONS_FIELD_TYPE_ERROR_TESTS: list[CommandTestCase] = [
@@ -85,7 +83,11 @@ KILLSESSIONS_FIELD_TYPE_ERROR_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_STABLE_API_STRICT_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_strict_true",
-        command={"killSessions": [], "apiVersion": "1", "apiStrict": True},
+        command={
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "apiVersion": "1",
+            "apiStrict": True,
+        },
         error_code=API_STRICT_ERROR,
         msg="killSessions should be rejected with apiStrict true",
     ),
@@ -96,25 +98,28 @@ KILLSESSIONS_STABLE_API_STRICT_ERROR_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_API_VERSION_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_2",
-        command={"killSessions": [], "apiVersion": "2"},
+        command={"killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}], "apiVersion": "2"},
         error_code=API_VERSION_ERROR,
         msg="killSessions should reject apiVersion 2",
     ),
     CommandTestCase(
         "api_version_empty",
-        command={"killSessions": [], "apiVersion": ""},
+        command={"killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}], "apiVersion": ""},
         error_code=API_VERSION_ERROR,
         msg="killSessions should reject empty apiVersion",
     ),
     CommandTestCase(
         "api_strict_without_version",
-        command={"killSessions": [], "apiStrict": True},
+        command={"killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}], "apiStrict": True},
         error_code=API_PARAMS_WITHOUT_VERSION_ERROR,
         msg="killSessions should reject apiStrict without apiVersion",
     ),
     CommandTestCase(
         "api_deprecation_without_version",
-        command={"killSessions": [], "apiDeprecationErrors": True},
+        command={
+            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "apiDeprecationErrors": True,
+        },
         error_code=API_PARAMS_WITHOUT_VERSION_ERROR,
         msg="killSessions should reject apiDeprecationErrors without apiVersion",
     ),
