@@ -23,6 +23,8 @@ from documentdb_tests.framework.test_constants import (
     INT64_ZERO,
 )
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [maxTimeMS Acceptance]: maxTimeMS accepts values at both
 # boundaries of the valid range across all numeric types.
 KILLSESSIONS_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [

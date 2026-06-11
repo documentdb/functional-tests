@@ -42,6 +42,8 @@ from documentdb_tests.framework.test_constants import (
     INT32_OVERFLOW,
 )
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [maxTimeMS Type Rejection]: all non-numeric, non-null BSON
 # types for maxTimeMS are rejected.
 KILLSESSIONS_MAXTIMEMS_TYPE_ERROR_TESTS: list[CommandTestCase] = [

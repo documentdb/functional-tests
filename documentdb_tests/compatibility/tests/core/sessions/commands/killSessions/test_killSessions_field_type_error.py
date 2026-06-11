@@ -32,6 +32,8 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [Command Field Type Rejection]: the killSessions command field
 # expects an array. All non-array BSON types are rejected.
 KILLSESSIONS_FIELD_TYPE_ERROR_TESTS: list[CommandTestCase] = [
