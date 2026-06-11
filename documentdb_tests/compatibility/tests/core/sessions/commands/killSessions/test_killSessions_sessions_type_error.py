@@ -32,6 +32,8 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [Non-Document Array Elements]: array elements that are not
 # documents are rejected.
 KILLSESSIONS_ELEMENT_TYPE_ERROR_TESTS: list[CommandTestCase] = [

@@ -29,6 +29,8 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [writeConcern Type Rejection]: all non-document, non-null BSON
 # types for the writeConcern field are rejected.
 KILLSESSIONS_WRITECONCERN_TYPE_ERROR_TESTS: list[CommandTestCase] = [
