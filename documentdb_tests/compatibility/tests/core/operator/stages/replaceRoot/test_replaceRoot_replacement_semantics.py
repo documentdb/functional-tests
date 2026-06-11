@@ -14,6 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import MISSING
 
 # Property [Core Replacement Behavior]: the input document is replaced entirely
 # by the object newRoot resolves to against the pre-replacement input; no
@@ -250,6 +251,26 @@ REPLACEROOT_CONSECUTIVE_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [Empty and Non-Existent Collections]: running $replaceRoot on an
+# empty collection or a non-existent collection returns an empty result with no
+# error.
+REPLACEROOT_EMPTY_COLLECTION_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "empty_collection",
+        docs=[],
+        pipeline=[{"$replaceRoot": {"newRoot": MISSING}}],
+        expected=[],
+        msg="$replaceRoot on an empty collection should return an empty result",
+    ),
+    StageTestCase(
+        "nonexistent_collection",
+        docs=None,
+        pipeline=[{"$replaceRoot": {"newRoot": MISSING}}],
+        expected=[],
+        msg="$replaceRoot on a non-existent collection should return an empty result",
+    ),
+]
+
 REPLACEROOT_REPLACEMENT_SEMANTICS_TESTS = (
     REPLACEROOT_CORE_TESTS
     + REPLACEROOT_IDENTITY_TESTS
@@ -259,6 +280,7 @@ REPLACEROOT_REPLACEMENT_SEMANTICS_TESTS = (
     + REPLACEROOT_EXPRESSION_ARGUMENT_TESTS
     + REPLACEROOT_ACCEPTED_INPUT_TESTS
     + REPLACEROOT_CONSECUTIVE_TESTS
+    + REPLACEROOT_EMPTY_COLLECTION_TESTS
 )
 
 
