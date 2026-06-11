@@ -45,6 +45,7 @@ LIST_FILTERS_MULTIPLE_TESTS: list[CommandTestCase] = [
                 {
                     "planCacheSetFilter": coll.name,
                     "query": {"a": 1},
+                    "sort": {"a": 1},
                     "indexes": [{"a": 1}],
                 },
             ),
