@@ -12,8 +12,8 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128, Int64
 
-from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_command_test_case import (  # noqa: E501
-    SessionCommandTestCase,
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
@@ -28,26 +28,26 @@ pytestmark = pytest.mark.admin
 
 
 # Property [txnNumber Int64 Acceptance]: Int64 values are accepted for txnNumber.
-TXN_NUMBER_INT64_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+TXN_NUMBER_INT64_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "txn_number_int64_positive",
         command={"abortTransaction": 1, "txnNumber": Int64(1)},
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="abortTransaction should accept txnNumber:Int64(1) and fail with IllegalOperation",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "txn_number_int64_zero",
         command={"abortTransaction": 1, "txnNumber": Int64(0)},
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="abortTransaction should accept txnNumber:Int64(0) and fail with IllegalOperation",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "txn_number_int64_max",
         command={"abortTransaction": 1, "txnNumber": Int64(9_223_372_036_854_775_807)},
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="abortTransaction should accept txnNumber:Int64 max value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "txn_number_int64_negative",
         command={"abortTransaction": 1, "txnNumber": Int64(-1)},
         error_code=ILLEGAL_OPERATION_ERROR,
@@ -56,50 +56,50 @@ TXN_NUMBER_INT64_TESTS: list[SessionCommandTestCase] = [
 ]
 
 # Property [txnNumber Type Strictness]: non-Int64 types are rejected with TypeMismatch.
-TXN_NUMBER_TYPE_REJECTION_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+TXN_NUMBER_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "txn_number_int32",
         command={"abortTransaction": 1, "txnNumber": 1},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject txnNumber:int32 as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "txn_number_double_whole",
         command={"abortTransaction": 1, "txnNumber": 1.0},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject txnNumber:double (whole) as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "txn_number_double_fractional",
         command={"abortTransaction": 1, "txnNumber": 1.5},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject txnNumber:double (fractional) as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "txn_number_decimal128",
         command={"abortTransaction": 1, "txnNumber": Decimal128("1")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject txnNumber:Decimal128 as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "txn_number_string",
         command={"abortTransaction": 1, "txnNumber": "1"},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject txnNumber:string as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "txn_number_bool",
         command={"abortTransaction": 1, "txnNumber": True},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject txnNumber:bool as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "txn_number_object",
         command={"abortTransaction": 1, "txnNumber": {}},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject txnNumber:{} (object) as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "txn_number_array",
         command={"abortTransaction": 1, "txnNumber": []},
         error_code=TYPE_MISMATCH_ERROR,
@@ -108,8 +108,8 @@ TXN_NUMBER_TYPE_REJECTION_TESTS: list[SessionCommandTestCase] = [
 ]
 
 # Property [txnNumber Null Handling]: null txnNumber is treated as omitted.
-TXN_NUMBER_NULL_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+TXN_NUMBER_NULL_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "txn_number_null",
         command={"abortTransaction": 1, "txnNumber": None},
         error_code=NO_SUCH_TRANSACTION_ERROR,
@@ -117,7 +117,7 @@ TXN_NUMBER_NULL_TESTS: list[SessionCommandTestCase] = [
     ),
 ]
 
-TXN_NUMBER_TESTS: list[SessionCommandTestCase] = (
+TXN_NUMBER_TESTS: list[CommandTestCase] = (
     TXN_NUMBER_INT64_TESTS + TXN_NUMBER_TYPE_REJECTION_TESTS + TXN_NUMBER_NULL_TESTS
 )
 

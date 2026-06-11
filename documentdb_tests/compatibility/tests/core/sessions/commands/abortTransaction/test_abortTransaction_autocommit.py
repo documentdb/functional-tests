@@ -11,8 +11,8 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128, Int64
 
-from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_command_test_case import (  # noqa: E501
-    SessionCommandTestCase,
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
@@ -27,14 +27,14 @@ pytestmark = pytest.mark.admin
 
 
 # Property [autocommit Boolean Values]: autocommit accepts only boolean values.
-AUTOCOMMIT_BOOLEAN_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+AUTOCOMMIT_BOOLEAN_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "autocommit_bool_false",
         command={"abortTransaction": 1, "autocommit": False},
         error_code=INVALID_OPTIONS_ERROR,
         msg="abortTransaction should reject autocommit:false outside txn with InvalidOptions",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "autocommit_bool_true",
         command={"abortTransaction": 1, "autocommit": True},
         error_code=INVALID_OPTIONS_ERROR,
@@ -43,50 +43,50 @@ AUTOCOMMIT_BOOLEAN_TESTS: list[SessionCommandTestCase] = [
 ]
 
 # Property [autocommit Type Strictness]: non-boolean types are rejected with TypeMismatch.
-AUTOCOMMIT_TYPE_REJECTION_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+AUTOCOMMIT_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "autocommit_int32_zero",
         command={"abortTransaction": 1, "autocommit": 0},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject autocommit:0 (int32) as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "autocommit_int32_one",
         command={"abortTransaction": 1, "autocommit": 1},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject autocommit:1 (int32) as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "autocommit_int64_zero",
         command={"abortTransaction": 1, "autocommit": Int64(0)},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject autocommit:Int64(0) as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "autocommit_double_zero",
         command={"abortTransaction": 1, "autocommit": 0.0},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject autocommit:0.0 as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "autocommit_decimal128_zero",
         command={"abortTransaction": 1, "autocommit": Decimal128("0")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject autocommit:Decimal128('0') as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "autocommit_string",
         command={"abortTransaction": 1, "autocommit": "false"},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject autocommit:'false' (string) as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "autocommit_object",
         command={"abortTransaction": 1, "autocommit": {}},
         error_code=TYPE_MISMATCH_ERROR,
         msg="abortTransaction should reject autocommit:{} (object) as wrong type",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "autocommit_array",
         command={"abortTransaction": 1, "autocommit": []},
         error_code=TYPE_MISMATCH_ERROR,
@@ -95,8 +95,8 @@ AUTOCOMMIT_TYPE_REJECTION_TESTS: list[SessionCommandTestCase] = [
 ]
 
 # Property [autocommit Null Handling]: null autocommit is treated as omitted.
-AUTOCOMMIT_NULL_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+AUTOCOMMIT_NULL_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "autocommit_null",
         command={"abortTransaction": 1, "autocommit": None},
         error_code=NO_SUCH_TRANSACTION_ERROR,
@@ -104,7 +104,7 @@ AUTOCOMMIT_NULL_TESTS: list[SessionCommandTestCase] = [
     ),
 ]
 
-AUTOCOMMIT_TESTS: list[SessionCommandTestCase] = (
+AUTOCOMMIT_TESTS: list[CommandTestCase] = (
     AUTOCOMMIT_BOOLEAN_TESTS + AUTOCOMMIT_TYPE_REJECTION_TESTS + AUTOCOMMIT_NULL_TESTS
 )
 

@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_command_test_case import (  # noqa: E501
-    SessionCommandTestCase,
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import NO_SUCH_TRANSACTION_ERROR
@@ -24,170 +24,170 @@ pytestmark = pytest.mark.admin
 
 
 # Property [Field Type Acceptance]: the command field accepts any BSON type.
-FIELD_TYPE_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+FIELD_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "field_int32_positive",
         command={"abortTransaction": 1},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept int32 positive value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_int32_negative",
         command={"abortTransaction": -1},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept int32 negative value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_int32_zero",
         command={"abortTransaction": 0},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept int32 zero value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_int64",
         command={"abortTransaction": Int64(1)},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept int64 value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_int64_max",
         command={"abortTransaction": Int64(9_223_372_036_854_775_807)},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept int64 max value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_double",
         command={"abortTransaction": 1.0},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept double value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_double_negative",
         command={"abortTransaction": -1.0},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept negative double value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_double_zero",
         command={"abortTransaction": 0.0},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept double zero value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_decimal128",
         command={"abortTransaction": Decimal128("1")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept Decimal128 value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_bool_true",
         command={"abortTransaction": True},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept bool true value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_bool_false",
         command={"abortTransaction": False},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept bool false value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_nan",
         command={"abortTransaction": float("nan")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept NaN value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_infinity",
         command={"abortTransaction": float("inf")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept Infinity value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_string",
         command={"abortTransaction": "abortTransaction"},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept string value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_string_empty",
         command={"abortTransaction": ""},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept empty string value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_null",
         command={"abortTransaction": None},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept null value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_object_empty",
         command={"abortTransaction": {}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept empty object value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_object_nonempty",
         command={"abortTransaction": {"key": "value"}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept non-empty object value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_array_empty",
         command={"abortTransaction": []},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept empty array value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_array_nonempty",
         command={"abortTransaction": [1, 2]},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept non-empty array value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_binary",
         command={"abortTransaction": Binary(b"\x00")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept Binary value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_objectid",
         command={"abortTransaction": ObjectId()},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept ObjectId value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_datetime",
         command={"abortTransaction": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept datetime value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_regex",
         command={"abortTransaction": Regex(".*")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept Regex value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_timestamp",
         command={"abortTransaction": Timestamp(0, 0)},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept Timestamp value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_code",
         command={"abortTransaction": Code("function(){}")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept Code value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_minkey",
         command={"abortTransaction": MinKey()},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept MinKey value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_maxkey",
         command={"abortTransaction": MaxKey()},
         error_code=NO_SUCH_TRANSACTION_ERROR,

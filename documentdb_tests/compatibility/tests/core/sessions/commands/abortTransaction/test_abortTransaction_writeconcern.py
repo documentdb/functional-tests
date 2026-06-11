@@ -10,8 +10,8 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128, Int64
 
-from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_command_test_case import (  # noqa: E501
-    SessionCommandTestCase,
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import NO_SUCH_TRANSACTION_ERROR
@@ -21,26 +21,20 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 # Property [writeConcern Document Acceptance]: writeConcern accepts document values.
-WRITECONCERN_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
-        "writeconcern_doc_w1",
-        command={"abortTransaction": 1, "writeConcern": {"w": 1}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
-        msg="abortTransaction should accept writeConcern document with w:1",
-    ),
-    SessionCommandTestCase(
+WRITECONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "writeconcern_empty_doc",
         command={"abortTransaction": 1, "writeConcern": {}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept empty writeConcern document",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "writeconcern_null",
         command={"abortTransaction": 1, "writeConcern": None},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern:null",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wc_combined_w_j_wtimeout",
         command={
             "abortTransaction": 1,
@@ -49,13 +43,13 @@ WRITECONCERN_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept combined w + j + wtimeout",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wc_w0_j_true",
         command={"abortTransaction": 1, "writeConcern": {"w": 0, "j": True}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept conflicting w:0 with j:true",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wc_fsync_true",
         command={"abortTransaction": 1, "writeConcern": {"fsync": True}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
@@ -64,44 +58,44 @@ WRITECONCERN_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
 ]
 
 # Property [w Accepted Values]: w accepts int and string "majority" values.
-W_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+W_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "w_int32_one",
         command={"abortTransaction": 1, "writeConcern": {"w": 1}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.w:1",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "w_int32_zero",
         command={"abortTransaction": 1, "writeConcern": {"w": 0}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.w:0 (unacknowledged)",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "w_majority",
         command={"abortTransaction": 1, "writeConcern": {"w": "majority"}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.w:'majority'",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "w_int64",
         command={"abortTransaction": 1, "writeConcern": {"w": Int64(1)}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.w:Int64(1)",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "w_double_whole",
         command={"abortTransaction": 1, "writeConcern": {"w": 1.0}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.w:1.0",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "w_double_fractional",
         command={"abortTransaction": 1, "writeConcern": {"w": 1.5}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.w:1.5",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "w_decimal128",
         command={"abortTransaction": 1, "writeConcern": {"w": Decimal128("1")}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
@@ -110,32 +104,32 @@ W_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
 ]
 
 # Property [j Accepted Values]: j accepts boolean and numeric types.
-J_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+J_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "j_bool_true",
         command={"abortTransaction": 1, "writeConcern": {"j": True}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.j:true",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "j_bool_false",
         command={"abortTransaction": 1, "writeConcern": {"j": False}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.j:false",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "j_int32_one",
         command={"abortTransaction": 1, "writeConcern": {"j": 1}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.j:1 (coerced to true)",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "j_int32_zero",
         command={"abortTransaction": 1, "writeConcern": {"j": 0}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.j:0 (coerced to false)",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "j_null",
         command={"abortTransaction": 1, "writeConcern": {"j": None}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
@@ -144,62 +138,62 @@ J_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
 ]
 
 # Property [wtimeout Accepted Values]: wtimeout accepts numeric types broadly.
-WTIMEOUT_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+WTIMEOUT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "wtimeout_int32_positive",
         command={"abortTransaction": 1, "writeConcern": {"wtimeout": 1000}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.wtimeout:1000",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wtimeout_int32_zero",
         command={"abortTransaction": 1, "writeConcern": {"wtimeout": 0}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.wtimeout:0 (no timeout)",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wtimeout_int64",
         command={"abortTransaction": 1, "writeConcern": {"wtimeout": Int64(1000)}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.wtimeout:Int64(1000)",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wtimeout_double_whole",
         command={"abortTransaction": 1, "writeConcern": {"wtimeout": 1000.0}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.wtimeout:1000.0",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wtimeout_negative",
         command={"abortTransaction": 1, "writeConcern": {"wtimeout": -1}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.wtimeout:-1",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wtimeout_string",
         command={"abortTransaction": 1, "writeConcern": {"wtimeout": "1000"}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.wtimeout:'1000'",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wtimeout_bool",
         command={"abortTransaction": 1, "writeConcern": {"wtimeout": True}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.wtimeout:true",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wtimeout_null",
         command={"abortTransaction": 1, "writeConcern": {"wtimeout": None}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.wtimeout:null",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wtimeout_object",
         command={"abortTransaction": 1, "writeConcern": {"wtimeout": {}}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="abortTransaction should accept writeConcern.wtimeout:{}",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "wtimeout_array",
         command={"abortTransaction": 1, "writeConcern": {"wtimeout": []}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
@@ -207,7 +201,7 @@ WTIMEOUT_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
     ),
 ]
 
-WRITECONCERN_ACCEPTANCE_ALL_TESTS: list[SessionCommandTestCase] = (
+WRITECONCERN_ACCEPTANCE_ALL_TESTS: list[CommandTestCase] = (
     WRITECONCERN_ACCEPTANCE_TESTS
     + W_ACCEPTANCE_TESTS
     + J_ACCEPTANCE_TESTS
