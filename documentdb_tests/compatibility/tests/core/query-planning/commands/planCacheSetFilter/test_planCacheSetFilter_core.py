@@ -485,15 +485,20 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
         setup=lambda coll: (
             execute_command(
                 coll,
-                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "sort": {"a": 1},
+                    "indexes": [{"a": 1}],
+                },
             ),
             execute_command(
                 coll,
                 {
                     "planCacheSetFilter": coll.name,
                     "query": {"a": 1},
-                    "sort": {"b": 1},
-                    "indexes": [{"a": 1, "b": 1}],
+                    "sort": {"a": -1},
+                    "indexes": [{"a": 1}],
                 },
             ),
         ),
@@ -503,18 +508,23 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
     ),
     CommandTestCase(
         "projection_creates_distinct_shape",
-        docs=[{"_id": 1, "a": 1}],
+        docs=[{"_id": 1, "a": 1, "b": 1}],
         setup=lambda coll: (
-            execute_command(
-                coll,
-                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
-            ),
             execute_command(
                 coll,
                 {
                     "planCacheSetFilter": coll.name,
                     "query": {"a": 1},
                     "projection": {"a": 1},
+                    "indexes": [{"a": 1}],
+                },
+            ),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "projection": {"b": 1},
                     "indexes": [{"a": 1}],
                 },
             ),
@@ -529,10 +539,6 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
         setup=lambda coll: (
             execute_command(
                 coll,
-                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
-            ),
-            execute_command(
-                coll,
                 {
                     "planCacheSetFilter": coll.name,
                     "query": {"a": 1},
@@ -540,10 +546,36 @@ SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
                     "indexes": [{"a": 1}],
                 },
             ),
+            execute_command(
+                coll,
+                {
+                    "planCacheSetFilter": coll.name,
+                    "query": {"a": 1},
+                    "collation": {"locale": "fr"},
+                    "indexes": [{"a": 1}],
+                },
+            ),
         ),
         command=lambda ctx: {"planCacheListFilters": ctx.collection},
         expected={"filters": Len(2)},
         msg="Collation should create a distinct shape (2 filters expected)",
+    ),
+    CommandTestCase(
+        "same_shape_different_value",
+        docs=[{"_id": 1, "a": 1}],
+        setup=lambda coll: (
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 999}, "indexes": [{"a": 1}]},
+            ),
+        ),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": Len(1)},
+        msg="planCacheListFilters should return 1 filter when queries differ only in value",
     ),
 ]
 
