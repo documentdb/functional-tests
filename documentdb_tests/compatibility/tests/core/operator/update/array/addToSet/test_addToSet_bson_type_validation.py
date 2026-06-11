@@ -45,13 +45,20 @@ ADDTOSET_PARAMS = [
 ]
 
 
-def _build_update(spec, sample_value):
-    """Build the setup doc and update command based on which aspect is being tested."""
+def _build_setup_doc(spec, sample_value):
+    """Build the setup document based on which aspect is being tested."""
     if spec.id == "target_field":
-        return {"_id": 1, "arr": sample_value}, {"$addToSet": {"arr": 99}}
+        return {"_id": 1, "arr": sample_value}
     if spec.id == "duplicate":
-        return {"_id": 1, "arr": [sample_value]}, {"$addToSet": {"arr": sample_value}}
-    return {"_id": 1, "arr": []}, {"$addToSet": {"arr": sample_value}}
+        return {"_id": 1, "arr": [sample_value]}
+    return {"_id": 1, "arr": []}
+
+
+def _build_update(spec, sample_value):
+    """Build the update command based on which aspect is being tested."""
+    if spec.id == "target_field":
+        return {"$addToSet": {"arr": 99}}
+    return {"$addToSet": {"arr": sample_value}}
 
 
 @pytest.mark.parametrize(
@@ -59,7 +66,8 @@ def _build_update(spec, sample_value):
 )
 def test_addToSet_target_field_rejected(collection, bson_type, sample_value, spec):
     """Test $addToSet rejects non-array target field types with error."""
-    setup_doc, update = _build_update(spec, sample_value)
+    setup_doc = _build_setup_doc(spec, sample_value)
+    update = _build_update(spec, sample_value)
     collection.insert_one(setup_doc)
     result = execute_command(
         collection,
@@ -80,7 +88,8 @@ def test_addToSet_target_field_rejected(collection, bson_type, sample_value, spe
 )
 def test_addToSet_bson_type_accepted(collection, bson_type, sample_value, spec):
     """Test $addToSet accepts valid BSON types for target field and value element."""
-    setup_doc, update = _build_update(spec, sample_value)
+    setup_doc = _build_setup_doc(spec, sample_value)
+    update = _build_update(spec, sample_value)
     collection.insert_one(setup_doc)
     execute_command(
         collection,
