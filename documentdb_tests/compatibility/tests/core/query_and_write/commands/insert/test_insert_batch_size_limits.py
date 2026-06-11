@@ -4,38 +4,33 @@ Insert batch size limit tests.
 Tests maxWriteBatchSize enforcement and document size rejection.
 """
 
-from dataclasses import dataclass
-from typing import Any
-
 import pytest
 
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+    CommandContext,
+    CommandTestCase,
+)
 from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
 from documentdb_tests.framework.error_codes import BSON_OBJECT_TOO_LARGE_ERROR, INVALID_LENGTH_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
-
-
-@dataclass(frozen=True)
-class BatchLimitTest(BaseTestCase):
-    """Test case for insert batch and document size limit rejection."""
-
-    documents: Any = None
-
 
 # Property [Document and Batch Rejection]: insert rejects an empty documents array
 # and a document exceeding the BSON size limit.
-TESTS: list[BatchLimitTest] = [
-    BatchLimitTest(
+BATCH_LIMIT_REJECTED_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "empty_documents_array",
-        documents=[],
+        command=lambda ctx: {"insert": ctx.collection, "documents": []},
         error_code=INVALID_LENGTH_ERROR,
         msg="insert should reject an empty documents array.",
     ),
-    BatchLimitTest(
+    CommandTestCase(
         "document_exceeds_size_limit",
         # A string value of 16MB plus document overhead exceeds the size limit.
-        documents=[{"_id": 1, "value": "x" * (16 * 1024 * 1024)}],
+        command=lambda ctx: {
+            "insert": ctx.collection,
+            "documents": [{"_id": 1, "value": "x" * (16 * 1024 * 1024)}],
+        },
         error_code=BSON_OBJECT_TOO_LARGE_ERROR,
         msg="insert should reject a document exceeding the BSON size limit.",
     ),
@@ -43,13 +38,12 @@ TESTS: list[BatchLimitTest] = [
 
 
 @pytest.mark.insert
-@pytest.mark.parametrize("test", pytest_params(TESTS))
-def test_insert_batch_limit_rejected(collection, test: BatchLimitTest):
+@pytest.mark.parametrize("test", pytest_params(BATCH_LIMIT_REJECTED_TESTS))
+def test_insert_batch_limit_rejected(collection, test: CommandTestCase):
     """Test insert rejects empty batch and oversized documents."""
-    result = execute_command(
-        collection,
-        {"insert": collection.name, "documents": test.documents},
-    )
+    collection = test.prepare(collection.database, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
     assertResult(result, error_code=test.error_code, msg=test.msg)
 
 

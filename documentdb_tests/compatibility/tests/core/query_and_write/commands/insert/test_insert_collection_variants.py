@@ -8,60 +8,66 @@ collisions under parallel execution.
 
 import pytest
 
-from documentdb_tests.framework.assertions import (
-    assertFailureCode,
-    assertResult,
-    assertSuccessPartial,
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+    CommandContext,
+    CommandTestCase,
 )
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.target_collection import CappedCollection, ViewCollection
 
+# Property [Collection Variant Acceptance]: insert succeeds on regular and capped
+# collections, and is rejected on views.
+COLLECTION_VARIANT_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "regular_collection",
+        command=lambda ctx: {
+            "insert": ctx.collection,
+            "documents": [{"_id": 1, "a": 1}],
+        },
+        expected={"ok": 1.0, "n": 1},
+        msg="insert should succeed on regular collection.",
+    ),
+    CommandTestCase(
+        "capped_collection",
+        target_collection=CappedCollection(size=1_048_576),
+        command=lambda ctx: {
+            "insert": ctx.collection,
+            "documents": [{"_id": 1, "a": 1}],
+        },
+        expected={"ok": 1.0, "n": 1},
+        msg="insert should succeed on capped collection.",
+    ),
+    CommandTestCase(
+        "view_rejected",
+        target_collection=ViewCollection(),
+        docs=[],
+        command=lambda ctx: {
+            "insert": ctx.collection,
+            "documents": [{"_id": 1}],
+        },
+        error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
+        msg="insert should reject insert into view.",
+    ),
+]
+
 
 @pytest.mark.insert
-def test_insert_into_regular_collection(collection):
-    """Test insert into regular collection succeeds."""
-    result = execute_command(
-        collection,
-        {"insert": collection.name, "documents": [{"_id": 1, "a": 1}]},
+@pytest.mark.parametrize("test", pytest_params(COLLECTION_VARIANT_TESTS))
+def test_insert_collection_variant(database_client, collection, test: CommandTestCase):
+    """Test insert behavior across regular, capped, and view collections."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
     )
-    assertSuccessPartial(
-        result, {"ok": 1.0, "n": 1}, msg="insert should succeed on regular collection."
-    )
-
-
-@pytest.mark.insert
-def test_insert_into_capped_collection(collection):
-    """Test insert into capped collection succeeds."""
-    capped = CappedCollection(size=1_048_576).resolve(collection.database, collection)
-    try:
-        result = execute_command(
-            capped,
-            {"insert": capped.name, "documents": [{"_id": 1, "a": 1}]},
-        )
-        assertSuccessPartial(
-            result, {"ok": 1.0, "n": 1}, msg="insert should succeed on capped collection."
-        )
-    finally:
-        capped.drop()
-
-
-@pytest.mark.insert
-def test_insert_into_view_fails(collection):
-    """Test insert into a view fails (views are read-only)."""
-    view = ViewCollection().resolve(collection.database, collection)
-    try:
-        result = execute_command(
-            view,
-            {"insert": view.name, "documents": [{"_id": 1}]},
-        )
-        assertFailureCode(
-            result,
-            COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
-            msg="insert should reject insert into view.",
-        )
-    finally:
-        view.drop()
 
 
 @pytest.mark.insert

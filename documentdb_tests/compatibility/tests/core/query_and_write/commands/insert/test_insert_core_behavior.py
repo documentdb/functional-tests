@@ -5,58 +5,50 @@ Tests basic insert operations, implicit collection creation,
 and response field verification.
 """
 
-from dataclasses import dataclass
-from typing import Any
-
 import pytest
 
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+    CommandContext,
+    CommandTestCase,
+)
 from documentdb_tests.framework.assertions import (
     assertProperties,
+    assertResult,
     assertSuccess,
     assertSuccessPartial,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, NonEmptyStr
-from documentdb_tests.framework.test_case import BaseTestCase
-
-
-@dataclass(frozen=True)
-class ResponseTest(BaseTestCase):
-    """Test case asserting insert response fields (ok, n)."""
-
-    documents: Any = None
-    response_expected: Any = None
-
-
-@dataclass(frozen=True)
-class DocCheckTest(BaseTestCase):
-    """Test case asserting document state after insert via find."""
-
-    documents: Any = None
-    find_filter: Any = None
-    find_expected: Any = None
-
 
 # Property [Response Structure]: insert returns ok=1.0 and the correct inserted
 # count for single documents, multiple documents, and empty documents.
-RESPONSE_TESTS: list[ResponseTest] = [
-    ResponseTest(
+RESPONSE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "single_document",
-        documents=[{"_id": 1, "a": 1}],
-        response_expected={"ok": 1.0, "n": 1},
+        command=lambda ctx: {
+            "insert": ctx.collection,
+            "documents": [{"_id": 1, "a": 1}],
+        },
+        expected={"ok": 1.0, "n": 1},
         msg="insert should succeed with n=1.",
     ),
-    ResponseTest(
+    CommandTestCase(
         "multiple_documents",
-        documents=[{"_id": 1}, {"_id": 2}],
-        response_expected={"ok": 1.0, "n": 2},
+        command=lambda ctx: {
+            "insert": ctx.collection,
+            "documents": [{"_id": 1}, {"_id": 2}],
+        },
+        expected={"ok": 1.0, "n": 2},
         msg="insert should return ok=1.0 and n matching the document count.",
     ),
-    ResponseTest(
+    CommandTestCase(
         "empty_document",
-        documents=[{}],
-        response_expected={"ok": 1.0, "n": 1},
+        command=lambda ctx: {
+            "insert": ctx.collection,
+            "documents": [{}],
+        },
+        expected={"ok": 1.0, "n": 1},
         msg="insert should accept an empty document and generate an _id.",
     ),
 ]
@@ -64,38 +56,38 @@ RESPONSE_TESTS: list[ResponseTest] = [
 
 @pytest.mark.insert
 @pytest.mark.parametrize("test", pytest_params(RESPONSE_TESTS))
-def test_insert_response(collection, test: ResponseTest):
+def test_insert_response(collection, test: CommandTestCase):
     """Test insert response structure."""
-    result = execute_command(
-        collection,
-        {"insert": collection.name, "documents": test.documents},
-    )
-    assertSuccessPartial(result, test.response_expected, msg=test.msg)
+    collection = test.prepare(collection.database, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
+    assertResult(result, expected=test.build_expected(ctx), msg=test.msg, raw_res=True)
 
 
 # Property [Document Preservation]: insert stores field values exactly, including
 # empty-like values (empty string, null, empty array, empty object).
-DOC_TESTS: list[DocCheckTest] = [
-    DocCheckTest(
+DOC_PRESERVATION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "empty_like_field_values",
-        documents=[{"_id": 1, "a": "", "b": None, "c": [], "d": {}}],
-        find_filter={"_id": 1},
-        find_expected=[{"_id": 1, "a": "", "b": None, "c": [], "d": {}}],
+        command=lambda ctx: {
+            "insert": ctx.collection,
+            "documents": [{"_id": 1, "a": "", "b": None, "c": [], "d": {}}],
+        },
+        expected=[{"_id": 1, "a": "", "b": None, "c": [], "d": {}}],
         msg="insert should preserve empty string, null, empty array, and empty object fields.",
     ),
 ]
 
 
 @pytest.mark.insert
-@pytest.mark.parametrize("test", pytest_params(DOC_TESTS))
-def test_insert_document_preservation(collection, test: DocCheckTest):
+@pytest.mark.parametrize("test", pytest_params(DOC_PRESERVATION_TESTS))
+def test_insert_document_preservation(collection, test: CommandTestCase):
     """Test that insert stores field values exactly as supplied."""
-    execute_command(
-        collection,
-        {"insert": collection.name, "documents": test.documents},
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test.find_filter})
-    assertSuccess(result, test.find_expected, msg=test.msg)
+    collection = test.prepare(collection.database, collection)
+    ctx = CommandContext.from_collection(collection)
+    execute_command(collection, test.build_command(ctx))
+    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
+    assertSuccess(result, test.build_expected(ctx), msg=test.msg)
 
 
 # Implicit collection creation requires a derived collection name and cleanup.
