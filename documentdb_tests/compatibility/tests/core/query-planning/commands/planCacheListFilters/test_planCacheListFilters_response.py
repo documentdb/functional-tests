@@ -61,6 +61,24 @@ LIST_FILTERS_SINGLE_ENTRY_TESTS: list[CommandTestCase] = [
         },
         msg="planCacheListFilters should return one filter entry with matching query and indexes",
     ),
+    CommandTestCase(
+        "same_shape_different_value",
+        docs=[{"_id": 1, "a": 1}],
+        setup=lambda coll: (
+            coll.create_index({"a": 1}),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 1}, "indexes": [{"a": 1}]},
+            ),
+            execute_command(
+                coll,
+                {"planCacheSetFilter": coll.name, "query": {"a": 999}, "indexes": [{"a": 1}]},
+            ),
+        ),
+        command=lambda ctx: {"planCacheListFilters": ctx.collection},
+        expected={"filters": Len(1)},
+        msg="planCacheListFilters should return 1 filter when queries differ only in value",
+    ),
 ]
 
 # Property [Default Sort]: filter entry sort is empty document when sort was
