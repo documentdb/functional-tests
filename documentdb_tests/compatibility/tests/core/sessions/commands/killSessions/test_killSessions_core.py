@@ -1,4 +1,4 @@
-"""Tests for killSessions core behavior, comment acceptance, and response structure."""
+"""Tests for killSessions core behavior and comment acceptance."""
 
 from __future__ import annotations
 
