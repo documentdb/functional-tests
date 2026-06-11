@@ -166,3 +166,21 @@ def test_killSessions_admin_db(collection, test):
         msg=test.msg,
         raw_res=True,
     )
+
+
+@pytest.mark.no_parallel
+def test_killSessions_real_session(collection):
+    """Test killSessions kills a real active session."""
+    client = collection.database.client
+    session = client.start_session()
+    lsid = session.session_id["id"]
+
+    result = execute_command(collection, {"killSessions": [{"id": lsid}]})
+    assertResult(
+        result,
+        expected={"ok": 1.0},
+        msg="killSessions should succeed with real session ID",
+        raw_res=True,
+    )
+
+    session.end_session()
