@@ -294,23 +294,6 @@ class Gt(Check):
         return f"{type(self).__name__}({self.minimum!r})"
 
 
-class Lt(Check):
-    """Assert that the field is strictly less than a value."""
-
-    def __init__(self, maximum: Any) -> None:
-        self.maximum = maximum
-
-    def check(self, value: Any, path: str) -> str | None:
-        if value is _FIELD_ABSENT:
-            return f"expected '{path}' < {self.maximum!r}, but field is missing"
-        if value >= self.maximum:
-            return f"expected '{path}' < {self.maximum!r}, got {value!r}"
-        return None
-
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}({self.maximum!r})"
-
-
 class Gte(Check):
     """Assert that the field is greater than or equal to a value."""
 

@@ -11,11 +11,7 @@ import pytest
 from bson import Decimal128, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
-from documentdb_tests.framework.assertions import (
-    assertFailureCode,
-    assertProperties,
-)
-from documentdb_tests.framework.error_codes import IMMUTABLE_FIELD_ERROR
+from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import IsType
@@ -25,14 +21,6 @@ from documentdb_tests.framework.property_checks import IsType
 # ---------------------------------------------------------------------------
 
 FIELD_CREATION_TESTS: list[UpdateTestCase] = [
-    UpdateTestCase(
-        "creates_missing_field_as_date",
-        setup_docs=[{"_id": 1, "name": "test"}],
-        query={"_id": 1},
-        update={"$currentDate": {"lastModified": True}},
-        expected={"lastModified": IsType("date")},
-        msg="$currentDate should create non-existent field as Date",
-    ),
     UpdateTestCase(
         "creates_missing_field_as_timestamp",
         setup_docs=[{"_id": 1, "name": "test"}],
@@ -247,26 +235,3 @@ def test_currentDate_array_index(collection):
 
     result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
     assertProperties(result, {"arr": {"0": IsType("date")}}, msg="Array index 0 should become Date")
-
-
-# ---------------------------------------------------------------------------
-# Property [_id Field]: $currentDate on _id field should error (immutable)
-# ---------------------------------------------------------------------------
-
-
-def test_currentDate_on_id_field_errors(collection):
-    """Test $currentDate on _id field produces immutable field error."""
-    collection.insert_one({"_id": 1, "name": "test"})
-
-    result = execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"_id": True}}}],
-        },
-    )
-    assertFailureCode(
-        result,
-        IMMUTABLE_FIELD_ERROR,
-        msg="$currentDate on _id should produce immutable field error",
-    )

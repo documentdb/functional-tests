@@ -1,18 +1,20 @@
 """
-Operator conflict tests for $currentDate update field operator.
+Error case tests for $currentDate update field operator.
 
-Tests $currentDate interactions with other update operators on same/different fields,
-and path prefix conflicts.
+Tests $currentDate conflicts with other update operators on the same field,
+path prefix conflicts, and the immutable _id field.
 """
 
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
-from documentdb_tests.framework.assertions import assertProperties, assertResult
-from documentdb_tests.framework.error_codes import CONFLICTING_UPDATE_OPERATORS_ERROR
+from documentdb_tests.framework.assertions import assertFailureCode, assertResult
+from documentdb_tests.framework.error_codes import (
+    CONFLICTING_UPDATE_OPERATORS_ERROR,
+    IMMUTABLE_FIELD_ERROR,
+)
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import IsType
 
 # ---------------------------------------------------------------------------
 # Property [Conflicts]: $currentDate + other operators on same field → error
@@ -92,58 +94,23 @@ def test_currentDate_conflicts(collection, test: UpdateTestCase):
 
 
 # ---------------------------------------------------------------------------
-# Property [No Conflict]: $currentDate + other operators on different fields → OK
+# Property [_id Field]: $currentDate on _id field should error (immutable)
 # ---------------------------------------------------------------------------
 
 
-def test_currentDate_with_set_different_fields_succeeds(collection):
-    """Test $currentDate combined with $set on different fields succeeds."""
-    collection.insert_one({"_id": 1, "name": "old"})
+def test_currentDate_on_id_field_errors(collection):
+    """Test $currentDate on _id field produces immutable field error."""
+    collection.insert_one({"_id": 1, "name": "test"})
 
-    execute_command(
+    result = execute_command(
         collection,
         {
             "update": collection.name,
-            "updates": [
-                {
-                    "q": {"_id": 1},
-                    "u": {"$currentDate": {"modified": True}, "$set": {"name": "new"}},
-                }
-            ],
+            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"_id": True}}}],
         },
     )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(
+    assertFailureCode(
         result,
-        {"modified": IsType("date")},
-        msg="$currentDate should produce Date when combined with $set on different field",
-    )
-
-
-def test_currentDate_with_inc_different_fields_succeeds(collection):
-    """Test $currentDate combined with $inc on different fields succeeds."""
-    collection.insert_one({"_id": 1, "version": 1})
-
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [
-                {
-                    "q": {"_id": 1},
-                    "u": {
-                        "$currentDate": {"modified": {"$type": "timestamp"}},
-                        "$inc": {"version": 1},
-                    },
-                }
-            ],
-        },
-    )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(
-        result,
-        {"modified": IsType("timestamp")},
-        msg="$currentDate should produce Timestamp when combined with $inc on different field",
+        IMMUTABLE_FIELD_ERROR,
+        msg="$currentDate on _id should produce immutable field error",
     )

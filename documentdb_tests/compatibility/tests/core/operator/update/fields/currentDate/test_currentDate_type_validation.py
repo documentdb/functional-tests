@@ -1,8 +1,9 @@
 """
-Type specification tests for $currentDate update field operator.
+Type validation tests for the $currentDate update field operator.
 
-Tests valid typeSpecification values, invalid values that should error,
-and result type validation.
+Verifies $currentDate's typeSpecification argument accepts/rejects the correct
+BSON types (boolean/object value, string $type) and produces the correct BSON
+result type, plus the string-content edge cases for $type.
 """
 
 import pytest
@@ -26,10 +27,11 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import IsType
 
 # ---------------------------------------------------------------------------
-# Property [Valid Type Specs]: $currentDate accepts true, {$type:"date"}, {$type:"timestamp"}
+# Property [Result Type]: valid typeSpecifications (true, {$type:"date"},
+# {$type:"timestamp"}) produce the correct BSON result type.
 # ---------------------------------------------------------------------------
 
-VALID_TESTS: list[UpdateTestCase] = [
+RESULT_TYPE_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         "boolean_true_sets_date",
         setup_docs=[{"_id": 1, "field": "old"}],
@@ -65,8 +67,8 @@ VALID_TESTS: list[UpdateTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(VALID_TESTS))
-def test_currentDate_valid_type_specs(collection, test: UpdateTestCase):
+@pytest.mark.parametrize("test", pytest_params(RESULT_TYPE_TESTS))
+def test_currentDate_result_type(collection, test: UpdateTestCase):
     """Test $currentDate with valid typeSpecification values produces the correct type."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)

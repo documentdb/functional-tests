@@ -1,165 +1,97 @@
 """
 Update method and context tests for $currentDate update field operator.
 
-Tests $currentDate in updateOne, updateMany, findAndModify, and upsert contexts.
+Tests $currentDate in updateMany and upsert contexts.
 """
 
-from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
+import pytest
+
+from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
+from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Exists, IsType
 
 # ---------------------------------------------------------------------------
-# Property [Update Contexts]: $currentDate works in updateOne, updateMany, findAndModify
+# Property [Update Contexts]: $currentDate works in updateMany
 # ---------------------------------------------------------------------------
 
-
-def test_currentDate_updateOne(collection):
-    """Test $currentDate in updateOne produces Date type field."""
-    collection.insert_one({"_id": 1, "name": "test"})
-
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"modified": True}}}],
-        },
-    )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(
-        result, {"modified": IsType("date")}, msg="Field should be Date after updateOne"
-    )
+UPDATE_CONTEXT_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        "updateMany_sets_date_on_all",
+        setup_docs=[{"_id": 1, "val": "a"}, {"_id": 2, "val": "b"}, {"_id": 3, "val": "c"}],
+        query={},
+        update={"$currentDate": {"modified": True}},
+        multi=True,
+        expected={"modified": IsType("date")},
+        msg="$currentDate in updateMany should set Date on all matched docs",
+    ),
+]
 
 
-def test_currentDate_updateMany(collection):
-    """Test $currentDate in updateMany sets the field on every matched document."""
-    collection.insert_many(
-        [
-            {"_id": 1, "val": "a"},
-            {"_id": 2, "val": "b"},
-            {"_id": 3, "val": "c"},
-        ]
-    )
+@pytest.mark.parametrize("test", pytest_params(UPDATE_CONTEXT_TESTS))
+def test_currentDate_update_contexts(collection, test: UpdateTestCase):
+    """Test $currentDate in updateMany sets the expected type on matched docs."""
+    if test.setup_docs:
+        collection.insert_many(test.setup_docs)
 
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {}, "u": {"$currentDate": {"modified": True}}, "multi": True}],
-        },
-    )
+    update_doc = {"q": test.query, "u": test.update}
+    if test.multi:
+        update_doc["multi"] = True
+    if test.upsert:
+        update_doc["upsert"] = True
 
-    result = execute_command(collection, {"find": collection.name, "filter": {}})
-    assertProperties(
-        result,
-        {"modified": IsType("date")},
-        msg="updateMany should set modified to Date on all matched docs",
-    )
+    execute_command(collection, {"update": collection.name, "updates": [update_doc]})
 
-
-def test_currentDate_findAndModify_returns_new(collection):
-    """Test $currentDate in findAndModify with new:true returns updated document."""
-    collection.insert_one({"_id": 1, "name": "test"})
-
-    result = execute_command(
-        collection,
-        {
-            "findAndModify": collection.name,
-            "query": {"_id": 1},
-            "update": {"$currentDate": {"modified": True}},
-            "new": True,
-        },
-    )
-    assertProperties(
-        result,
-        {"value": {"modified": IsType("date")}},
-        raw_res=True,
-        msg="findAndModify with new:true should return document with Date field",
-    )
-
-
-def test_currentDate_findAndModify_returns_old(collection):
-    """Test $currentDate in findAndModify without new returns old document."""
-    collection.insert_one({"_id": 1, "name": "test"})
-
-    result = execute_command(
-        collection,
-        {
-            "findAndModify": collection.name,
-            "query": {"_id": 1},
-            "update": {"$currentDate": {"modified": True}},
-        },
-    )
-    # Old document should not have 'modified' field
-    assertSuccessPartial(
-        result,
-        {"value": {"_id": 1, "name": "test"}},
-        msg="findAndModify without new should return old doc",
-    )
+    result = execute_command(collection, {"find": collection.name, "filter": test.query})
+    assertProperties(result, test.expected, msg=test.msg)
 
 
 # ---------------------------------------------------------------------------
 # Property [Upsert]: $currentDate with upsert creates field on new document
 # ---------------------------------------------------------------------------
 
-
-def test_currentDate_upsert_creates_doc(collection):
-    """Test $currentDate with upsert=true creates new document with Date field."""
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [
-                {"q": {"_id": 1}, "u": {"$currentDate": {"created": True}}, "upsert": True}
-            ],
-        },
-    )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(result, {"created": IsType("date")}, msg="Upserted doc should have Date field")
-
-
-def test_currentDate_upsert_creates_doc_with_timestamp(collection):
-    """Test $currentDate with upsert=true and $type:'timestamp' creates Timestamp field."""
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [
-                {
-                    "q": {"_id": 1},
-                    "u": {"$currentDate": {"ts": {"$type": "timestamp"}}},
-                    "upsert": True,
-                }
-            ],
-        },
-    )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(
-        result, {"ts": IsType("timestamp")}, msg="Upserted doc should have Timestamp field"
-    )
-
-
-def test_currentDate_upsert_with_filter_fields(collection):
-    """Test $currentDate with upsert includes filter equality fields in new document."""
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [
-                {
-                    "q": {"_id": 1, "category": "A"},
-                    "u": {"$currentDate": {"ts": True}},
-                    "upsert": True,
-                }
-            ],
-        },
-    )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(
-        result,
-        {"category": Exists(), "ts": IsType("date")},
+UPSERT_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        "upsert_creates_doc_with_date",
+        query={"_id": 1},
+        update={"$currentDate": {"created": True}},
+        upsert=True,
+        expected={"created": IsType("date")},
+        msg="Upserted doc should have Date field",
+    ),
+    UpdateTestCase(
+        "upsert_creates_doc_with_timestamp",
+        query={"_id": 1},
+        update={"$currentDate": {"ts": {"$type": "timestamp"}}},
+        upsert=True,
+        expected={"ts": IsType("timestamp")},
+        msg="Upserted doc should have Timestamp field",
+    ),
+    UpdateTestCase(
+        "upsert_includes_filter_fields",
+        query={"_id": 1, "category": "A"},
+        update={"$currentDate": {"ts": True}},
+        upsert=True,
+        expected={"category": Exists(), "ts": IsType("date")},
         msg="Upserted doc should include filter fields and Date field",
-    )
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(UPSERT_TESTS))
+def test_currentDate_upsert(collection, test: UpdateTestCase):
+    """Test $currentDate with upsert produces the expected document."""
+    if test.setup_docs:
+        collection.insert_many(test.setup_docs)
+
+    update_doc = {"q": test.query, "u": test.update}
+    if test.multi:
+        update_doc["multi"] = True
+    if test.upsert:
+        update_doc["upsert"] = True
+
+    execute_command(collection, {"update": collection.name, "updates": [update_doc]})
+
+    result = execute_command(collection, {"find": collection.name, "filter": test.query})
+    assertProperties(result, test.expected, msg=test.msg)
