@@ -23,6 +23,7 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.error_codes import CURSOR_NOT_FOUND_ERROR
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -170,17 +171,40 @@ def test_killSessions_admin_db(collection, test):
 
 @pytest.mark.no_parallel
 def test_killSessions_real_session(collection):
-    """Test killSessions kills a real active session."""
+    """Test killSessions kills a real active session.
+
+    Opens a cursor under the session, kills the session, then verifies
+    that getMore fails with CursorNotFound — proving the kill closed
+    the cursor.
+    """
     client = collection.database.client
+    db = collection.database
     session = client.start_session()
     lsid = session.session_id["id"]
 
-    result = execute_command(collection, {"killSessions": [{"id": lsid}]})
+    # Insert enough docs to require a getMore.
+    collection.insert_many([{"_id": i} for i in range(10)], session=session)
+
+    # Open a cursor with a small batch so the first batch doesn't exhaust it.
+    find_result = db.command(
+        {"find": collection.name, "batchSize": 2},
+        session=session,
+    )
+    cursor_id = find_result["cursor"]["id"]
+
+    # Kill the session.
+    execute_command(collection, {"killSessions": [{"id": lsid}]})
+
+    # getMore on the killed session's cursor should fail with CursorNotFound,
+    # proving the kill closed the cursor.
+    get_more_result = execute_command(
+        collection,
+        {"getMore": cursor_id, "collection": collection.name},
+        session=session,
+    )
     assertResult(
-        result,
-        expected={"ok": 1.0},
-        msg="killSessions should succeed with real session ID",
+        get_more_result,
+        error_code=CURSOR_NOT_FOUND_ERROR,
+        msg="getMore should fail after session is killed",
         raw_res=True,
     )
-
-    session.end_session()
