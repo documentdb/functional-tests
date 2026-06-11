@@ -48,6 +48,7 @@ KILLSESSIONS_ELEMENT_TYPE_ERROR_TESTS: list[CommandTestCase] = [
         ("decimal128", Decimal128("1")),
         ("string", "string"),
         ("bool_true", True),
+        ("bool_false", False),
         ("array", []),
         ("binary", Binary(b"\x00")),
         ("objectid", ObjectId()),
