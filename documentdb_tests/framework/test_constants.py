@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from enum import Enum
 
-from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 from bson.datetime_ms import DatetimeMS
 
 # Int32 boundary values
@@ -221,7 +221,7 @@ BSON_TYPE_SAMPLES = {
     BsonType.STRING: "hello",
     BsonType.OBJECT: {"key": "value"},
     BsonType.ARRAY: ["a", "b", "c"],
-    BsonType.BIN_DATA: Binary(b"\x00\x01\x02"),
+    BsonType.BIN_DATA: b"\x00\x01\x02",  # driver converts subtype 0 to raw bytes on read
     BsonType.OBJECT_ID: OID_EPOCH,
     BsonType.BOOL: True,
     BsonType.DATE: DATE_EPOCH,
