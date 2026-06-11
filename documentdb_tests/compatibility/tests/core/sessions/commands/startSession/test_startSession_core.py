@@ -46,6 +46,8 @@ def test_startSession_on_test_database(database_client, collection, test):
         msg=test.msg,
         raw_res=True,
     )
+    if isinstance(result, dict) and "id" in result:
+        collection.database.command({"endSessions": [result["id"]]})
 
 
 @pytest.mark.parametrize("test", pytest_params(STARTSESSION_ADMIN_DB_TESTS))
@@ -60,3 +62,5 @@ def test_startSession_on_admin_database(database_client, collection, test):
         msg=test.msg,
         raw_res=True,
     )
+    if isinstance(result, dict) and "id" in result:
+        collection.database.command({"endSessions": [result["id"]]})

@@ -67,6 +67,8 @@ def test_startSession_response_structure(database_client, collection, test):
         msg=test.msg,
         raw_res=True,
     )
+    if isinstance(result, dict) and "id" in result:
+        collection.database.command({"endSessions": [result["id"]]})
 
 
 # Property [Session ID Uniqueness]: each startSession call returns a different UUID.
@@ -80,3 +82,6 @@ def test_startSession_unique_ids(collection):
         {"unique": 5, "total": 5},
         msg="startSession should return 5 unique session IDs across 5 calls",
     )
+    session_ids = [r["id"] for r in results if isinstance(r, dict) and "id" in r]
+    if session_ids:
+        collection.database.command({"endSessions": session_ids})
