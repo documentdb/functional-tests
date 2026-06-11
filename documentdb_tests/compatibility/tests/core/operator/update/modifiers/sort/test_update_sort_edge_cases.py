@@ -1,8 +1,10 @@
-"""Tests for $sort update modifier edge case behavior.
+"""Tests for $sort update modifier edge case and behavioral behavior.
 
 Covers: missing/empty/single-element arrays, sort stability, null/missing
 field handling, NaN/Infinity positioning, BSON type distinction
-(false ≠ 0, true ≠ 1), mixed BSON type ordering, and date sorting.
+(false ≠ 0, true ≠ 1), mixed BSON type ordering, date sorting, and
+behavioral cases that succeed ($sort without $each pushes a literal,
+sort by a containing array field path leaves order unchanged).
 """
 
 import math
@@ -307,6 +309,45 @@ DATE_SORT_TESTS: list[UpdateTestCase] = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Behavioral cases: $sort interactions that succeed (no error)
+# ---------------------------------------------------------------------------
+
+MISSING_EACH_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        id="sort_without_each_pushes_literal",
+        setup_docs=[{"_id": 1, "arr": [3, 1, 2]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$sort": 1}}},
+        expected=[{"_id": 1, "arr": [3, 1, 2, {"$sort": 1}]}],
+        msg="$push with $sort but no $each should push literal document",
+    ),
+]
+
+CONTAINING_ARRAY_FIELD_PATH_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        id="sort_by_containing_array_field_path",
+        setup_docs=[
+            {
+                "_id": 1,
+                "arr": [{"score": 3}, {"score": 1}, {"score": 2}],
+            }
+        ],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [], "$sort": {"arr.score": 1}}}},
+        expected=[
+            {
+                "_id": 1,
+                "arr": [{"score": 3}, {"score": 1}, {"score": 2}],
+            }
+        ],
+        msg="Sort by containing array field path has no matching fields, order unchanged",
+    ),
+]
+
+BEHAVIOR_TESTS = MISSING_EACH_TESTS + CONTAINING_ARRAY_FIELD_PATH_TESTS
+
+
 ALL_EDGE_CASE_TESTS = (
     CORE_EDGE_CASE_TESTS
     + NULL_MISSING_TESTS
@@ -320,6 +361,21 @@ ALL_EDGE_CASE_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(ALL_EDGE_CASE_TESTS))
 def test_update_sort_edge_cases(collection, test_case):
     """Test $sort edge case data type behavior."""
+    collection.insert_many(test_case.setup_docs)
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": test_case.query, "u": test_case.update}],
+        },
+    )
+    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
+
+
+@pytest.mark.parametrize("test_case", pytest_params(BEHAVIOR_TESTS))
+def test_update_sort_behaviors(collection, test_case):
+    """Test $sort modifier behavioral cases that succeed (no error)."""
     collection.insert_many(test_case.setup_docs)
     execute_command(
         collection,

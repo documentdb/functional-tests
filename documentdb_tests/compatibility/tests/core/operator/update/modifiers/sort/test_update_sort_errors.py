@@ -1,7 +1,7 @@
 """Tests for $sort update modifier error cases.
 
-Covers: missing $each, $sort with incompatible operators ($addToSet, $pull,
-$pullAll, $pop), target not array, and containing array field path behavior.
+Covers: $sort value validation, $sort with incompatible operators
+($addToSet, $pull, $pullAll, $pop), and target not array.
 """
 
 import pytest
@@ -9,7 +9,7 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.update.utils.update_test_case import (
     UpdateTestCase,
 )
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -73,17 +73,6 @@ SORT_VALUE_VALIDATION_TESTS: list[UpdateTestCase] = [
     ),
 ]
 
-MISSING_EACH_TESTS: list[UpdateTestCase] = [
-    UpdateTestCase(
-        id="sort_without_each_pushes_literal",
-        setup_docs=[{"_id": 1, "arr": [3, 1, 2]}],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$sort": 1}}},
-        expected=[{"_id": 1, "arr": [3, 1, 2, {"$sort": 1}]}],
-        msg="$push with $sort but no $each should push literal document",
-    ),
-]
-
 INCOMPATIBLE_OPERATOR_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         id="addtoset_with_sort",
@@ -130,32 +119,7 @@ TARGET_NOT_ARRAY_TESTS: list[UpdateTestCase] = [
     ),
 ]
 
-CONTAINING_ARRAY_FIELD_PATH_TESTS: list[UpdateTestCase] = [
-    UpdateTestCase(
-        id="sort_by_containing_array_field_path",
-        setup_docs=[
-            {
-                "_id": 1,
-                "arr": [{"score": 3}, {"score": 1}, {"score": 2}],
-            }
-        ],
-        query={"_id": 1},
-        update={"$push": {"arr": {"$each": [], "$sort": {"arr.score": 1}}}},
-        expected=[
-            {
-                "_id": 1,
-                "arr": [{"score": 3}, {"score": 1}, {"score": 2}],
-            }
-        ],
-        msg="Sort by containing array field path has no matching fields, order unchanged",
-    ),
-]
-
-PUSH_WITHOUT_EACH_LITERAL_TESTS: list[UpdateTestCase] = []
-
 ALL_ERROR_TESTS = INCOMPATIBLE_OPERATOR_TESTS + TARGET_NOT_ARRAY_TESTS + SORT_VALUE_VALIDATION_TESTS
-
-ALL_SUCCESS_TESTS = MISSING_EACH_TESTS + CONTAINING_ARRAY_FIELD_PATH_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(ALL_ERROR_TESTS))
@@ -170,18 +134,3 @@ def test_update_sort_errors(collection, test_case):
         },
     )
     assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(ALL_SUCCESS_TESTS))
-def test_update_sort_edge_cases(collection, test_case):
-    """Test $sort modifier edge cases and special behavior."""
-    collection.insert_many(test_case.setup_docs)
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": test_case.query, "u": test_case.update}],
-        },
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": test_case.query})
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
