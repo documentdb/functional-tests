@@ -32,7 +32,7 @@ def test_currentDate_updateOne(collection):
 
 
 def test_currentDate_updateMany(collection):
-    """Test $currentDate in updateMany affects multiple documents."""
+    """Test $currentDate in updateMany sets the field on every matched document."""
     collection.insert_many(
         [
             {"_id": 1, "val": "a"},
@@ -41,15 +41,19 @@ def test_currentDate_updateMany(collection):
         ]
     )
 
-    result = execute_command(
+    execute_command(
         collection,
         {
             "update": collection.name,
             "updates": [{"q": {}, "u": {"$currentDate": {"modified": True}}, "multi": True}],
         },
     )
-    assertSuccessPartial(
-        result, {"n": 3, "nModified": 3}, msg="updateMany should modify all 3 docs"
+
+    result = execute_command(collection, {"find": collection.name, "filter": {}})
+    assertProperties(
+        result,
+        {"modified": IsType("date")},
+        msg="updateMany should set modified to Date on all matched docs",
     )
 
 

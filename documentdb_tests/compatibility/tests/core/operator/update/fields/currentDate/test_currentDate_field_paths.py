@@ -14,7 +14,6 @@ from documentdb_tests.compatibility.tests.core.operator.update.utils import Upda
 from documentdb_tests.framework.assertions import (
     assertFailureCode,
     assertProperties,
-    assertSuccessPartial,
 )
 from documentdb_tests.framework.error_codes import IMMUTABLE_FIELD_ERROR
 from documentdb_tests.framework.executor import execute_command
@@ -31,67 +30,33 @@ FIELD_CREATION_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "name": "test"}],
         query={"_id": 1},
         update={"$currentDate": {"lastModified": True}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should create non-existent field with Date",
+        expected={"lastModified": IsType("date")},
+        msg="$currentDate should create non-existent field as Date",
     ),
     UpdateTestCase(
         "creates_missing_field_as_timestamp",
         setup_docs=[{"_id": 1, "name": "test"}],
         query={"_id": 1},
         update={"$currentDate": {"lastModified": {"$type": "timestamp"}}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should create non-existent field with Timestamp",
+        expected={"lastModified": IsType("timestamp")},
+        msg="$currentDate should create non-existent field as Timestamp",
     ),
 ]
 
 
 @pytest.mark.parametrize("test", pytest_params(FIELD_CREATION_TESTS))
 def test_currentDate_field_creation(collection, test: UpdateTestCase):
-    """Test $currentDate creates non-existent fields."""
+    """Test $currentDate creates non-existent fields with the expected type."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
-    result = execute_command(
+    execute_command(
         collection,
         {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
     )
-    assertSuccessPartial(result, test.expected, msg=test.msg)
 
-
-def test_currentDate_creates_field_with_date_type(collection):
-    """Test $currentDate on non-existent field produces Date type."""
-    collection.insert_one({"_id": 1})
-
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"created": True}}}],
-        },
-    )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(result, {"created": IsType("date")}, msg="Created field should be Date type")
-
-
-def test_currentDate_creates_field_with_timestamp_type(collection):
-    """Test $currentDate on non-existent field with $type:'timestamp' produces Timestamp type."""
-    collection.insert_one({"_id": 1})
-
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [
-                {"q": {"_id": 1}, "u": {"$currentDate": {"created": {"$type": "timestamp"}}}}
-            ],
-        },
-    )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(
-        result, {"created": IsType("timestamp")}, msg="Created field should be Timestamp type"
-    )
+    result = execute_command(collection, {"find": collection.name, "filter": test.query})
+    assertProperties(result, test.expected, msg=test.msg)
 
 
 # ---------------------------------------------------------------------------
@@ -104,123 +69,89 @@ OVERWRITE_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "field": 42}],
         query={"_id": 1},
         update={"$currentDate": {"field": True}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should overwrite int32 field",
+        expected={"field": IsType("date")},
+        msg="$currentDate should overwrite int32 field with Date",
     ),
     UpdateTestCase(
         "overwrite_string",
         setup_docs=[{"_id": 1, "field": "hello"}],
         query={"_id": 1},
         update={"$currentDate": {"field": True}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should overwrite string field",
+        expected={"field": IsType("date")},
+        msg="$currentDate should overwrite string field with Date",
     ),
     UpdateTestCase(
         "overwrite_object",
         setup_docs=[{"_id": 1, "field": {"nested": 1}}],
         query={"_id": 1},
         update={"$currentDate": {"field": True}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should overwrite object field",
+        expected={"field": IsType("date")},
+        msg="$currentDate should overwrite object field with Date",
     ),
     UpdateTestCase(
         "overwrite_array",
         setup_docs=[{"_id": 1, "field": [1, 2, 3]}],
         query={"_id": 1},
         update={"$currentDate": {"field": True}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should overwrite array field",
+        expected={"field": IsType("date")},
+        msg="$currentDate should overwrite array field with Date",
     ),
     UpdateTestCase(
         "overwrite_null",
         setup_docs=[{"_id": 1, "field": None}],
         query={"_id": 1},
         update={"$currentDate": {"field": True}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should overwrite null field",
+        expected={"field": IsType("date")},
+        msg="$currentDate should overwrite null field with Date",
     ),
     UpdateTestCase(
         "overwrite_bool",
         setup_docs=[{"_id": 1, "field": True}],
         query={"_id": 1},
         update={"$currentDate": {"field": {"$type": "date"}}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should overwrite boolean field",
+        expected={"field": IsType("date")},
+        msg="$currentDate should overwrite boolean field with Date",
     ),
     UpdateTestCase(
         "overwrite_existing_date",
         setup_docs=[{"_id": 1, "field": datetime(2020, 1, 1, tzinfo=timezone.utc)}],
         query={"_id": 1},
         update={"$currentDate": {"field": True}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should overwrite existing Date field",
+        expected={"field": IsType("date")},
+        msg="$currentDate should overwrite existing Date field with Date",
     ),
     UpdateTestCase(
         "overwrite_existing_timestamp",
         setup_docs=[{"_id": 1, "field": Timestamp(1000, 1)}],
         query={"_id": 1},
         update={"$currentDate": {"field": {"$type": "timestamp"}}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should overwrite existing Timestamp field",
+        expected={"field": IsType("timestamp")},
+        msg="$currentDate should overwrite existing Timestamp field with Timestamp",
     ),
     UpdateTestCase(
         "overwrite_decimal128",
         setup_docs=[{"_id": 1, "field": Decimal128("3.14")}],
         query={"_id": 1},
         update={"$currentDate": {"field": True}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate should overwrite Decimal128 field",
+        expected={"field": IsType("date")},
+        msg="$currentDate should overwrite Decimal128 field with Date",
     ),
 ]
 
 
 @pytest.mark.parametrize("test", pytest_params(OVERWRITE_TESTS))
 def test_currentDate_overwrite(collection, test: UpdateTestCase):
-    """Test $currentDate overwrites existing fields of any BSON type."""
+    """Test $currentDate overwrites existing fields of any BSON type with the expected type."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
-    result = execute_command(
+    execute_command(
         collection,
         {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
     )
-    assertSuccessPartial(result, test.expected, msg=test.msg)
 
-
-def test_currentDate_overwrite_int32_produces_date(collection):
-    """Test $currentDate overwriting int32 field produces Date type."""
-    collection.insert_one({"_id": 1, "field": 42})
-
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"field": True}}}],
-        },
-    )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(result, {"field": IsType("date")}, msg="Overwritten int32 should become Date")
-
-
-def test_currentDate_overwrite_string_produces_timestamp(collection):
-    """Test $currentDate overwriting string field with $type:'timestamp' produces Timestamp."""
-    collection.insert_one({"_id": 1, "field": "hello"})
-
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [
-                {"q": {"_id": 1}, "u": {"$currentDate": {"field": {"$type": "timestamp"}}}}
-            ],
-        },
-    )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(
-        result, {"field": IsType("timestamp")}, msg="Overwritten string should become Timestamp"
-    )
+    result = execute_command(collection, {"find": collection.name, "filter": test.query})
+    assertProperties(result, test.expected, msg=test.msg)
 
 
 # ---------------------------------------------------------------------------

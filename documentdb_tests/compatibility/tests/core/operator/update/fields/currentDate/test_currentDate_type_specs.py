@@ -6,13 +6,19 @@ and result type validation.
 """
 
 import pytest
-from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
 from documentdb_tests.framework.assertions import (
+    assertFailureCode,
+    assertNotError,
     assertProperties,
     assertResult,
-    assertSuccessPartial,
+)
+from documentdb_tests.framework.bson_type_validator import (
+    BsonType,
+    BsonTypeTestCase,
+    generate_bson_acceptance_test_cases,
+    generate_bson_rejection_test_cases,
 )
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
@@ -29,115 +35,163 @@ VALID_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "field": "old"}],
         query={"_id": 1},
         update={"$currentDate": {"field": True}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate with true should update field",
+        expected={"field": IsType("date")},
+        msg="$currentDate with true should set field to Date",
     ),
     UpdateTestCase(
         "boolean_false_sets_date",
         setup_docs=[{"_id": 1, "field": "old"}],
         query={"_id": 1},
         update={"$currentDate": {"field": False}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate with false should still update field to Date",
+        expected={"field": IsType("date")},
+        msg="$currentDate with false should still set field to Date",
     ),
     UpdateTestCase(
         "type_date_sets_date",
         setup_docs=[{"_id": 1, "field": "old"}],
         query={"_id": 1},
         update={"$currentDate": {"field": {"$type": "date"}}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate with {$type:'date'} should update field",
+        expected={"field": IsType("date")},
+        msg="$currentDate with {$type:'date'} should set field to Date",
     ),
     UpdateTestCase(
         "type_timestamp_sets_timestamp",
         setup_docs=[{"_id": 1, "field": "old"}],
         query={"_id": 1},
         update={"$currentDate": {"field": {"$type": "timestamp"}}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate with {$type:'timestamp'} should update field",
+        expected={"field": IsType("timestamp")},
+        msg="$currentDate with {$type:'timestamp'} should set field to Timestamp",
     ),
 ]
 
 
 @pytest.mark.parametrize("test", pytest_params(VALID_TESTS))
 def test_currentDate_valid_type_specs(collection, test: UpdateTestCase):
-    """Test $currentDate with valid typeSpecification values succeeds."""
+    """Test $currentDate with valid typeSpecification values produces the correct type."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
-    result = execute_command(
+    execute_command(
         collection,
         {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
     )
-    assertSuccessPartial(result, test.expected, msg=test.msg)
+
+    result = execute_command(collection, {"find": collection.name, "filter": test.query})
+    assertProperties(result, test.expected, msg=test.msg)
 
 
 # ---------------------------------------------------------------------------
-# Property [Result Type]: $currentDate produces correct BSON type in the field
+# Property [Value Type]: $currentDate typeSpecification must be a boolean or an
+# object ({$type: ...}). Every other BSON type is rejected with BadValue.
 # ---------------------------------------------------------------------------
 
+VALUE_TYPE_PARAMS = [
+    BsonTypeTestCase(
+        id="currentDate_value",
+        msg="$currentDate typeSpecification value type",
+        keyword="$currentDate",
+        valid_types=[BsonType.BOOL, BsonType.OBJECT],
+        valid_inputs={BsonType.OBJECT: {"$type": "date"}},
+        default_error_code=BAD_VALUE_ERROR,
+    ),
+]
 
-def test_currentDate_boolean_true_produces_date_type(collection):
-    """Test $currentDate with true produces a Date type field."""
-    collection.insert_one({"_id": 1, "field": "old"})
+VALUE_TYPE_ACCEPTANCE_CASES = generate_bson_acceptance_test_cases(VALUE_TYPE_PARAMS)
 
-    execute_command(
+
+@pytest.mark.parametrize("bson_type,sample_value,spec", VALUE_TYPE_ACCEPTANCE_CASES)
+def test_currentDate_value_type_accepted(collection, bson_type, sample_value, spec):
+    """Test $currentDate accepts boolean and object typeSpecification values."""
+    collection.insert_one({"_id": 1})
+    result = execute_command(
         collection,
         {
             "update": collection.name,
-            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"field": True}}}],
+            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"field": sample_value}}}],
         },
     )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(result, {"field": IsType("date")}, msg="true should produce Date type")
+    assertNotError(result, msg=f"{spec.msg} should accept {bson_type.value}")
 
 
-def test_currentDate_type_date_produces_date_type(collection):
-    """Test $currentDate with {$type:'date'} produces a Date type field."""
-    collection.insert_one({"_id": 1, "field": "old"})
+VALUE_TYPE_REJECTION_CASES = generate_bson_rejection_test_cases(VALUE_TYPE_PARAMS)
 
-    execute_command(
+
+@pytest.mark.parametrize("bson_type,sample_value,spec", VALUE_TYPE_REJECTION_CASES)
+def test_currentDate_value_type_rejected(collection, bson_type, sample_value, spec):
+    """Test $currentDate rejects non-boolean/non-object typeSpecification values."""
+    collection.insert_one({"_id": 1})
+    result = execute_command(
         collection,
         {
             "update": collection.name,
-            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"field": {"$type": "date"}}}}],
+            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"field": sample_value}}}],
         },
     )
-
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(
-        result, {"field": IsType("date")}, msg="{$type:'date'} should produce Date type"
-    )
+    assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
 
 
-def test_currentDate_type_timestamp_produces_timestamp_type(collection):
-    """Test $currentDate with {$type:'timestamp'} produces a Timestamp type field."""
-    collection.insert_one({"_id": 1, "field": "old"})
+# ---------------------------------------------------------------------------
+# Property [$type Value Type]: inside the {$type: ...} form, the $type value
+# must be a string. Every other BSON type is rejected with BadValue.
+# ---------------------------------------------------------------------------
 
-    execute_command(
+TYPE_VALUE_PARAMS = [
+    BsonTypeTestCase(
+        id="currentDate_type_value",
+        msg="$currentDate $type value type",
+        keyword="$type",
+        valid_types=[BsonType.STRING],
+        valid_inputs={BsonType.STRING: "date"},
+        default_error_code=BAD_VALUE_ERROR,
+    ),
+]
+
+TYPE_VALUE_ACCEPTANCE_CASES = generate_bson_acceptance_test_cases(TYPE_VALUE_PARAMS)
+
+
+@pytest.mark.parametrize("bson_type,sample_value,spec", TYPE_VALUE_ACCEPTANCE_CASES)
+def test_currentDate_type_value_accepted(collection, bson_type, sample_value, spec):
+    """Test $currentDate accepts a string $type value (content checked elsewhere)."""
+    collection.insert_one({"_id": 1})
+    result = execute_command(
         collection,
         {
             "update": collection.name,
             "updates": [
-                {"q": {"_id": 1}, "u": {"$currentDate": {"field": {"$type": "timestamp"}}}}
+                {"q": {"_id": 1}, "u": {"$currentDate": {"field": {"$type": sample_value}}}}
             ],
         },
     )
+    assertNotError(result, msg=f"{spec.msg} should accept {bson_type.value}")
 
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertProperties(
-        result,
-        {"field": IsType("timestamp")},
-        msg="{$type:'timestamp'} should produce Timestamp type",
+
+TYPE_VALUE_REJECTION_CASES = generate_bson_rejection_test_cases(TYPE_VALUE_PARAMS)
+
+
+@pytest.mark.parametrize("bson_type,sample_value,spec", TYPE_VALUE_REJECTION_CASES)
+def test_currentDate_type_value_rejected(collection, bson_type, sample_value, spec):
+    """Test $currentDate rejects non-string $type values."""
+    collection.insert_one({"_id": 1})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [
+                {"q": {"_id": 1}, "u": {"$currentDate": {"field": {"$type": sample_value}}}}
+            ],
+        },
     )
+    assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
 
 
 # ---------------------------------------------------------------------------
-# Property [Invalid Type Specs - BadValue]: invalid $type values produce error code 2
+# Property [Invalid $type Edge Cases]: a string $type value must be exactly
+# "date" or "timestamp" (case-sensitive), and the spec object must contain only
+# the $type key. These string-content and object-structure checks cannot be
+# expressed via BSON type generation, so they are covered explicitly here.
 # ---------------------------------------------------------------------------
 
-INVALID_TYPE_VALUE_TESTS: list[UpdateTestCase] = [
+INVALID_TYPE_EDGE_CASES: list[UpdateTestCase] = [
     UpdateTestCase(
         "type_Date_uppercase",
         setup_docs=[{"_id": 1}],
@@ -195,62 +249,6 @@ INVALID_TYPE_VALUE_TESTS: list[UpdateTestCase] = [
         msg="$type empty string should be rejected",
     ),
     UpdateTestCase(
-        "type_string_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": {"$type": "string"}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="$type 'string' should be rejected",
-    ),
-    UpdateTestCase(
-        "type_int_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": {"$type": "int"}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="$type 'int' should be rejected",
-    ),
-    UpdateTestCase(
-        "type_double_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": {"$type": "double"}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="$type 'double' should be rejected",
-    ),
-    UpdateTestCase(
-        "type_bool_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": {"$type": "bool"}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="$type 'bool' should be rejected",
-    ),
-    UpdateTestCase(
-        "type_null_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": {"$type": None}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="$type null should be rejected",
-    ),
-    UpdateTestCase(
-        "type_numeric_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": {"$type": 1}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="$type numeric (1) should be rejected",
-    ),
-    UpdateTestCase(
-        "type_boolean_true_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": {"$type": True}}},
-        error_code=BAD_VALUE_ERROR,
-        msg="$type boolean true should be rejected",
-    ),
-    UpdateTestCase(
         "type_dates_misspelling",
         setup_docs=[{"_id": 1}],
         query={"_id": 1},
@@ -285,102 +283,9 @@ INVALID_TYPE_VALUE_TESTS: list[UpdateTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(INVALID_TYPE_VALUE_TESTS))
-def test_currentDate_invalid_type_values(collection, test: UpdateTestCase):
-    """Test $currentDate with invalid $type values produces BadValue error."""
-    if test.setup_docs:
-        collection.insert_many(test.setup_docs)
-
-    result = execute_command(
-        collection,
-        {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
-    )
-    assertResult(result, error_code=test.error_code, msg=test.msg)
-
-
-# ---------------------------------------------------------------------------
-# Property [Invalid Type Specs - BadValue]: non-boolean/non-object values produce code 2
-# ---------------------------------------------------------------------------
-
-INVALID_FORMAT_TESTS: list[UpdateTestCase] = [
-    UpdateTestCase(
-        "integer_zero",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": 0}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Integer 0 as typeSpecification should be rejected",
-    ),
-    UpdateTestCase(
-        "integer_one",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": 1}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Integer 1 as typeSpecification should be rejected",
-    ),
-    UpdateTestCase(
-        "empty_string",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": ""}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Empty string as typeSpecification should be rejected",
-    ),
-    UpdateTestCase(
-        "string_date",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": "date"}},
-        error_code=BAD_VALUE_ERROR,
-        msg="String 'date' as typeSpecification should be rejected",
-    ),
-    UpdateTestCase(
-        "string_timestamp",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": "timestamp"}},
-        error_code=BAD_VALUE_ERROR,
-        msg="String 'timestamp' as typeSpecification should be rejected",
-    ),
-    UpdateTestCase(
-        "null_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": None}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Null as typeSpecification should be rejected",
-    ),
-    UpdateTestCase(
-        "array_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": []}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Array as typeSpecification should be rejected",
-    ),
-    UpdateTestCase(
-        "int64_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": Int64(1)}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Int64 as typeSpecification should be rejected",
-    ),
-    UpdateTestCase(
-        "decimal128_value",
-        setup_docs=[{"_id": 1}],
-        query={"_id": 1},
-        update={"$currentDate": {"field": Decimal128("1")}},
-        error_code=BAD_VALUE_ERROR,
-        msg="Decimal128 as typeSpecification should be rejected",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(INVALID_FORMAT_TESTS))
-def test_currentDate_invalid_format(collection, test: UpdateTestCase):
-    """Test $currentDate with non-boolean/non-object typeSpecification produces BadValue."""
+@pytest.mark.parametrize("test", pytest_params(INVALID_TYPE_EDGE_CASES))
+def test_currentDate_invalid_type_edge_cases(collection, test: UpdateTestCase):
+    """Test $currentDate rejects invalid $type strings and malformed spec objects."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 

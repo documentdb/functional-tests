@@ -10,10 +10,10 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
-from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
+from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Gt, IsType, Lt
+from documentdb_tests.framework.property_checks import Eq, Gt, IsType, Lt
 
 # ---------------------------------------------------------------------------
 # Property [Argument Handling]: empty, single, and multiple fields
@@ -25,31 +25,33 @@ ARGUMENT_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "val": 10}],
         query={"_id": 1},
         update={"$currentDate": {}},
-        expected={"n": 1, "nModified": 0},
-        msg="$currentDate with empty {} should be a no-op",
+        expected={"val": Eq(10)},
+        msg="$currentDate with empty {} should be a no-op (document unchanged)",
     ),
     UpdateTestCase(
         "single_field",
         setup_docs=[{"_id": 1, "val": 10}],
         query={"_id": 1},
         update={"$currentDate": {"lastModified": True}},
-        expected={"n": 1, "nModified": 1},
-        msg="$currentDate with single field should succeed",
+        expected={"lastModified": IsType("date")},
+        msg="$currentDate with single field should set it to Date",
     ),
 ]
 
 
 @pytest.mark.parametrize("test", pytest_params(ARGUMENT_TESTS))
 def test_currentDate_argument_handling(collection, test: UpdateTestCase):
-    """Test $currentDate argument count variations."""
+    """Test $currentDate argument variations produce the expected document."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
-    result = execute_command(
+    execute_command(
         collection,
         {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
     )
-    assertSuccessPartial(result, test.expected, msg=test.msg)
+
+    result = execute_command(collection, {"find": collection.name, "filter": test.query})
+    assertProperties(result, test.expected, msg=test.msg)
 
 
 # ---------------------------------------------------------------------------
