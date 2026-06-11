@@ -29,7 +29,7 @@ KILLSESSIONS_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"maxtimems_{tid}",
         command=lambda ctx, v=val: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "maxTimeMS": v,
         },
         expected={"ok": 1.0},
@@ -59,7 +59,7 @@ KILLSESSIONS_WRITECONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "writeconcern_null",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "writeConcern": None,
         },
         expected={"ok": 1.0},
@@ -73,7 +73,7 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "unrecognized_single",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "unknownField": 1,
         },
         expected={"ok": 1.0},
@@ -82,7 +82,7 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "unrecognized_multiple",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "foo": 1,
             "bar": 2,
         },
@@ -92,7 +92,7 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "unrecognized_dollar_prefix",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "$unknown": 1,
         },
         expected={"ok": 1.0},
@@ -101,7 +101,7 @@ KILLSESSIONS_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "unrecognized_other_command",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "query": {"x": 1},
         },
         expected={"ok": 1.0},
@@ -115,7 +115,7 @@ KILLSESSIONS_READCONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_local",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"level": "local"},
         },
         expected={"ok": 1.0},
@@ -124,7 +124,7 @@ KILLSESSIONS_READCONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_null",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": None,
         },
         expected={"ok": 1.0},
@@ -133,7 +133,7 @@ KILLSESSIONS_READCONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_empty_doc",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {},
         },
         expected={"ok": 1.0},
@@ -142,7 +142,7 @@ KILLSESSIONS_READCONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "readconcern_level_null",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "readConcern": {"level": None},
         },
         expected={"ok": 1.0},
@@ -173,7 +173,7 @@ KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_1",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "apiVersion": "1",
         },
         expected={"ok": 1.0},
@@ -182,7 +182,7 @@ KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_1_strict_false",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "apiVersion": "1",
             "apiStrict": False,
         },
@@ -192,7 +192,7 @@ KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_1_deprecation_true",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "apiVersion": "1",
             "apiDeprecationErrors": True,
         },
@@ -202,7 +202,7 @@ KILLSESSIONS_STABLE_API_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_1_deprecation_false",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "apiVersion": "1",
             "apiDeprecationErrors": False,
         },

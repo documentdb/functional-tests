@@ -48,7 +48,7 @@ KILLSESSIONS_MAXTIMEMS_TYPE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"maxtimems_type_{tid}",
         command=lambda ctx, v=val: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "maxTimeMS": v,
         },
         error_code=TYPE_MISMATCH_ERROR,
@@ -77,7 +77,7 @@ KILLSESSIONS_MAXTIMEMS_VALUE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"maxtimems_value_{tid}",
         command=lambda ctx, v=val: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "maxTimeMS": v,
         },
         error_code=FAILED_TO_PARSE_ERROR,
@@ -102,7 +102,7 @@ KILLSESSIONS_MAXTIMEMS_VALUE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"maxtimems_value_{tid}",
         command=lambda ctx, v=val: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "maxTimeMS": v,
         },
         error_code=BAD_VALUE_ERROR,

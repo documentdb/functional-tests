@@ -83,7 +83,7 @@ KILLSESSIONS_STABLE_API_STRICT_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_strict_true",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "apiVersion": "1",
             "apiStrict": True,
         },
@@ -98,7 +98,7 @@ KILLSESSIONS_API_VERSION_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_2",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "apiVersion": "2",
         },
         error_code=API_VERSION_ERROR,
@@ -107,7 +107,7 @@ KILLSESSIONS_API_VERSION_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_version_empty",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "apiVersion": "",
         },
         error_code=API_VERSION_ERROR,
@@ -116,7 +116,7 @@ KILLSESSIONS_API_VERSION_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_strict_without_version",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "apiStrict": True,
         },
         error_code=API_VERSION_REQUIRED_ERROR,
@@ -125,7 +125,7 @@ KILLSESSIONS_API_VERSION_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "api_deprecation_without_version",
         command=lambda ctx: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "apiDeprecationErrors": True,
         },
         error_code=API_VERSION_REQUIRED_ERROR,

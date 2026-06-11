@@ -63,8 +63,8 @@ KILLSESSIONS_DUPLICATE_TESTS: list[CommandTestCase] = [
         "duplicate_uuids",
         command=lambda ctx: {
             "killSessions": [
-                {"id": Binary(b"\x00" * 16, subtype=4)},
-                {"id": Binary(b"\x00" * 16, subtype=4)},
+                {"id": Binary(b"\xde\xad" * 8, subtype=4)},
+                {"id": Binary(b"\xde\xad" * 8, subtype=4)},
             ]
         },
         expected={"ok": 1.0},
@@ -92,7 +92,7 @@ KILLSESSIONS_COMMENT_TYPE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"comment_{tid}",
         command=lambda ctx, v=val: {
-            "killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}],
+            "killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}],
             "comment": v,
         },
         expected={"ok": 1.0},
@@ -128,7 +128,7 @@ KILLSESSIONS_COMMENT_TYPE_TESTS: list[CommandTestCase] = [
 KILLSESSIONS_ADMIN_DB_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "admin_database",
-        command=lambda ctx: {"killSessions": [{"id": Binary(b"\x00" * 16, subtype=4)}]},
+        command=lambda ctx: {"killSessions": [{"id": Binary(b"\xde\xad" * 8, subtype=4)}]},
         expected={"ok": 1.0},
         msg="killSessions should succeed on admin database",
     ),
