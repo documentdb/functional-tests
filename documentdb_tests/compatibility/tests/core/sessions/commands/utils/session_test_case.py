@@ -75,33 +75,3 @@ class SessionTestCase(CommandTestCase):
     expected_response: dict[str, Any] | None = None
     readback_filter: dict[str, Any] = field(default_factory=dict)
     readback_sort: dict[str, Any] = field(default_factory=lambda: {"_id": 1})
-
-
-@dataclass(frozen=True)
-class AbortSessionTestCase(CommandTestCase):
-    """Test case for abortTransaction success tests.
-
-    Extends CommandTestCase to model a multi-step transaction workflow:
-    seed documents, run operations inside a transaction, abort, and
-    verify the result via readback (expecting rollback).
-
-    Attributes:
-        ops: Operations to execute inside the transaction before aborting.
-        abort_command: Optional raw command dict for aborting (e.g. to
-            include writeConcern or comment). When None, uses
-            ``session.abort_transaction()``.
-        expected_response: Expected fields from the abort command response.
-            When set, the assertion targets the abort response instead of
-            a readback query. Defaults to ``None``.
-            Mutually exclusive with ``expected``.
-        readback_filter: Filter for the post-abort readback query. Defaults
-            to ``{}``.
-        readback_sort: Sort for the post-abort readback query. Defaults
-            to ``{"_id": 1}``.
-    """
-
-    ops: list[SessionOperation] = field(default_factory=list)
-    abort_command: dict[str, Any] | None = None
-    expected_response: dict[str, Any] | None = None
-    readback_filter: dict[str, Any] = field(default_factory=dict)
-    readback_sort: dict[str, Any] = field(default_factory=lambda: {"_id": 1})

@@ -16,9 +16,9 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
     CommandTestCase,
 )
 from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_test_case import (
-    AbortSessionTestCase,
     SessionOp,
     SessionOperation,
+    SessionTestCase,
 )
 from documentdb_tests.framework.assertions import (
     assertFailureCode,
@@ -116,14 +116,14 @@ def test_abortTransaction_admin_db_required(collection, test):
 
 
 # Property [Abort Rollback]: aborted operations are rolled back.
-ABORT_ROLLBACK_TESTS: list[AbortSessionTestCase] = [
-    AbortSessionTestCase(
+ABORT_ROLLBACK_TESTS: list[SessionTestCase] = [
+    SessionTestCase(
         "abort_insert",
         ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1, "x": "inserted"})],
         expected=[],
         msg="abortTransaction should roll back the inserted document",
     ),
-    AbortSessionTestCase(
+    SessionTestCase(
         "abort_update",
         docs=[{"_id": 1, "x": "before"}],
         ops=[
@@ -136,14 +136,14 @@ ABORT_ROLLBACK_TESTS: list[AbortSessionTestCase] = [
         expected=[{"_id": 1, "x": "before"}],
         msg="abortTransaction should roll back the updated value",
     ),
-    AbortSessionTestCase(
+    SessionTestCase(
         "abort_delete",
         docs=[{"_id": 1, "x": "to_delete"}],
         ops=[SessionOperation(op=SessionOp.DELETE, filter={"_id": 1})],
         expected=[{"_id": 1, "x": "to_delete"}],
         msg="abortTransaction should roll back the deletion",
     ),
-    AbortSessionTestCase(
+    SessionTestCase(
         "abort_multi_operation",
         docs=[{"_id": 1, "x": "original"}],
         ops=[
@@ -157,7 +157,7 @@ ABORT_ROLLBACK_TESTS: list[AbortSessionTestCase] = [
         expected=[{"_id": 1, "x": "original"}],
         msg="abortTransaction should roll back all operations from a multi-op transaction",
     ),
-    AbortSessionTestCase(
+    SessionTestCase(
         "abort_with_writeconcern",
         docs=[{"_id": 1, "x": "before"}],
         ops=[
@@ -167,11 +167,11 @@ ABORT_ROLLBACK_TESTS: list[AbortSessionTestCase] = [
                 update={"$set": {"x": "after"}},
             )
         ],
-        abort_command={"abortTransaction": 1, "writeConcern": {"w": 1}},
+        commit_command={"abortTransaction": 1, "writeConcern": {"w": 1}},
         expected=[{"_id": 1, "x": "before"}],
         msg="abortTransaction with writeConcern should roll back changes",
     ),
-    AbortSessionTestCase(
+    SessionTestCase(
         "abort_insert_delete_same_doc",
         ops=[
             SessionOperation(op=SessionOp.INSERT, document={"_id": 1}),
@@ -180,7 +180,7 @@ ABORT_ROLLBACK_TESTS: list[AbortSessionTestCase] = [
         expected=[],
         msg="abortTransaction should roll back insert+delete of the same document",
     ),
-    AbortSessionTestCase(
+    SessionTestCase(
         "abort_multiple_inserts",
         ops=[
             SessionOperation(op=SessionOp.INSERT, document={"_id": 1}),
@@ -189,7 +189,7 @@ ABORT_ROLLBACK_TESTS: list[AbortSessionTestCase] = [
         expected=[],
         msg="abortTransaction should roll back multiple inserts",
     ),
-    AbortSessionTestCase(
+    SessionTestCase(
         "abort_update_insert_different_docs",
         docs=[{"_id": 1, "x": "original"}],
         ops=[
@@ -215,8 +215,8 @@ def test_abortTransaction_core_rollback(collection, test):
 
 
 # Property [Pre-Transaction Data Survival]: seed data survives abort.
-PRE_TRANSACTION_TESTS: list[AbortSessionTestCase] = [
-    AbortSessionTestCase(
+PRE_TRANSACTION_TESTS: list[SessionTestCase] = [
+    SessionTestCase(
         "pre_existing_data_survives",
         docs=[{"_id": 1, "x": "seed"}],
         ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 2, "x": "txn"})],
@@ -235,8 +235,8 @@ def test_abortTransaction_core_pre_transaction_data(collection, test):
 
 
 # Property [Empty Transaction]: aborting a transaction with no ops succeeds.
-EMPTY_TRANSACTION_TESTS: list[AbortSessionTestCase] = [
-    AbortSessionTestCase(
+EMPTY_TRANSACTION_TESTS: list[SessionTestCase] = [
+    SessionTestCase(
         "abort_empty_transaction",
         ops=[],
         msg="abortTransaction on empty transaction should not error",
@@ -253,18 +253,18 @@ def test_abortTransaction_core_empty(collection, test):
 
 
 # Property [Response Structure]: abort response contains ok:1 on success.
-RESPONSE_STRUCTURE_TESTS: list[AbortSessionTestCase] = [
-    AbortSessionTestCase(
+RESPONSE_STRUCTURE_TESTS: list[SessionTestCase] = [
+    SessionTestCase(
         "abort_response_ok",
         ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        abort_command={"abortTransaction": 1},
+        commit_command={"abortTransaction": 1},
         expected_response={"ok": 1.0},
         msg="abortTransaction response should have ok:1 on success",
     ),
-    AbortSessionTestCase(
+    SessionTestCase(
         "abort_with_comment",
         ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        abort_command={"abortTransaction": 1, "comment": "test abort"},
+        commit_command={"abortTransaction": 1, "comment": "test abort"},
         expected_response={"ok": 1.0},
         msg="abortTransaction with comment should succeed",
     ),

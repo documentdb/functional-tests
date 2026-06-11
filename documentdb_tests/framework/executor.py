@@ -118,7 +118,7 @@ def execute_session_command(collection, test_case) -> Any:
 
 
 def execute_abort_session_command(collection, test_case) -> Any:
-    """Execute an AbortSessionTestCase: seed, transact, abort, and return the result.
+    """Execute a SessionTestCase as an abort: seed, transact, abort, and return the result.
 
     Runs the full transaction lifecycle described by *test_case*:
 
@@ -126,7 +126,7 @@ def execute_abort_session_command(collection, test_case) -> Any:
     2. Open a client session and start a transaction.
     3. Execute each ``SessionOperation`` in ``test_case.ops``.
     4. Abort — either via ``session.abort_transaction()`` or by sending
-       ``test_case.abort_command`` as a raw admin command.
+       ``test_case.commit_command`` as a raw admin command.
     5. Return the appropriate result for assertion:
        - If ``test_case.expected_response`` is set, return the abort
          command response (a dict).
@@ -135,16 +135,16 @@ def execute_abort_session_command(collection, test_case) -> Any:
 
     Args:
         collection: The pytest ``collection`` fixture.
-        test_case: An ``AbortSessionTestCase`` instance.
+        test_case: A ``SessionTestCase`` instance.
 
     Returns:
         Result dict (abort response or readback) or Exception.
     """
     from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_test_case import (  # noqa: E501
-        AbortSessionTestCase,
+        SessionTestCase,
     )
 
-    assert isinstance(test_case, AbortSessionTestCase)
+    assert isinstance(test_case, SessionTestCase)
 
     # 1. Seed documents.
     if test_case.docs is not None:
@@ -158,9 +158,9 @@ def execute_abort_session_command(collection, test_case) -> Any:
         session.start_transaction()
         for op in test_case.ops:
             op.execute(collection, session)
-        if test_case.abort_command is not None:
+        if test_case.commit_command is not None:
             try:
-                abort_result = client.admin.command(test_case.abort_command, session=session)
+                abort_result = client.admin.command(test_case.commit_command, session=session)
             except Exception as e:
                 abort_result = e
         else:
