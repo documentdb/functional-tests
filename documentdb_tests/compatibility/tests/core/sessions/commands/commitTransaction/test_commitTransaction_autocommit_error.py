@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128, Int64
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
