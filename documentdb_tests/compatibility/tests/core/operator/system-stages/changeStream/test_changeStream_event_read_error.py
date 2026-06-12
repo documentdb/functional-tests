@@ -41,8 +41,8 @@ def test_changeStream_required_image_event_read_error(collection, test_case):
     collection.insert_one({"_id": 1, "a": 1})
     # The open must succeed: enforcement of the required image is deferred to the
     # getMore that reads the update event, not raised at parse/open time.
-    opened = collection.database.command(
-        change_stream_command(collection, pipeline=test_case.pipeline)
+    opened = execute_command(
+        collection, change_stream_command(collection, pipeline=test_case.pipeline)
     )
     collection.update_one({"_id": 1}, {"$set": {"a": 2}})
     result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
