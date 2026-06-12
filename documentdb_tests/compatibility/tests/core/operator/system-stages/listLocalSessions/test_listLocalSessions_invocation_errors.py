@@ -13,9 +13,9 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
 from documentdb_tests.framework.assertions import assertFailureCode, assertResult
 from documentdb_tests.framework.error_codes import (
     API_STRICT_ERROR,
+    ILLEGAL_OPERATION_ERROR,
     INVALID_NAMESPACE_ERROR,
     NOT_FIRST_STAGE_ERROR,
-    OPERATION_NOT_SUPPORTED_IN_TRANSACTION_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -94,11 +94,11 @@ def test_listLocalSessions_invocation_error(
     )
 
 
-# Property [Transaction Invocation Errors]: $listLocalSessions is rejected inside a
-# multi-document transaction.
+# Property [Transaction Invocation Errors]: $listLocalSessions is rejected when run
+# inside a transaction.
 @pytest.mark.aggregate
 def test_listLocalSessions_in_transaction(collection: Collection):
-    """Test $listLocalSessions is rejected inside a multi-document transaction."""
+    """Test $listLocalSessions is rejected when run inside a transaction."""
     command = {
         "aggregate": 1,
         "pipeline": [{"$listLocalSessions": {}}],
@@ -111,6 +111,6 @@ def test_listLocalSessions_in_transaction(collection: Collection):
         session.abort_transaction()
     assertFailureCode(
         result,
-        OPERATION_NOT_SUPPORTED_IN_TRANSACTION_ERROR,
+        ILLEGAL_OPERATION_ERROR,
         msg="$listLocalSessions should be rejected when run inside a transaction",
     )
