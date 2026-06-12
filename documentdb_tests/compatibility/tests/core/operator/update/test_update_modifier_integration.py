@@ -321,6 +321,22 @@ EACH_INTEGRATION_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": {"$each": [1]}}],
         msg="$set should treat $each as a literal document value",
     ),
+    UpdateTestCase(
+        id="sort_overrides_position",
+        setup_docs=[{"_id": 1, "arr": [3, 1]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [5], "$position": 0, "$sort": 1}}},
+        expected=[{"_id": 1, "arr": [1, 3, 5]}],
+        msg="$sort should override $position — final array is sorted regardless of insertion point",
+    ),
+    UpdateTestCase(
+        id="sort_desc_position_slice_neg",
+        setup_docs=[{"_id": 1, "arr": [2, 4]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [5, 1, 3], "$position": 0, "$sort": -1, "$slice": -3}}},
+        expected=[{"_id": 1, "arr": [3, 2, 1]}],
+        msg="Sort descending with negative slice should keep last 3 of sorted desc array",
+    ),
 ]
 
 
