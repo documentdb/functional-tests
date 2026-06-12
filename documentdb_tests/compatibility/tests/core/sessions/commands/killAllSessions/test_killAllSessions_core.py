@@ -12,7 +12,10 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import CURSOR_NOT_FOUND_ERROR
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
 
+# killAllSessions kills sessions server-wide, so these tests must never run in
+# parallel with other tests that rely on open sessions or cursors.
 pytestmark = pytest.mark.no_parallel
 
 # Property [User Array Formats]: killAllSessions accepts various user array
@@ -224,29 +227,77 @@ def test_killAllSessions_kill_after_start(collection):
     client = collection.database.client
     db = collection.database
     session = client.start_session()
+    try:
+        # Insert enough docs to require a getMore.
+        collection.insert_many([{"_id": i} for i in range(10)], session=session)
 
-    # Insert enough docs to require a getMore.
-    collection.insert_many([{"_id": i} for i in range(10)], session=session)
+        # Open a cursor with a small batch so the first batch doesn't exhaust it.
+        find_result = db.command(
+            {"find": collection.name, "batchSize": 2},
+            session=session,
+        )
+        cursor_id = find_result["cursor"]["id"]
 
-    # Open a cursor with a small batch so the first batch doesn't exhaust it.
-    find_result = db.command(
-        {"find": collection.name, "batchSize": 2},
-        session=session,
-    )
-    cursor_id = find_result["cursor"]["id"]
+        # Kill all sessions.
+        execute_command(collection, {"killAllSessions": []})
 
-    # Kill all sessions.
-    execute_command(collection, {"killAllSessions": []})
+        # getMore on the killed session's cursor should fail.
+        get_more_result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name},
+            session=session,
+        )
+        assertResult(
+            get_more_result,
+            error_code=CURSOR_NOT_FOUND_ERROR,
+            msg="getMore should fail after killAllSessions",
+            raw_res=True,
+        )
+    finally:
+        session.end_session()
 
-    # getMore on the killed session's cursor should fail.
-    get_more_result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name},
-        session=session,
-    )
-    assertResult(
-        get_more_result,
-        error_code=CURSOR_NOT_FOUND_ERROR,
-        msg="getMore should fail after killAllSessions",
-        raw_res=True,
-    )
+
+# Property [Targeted Filter]: killAllSessions with a {user, db} filter only
+# kills sessions belonging to the matched user; unrelated cursors survive.
+def test_killAllSessions_targeted_filter(collection):
+    """Test killAllSessions honours the {user, db} filter.
+
+    Opens a cursor under a session, then calls killAllSessions with a
+    non-matching {user, db} filter.  The cursor should survive because the
+    filter does not match the current connection's user.  This proves the
+    filter is evaluated rather than ignored.
+    """
+    client = collection.database.client
+    db = collection.database
+    session = client.start_session()
+    try:
+        # Insert enough docs to require a getMore.
+        collection.insert_many([{"_id": i} for i in range(10)], session=session)
+
+        # Open a cursor with a small batch so the first batch doesn't exhaust it.
+        find_result = db.command(
+            {"find": collection.name, "batchSize": 2},
+            session=session,
+        )
+        cursor_id = find_result["cursor"]["id"]
+
+        # Kill sessions for a non-existent user — should NOT affect our cursor.
+        execute_command(
+            collection,
+            {"killAllSessions": [{"user": "nonExistentUser", "db": "nonExistentDb"}]},
+        )
+
+        # getMore should still succeed because the filter did not match.
+        get_more_result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name},
+            session=session,
+        )
+        assertResult(
+            get_more_result,
+            expected={"ok": Eq(1.0)},
+            msg="getMore should succeed after killAllSessions with non-matching filter",
+            raw_res=True,
+        )
+    finally:
+        session.end_session()
