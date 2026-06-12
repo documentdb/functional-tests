@@ -78,6 +78,7 @@ Follow every rule in [`FOLDER_STRUCTURE.md`](testing/FOLDER_STRUCTURE.md). Addit
 - [ ] Date assertions use UTC-aware datetimes
 - [ ] Order-dependent assertions don't use `ignore_doc_order` incorrectly
 - [ ] Error cases test the right error code (not just "any error")
+- [ ] **Undocumented type coercion** is tested per command when the engine's accepted-type set is broader than the spec documents (numeric→bool, whole-double→int, null-as-omitted, etc.). Engines may diverge there; documented-only coverage hides the gap. Applies to any param type — bool, int, string, document — not just bool. Skip when §19 Foundational Spec Behaviors covers it, or when the coercion is identical across consumers and centralized somewhere. When in doubt, mirror the matrix from the most thoroughly-tested consumer of the same parameter (e.g. for `bypassDocumentValidation`, see `tests/core/aggregation/commands/aggregate/test_aggregate_bypass_validation.py`).
 
 ### 9. Documentation Updates
 
@@ -96,6 +97,7 @@ Follow every rule in [`FOLDER_STRUCTURE.md`](testing/FOLDER_STRUCTURE.md). Addit
 - **Don't flag a `Binary` subtype 0** expressed as `Binary` in the inserted document and `bytes` in the expected value — PyMongo decodes subtype 0 to `bytes`, so this pairing is the only working pattern.
 - **Don't flag long parametrized files** for line count alone when cases are logically grouped.
 - **Don't ask for an exhaustive BSON-type matrix** on simple shared parameters like `comment` — representative cases are enough.
+- **Don't flag undocumented coercion tests as "over-spec".** When a parameter's accepted-type set in practice is broader than the spec documents (e.g. `bypassDocumentValidation` accepts numerics despite being typed as boolean), per-command coercion tests are load-bearing — see Correctness checklist §8.
 - **Don't flag stylistic preferences** that pre-commit (black, isort, flake8) already enforces.
 
 ## Tone

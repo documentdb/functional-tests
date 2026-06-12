@@ -537,6 +537,28 @@ For each invalid_type in [string, object, array, ...]:
 
 ---
 
+### 20. Undocumented Type Coercion — Test Per Command
+
+**Rule**: When a command parameter's *accepted-type set in practice* is broader than the spec documents, test the observed coercion in that command's test file. Engines may diverge here; documented-only coverage hides the gap.
+
+**Rationale**: This is the inverse of §19. Foundational behaviors that have a single source of truth get tested once; coercion behaviors that have *no* source of truth get tested per consumer because that's the only place divergence shows up. Spec wording is necessary but not sufficient — the engine's actual accepted-type set is the contract real applications depend on.
+
+**Applies to** (any param type, not just bool):
+- **Boolean** params accepting numeric/null coercion — `bypassDocumentValidation`, `ordered`, `multi`, `upsert`, `dryRun`, `force`. Test `True`/`False`/omitted plus `1`/`0`/`1.0`/`0.0`/`Int64`/`Decimal128`/`null`/`-0.0`/`NaN`/`Infinity` per the canonical matrix (e.g. `tests/core/aggregation/commands/aggregate/test_aggregate_bypass_validation.py`).
+- **Integer** params accepting whole-number doubles / Decimal128, or rejecting fractionals — `limit`, `skip`, `batchSize`, `maxTimeMS`, `freeSpaceTargetMB`. Test int32, Int64, whole-number double (`3.0`), whole-number Decimal128 (`"3"`), fractional double (`3.5`) rejection, negative values, overflow.
+- **String** params with empty-string / null treatment — verify whether empty string and other types are coerced or rejected.
+- **Document** params with null-as-omitted / empty-doc / array-rejection behavior — `query`, `sort`, `projection`, `writeConcern`, `let`, `collation`. Test that null is treated as omitted, empty doc is accepted, and array is rejected with the correct error code.
+
+**Skip when**:
+- §19 Foundational Spec Behaviors covers the coercion (e.g. BSON type ordering).
+- The coercion is identical across all consumers and centralized in a dedicated test directory — delegate to that site instead.
+
+**Method**: When in doubt, find the most thoroughly-tested consumer of the same parameter (grep `tests/core/` for the param name) and mirror its matrix. If no consumer has thorough coverage, this PR is a good place to set the precedent.
+
+**Example**: `aggregate`'s `bypassDocumentValidation` matrix tests Int64, Decimal128, NaN, Infinity, -Infinity, negative zero alongside the documented `True`/`False`/null cases. PRs adding `bypassDocumentValidation` to `insert`, `update`, `findAndModify` should mirror this matrix.
+
+---
+
 ## Test Category Checklist
 
 For any DocumentDB feature, ensure coverage of:
@@ -559,6 +581,7 @@ For any DocumentDB feature, ensure coverage of:
 - [ ] **Underflow handling**: `INT32_MIN`, `INT64_MIN` boundaries
 - [ ] **Decimal128 precision**: high precision, boundaries (if applicable)
 - [ ] **Error codes**: correct error codes for invalid operations
+- [ ] **Undocumented type coercion**: per command — when the engine accepts more types than the spec documents (numeric→bool, whole-double→int, null-as-omitted, etc.), mirror the canonical matrix from the most thoroughly-tested consumer (§20)
 - [ ] **Numeric equivalence**: equivalent values across numeric types grouped/matched correctly (if applicable)
 - [ ] **BSON type distinction**: different BSON types treated as distinct (if applicable)
 - [ ] **Pipeline stage interaction**: interaction with preceding/following stages (if pipeline stage)
