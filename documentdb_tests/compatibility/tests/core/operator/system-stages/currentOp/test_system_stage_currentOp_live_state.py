@@ -181,6 +181,7 @@ CURRENTOP_IDLE_CONNECTIONS_TESTS: list[CurrentOpLiveCase] = [
         ],
         expected=[],
         msg="$currentOp should suppress inactive operations when idleConnections is false",
+        marks=(pytest.mark.no_parallel,),
     ),
 ]
 
@@ -208,6 +209,7 @@ CURRENTOP_IDLE_CURSORS_TESTS: list[CurrentOpLiveCase] = [
         ],
         expected=[],
         msg="$currentOp should emit no idle cursors when idleCursors is false",
+        marks=(pytest.mark.no_parallel,),
     ),
 ]
 
@@ -249,7 +251,7 @@ CURRENTOP_IDLE_SESSIONS_TESTS: list[CurrentOpLiveCase] = [
         ],
         expected=[],
         msg="$currentOp should suppress a lock-holding session when idleSessions is false",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.replica_set, pytest.mark.no_parallel),
     ),
 ]
 
@@ -265,6 +267,7 @@ CURRENTOP_IDLE_SESSIONS_ABSENT_TESTS: list[CurrentOpLiveCase] = [
         ],
         expected=[],
         msg="$currentOp should report no idle sessions without an open lock-holding transaction",
+        marks=(pytest.mark.no_parallel,),
     ),
 ]
 
@@ -281,7 +284,7 @@ CURRENTOP_EMITTED_TYPE_TESTS: list[CurrentOpLiveCase] = [
         ],
         expected=[],
         msg="$currentOp should emit only documents whose type is op, idleSession, or idleCursor",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.replica_set, pytest.mark.no_parallel),
     ),
 ]
 
@@ -297,6 +300,7 @@ CURRENTOP_EMITTED_SHARD_TESTS: list[CurrentOpLiveCase] = [
         ],
         expected=[],
         msg="$currentOp should omit shard and client_s fields on a non-sharded deployment",
+        marks=(pytest.mark.no_parallel,),
     ),
 ]
 
@@ -452,6 +456,7 @@ CURRENTOP_TRUNCATED_COMMAND_TESTS: list[CurrentOpLiveCase] = [
             "command.comment": NotExists(),
         },
         msg="$currentOp should replace a large command with a single $truncated key",
+        marks=(pytest.mark.no_parallel,),
     ),
 ]
 
@@ -472,6 +477,7 @@ CURRENTOP_TRUNCATED_COMMENT_TESTS: list[CurrentOpLiveCase] = [
             "command.comment": Eq("currentOp_truncation_marker"),
         },
         msg="$currentOp should carry the comment as a sibling key of a truncated command",
+        marks=(pytest.mark.no_parallel,),
     ),
 ]
 
