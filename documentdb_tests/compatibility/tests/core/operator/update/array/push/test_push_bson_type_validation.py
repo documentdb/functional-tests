@@ -31,7 +31,6 @@ PUSH_PARAMS = [
         msg="$push should accept any BSON type as value to push",
         valid_types=list(BsonType),
         default_error_code=BAD_VALUE_ERROR,
-        expected=[],
         valid_inputs={BsonType.BIN_DATA: Binary(b"\x00\x01\x02", 128)},
     ),
 ]
