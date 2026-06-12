@@ -60,6 +60,71 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
+  test-mongodb-replica-set:
+    name: Tests (MongoDB Replica Set)
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:8.2.4
+        ports:
+          - 27017:27017
+        command: --replSet rs0
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Initialize replica set
+        run: |
+          docker exec "${{ job.services.mongodb.id }}" mongosh --eval '
+            rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]})
+          '
+          # Wait for the primary to be elected
+          sleep 3
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run replica set tests against MongoDB
+        run: |
+          pytest documentdb_tests/compatibility/tests/ \
+            -m replica_set \
+            --connection-string "mongodb://localhost:27017/?directConnection=true" \
+            --engine-name mongodb \
+            -n auto \
+            -v \
+            --json-report --json-report-file=${{ github.workspace }}/.test-results/replica-set-report.json \
+            --junitxml=${{ github.workspace }}/.test-results/replica-set-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-replica-set
+          include-hidden-files: true
+          path: ${{ github.workspace }}/.test-results/
+          if-no-files-found: warn
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          if [ -f ${{ github.workspace }}/.test-results/replica-set-report.json ]; then
+            python -m documentdb_tests.compatibility.result_analyzer -i ${{ github.workspace }}/.test-results/replica-set-report.json -o ${{ github.workspace }}/.test-results/replica-set-analysis.txt -f text || true
+            echo "## MongoDB Replica Set Test Results" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat ${{ github.workspace }}/.test-results/replica-set-analysis.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
   collect-xcrash:
     name: Collect crash tests
     runs-on: ubuntu-latest
