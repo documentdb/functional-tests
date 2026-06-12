@@ -11,7 +11,7 @@ from documentdb_tests.compatibility.tests.core.collections.commands.listDatabase
     full_structure_success,
     name_only_success,
 )
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
