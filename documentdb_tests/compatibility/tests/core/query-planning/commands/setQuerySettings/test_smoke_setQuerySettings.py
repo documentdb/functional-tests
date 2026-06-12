@@ -9,7 +9,7 @@ import pytest
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 
-pytestmark = pytest.mark.smoke
+pytestmark = [pytest.mark.smoke, pytest.mark.no_parallel]
 
 
 @pytest.mark.replica_set
