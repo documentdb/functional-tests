@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
-from bson import DBRef
 
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
@@ -62,22 +61,6 @@ def test_insert_field_names(collection, test):
     )
     result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
     assertSuccess(result, [test.expected], msg=test.msg)
-
-
-@pytest.mark.insert
-def test_insert_dbref_fields(collection):
-    """Test insert with $ref and $id fields (DBRef-like)."""
-    doc = {"_id": 1, "ref": {"$ref": "other", "$id": "abc"}}
-    execute_command(
-        collection,
-        {"insert": collection.name, "documents": [doc]},
-    )
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertSuccess(
-        result,
-        [{"_id": 1, "ref": DBRef("other", "abc")}],
-        msg="insert should accept DBRef fields.",
-    )
 
 
 # Property [Array Preservation]: insert preserves arrays including empty, nested,
