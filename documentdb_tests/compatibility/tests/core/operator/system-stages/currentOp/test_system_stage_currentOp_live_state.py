@@ -33,8 +33,9 @@ class LiveState:
         """Poll currentOp until an operation of the given op type is in flight.
 
         Returns as soon as the op is observable so the caller can yield while it
-        is still running. Bounded by timeout_seconds so a never-appearing op
-        fails the test's own assertion rather than hanging.
+        is still running. Raises AssertionError if the op never appears within
+        timeout_seconds, so the failure is reported at its root cause rather
+        than as a confusing downstream assertion failure.
         """
         deadline = time.monotonic() + timeout_seconds
         poll_interval_seconds = 0.05
@@ -45,6 +46,9 @@ class LiveState:
             if ops["inprog"]:
                 return
             time.sleep(poll_interval_seconds)
+        raise AssertionError(
+            f"operation {op!r} did not appear in currentOp within {timeout_seconds}s"
+        )
 
 
 @dataclass(frozen=True)
