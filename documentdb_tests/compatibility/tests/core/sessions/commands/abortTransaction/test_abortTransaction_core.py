@@ -101,15 +101,6 @@ ABORT_ROLLBACK_TESTS: list[SessionTestCase] = [
     ),
 ]
 
-
-@pytest.mark.replica_set
-@pytest.mark.parametrize("test", pytest_params(ABORT_ROLLBACK_TESTS))
-def test_abortTransaction_core_rollback(collection, test):
-    """Test abortTransaction rolls back operations."""
-    result = execute_abort_session_command(collection, test)
-    assertSuccess(result, test.expected, msg=test.msg)
-
-
 # Property [Pre-Transaction Data Survival]: seed data survives abort.
 PRE_TRANSACTION_TESTS: list[SessionTestCase] = [
     SessionTestCase(
@@ -121,11 +112,13 @@ PRE_TRANSACTION_TESTS: list[SessionTestCase] = [
     ),
 ]
 
+ABORT_READBACK_TESTS: list[SessionTestCase] = ABORT_ROLLBACK_TESTS + PRE_TRANSACTION_TESTS
+
 
 @pytest.mark.replica_set
-@pytest.mark.parametrize("test", pytest_params(PRE_TRANSACTION_TESTS))
-def test_abortTransaction_core_pre_transaction_data(collection, test):
-    """Test pre-transaction data survives abort."""
+@pytest.mark.parametrize("test", pytest_params(ABORT_READBACK_TESTS))
+def test_abortTransaction_core(collection, test):
+    """Test abortTransaction rolls back operations and preserves pre-existing data."""
     result = execute_abort_session_command(collection, test)
     assertSuccess(result, test.expected, msg=test.msg)
 
