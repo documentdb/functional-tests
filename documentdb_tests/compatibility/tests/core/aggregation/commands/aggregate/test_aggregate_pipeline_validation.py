@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import reduce
+from typing import Any, List, cast
 
 import pytest
 from bson.son import SON
@@ -104,10 +105,10 @@ AGGREGATE_PIPELINE_LENGTH_LIMIT_TESTS: list[CommandTestCase] = [
         "validate_exceed_nesting_depth",
         command=lambda ctx: {
             "aggregate": ctx.collection,
-            "pipeline": reduce(
+            "pipeline": reduce(  # type: ignore[dict-item]
                 lambda p, i: [{"$lookup": {"from": ctx.collection, "pipeline": p, "as": f"j{i}"}}],
                 range(21),
-                [{"$addFields": {"x": 1}}],
+                cast(List[Any], [{"$addFields": {"x": 1}}]),
             ),
             "cursor": {},
         },
@@ -118,10 +119,10 @@ AGGREGATE_PIPELINE_LENGTH_LIMIT_TESTS: list[CommandTestCase] = [
         "validate_exceed_nesting_depth_unionwith",
         command=lambda ctx: {
             "aggregate": ctx.collection,
-            "pipeline": reduce(
+            "pipeline": reduce(  # type: ignore[dict-item]
                 lambda p, _: [{"$unionWith": {"coll": ctx.collection, "pipeline": p}}],
                 range(21),
-                [{"$addFields": {"x": 1}}],
+                cast(List[Any], [{"$addFields": {"x": 1}}]),
             ),
             "cursor": {},
         },
