@@ -6,7 +6,7 @@ Each function returns a dict of property checks suitable for the
 
 from __future__ import annotations
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
 )
 from documentdb_tests.framework.property_checks import Contains, Eq, Exists, IsType, NotExists
