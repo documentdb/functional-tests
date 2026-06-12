@@ -16,6 +16,7 @@ from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
     INVALID_NAMESPACE_ERROR,
+    MISSING_FIELD_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -324,6 +325,34 @@ SET_FILTER_COLLATION_TYPE_TESTS: list[CommandTestCase] = [
     ]
 ]
 
+# Property [Collation Missing Locale]: collation requires the locale field.
+SET_FILTER_COLLATION_MISSING_LOCALE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "collation_missing_locale",
+        docs=[{"_id": 1, "a": 1}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"a": 1},
+            "indexes": [{"a": 1}],
+            "collation": {"strength": 2},
+        },
+        error_code=MISSING_FIELD_ERROR,
+        msg="planCacheSetFilter should reject collation without locale",
+    ),
+    CommandTestCase(
+        "collation_empty_document",
+        docs=[{"_id": 1, "a": 1}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"a": 1},
+            "indexes": [{"a": 1}],
+            "collation": {},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="planCacheSetFilter should reject empty collation document",
+    ),
+]
+
 SET_FILTER_ERROR_TESTS: list[CommandTestCase] = (
     SET_FILTER_NON_EXISTENT_TESTS
     + SET_FILTER_VIEW_TESTS
@@ -337,6 +366,7 @@ SET_FILTER_ERROR_TESTS: list[CommandTestCase] = (
     + SET_FILTER_SORT_TYPE_TESTS
     + SET_FILTER_PROJECTION_TYPE_TESTS
     + SET_FILTER_COLLATION_TYPE_TESTS
+    + SET_FILTER_COLLATION_MISSING_LOCALE_TESTS
 )
 
 
