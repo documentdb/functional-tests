@@ -6,7 +6,7 @@ Tests maxWriteBatchSize enforcement and document size rejection.
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
