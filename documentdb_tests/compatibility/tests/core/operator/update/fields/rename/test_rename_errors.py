@@ -22,8 +22,8 @@ from documentdb_tests.framework.error_codes import (
     CONFLICTING_UPDATE_OPERATORS_ERROR,
     DOLLAR_PREFIXED_FIELD_NAME_ERROR,
     EMPTY_FIELD_NAME_ERROR,
-    ENCRYPTED_FIELD_NULL_BYTE_PATH_ERROR,
     IMMUTABLE_FIELD_ERROR,
+    NULL_BYTE_PATH_ERROR,
     PATH_NOT_VIABLE_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -208,7 +208,7 @@ NULL_BYTE_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "a": 1}],
         query={"_id": 1},
         update={"$rename": {"a": "b\x00"}},
-        error_code=ENCRYPTED_FIELD_NULL_BYTE_PATH_ERROR,
+        error_code=NULL_BYTE_PATH_ERROR,
         msg="$rename with null byte at end of target should error",
     ),
     UpdateTestCase(
@@ -216,7 +216,7 @@ NULL_BYTE_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "a": 1}],
         query={"_id": 1},
         update={"$rename": {"a": "b\x00c"}},
-        error_code=ENCRYPTED_FIELD_NULL_BYTE_PATH_ERROR,
+        error_code=NULL_BYTE_PATH_ERROR,
         msg="$rename with null byte in middle of target should error",
     ),
     UpdateTestCase(
@@ -224,7 +224,7 @@ NULL_BYTE_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "a": 1}],
         query={"_id": 1},
         update={"$rename": {"a": "\x00b"}},
-        error_code=ENCRYPTED_FIELD_NULL_BYTE_PATH_ERROR,
+        error_code=NULL_BYTE_PATH_ERROR,
         msg="$rename with null byte at start of target should error",
     ),
 ]
