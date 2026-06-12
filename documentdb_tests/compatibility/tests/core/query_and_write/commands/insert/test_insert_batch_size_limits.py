@@ -48,19 +48,22 @@ def test_insert_batch_limit_rejected(collection, test: CommandTestCase):
 
 
 @pytest.mark.insert
-def test_insert_at_max_write_batch_size(collection):
-    """Test insert with a large batch up to maxWriteBatchSize succeeds."""
-    # Query the server for the limit, then test with a capped representative size.
-    hello = collection.database.command("hello")
-    max_batch = hello.get("maxWriteBatchSize", 100_000)
-    batch_size = min(max_batch, 1000)
-    docs = [{"_id": i} for i in range(batch_size)]
+def test_insert_large_batch_succeeds(collection):
+    """Test insert succeeds with a large batch of documents.
+
+    This is a wiring test: it confirms the server accepts multi-document
+    inserts without error. It does not test the maxWriteBatchSize boundary
+    because inserting up to 100,000 documents is impractical in a functional
+    test suite. See the Property [Document and Batch Rejection] cases above
+    for rejection behavior.
+    """
+    docs = [{"_id": i} for i in range(1000)]
     result = execute_command(
         collection,
         {"insert": collection.name, "documents": docs},
     )
     assertSuccessPartial(
         result,
-        {"ok": 1.0, "n": batch_size},
-        msg=f"insert should succeed with a batch of {batch_size} documents.",
+        {"ok": 1.0, "n": 1000},
+        msg="insert should succeed with a batch of 1000 documents.",
     )
