@@ -10,7 +10,7 @@ from bson import Binary, Code, Decimal128, MaxKey, MinKey, ObjectId, Regex, Time
 from documentdb_tests.compatibility.tests.core.collections.commands.listDatabases.utils.listDatabases_common import (  # noqa: E501
     basic_success,
 )
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
