@@ -559,6 +559,14 @@ For each invalid_type in [string, object, array, ...]:
 
 ---
 
+### 21. Query-Operator Containers
+
+**Rule**: Containers that accept a query expression (`$pull` condition, `arrayFilters`, positional `$`) test one case per query operator they accept (`$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$exists`, `$type`, `$regex`, `$mod`, `$all`, `$size`, `$or`, `$not`, `$and`, plus implicit-and).
+
+Same shape as §11, applied to a different axis: §11 covers expression operators in pipeline stages; §21 covers query operators in update/find features that take a query expression. Container-specific contracts (rejections, no-ops, shape constraints) live in the container's own test files alongside its other behavior.
+
+---
+
 ## Test Category Checklist
 
 For any DocumentDB feature, ensure coverage of:
