@@ -5,13 +5,15 @@ Tests argument handling (empty, single, multiple fields) and
 temporal consistency.
 """
 
+import time
+
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
 from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq, Gte, IsType
+from documentdb_tests.framework.property_checks import Eq, Gt, IsType
 
 # ---------------------------------------------------------------------------
 # Property [Argument Handling]: empty, single, and multiple fields
@@ -103,7 +105,7 @@ def test_currentDate_multiple_fields(collection, test: UpdateTestCase):
 
 
 def test_currentDate_sequential_updates_monotonic(collection):
-    """Test sequential $currentDate updates on the same field are monotonically non-decreasing."""
+    """Test sequential $currentDate updates on the same field are monotonically increasing."""
     collection.insert_one({"_id": 1})
 
     # First update sets the field to the current date.
@@ -117,7 +119,10 @@ def test_currentDate_sequential_updates_monotonic(collection):
     first = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
     first_ts = first.get("cursor", {}).get("firstBatch", [])[0].get("ts")
 
-    # Second update on the same field should produce a date at or after the first.
+    # Sleep past the millisecond resolution of Date so the second update is strictly later.
+    time.sleep(0.01)
+
+    # Second update on the same field should produce a date strictly after the first.
     execute_command(
         collection,
         {
@@ -129,6 +134,6 @@ def test_currentDate_sequential_updates_monotonic(collection):
     result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
     assertProperties(
         result,
-        {"ts": [IsType("date"), Gte(first_ts)]},
-        msg="A later $currentDate update should produce a date >= the earlier one",
+        {"ts": [IsType("date"), Gt(first_ts)]},
+        msg="A later $currentDate update should produce a date > the earlier one",
     )
