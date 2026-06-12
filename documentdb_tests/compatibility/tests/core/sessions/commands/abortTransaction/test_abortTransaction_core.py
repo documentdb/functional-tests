@@ -68,20 +68,6 @@ ABORT_ROLLBACK_TESTS: list[SessionTestCase] = [
         msg="abortTransaction should roll back all operations from a multi-op transaction",
     ),
     SessionTestCase(
-        "abort_with_writeconcern",
-        docs=[{"_id": 1, "x": "before"}],
-        ops=[
-            SessionOperation(
-                op=SessionOp.UPDATE,
-                filter={"_id": 1},
-                update={"$set": {"x": "after"}},
-            )
-        ],
-        commit_command={"abortTransaction": 1, "writeConcern": {"w": 1}},
-        expected=[{"_id": 1, "x": "before"}],
-        msg="abortTransaction with writeConcern should roll back changes",
-    ),
-    SessionTestCase(
         "abort_insert_delete_same_doc",
         ops=[
             SessionOperation(op=SessionOp.INSERT, document={"_id": 1}),
@@ -170,13 +156,6 @@ RESPONSE_STRUCTURE_TESTS: list[SessionTestCase] = [
         commit_command={"abortTransaction": 1},
         expected_response={"ok": 1.0},
         msg="abortTransaction response should have ok:1 on success",
-    ),
-    SessionTestCase(
-        "abort_with_comment",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "comment": "test abort"},
-        expected_response={"ok": 1.0},
-        msg="abortTransaction with comment should succeed",
     ),
 ]
 

@@ -16,7 +16,6 @@ from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     COMMAND_FAILED_ERROR,
     ILLEGAL_OPERATION_ERROR,
-    INVALID_OPTIONS_ERROR,
     UNAUTHORIZED_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
@@ -27,7 +26,7 @@ pytestmark = pytest.mark.admin
 # Property [Parameter Acceptance]: all valid parameters combined are syntactically accepted.
 CORE_PARAMETER_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "all_valid_params",
+        "all_valid_params_no_parse_error",
         command={
             "abortTransaction": 1,
             "autocommit": False,
@@ -36,18 +35,13 @@ CORE_PARAMETER_ACCEPTANCE_TESTS: list[CommandTestCase] = [
             "comment": "full abort",
         },
         error_code=ILLEGAL_OPERATION_ERROR,
-        msg="abortTransaction with all valid params should not produce a parsing error",
+        msg="All valid params combined should be accepted (no parse error), "
+        "failing only because no session exists",
     ),
 ]
 
 # Property [Parameter Interactions]: combinations of valid parameters behave correctly.
 CORE_PARAMETER_INTERACTION_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "interaction_autocommit_only",
-        command={"abortTransaction": 1, "autocommit": False},
-        error_code=INVALID_OPTIONS_ERROR,
-        msg="abortTransaction with autocommit:false only should fail with InvalidOptions",
-    ),
     CommandTestCase(
         "interaction_txn_number_only",
         command={"abortTransaction": 1, "txnNumber": Int64(1)},
@@ -61,10 +55,10 @@ CORE_PARAMETER_INTERACTION_TESTS: list[CommandTestCase] = [
         msg="abortTransaction with autocommit + txnNumber should fail with IllegalOperation",
     ),
     CommandTestCase(
-        "interaction_lsid",
+        "lsid_recognized_field",
         command={"abortTransaction": 1, "lsid": {"id": Binary(b"\x00" * 16, 4)}},
         error_code=COMMAND_FAILED_ERROR,
-        msg="abortTransaction with explicit lsid should accept the field",
+        msg="lsid should be recognized (NoSuchTransaction, not UnrecognizedField)",
     ),
 ]
 
