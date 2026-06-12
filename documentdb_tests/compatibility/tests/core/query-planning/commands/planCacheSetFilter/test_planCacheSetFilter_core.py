@@ -292,6 +292,18 @@ SET_FILTER_OPTIONAL_EDGE_TESTS: list[CommandTestCase] = [
         msg="planCacheSetFilter should accept exclusion projection",
     ),
     CommandTestCase(
+        "collation_with_locale_and_strength",
+        docs=[{"_id": 1, "a": 1}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"a": 1},
+            "indexes": [{"a": 1}],
+            "collation": {"locale": "en", "strength": 2},
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept collation with locale and strength",
+    ),
+    CommandTestCase(
         "query_array",
         docs=[{"_id": 1, "a": 1}],
         command=lambda ctx: {
