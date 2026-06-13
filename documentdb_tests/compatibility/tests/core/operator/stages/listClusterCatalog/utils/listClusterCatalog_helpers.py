@@ -75,6 +75,7 @@ class ListClusterCatalogTestCase(BaseTestCase):
     def build_command(self, collection: Collection, ctx: StageContext) -> dict[str, Any]:
         """Build the aggregate command dict."""
         if self.command is not None:
-            return self.command(ctx) if callable(self.command) else self.command
+            cmd: dict[str, Any] = self.command(ctx) if callable(self.command) else self.command
+            return cmd
         pipeline = self.pipeline(ctx) if callable(self.pipeline) else self.pipeline
         return {"aggregate": 1, "pipeline": pipeline, "cursor": {}}

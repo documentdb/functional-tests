@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, Dict
+
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.rankFusion.utils.rankFusion_common import (  # noqa: E501
@@ -90,6 +92,14 @@ RANKFUSION_SCORE_META_AVAILABLE_TESTS: list[StageTestCase] = [
 # Property [Unpopulated Metadata Omitted]: requesting a metadata name that
 # $rankFusion does not populate silently omits the projected field with no
 # error, regardless of the scoreDetails setting.
+_UNPOPULATED_PARAMS: list[tuple[str, str, Dict[str, Any]]] = [
+    ("searchScore", "omitted", {}),
+    ("searchScore", "true", {"scoreDetails": True}),
+    ("searchScoreDetails", "omitted", {}),
+    ("searchScoreDetails", "true", {"scoreDetails": True}),
+    ("vectorSearchScore", "omitted", {}),
+    ("vectorSearchScore", "true", {"scoreDetails": True}),
+]
 RANKFUSION_UNPOPULATED_META_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"unpopulated_{mname}_sd_{sd_id}",
@@ -107,14 +117,7 @@ RANKFUSION_UNPOPULATED_META_TESTS: list[StageTestCase] = [
         msg=f"$rankFusion should silently omit the unpopulated {mname} field when "
         f"scoreDetails is {sd_id}",
     )
-    for mname, sd_id, score_details_spec in [
-        ("searchScore", "omitted", {}),
-        ("searchScore", "true", {"scoreDetails": True}),
-        ("searchScoreDetails", "omitted", {}),
-        ("searchScoreDetails", "true", {"scoreDetails": True}),
-        ("vectorSearchScore", "omitted", {}),
-        ("vectorSearchScore", "true", {"scoreDetails": True}),
-    ]
+    for mname, sd_id, score_details_spec in _UNPOPULATED_PARAMS
 ]
 
 # Property [scoreDetails Metadata Not Available]: requesting
