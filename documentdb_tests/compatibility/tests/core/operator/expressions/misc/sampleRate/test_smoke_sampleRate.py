@@ -29,3 +29,21 @@ def test_smoke_sampleRate(collection):
 
     expected = [{"_id": 1, "value": 10}, {"_id": 2, "value": 20}, {"_id": 3, "value": 30}]
     assertSuccess(result, expected, msg="Should support $sampleRate expression")
+
+
+def test_smoke_sampleRate_zero(collection):
+    """Test $sampleRate with rate=0.0 returns no documents."""
+    collection.insert_many(
+        [{"_id": 1, "value": 10}, {"_id": 2, "value": 20}, {"_id": 3, "value": 30}]
+    )
+
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [{"$match": {"$sampleRate": 0.0}}],
+            "cursor": {},
+        },
+    )
+
+    assertSuccess(result, [], msg="$sampleRate 0.0 should return no documents")
