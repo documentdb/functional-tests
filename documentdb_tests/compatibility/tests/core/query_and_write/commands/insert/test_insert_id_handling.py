@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, cast
 
 import pytest
-from bson import Binary, Decimal128, Int64, MaxKey, MinKey, Regex
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, Regex
 
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
@@ -29,6 +29,7 @@ from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
     DATE_EPOCH,
     DECIMAL128_HALF,
+    FLOAT_NAN,
     INT64_MAX,
     OID_EPOCH,
     TS_EPOCH,
@@ -110,6 +111,12 @@ CUSTOM_ID_TYPE_TESTS: list[IdTypeTest] = [
         id_value=Binary(b"\x01\x02"),
         expected_id=b"\x01\x02",
         msg="insert should accept binary _id.",
+    ),
+    IdTypeTest(
+        "javascript",
+        id_value=Code("function(){}"),
+        expected_id=Code("function(){}"),
+        msg="insert should accept JavaScript Code _id.",
     ),
 ]
 
@@ -266,4 +273,34 @@ def test_insert_id_compound_object(collection):
     result = execute_command(collection, {"find": collection.name, "filter": {"_id": compound_id}})
     assertSuccess(
         result, [{"_id": compound_id, "val": 1}], msg="insert should accept compound object _id."
+    )
+
+
+# Property [NaN _id Behavior]: NaN is accepted as _id. Two documents with _id: NaN
+# produce a duplicate key error because NaN compares equal in the index.
+@pytest.mark.insert
+def test_insert_nan_id_accepted(collection):
+    """Test that insert accepts NaN as _id."""
+    result = execute_command(
+        collection,
+        {"insert": collection.name, "documents": [{"_id": FLOAT_NAN, "x": 1}]},
+    )
+    assertSuccessPartial(result, {"ok": 1.0, "n": 1}, msg="insert should accept NaN as _id.")
+
+
+@pytest.mark.insert
+def test_insert_nan_id_duplicate(collection):
+    """Test that two NaN _ids collide as duplicate keys."""
+    execute_command(
+        collection,
+        {"insert": collection.name, "documents": [{"_id": FLOAT_NAN}]},
+    )
+    result = execute_command(
+        collection,
+        {"insert": collection.name, "documents": [{"_id": FLOAT_NAN}]},
+    )
+    assertSuccessPartial(
+        result,
+        {"writeErrors": [{"code": DUPLICATE_KEY_ERROR}]},
+        msg="insert should treat two NaN _ids as duplicates.",
     )
