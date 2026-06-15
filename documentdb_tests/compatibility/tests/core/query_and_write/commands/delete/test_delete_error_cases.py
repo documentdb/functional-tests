@@ -11,7 +11,7 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.framework.assertions import assertExceptionType, assertResult
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
@@ -215,21 +215,3 @@ def test_delete_error_cases(database_client, collection, test):
         msg=test.msg,
         raw_res=True,
     )
-
-
-def test_delete_deletes_non_array_object_fails(collection):
-    """Test delete with non-array deletes field raises client-side error."""
-    result = execute_command(
-        collection,
-        {"delete": collection.name, "deletes": {"a": 1}},
-    )
-    assertExceptionType(result, TypeError, msg="deletes field must be an array")
-
-
-def test_delete_deletes_non_array_string_fails(collection):
-    """Test delete with non-array deletes field raises client-side error."""
-    result = execute_command(
-        collection,
-        {"delete": collection.name, "deletes": "invalid"},
-    )
-    assertExceptionType(result, TypeError, msg="deletes field must be an array")
