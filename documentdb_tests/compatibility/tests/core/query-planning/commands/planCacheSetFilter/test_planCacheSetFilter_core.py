@@ -380,6 +380,94 @@ SET_FILTER_UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [Special Index Types]: planCacheSetFilter accepts special index type
+# specifications in the indexes array.
+SET_FILTER_SPECIAL_INDEX_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "text_index",
+        docs=[{"_id": 1, "a": "hello"}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"a": 1},
+            "indexes": [{"a": "text"}],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept text index specification",
+    ),
+    CommandTestCase(
+        "2dsphere_index",
+        docs=[{"_id": 1, "geo": {"type": "Point", "coordinates": [0, 0]}}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"geo": 1},
+            "indexes": [{"geo": "2dsphere"}],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept 2dsphere index specification",
+    ),
+    CommandTestCase(
+        "2d_index",
+        docs=[{"_id": 1, "loc": [0, 0]}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"loc": 1},
+            "indexes": [{"loc": "2d"}],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept 2d index specification",
+    ),
+    CommandTestCase(
+        "hashed_index",
+        docs=[{"_id": 1, "a": 1}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"a": 1},
+            "indexes": [{"a": "hashed"}],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept hashed index specification",
+    ),
+    CommandTestCase(
+        "mixed_compound_2dsphere",
+        docs=[{"_id": 1, "a": 1, "geo": {"type": "Point", "coordinates": [0, 0]}}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"a": 1},
+            "indexes": [{"a": 1, "geo": "2dsphere"}],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept mixed direction-and-2dsphere compound",
+    ),
+    CommandTestCase(
+        "mixed_compound_text",
+        docs=[{"_id": 1, "a": 1, "txt": "hello"}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"a": 1},
+            "indexes": [{"a": 1, "txt": "text"}],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept mixed direction-and-text compound",
+    ),
+]
+
+# Property [Index-Spec-vs-Query Mismatch]: MongoDB does not validate at
+# set-time that the index can serve the query.  A text index spec for a
+# non-text query is accepted with ok: 1.0.
+SET_FILTER_INDEX_MISMATCH_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "index_mismatch_text_for_equality",
+        docs=[{"_id": 1, "a": 1, "txt": "hello"}],
+        command=lambda ctx: {
+            "planCacheSetFilter": ctx.collection,
+            "query": {"a": 1},
+            "indexes": [{"txt": "text"}],
+        },
+        expected={"ok": 1.0},
+        msg="planCacheSetFilter should accept text index for non-text query (set-time permissive)",
+    ),
+]
+
 SET_FILTER_CORE_TESTS: list[CommandTestCase] = (
     SET_FILTER_SUCCESS_TESTS
     + SET_FILTER_QUERY_PREDICATE_TESTS
@@ -387,6 +475,8 @@ SET_FILTER_CORE_TESTS: list[CommandTestCase] = (
     + SET_FILTER_OPTIONAL_EDGE_TESTS
     + SET_FILTER_COMMENT_TESTS
     + SET_FILTER_UNRECOGNIZED_FIELD_TESTS
+    + SET_FILTER_SPECIAL_INDEX_TESTS
+    + SET_FILTER_INDEX_MISMATCH_TESTS
 )
 
 
@@ -424,6 +514,10 @@ SET_FILTER_ALL_CORE_TESTS: list[CommandTestCase] = (
 
 
 # Property [Query Shape Semantics]: planCacheSetFilter manages filters by query shape.
+# NOTE: This section provides sanity coverage for shape identity (7 tests).
+# Comprehensive query-shape equivalence coverage (e.g., verifying that shapes
+# match across planCacheSetFilter, planCacheListFilters, and explain queryHash)
+# belongs in the explain queryHash tests — see issue #438.
 SET_FILTER_SHAPE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "query_only_shape",
