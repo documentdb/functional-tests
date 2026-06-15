@@ -27,6 +27,10 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.target_collection import ViewCollection
 
 # Property [Field Validation]: the delete command rejects invalid field types and values.
+# Wire-protocol namespace validation (INVALID_NAMESPACE_ERROR for non-string collection name
+# types) is foundational behavior per TEST_COVERAGE.md §19. One representative case wires
+# delete to that behavior; the full type matrix belongs in the centralized namespace test
+# site (currently TBD).
 DELETE_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "delete_field_non_string_int",
@@ -168,17 +172,6 @@ DELETE_ERROR_TESTS: list[CommandTestCase] = [
         msg="delete should reject hint pointing to non-existent index",
     ),
     CommandTestCase(
-        "delete_on_view",
-        target_collection=ViewCollection(),
-        docs=[{"_id": 1}],
-        command=lambda ctx: {
-            "delete": ctx.collection,
-            "deletes": [{"q": {}, "limit": 0}],
-        },
-        error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
-        msg="delete should not work on views",
-    ),
-    CommandTestCase(
         "ordered_non_boolean_string",
         docs=[],
         command=lambda ctx: {
@@ -191,8 +184,25 @@ DELETE_ERROR_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [Collection Variant Rejection]: the delete command rejects unsupported collection types.
+COLLECTION_VARIANT_ERROR_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "delete_on_view",
+        target_collection=ViewCollection(),
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "delete": ctx.collection,
+            "deletes": [{"q": {}, "limit": 0}],
+        },
+        error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
+        msg="delete should not work on views",
+    ),
+]
 
-@pytest.mark.parametrize("test", pytest_params(DELETE_ERROR_TESTS))
+DELETE_ERROR_TESTS_ALL: list[CommandTestCase] = DELETE_ERROR_TESTS + COLLECTION_VARIANT_ERROR_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(DELETE_ERROR_TESTS_ALL))
 def test_delete_error_cases(database_client, collection, test):
     """Test delete command error cases."""
     collection = test.prepare(database_client, collection)

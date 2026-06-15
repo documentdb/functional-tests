@@ -16,7 +16,8 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [$expr Support]: delete resolves $expr filter expressions including cross-field
-# comparisons, logical operators, nested expressions, and let variables.
+# comparisons, logical operators ($and, $or), nested expressions, let variables, and nested
+# aggregation operators.
 DELETE_EXPR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "expr_equality",
@@ -119,6 +120,46 @@ DELETE_EXPR_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0, "n": 0},
         msg="delete should not match when $expr references missing field",
+    ),
+    CommandTestCase(
+        "expr_or_logic",
+        docs=[
+            {"_id": 1, "status": "D"},
+            {"_id": 2, "status": "X"},
+            {"_id": 3, "status": "A"},
+        ],
+        command=lambda ctx: {
+            "delete": ctx.collection,
+            "deletes": [
+                {
+                    "q": {
+                        "$expr": {
+                            "$or": [
+                                {"$eq": ["$status", "D"]},
+                                {"$eq": ["$status", "X"]},
+                            ]
+                        }
+                    },
+                    "limit": 0,
+                }
+            ],
+        },
+        expected={"ok": 1.0, "n": 2},
+        msg="delete should support $or inside $expr",
+    ),
+    CommandTestCase(
+        "expr_nested_size_operator",
+        docs=[
+            {"_id": 1, "tags": ["a", "b", "c"]},
+            {"_id": 2, "tags": ["x"]},
+            {"_id": 3, "tags": ["p", "q"]},
+        ],
+        command=lambda ctx: {
+            "delete": ctx.collection,
+            "deletes": [{"q": {"$expr": {"$gt": [{"$size": "$tags"}, 2]}}, "limit": 0}],
+        },
+        expected={"ok": 1.0, "n": 1},
+        msg="delete should support nested aggregation operators inside $expr",
     ),
 ]
 

@@ -1,5 +1,4 @@
-"""
-Smoke test for delete command.
+"""Smoke test for the delete command.
 
 Tests basic delete command functionality.
 """
