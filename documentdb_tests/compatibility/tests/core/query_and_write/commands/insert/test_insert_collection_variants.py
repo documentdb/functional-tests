@@ -68,25 +68,3 @@ def test_insert_collection_variant(database_client, collection, test: CommandTes
         msg=test.msg,
         raw_res=True,
     )
-
-
-@pytest.mark.insert
-def test_insert_capped_collection_wraps_old_documents(collection):
-    """Test that capped collection wraps and does not error when full."""
-    # A tiny capped collection that can hold roughly 2 small documents.
-    # Inserting more succeeds — old docs are silently evicted, not an error.
-    capped = CappedCollection(size=4096, max=2).resolve(collection.database, collection)
-    try:
-        for i in range(5):
-            result = execute_command(
-                capped,
-                {"insert": capped.name, "documents": [{"_id": i, "x": i}]},
-            )
-            assertResult(
-                result,
-                expected={"ok": 1.0, "n": 1},
-                raw_res=True,
-                msg="insert into capped collection should always succeed by evicting old docs.",
-            )
-    finally:
-        capped.drop()

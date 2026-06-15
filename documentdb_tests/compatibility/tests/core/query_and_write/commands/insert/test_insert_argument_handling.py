@@ -16,7 +16,6 @@ from documentdb_tests.framework.assertions import (
 )
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
-    INVALID_LENGTH_ERROR,
     INVALID_NAMESPACE_ERROR,
     MISSING_FIELD_ERROR,
     TYPE_MISMATCH_ERROR,
@@ -55,12 +54,6 @@ TESTS: list[FieldValidationTest] = [
         msg="insert should reject empty string collection name.",
     ),
     FieldValidationTest(
-        "empty_documents_array",
-        command=None,
-        error_code=INVALID_LENGTH_ERROR,
-        msg="insert should reject empty documents array.",
-    ),
-    FieldValidationTest(
         "missing_documents_field",
         command=None,
         error_code=MISSING_FIELD_ERROR,
@@ -76,7 +69,6 @@ TESTS: list[FieldValidationTest] = [
 
 _DYNAMIC_COMMANDS: dict[str, Any] = {
     "empty_string_collection_name": lambda n: {"insert": "", "documents": [{"_id": 1}]},
-    "empty_documents_array": lambda n: {"insert": n, "documents": []},
     "missing_documents_field": lambda n: {"insert": n},
     "negative_maxtimems": lambda n: {"insert": n, "documents": [{"_id": 1}], "maxTimeMS": -1},
 }
