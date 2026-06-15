@@ -54,12 +54,12 @@ SETONINSERT_TYPE_DISTINCTION_TESTS: list[UpdateTestCase] = [
         msg="Should preserve Decimal128 -0",
     ),
     UpdateTestCase(
-        id="null_vs_missing",
+        id="preserves_null",
         query={"_id": 1},
         update={"$setOnInsert": {"field": None}},
         upsert=True,
         expected=[{"_id": 1, "field": None}],
-        msg="Should store null value (field present, not missing)",
+        msg="Should store null value",
     ),
     UpdateTestCase(
         id="empty_string_vs_null",
