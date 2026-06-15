@@ -3,19 +3,23 @@
 Covers: updateOne, updateMany, bulkWrite, upsert behavior, large arrays.
 """
 
-from documentdb_tests.framework.assertions import assertSuccess, assertSuccessPartial
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
 
 def test_pullAll_updateOne(collection):
-    """Test $pullAll with updateOne succeeds."""
-    collection.insert_one({"_id": 1, "a": [1, 2, 3]})
-    result = execute_command(
+    """Test $pullAll with updateOne removes multiple values from array."""
+    collection.insert_one({"_id": 1, "a": [1, 2, 3, 4, 5]})
+    execute_command(
         collection,
-        {"update": collection.name, "updates": [{"q": {"_id": 1}, "u": {"$pullAll": {"a": [2]}}}]},
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$pullAll": {"a": [2, 4]}}}],
+        },
     )
-    assertSuccessPartial(
-        result, {"n": 1, "nModified": 1, "ok": 1.0}, msg="updateOne should succeed"
+    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
+    assertSuccess(
+        result, [{"_id": 1, "a": [1, 3, 5]}], msg="updateOne should remove multiple values"
     )
 
 
@@ -50,14 +54,14 @@ def test_pullAll_updateMany(collection):
 
 
 def test_pullAll_bulkWrite(collection):
-    """Test $pullAll in bulkWrite succeeds."""
+    """Test $pullAll in bulkWrite updates multiple documents correctly."""
     collection.insert_many(
         [
             {"_id": 1, "a": [1, 2, 3]},
             {"_id": 2, "a": [4, 5, 6]},
         ]
     )
-    result = execute_command(
+    execute_command(
         collection,
         {
             "update": collection.name,
@@ -67,8 +71,13 @@ def test_pullAll_bulkWrite(collection):
             ],
         },
     )
-    assertSuccessPartial(
-        result, {"n": 2, "nModified": 2, "ok": 1.0}, msg="bulkWrite should update both docs"
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {}, "sort": {"_id": 1}}
+    )
+    assertSuccess(
+        result,
+        [{"_id": 1, "a": [2, 3]}, {"_id": 2, "a": [4]}],
+        msg="bulkWrite should update both docs correctly",
     )
 
 
