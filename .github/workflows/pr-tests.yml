@@ -5,20 +5,9 @@ on:
     branches: [main]
 
 jobs:
-  test-mongodb:
-    name: Tests (MongoDB)
+  test-mongo-standalone:
+    name: Tests (mongo-standalone)
     runs-on: ubuntu-latest
-
-    services:
-      mongodb:
-        image: mongo:8.2.4
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - uses: actions/checkout@v6
@@ -30,21 +19,24 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run compatibility tests against MongoDB
+      - name: Start mongo-standalone target
+        run: docker compose -f dev/compose.yaml --profile mongo-standalone up -d --wait
+
+      - name: Run compatibility tests against mongo-standalone
         run: |
           pytest documentdb_tests/compatibility/tests \
             --connection-string "mongodb://localhost:27017" \
             --engine-name mongodb \
             -n auto \
             -v \
-            --json-report --json-report-file=${{ github.workspace }}/.test-results/mongodb-report.json \
-            --junitxml=${{ github.workspace }}/.test-results/mongodb-results.xml
+            --json-report --json-report-file=${{ github.workspace }}/.test-results/mongo-standalone-report.json \
+            --junitxml=${{ github.workspace }}/.test-results/mongo-standalone-results.xml
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-mongodb
+          name: test-results-mongo-standalone
           include-hidden-files: true
           path: ${{ github.workspace }}/.test-results/
           if-no-files-found: warn
@@ -52,11 +44,59 @@ jobs:
       - name: Generate test summary
         if: always()
         run: |
-          if [ -f ${{ github.workspace }}/.test-results/mongodb-report.json ]; then
-            python -m documentdb_tests.compatibility.result_analyzer -i ${{ github.workspace }}/.test-results/mongodb-report.json -o ${{ github.workspace }}/.test-results/mongodb-analysis.txt -f text || true
-            echo "## MongoDB Test Results" >> $GITHUB_STEP_SUMMARY
+          if [ -f ${{ github.workspace }}/.test-results/mongo-standalone-report.json ]; then
+            python -m documentdb_tests.compatibility.result_analyzer -i ${{ github.workspace }}/.test-results/mongo-standalone-report.json -o ${{ github.workspace }}/.test-results/mongo-standalone-analysis.txt -f text || true
+            echo "## mongo-standalone Test Results" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            cat ${{ github.workspace }}/.test-results/mongodb-analysis.txt >> $GITHUB_STEP_SUMMARY
+            cat ${{ github.workspace }}/.test-results/mongo-standalone-analysis.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  test-mongo-replset:
+    name: Tests (mongo-replset)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start mongo-replset target
+        run: docker compose -f dev/compose.yaml --profile mongo-replset up -d --wait
+
+      - name: Run capability tests against mongo-replset
+        run: |
+          pytest documentdb_tests/compatibility/tests \
+            -m "requires_change_streams or requires_transactions or requires_queryable_encryption or requires_cluster_admin" \
+            --connection-string "mongodb://localhost:27018/?directConnection=true" \
+            --engine-name mongodb \
+            -n auto \
+            -v \
+            --json-report --json-report-file=${{ github.workspace }}/.test-results/mongo-replset-report.json \
+            --junitxml=${{ github.workspace }}/.test-results/mongo-replset-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-mongo-replset
+          include-hidden-files: true
+          path: ${{ github.workspace }}/.test-results/
+          if-no-files-found: warn
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          if [ -f ${{ github.workspace }}/.test-results/mongo-replset-report.json ]; then
+            python -m documentdb_tests.compatibility.result_analyzer -i ${{ github.workspace }}/.test-results/mongo-replset-report.json -o ${{ github.workspace }}/.test-results/mongo-replset-analysis.txt -f text || true
+            echo "## mongo-replset Test Results" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat ${{ github.workspace }}/.test-results/mongo-replset-analysis.txt >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
@@ -87,7 +127,7 @@ jobs:
             | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "tests=$TESTS" >> "$GITHUB_OUTPUT"
 
-  test-mongodb-xcrash:
+  test-mongo-xcrash:
     name: "Crash Test: ${{ matrix.test }}"
     needs: collect-xcrash
     if: needs.collect-xcrash.outputs.tests != '[]'
@@ -96,17 +136,6 @@ jobs:
       fail-fast: false
       matrix:
         test: ${{ fromJson(needs.collect-xcrash.outputs.tests) }}
-
-    services:
-      mongodb:
-        image: mongo:8.2.4
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - uses: actions/checkout@v6
@@ -117,6 +146,9 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Start mongo-standalone target
+        run: docker compose -f dev/compose.yaml --profile mongo-standalone up -d --wait
 
       - name: "Run: ${{ matrix.test }}"
         run: |

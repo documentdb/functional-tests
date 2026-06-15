@@ -17,7 +17,7 @@ This testing framework provides:
 ### Prerequisites
 
 - Python 3.9 or higher
-- Access to a DocumentDB or MongoDB instance
+- Docker (with Compose v2) to run database targets locally, or access to an existing instance
 - pip package manager
 
 ### Installation
@@ -31,6 +31,32 @@ cd functional-tests
 pip install -r requirements.txt
 ```
 
+### Database Targets
+
+Tests run against a target, identified by both its engine and deployment
+topology (e.g. `mongo-standalone`, `mongo-replset`). Topology is an
+engine-specific concept and does not map across engines, so each target is its
+own named environment. `dev/compose.yaml` is the single source of truth for
+these targets and is used by both local runs and CI, so local matches CI by
+construction.
+
+Bring up a target with its profile (each binds a distinct host port, so several
+can run at once):
+
+```bash
+# Standalone server
+docker compose -f dev/compose.yaml --profile mongo-standalone up -d --wait
+
+# Single-node replica set
+docker compose -f dev/compose.yaml --profile mongo-replset up -d --wait
+
+# Everything at once
+docker compose -f dev/compose.yaml --profile all up -d --wait
+```
+
+Tear down with the same profile and `down`. Then point pytest at the matching
+target (see Running Tests below).
+
 ### Running Tests
 
 #### Basic Usage
@@ -39,8 +65,11 @@ pip install -r requirements.txt
 # Run all tests against default localhost
 pytest
 
-# Run against specific engine
-pytest --connection-string mongodb://localhost:27017 --engine-name documentdb
+# Run against the mongo-standalone target
+pytest --connection-string "mongodb://localhost:27017" --engine-name mongodb
+
+# Run against the mongo-replset target
+pytest --connection-string "mongodb://localhost:27018/?directConnection=true" --engine-name mongodb
 
 # Run with just connection string (engine-name defaults to "default")
 pytest --connection-string mongodb://localhost:27017
@@ -252,6 +281,10 @@ set of capabilities and how they map to each environment lives in
 `documentdb_tests/framework/preconditions.py`, which is the single source of
 truth. A test runs only against the targets whose capabilities match what it
 requires, and is otherwise skipped.
+
+When targets are discovered automatically (running `pytest` with no
+`--connection-string`), each test runs against every discovered target it
+applies to, so no manual selection is needed.
 
 ## Writing Tests
 
