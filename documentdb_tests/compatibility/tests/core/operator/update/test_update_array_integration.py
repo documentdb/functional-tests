@@ -405,7 +405,7 @@ POP_COMBINATION_TESTS: list[UpdateTestCase] = [
     "test", pytest_params(POSITIONAL_INTEGRATION_TESTS + POP_COMBINATION_TESTS)
 )
 def test_positional_query_operators(collection, test: UpdateTestCase):
-    """Test $ positional with query operators and $pop combined with other update operators."""
+    """Test $positional with query operators and $pop combined with other update operators."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
