@@ -11,10 +11,14 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
+from documentdb_tests.framework.assertions import (
+    assertProperties,
+    assertResult,
+)
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq, Len
 
 # Property [Bulk Summation]: n equals the sum of deletions across all statements.
 BULK_TESTS: list[CommandTestCase] = [
@@ -45,7 +49,7 @@ BULK_TESTS: list[CommandTestCase] = [
         msg="delete should handle mixed limit:0 and limit:1 in bulk",
     ),
     CommandTestCase(
-        "duplicate_target_ordered",
+        "duplicate_target_no_double_count",
         docs=[{"_id": 1}, {"_id": 2}],
         command=lambda ctx: {
             "delete": ctx.collection,
@@ -105,10 +109,14 @@ def test_delete_ordered_true_stops_on_error(collection):
             "ordered": True,
         },
     )
-    assertSuccessPartial(
+    assertProperties(
         result,
-        {"ok": 1.0, "n": 1, "writeErrors": [{"index": 1, "code": BAD_VALUE_ERROR}]},
-        msg="delete ordered:true should stop at first error",
+        {
+            "n": Eq(1),
+            "writeErrors": [Len(1), Eq([{"index": 1, "code": BAD_VALUE_ERROR}])],
+        },
+        msg="delete ordered:true should stop at first error with exactly one writeError",
+        raw_res=True,
     )
 
 
@@ -127,10 +135,14 @@ def test_delete_ordered_false_continues_on_error(collection):
             "ordered": False,
         },
     )
-    assertSuccessPartial(
+    assertProperties(
         result,
-        {"ok": 1.0, "n": 2, "writeErrors": [{"index": 1, "code": BAD_VALUE_ERROR}]},
-        msg="delete ordered:false should continue past errors",
+        {
+            "n": Eq(2),
+            "writeErrors": [Len(1), Eq([{"index": 1, "code": BAD_VALUE_ERROR}])],
+        },
+        msg="delete ordered:false should continue past errors and report exactly one writeError",
+        raw_res=True,
     )
 
 
@@ -148,10 +160,14 @@ def test_delete_ordered_true_error_at_first(collection):
             "ordered": True,
         },
     )
-    assertSuccessPartial(
+    assertProperties(
         result,
-        {"ok": 1.0, "n": 0, "writeErrors": [{"index": 0, "code": BAD_VALUE_ERROR}]},
-        msg="delete ordered:true should stop immediately on first error",
+        {
+            "n": Eq(0),
+            "writeErrors": [Len(1), Eq([{"index": 0, "code": BAD_VALUE_ERROR}])],
+        },
+        msg="delete ordered:true should stop on first error with exactly one writeError",
+        raw_res=True,
     )
 
 
@@ -169,8 +185,12 @@ def test_delete_ordered_false_error_at_first(collection):
             "ordered": False,
         },
     )
-    assertSuccessPartial(
+    assertProperties(
         result,
-        {"ok": 1.0, "n": 1, "writeErrors": [{"index": 0, "code": BAD_VALUE_ERROR}]},
-        msg="delete ordered:false should execute subsequent statements",
+        {
+            "n": Eq(1),
+            "writeErrors": [Len(1), Eq([{"index": 0, "code": BAD_VALUE_ERROR}])],
+        },
+        msg="delete ordered:false should continue past errors and report exactly one writeError",
+        raw_res=True,
     )
