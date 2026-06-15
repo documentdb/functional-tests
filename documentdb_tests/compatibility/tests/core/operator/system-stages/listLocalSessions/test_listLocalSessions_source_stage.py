@@ -44,7 +44,9 @@ def test_listLocalSessions_output_shape(collection: Collection):
 
 
 # Property [Database Independence]: $listLocalSessions is instance-local, so it succeeds
-# regardless of which database the aggregate command targets.
+# regardless of which database the aggregate command targets. Cover both an admin and a
+# non-admin database, since a system stage could plausibly be gated to the admin database;
+# the target database is otherwise immaterial because the stage reads instance-local state.
 @pytest.mark.aggregate
 @pytest.mark.parametrize("database", ["admin", "config"])
 def test_listLocalSessions_database_independence(collection: Collection, database: str):
