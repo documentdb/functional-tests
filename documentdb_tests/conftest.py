@@ -7,6 +7,8 @@ This module provides fixtures for:
 - Test isolation
 """
 
+from __future__ import annotations
+
 import pytest
 
 # Enable assertion rewriting BEFORE importing framework modules
@@ -15,12 +17,18 @@ pytest.register_assert_rewrite("documentdb_tests.framework.assertions")
 from pathlib import Path  # noqa: E402
 
 from documentdb_tests.framework import fixtures  # noqa: E402
+from documentdb_tests.framework.engine_registry import (  # noqa: E402
+    Target,
+    ensure_initiated,
+    live_targets,
+)
 from documentdb_tests.framework.error_codes_validator import (  # noqa: E402
     validate_error_codes_sorted,
 )
 from documentdb_tests.framework.preconditions import (  # noqa: E402
     REQUIRES_MARKER,
     detect_capabilities,
+    known_engines,
     marker_spec,
     unmet_requirements,
 )
@@ -48,28 +56,101 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    """Configure pytest with custom settings."""
-    # Get connection string and engine name
+    """Configure pytest with custom settings.
+
+    Resolves the set of test targets the session will run against and stores it
+    on the config as ``test_targets``:
+
+    - If ``--connection-string`` is given, it pins a single ad-hoc target using
+      that string and ``--engine-name`` (used by CI and for pointing at an
+      arbitrary instance not in the registry). Discovery is bypassed.
+    - Otherwise the live targets from the dev compose registry are discovered
+      and the session runs against each (the zero-config local workflow).
+
+    Tests are parametrized over these targets in ``pytest_generate_tests``.
+    """
     connection_string = config.getoption("--connection-string")
     engine_name = config.getoption("--engine-name")
 
-    # Store in config for access by fixtures
-    config.connection_string = connection_string
-    config.engine_name = engine_name
+    if connection_string:
+        # Explicit override: a single pinned target, discovery bypassed. The
+        # engine must be a known one so its preconditions can be resolved the
+        # same way as for an auto-discovered target.
+        if engine_name not in known_engines():
+            raise pytest.UsageError(
+                f"--engine-name must be one of {sorted(known_engines())} when "
+                f"--connection-string is given, got {engine_name!r}"
+            )
+        config.test_targets = [
+            Target(
+                name=engine_name,
+                engine=engine_name,
+                connection_string=connection_string,
+            )
+        ]
+    else:
+        # Zero-config: run against whichever registered targets are live.
+        config.test_targets = live_targets()
 
-    # If no connection string specified, default to localhost
-    if not connection_string:
-        config.connection_string = "mongodb://localhost:27017"
+    # A target started as a replica set member accepts connections (so it is
+    # discovered as live) but is not usable until the set is initiated. Initiate
+    # it here, once, before tests run: idempotent, and a no-op for an
+    # already-initiated set or a standalone server. Under xdist this runs on the
+    # controller before workers fork, so there is no cross-worker race.
+    #
+    # Collection must work without a live server, so skip initiation when only
+    # collecting. An unreachable target at run time surfaces as a per-test
+    # connection error via the engine_client fixture.
+    if not hasattr(config, "workerinput") and not config.option.collectonly:
+        for target in config.test_targets:
+            ensure_initiated(target.connection_string)
 
     # Register the requires marker from its single source of truth so it need
     # not be duplicated in the pytest configuration file.
     config.addinivalue_line("markers", marker_spec())
 
 
+def pytest_generate_tests(metafunc):
+    """Parametrize tests over the resolved test targets.
+
+    Every test that reaches a live engine does so through the ``engine_client``
+    fixture, so parametrizing that fixture (indirectly) fans each test out into
+    one instance per target. The target name is the parametrization id, so a
+    failure is reported against the specific target it occurred on.
+    """
+    if "engine_client" not in metafunc.fixturenames:
+        return
+    targets = getattr(metafunc.config, "test_targets", [])
+    metafunc.parametrize(
+        "engine_client",
+        targets,
+        ids=[t.name for t in targets],
+        indirect=True,
+    )
+
+
+def _item_target(item) -> Target | None:
+    """Return the Target a parametrized item is bound to, or None.
+
+    Each test is parametrized over the session's targets via the indirect
+    ``engine_client`` param, so the bound Target is the ``engine_client`` value
+    in the item's callspec.
+    """
+    callspec = getattr(item, "callspec", None)
+    if callspec is None:
+        return None
+    target = callspec.params.get("engine_client")
+    # Only a real Target counts; other param types (or pytest's NOTSET sentinel
+    # for tests not parametrized over engine_client) are not targets.
+    return target if isinstance(target, Target) else None
+
+
 def pytest_runtest_setup(item):
-    """Apply engine-specific xfail and xcrash markers."""
+    """Apply engine-specific xfail and xcrash markers for the item's target."""
+    target = _item_target(item)
+    engine = target.engine if target is not None else None
     for marker in item.iter_markers("engine_xfail"):
-        if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
+        if engine == marker.kwargs.get("engine"):
             item.add_marker(
                 pytest.mark.xfail(
                     reason=marker.kwargs.get("reason", ""),
@@ -77,40 +158,67 @@ def pytest_runtest_setup(item):
                 )
             )
     for marker in item.iter_markers("engine_xcrash"):
-        if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
+        if engine == marker.kwargs.get("engine"):
             pytest.skip(marker.kwargs.get("reason", "crashes the server"))
 
 
 @pytest.fixture(scope="session")
 def engine_client(request):
     """
-    Create a MongoDB client for the configured engine.
+    Create a database client for the test's target engine.
 
-    Session-scoped for performance - MongoClient is thread-safe and maintains
-    an internal connection pool. This significantly improves test execution speed
-    by eliminating redundant connection overhead.
+    The target is supplied indirectly by ``pytest_generate_tests``, which
+    parametrizes this fixture over the session's resolved targets. Session-scoped
+    for performance: pytest creates one client per distinct target and shares it
+    across the session. The client is thread-safe and pools connections, so this
+    avoids redundant connection overhead.
 
-    Per-test isolation is maintained through database_client and collection fixtures
-    which create unique databases/collections for each test.
+    Per-test isolation is maintained through the database_client and collection
+    fixtures, which create unique databases/collections for each test.
 
     Args:
-        request: pytest request object
+        request: pytest request object; ``request.param`` is the Target.
 
     Yields:
-        MongoClient: Connected MongoDB client (shared across session)
+        MongoClient: Connected client for the target (shared across session).
 
     Raises:
         ConnectionError: If unable to connect to the database
     """
-    connection_string = request.config.connection_string
-    engine_name = request.config.engine_name
+    target: Target = request.param
 
-    client = fixtures.create_engine_client(connection_string, engine_name)
+    client = fixtures.create_engine_client(target.connection_string, target.engine)
 
     yield client
 
     # Cleanup: close connection
     client.close()
+
+
+@pytest.fixture
+def engine_name(request) -> str:
+    """Return the engine name of the target the current test runs against.
+
+    Tests are parametrized over targets via the indirect ``engine_client``
+    fixture, so the engine is per-target. Tests that gate on the engine (e.g.
+    skip unless a specific engine) read this fixture.
+    """
+    target = _item_target(request.node)
+    assert target is not None, "engine_name requires a test parametrized over a target"
+    return target.engine
+
+
+@pytest.fixture
+def connection_string(request) -> str:
+    """Return the connection string of the target the current test runs against.
+
+    Tests are parametrized over targets via the indirect ``engine_client``
+    fixture, so the connection string is per-target. Tests that open an
+    additional connection to the same target read this fixture.
+    """
+    target = _item_target(request.node)
+    assert target is not None, "connection_string requires a test parametrized over a target"
+    return target.connection_string
 
 
 @pytest.fixture(scope="session")
@@ -216,24 +324,31 @@ def pytest_collection_modifyitems(session, config, items):
         pytest -m no_parallel -p no:xdist
     Or run them manually with: pytest -m no_parallel -p no:xdist
 
-    Tests carrying a ``requires`` marker are skipped when the connected server's
-    capabilities do not match what the test requires (see
-    ``framework.preconditions``).
+    Tests carrying a ``requires`` marker are skipped when their target's
+    capabilities do not match what the test requires. A target's capabilities
+    are determined by its engine and topology, resolved per target at runtime
+    (see ``framework.preconditions``).
     """
-    # Skip a capability-gated test when the connected server's capabilities do
-    # not match its requires(...) marker.
-    conn_str = getattr(config, "connection_string", "") or ""
-    engine = getattr(config, "engine_name", "") or ""
-    capabilities = detect_capabilities(engine, conn_str)
+    # Skip a capability-gated test when its target's capabilities do not match
+    # its requires(...) marker. Each item is parametrized over a target; probe
+    # each distinct target once.
+    capabilities_by_target: dict[str, frozenset[str]] = {}
     for item in items:
         marker = item.get_closest_marker(REQUIRES_MARKER)
         if marker is None or not marker.kwargs:
             continue
+        target = _item_target(item)
+        if target is None:
+            continue
+        capabilities = capabilities_by_target.get(target.connection_string)
+        if capabilities is None:
+            capabilities = detect_capabilities(target.engine, target.connection_string)
+            capabilities_by_target[target.connection_string] = capabilities
         unmet = unmet_requirements(marker.kwargs, capabilities)
         if unmet:
             needs = ", ".join(f"{name}={expected}" for name, expected in sorted(unmet.items()))
             item.add_marker(
-                pytest.mark.skip(reason=f"connected server does not meet requires({needs})")
+                pytest.mark.skip(reason=f"target '{target.name}' does not meet requires({needs})")
             )
 
     # Deselect no_parallel tests when running under xdist
@@ -381,8 +496,13 @@ def pytest_sessionfinish(session, exitstatus):
         cmd.extend(["-m", f"no_parallel and ({user_marker})"])
     else:
         cmd.extend(["-m", "no_parallel"])
-    cmd.extend(["--connection-string", config.connection_string])
-    cmd.extend(["--engine-name", config.engine_name])
+    # Pass through the engine selection so Phase 2 targets the same engines as
+    # Phase 1. If an explicit connection string was given (override / CI), pass
+    # it through; otherwise Phase 2 re-discovers live targets the same way.
+    override_conn = config.getoption("--connection-string")
+    if override_conn:
+        cmd.extend(["--connection-string", override_conn])
+        cmd.extend(["--engine-name", config.getoption("--engine-name")])
 
     # Detect Phase 1 report paths and set up Phase 2 temp report files
     phase1_json = getattr(config.option, "json_report_file", None)
