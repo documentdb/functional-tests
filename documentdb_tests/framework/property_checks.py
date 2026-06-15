@@ -330,29 +330,6 @@ class NonEmptyStr(Check):
         return f"{type(self).__name__}()"
 
 
-class BinarySubtype(Check):
-    """Assert that the field is a ``Binary`` with the expected subtype.
-
-    Stronger than ``IsType('binData')`` (which ignores the subtype) for fields
-    whose contract pins a specific Binary subtype, such as a UUID (subtype 4).
-    """
-
-    def __init__(self, subtype: int) -> None:
-        self.subtype = subtype
-
-    def check(self, value: Any, path: str) -> str | None:
-        if value is _FIELD_ABSENT:
-            return f"expected '{path}' to be a Binary subtype {self.subtype}, but field is missing"
-        if not isinstance(value, Binary):
-            return f"expected '{path}' to be a Binary, got {type(value).__name__}"
-        if value.subtype != self.subtype:
-            return f"expected '{path}' Binary subtype {self.subtype}, got {value.subtype}"
-        return None
-
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}({self.subtype!r})"
-
-
 class ByteLen(Check):
     """Assert that the field is a bytes-like value with the expected byte length.
 
