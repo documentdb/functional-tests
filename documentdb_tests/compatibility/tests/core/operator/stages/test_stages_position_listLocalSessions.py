@@ -106,10 +106,6 @@ def test_listLocalSessions_position(
     )
 
 
-# Property [Downstream Stage Composition]: as a first-stage source, $listLocalSessions
-# emits a document stream that downstream stages transform like any other source. Each case
-# runs inside one or more explicit sessions so the local session cache is populated, and
-# asserts output that a no-op stage could not produce.
 @dataclass(frozen=True)
 class ListLocalSessionsCompositionTestCase(CommandTestCase):
     """Composition test case carrying its session requirement.
