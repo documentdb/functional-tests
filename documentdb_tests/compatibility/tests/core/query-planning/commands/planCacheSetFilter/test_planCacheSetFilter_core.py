@@ -15,18 +15,9 @@ from documentdb_tests.framework.property_checks import Eq, Exists, Len
 from documentdb_tests.framework.target_collection import CappedCollection
 
 # Property [Success Response]: planCacheSetFilter returns ok:1.0 on success.
+# NOTE: The basic success case (1 doc, query {a:1}, index {a:1}) is covered
+# by test_smoke_planCacheSetFilter.py, so it is not repeated here.
 SET_FILTER_SUCCESS_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "success_response",
-        docs=[{"_id": 1, "a": 1}],
-        command=lambda ctx: {
-            "planCacheSetFilter": ctx.collection,
-            "query": {"a": 1},
-            "indexes": [{"a": 1}],
-        },
-        expected={"ok": 1.0},
-        msg="planCacheSetFilter should return ok:1.0 on success",
-    ),
     CommandTestCase(
         "empty_collection",
         docs=[],

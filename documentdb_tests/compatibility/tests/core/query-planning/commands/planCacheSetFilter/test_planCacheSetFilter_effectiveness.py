@@ -110,37 +110,27 @@ pytestmark = pytest.mark.admin
 # ---------------------------------------------------------------------------
 
 
-def test_filter_forces_index_case_a(collection):
-    """Test filter forces a_1_b_1 index for query {a: 1}."""
+@pytest.mark.parametrize(
+    "filter_indexes,expected_index",
+    [
+        pytest.param([{"a": 1, "b": 1}], "a_1_b_1", id="forces_a_1_b_1"),
+        pytest.param([{"a": 1, "c": 1}], "a_1_c_1", id="forces_a_1_c_1"),
+    ],
+)
+def test_filter_forces_index(collection, filter_indexes, expected_index):
+    """Test filter forces the specified index for query {a: 1}."""
     collection.insert_many([{"a": i, "b": i, "c": i} for i in range(10)])
     collection.create_index([("a", 1), ("b", 1)])
     collection.create_index([("a", 1), ("c", 1)])
 
-    _set_filter(collection, {"a": 1}, [{"a": 1, "b": 1}])
+    _set_filter(collection, {"a": 1}, filter_indexes)
     result = _explain_find(collection, {"a": 1})
 
     _assert_explain(
         result,
         index_filter_set=True,
-        expected_index="a_1_b_1",
-        msg="filter should force a_1_b_1 for query {a: 1}",
-    )
-
-
-def test_filter_forces_index_case_b(collection):
-    """Test filter forces a_1_c_1 index for same query {a: 1}."""
-    collection.insert_many([{"a": i, "b": i, "c": i} for i in range(10)])
-    collection.create_index([("a", 1), ("b", 1)])
-    collection.create_index([("a", 1), ("c", 1)])
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "c": 1}])
-    result = _explain_find(collection, {"a": 1})
-
-    _assert_explain(
-        result,
-        index_filter_set=True,
-        expected_index="a_1_c_1",
-        msg="filter should force a_1_c_1 for query {a: 1}",
+        expected_index=expected_index,
+        msg=f"filter should force {expected_index} for query {{a: 1}}",
     )
 
 
@@ -174,37 +164,37 @@ def test_multiple_allowed_indexes(collection):
 # ---------------------------------------------------------------------------
 
 
-def test_hint_overridden_by_filter(collection):
-    """Test filter overrides user hint — hint a_1_c_1, filter forces a_1_b_1."""
+@pytest.mark.parametrize(
+    "filter_indexes,hint,expected_index",
+    [
+        pytest.param(
+            [{"a": 1, "b": 1}],
+            {"a": 1, "c": 1},
+            "a_1_b_1",
+            id="filter_b_overrides_hint_c",
+        ),
+        pytest.param(
+            [{"a": 1, "c": 1}],
+            {"a": 1, "b": 1},
+            "a_1_c_1",
+            id="filter_c_overrides_hint_b",
+        ),
+    ],
+)
+def test_hint_overridden_by_filter(collection, filter_indexes, hint, expected_index):
+    """Test filter overrides a conflicting user hint."""
     collection.insert_many([{"a": i, "b": i, "c": i} for i in range(10)])
     collection.create_index([("a", 1), ("b", 1)])
     collection.create_index([("a", 1), ("c", 1)])
 
-    _set_filter(collection, {"a": 1}, [{"a": 1, "b": 1}])
-    result = _explain_find(collection, {"a": 1}, hint={"a": 1, "c": 1})
+    _set_filter(collection, {"a": 1}, filter_indexes)
+    result = _explain_find(collection, {"a": 1}, hint=hint)
 
     _assert_explain(
         result,
         index_filter_set=True,
-        expected_index="a_1_b_1",
-        msg="filter should override hint a_1_c_1 and force a_1_b_1",
-    )
-
-
-def test_hint_overridden_by_filter_inverse(collection):
-    """Test filter overrides user hint — hint a_1_b_1, filter forces a_1_c_1."""
-    collection.insert_many([{"a": i, "b": i, "c": i} for i in range(10)])
-    collection.create_index([("a", 1), ("b", 1)])
-    collection.create_index([("a", 1), ("c", 1)])
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "c": 1}])
-    result = _explain_find(collection, {"a": 1}, hint={"a": 1, "b": 1})
-
-    _assert_explain(
-        result,
-        index_filter_set=True,
-        expected_index="a_1_c_1",
-        msg="filter should override hint a_1_b_1 and force a_1_c_1",
+        expected_index=expected_index,
+        msg=f"filter should override hint and force {expected_index}",
     )
 
 

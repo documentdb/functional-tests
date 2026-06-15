@@ -1,14 +1,17 @@
 """Tests for planCacheSetFilter cross-command effectiveness.
 
 Verifies that an index filter set via planCacheSetFilter applies to all
-command types that share the same query shape, not just ``find``.  Each
-test sets the filter once, then verifies the explain output for the given
-command honors the filter by switching indexes between case A and case B.
+command types that share the same query shape, not just ``find``.  The
+parameterized test sets the filter, then verifies via explain that the
+winning index switches between case A and case B for each command type.
+
+NOTE: ``find`` is covered by test_planCacheSetFilter_effectiveness.py
+(filter-forces-index cases), so it is not repeated here.
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 import pytest
 
@@ -36,7 +39,7 @@ def _get_winning_index(plan: dict) -> str | None:
     return None
 
 
-def _set_filter(collection, query: dict, indexes: list) -> None:
+def _set_filter(collection: Any, query: dict, indexes: list) -> None:
     """Set an index filter via planCacheSetFilter."""
     execute_command(
         collection,
@@ -74,173 +77,78 @@ def _assert_explain_index(result: dict, expected_index: str, msg: str) -> None:
     )
 
 
-def _setup_collection(collection):
+def _setup_collection(collection: Any) -> None:
     """Insert docs and create two competing indexes."""
     collection.insert_many([{"a": i, "b": i, "c": i} for i in range(10)])
     collection.create_index([("a", 1), ("b", 1)])
     collection.create_index([("a", 1), ("c", 1)])
 
 
+# ---------------------------------------------------------------------------
+# Command builders — each returns the command dict for explain, given the
+# collection name.  The query shape {a: 1} is shared across all of them.
+# ---------------------------------------------------------------------------
+
+
+def _cmd_count(coll_name: str) -> dict:
+    return {"count": coll_name, "query": {"a": 1}}
+
+
+def _cmd_aggregate(coll_name: str) -> dict:
+    return {
+        "aggregate": coll_name,
+        "pipeline": [{"$match": {"a": 1}}],
+        "cursor": {},
+    }
+
+
+def _cmd_update(coll_name: str) -> dict:
+    return {
+        "update": coll_name,
+        "updates": [{"q": {"a": 1}, "u": {"$set": {"x": 1}}}],
+    }
+
+
+def _cmd_delete(coll_name: str) -> dict:
+    return {
+        "delete": coll_name,
+        "deletes": [{"q": {"a": 1}, "limit": 0}],
+    }
+
+
+def _cmd_findandmodify(coll_name: str) -> dict:
+    return {
+        "findAndModify": coll_name,
+        "query": {"a": 1},
+        "update": {"$set": {"x": 1}},
+    }
+
+
 pytestmark = pytest.mark.admin
 
 
-# ---------------------------------------------------------------------------
-# Property [Cross-Command Filter: find]: find honors the index filter.
-# ---------------------------------------------------------------------------
-
-
-def test_cross_command_find(collection):
-    """Test find honors index filter — case A then case B."""
+# Property [Cross-Command Filter]: The index filter applies to every command
+# type that shares the query shape, not just find.
+@pytest.mark.parametrize(
+    "command_builder",
+    [
+        pytest.param(_cmd_count, id="count"),
+        pytest.param(_cmd_aggregate, id="aggregate"),
+        pytest.param(_cmd_update, id="update"),
+        pytest.param(_cmd_delete, id="delete"),
+        pytest.param(_cmd_findandmodify, id="findAndModify"),
+    ],
+)
+def test_cross_command_filter(collection: Any, command_builder: Callable[[str], dict]) -> None:
+    """Test that the index filter applies to the given command type."""
     _setup_collection(collection)
 
+    # Case A: filter to a_1_b_1
     _set_filter(collection, {"a": 1}, [{"a": 1, "b": 1}])
-    result = _explain(collection, {"find": collection.name, "filter": {"a": 1}})
-    _assert_explain_index(result, "a_1_b_1", "find case A")
+    result = _explain(collection, command_builder(collection.name))
+    _assert_explain_index(result, "a_1_b_1", "case A")
 
+    # Case B: filter to a_1_c_1
     _set_filter(collection, {"a": 1}, [{"a": 1, "c": 1}])
-    result = _explain(collection, {"find": collection.name, "filter": {"a": 1}})
-    _assert_explain_index(result, "a_1_c_1", "find case B")
-
-
-# ---------------------------------------------------------------------------
-# Property [Cross-Command Filter: count]: count honors the index filter.
-# ---------------------------------------------------------------------------
-
-
-def test_cross_command_count(collection):
-    """Test count honors index filter — case A then case B."""
-    _setup_collection(collection)
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "b": 1}])
-    result = _explain(collection, {"count": collection.name, "query": {"a": 1}})
-    _assert_explain_index(result, "a_1_b_1", "count case A")
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "c": 1}])
-    result = _explain(collection, {"count": collection.name, "query": {"a": 1}})
-    _assert_explain_index(result, "a_1_c_1", "count case B")
-
-
-# ---------------------------------------------------------------------------
-# Property [Cross-Command Filter: aggregate $match]: aggregate with a
-# leading $match stage honors the index filter.
-# ---------------------------------------------------------------------------
-
-
-def test_cross_command_aggregate(collection):
-    """Test aggregate with $match honors index filter — case A then case B."""
-    _setup_collection(collection)
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "b": 1}])
-    result = _explain(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$match": {"a": 1}}],
-            "cursor": {},
-        },
-    )
-    _assert_explain_index(result, "a_1_b_1", "aggregate case A")
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "c": 1}])
-    result = _explain(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$match": {"a": 1}}],
-            "cursor": {},
-        },
-    )
-    _assert_explain_index(result, "a_1_c_1", "aggregate case B")
-
-
-# ---------------------------------------------------------------------------
-# Property [Cross-Command Filter: update]: update honors the index filter.
-# ---------------------------------------------------------------------------
-
-
-def test_cross_command_update(collection):
-    """Test update honors index filter — case A then case B."""
-    _setup_collection(collection)
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "b": 1}])
-    result = _explain(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"a": 1}, "u": {"$set": {"x": 1}}}],
-        },
-    )
-    _assert_explain_index(result, "a_1_b_1", "update case A")
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "c": 1}])
-    result = _explain(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"a": 1}, "u": {"$set": {"x": 1}}}],
-        },
-    )
-    _assert_explain_index(result, "a_1_c_1", "update case B")
-
-
-# ---------------------------------------------------------------------------
-# Property [Cross-Command Filter: delete]: delete honors the index filter.
-# ---------------------------------------------------------------------------
-
-
-def test_cross_command_delete(collection):
-    """Test delete honors index filter — case A then case B."""
-    _setup_collection(collection)
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "b": 1}])
-    result = _explain(
-        collection,
-        {
-            "delete": collection.name,
-            "deletes": [{"q": {"a": 1}, "limit": 0}],
-        },
-    )
-    _assert_explain_index(result, "a_1_b_1", "delete case A")
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "c": 1}])
-    result = _explain(
-        collection,
-        {
-            "delete": collection.name,
-            "deletes": [{"q": {"a": 1}, "limit": 0}],
-        },
-    )
-    _assert_explain_index(result, "a_1_c_1", "delete case B")
-
-
-# ---------------------------------------------------------------------------
-# Property [Cross-Command Filter: findAndModify]: findAndModify honors
-# the index filter.
-# ---------------------------------------------------------------------------
-
-
-def test_cross_command_findandmodify(collection):
-    """Test findAndModify honors index filter — case A then case B."""
-    _setup_collection(collection)
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "b": 1}])
-    result = _explain(
-        collection,
-        {
-            "findAndModify": collection.name,
-            "query": {"a": 1},
-            "update": {"$set": {"x": 1}},
-        },
-    )
-    _assert_explain_index(result, "a_1_b_1", "findAndModify case A")
-
-    _set_filter(collection, {"a": 1}, [{"a": 1, "c": 1}])
-    result = _explain(
-        collection,
-        {
-            "findAndModify": collection.name,
-            "query": {"a": 1},
-            "update": {"$set": {"x": 1}},
-        },
-    )
-    _assert_explain_index(result, "a_1_c_1", "findAndModify case B")
+    result = _explain(collection, command_builder(collection.name))
+    _assert_explain_index(result, "a_1_c_1", "case B")
