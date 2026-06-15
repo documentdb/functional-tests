@@ -25,7 +25,7 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_case import BaseTestCase
-from documentdb_tests.framework.test_constants import DATE_EPOCH, INT64_MAX, OID_EPOCH, TS_EPOCH
+from documentdb_tests.framework.test_constants import DATE_EPOCH, OID_EPOCH, TS_EPOCH
 
 
 @dataclass(frozen=True)
@@ -35,98 +35,18 @@ class FieldValidationTest(BaseTestCase):
     command: Any = None
 
 
-# Property [Command Field Rejection]: insert command rejects invalid BSON types for the
+# Property [Command Field Rejection]: insert command rejects non-string types for the
 # collection name field, and rejects missing or empty documents array.
+# Wire-protocol namespace validation (INVALID_NAMESPACE_ERROR for non-string types) is
+# foundational behavior per TEST_COVERAGE.md §19. One representative case wires insert
+# to that behavior; the full type matrix belongs in the centralized namespace test site
+# (currently TBD — see TEST_COVERAGE.md §19).
 TESTS: list[FieldValidationTest] = [
     FieldValidationTest(
-        "insert_field_rejects_int",
+        "insert_field_rejects_non_string",
         command={"insert": 1, "documents": [{"_id": 1}]},
         error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject integer type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_double",
-        command={"insert": 3.14, "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject double type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_long",
-        command={"insert": INT64_MAX, "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject long type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_bool",
-        command={"insert": True, "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject boolean type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_null",
-        command={"insert": None, "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject null type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_object",
-        command={"insert": {"a": 1}, "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject object type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_array",
-        command={"insert": [1, 2], "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject array type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_objectId",
-        command={"insert": OID_EPOCH, "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject ObjectId type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_date",
-        command={"insert": DATE_EPOCH, "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject date type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_regex",
-        command={"insert": Regex(".*"), "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject regex type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_timestamp",
-        command={"insert": TS_EPOCH, "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject timestamp type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_binary",
-        command={"insert": Binary(b"\x01"), "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject binary type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_decimal128",
-        command={"insert": Decimal128("1"), "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject Decimal128 type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_minKey",
-        command={"insert": MinKey(), "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject MinKey type for collection name field.",
-    ),
-    FieldValidationTest(
-        "insert_field_rejects_maxKey",
-        command={"insert": MaxKey(), "documents": [{"_id": 1}]},
-        error_code=INVALID_NAMESPACE_ERROR,
-        msg="insert should reject MaxKey type for collection name field.",
+        msg="insert should reject non-string type for collection name field.",
     ),
     FieldValidationTest(
         "empty_string_collection_name",
