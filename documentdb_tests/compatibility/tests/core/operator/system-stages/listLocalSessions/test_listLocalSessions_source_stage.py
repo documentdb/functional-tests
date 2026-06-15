@@ -49,6 +49,39 @@ def test_listLocalSessions_output_shape(collection: Collection):
     )
 
 
+# Property [uid Identifies the User]: uid is a digest of the authenticated user, not the
+# session, so two distinct sessions of the same user share one uid while their ids differ.
+# Grouping both sessions by uid therefore yields a single group holding both session ids.
+@pytest.mark.aggregate
+def test_listLocalSessions_uid_is_per_user(collection: Collection):
+    """Test two sessions of one user group under a single shared uid."""
+    client = collection.database.client
+    with client.start_session() as first, client.start_session() as second:
+        collection.database.command("ping", session=first)
+        collection.database.command("ping", session=second)
+        first_id = first.session_id["id"]
+        second_id = second.session_id["id"]
+        result = execute_command(
+            collection,
+            {
+                "aggregate": 1,
+                "pipeline": [
+                    {"$listLocalSessions": {}},
+                    {"$match": {"_id.id": {"$in": [first_id, second_id]}}},
+                    {"$group": {"_id": "$_id.uid", "sessionIds": {"$addToSet": "$_id.id"}}},
+                    {"$project": {"_id": 0, "numSessions": {"$size": "$sessionIds"}}},
+                ],
+                "cursor": {},
+            },
+            session=first,
+        )
+    assertResult(
+        result,
+        expected=[{"numSessions": 2}],
+        msg="two sessions of one user should group under a single shared uid",
+    )
+
+
 # Property [Database Independence]: $listLocalSessions is instance-local, so it succeeds
 # regardless of which database the aggregate command targets. Cover both an admin and a
 # non-admin database, since a system stage could plausibly be gated to the admin database;
