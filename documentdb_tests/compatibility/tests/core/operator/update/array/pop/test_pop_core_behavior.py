@@ -166,9 +166,25 @@ UPDATE_RESULT_TESTS: list[UpdateTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TESTS + UPSERT_TESTS))
+@pytest.mark.parametrize("test", pytest_params(TESTS))
 def test_pop_core_behavior(collection, test: UpdateTestCase):
-    """Test $pop core removal and upsert document results."""
+    """Test $pop core removal results."""
+    if test.setup_docs:
+        collection.insert_many(test.setup_docs)
+
+    execute_command(
+        collection, {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]}
+    )
+
+    result = execute_command(
+        collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
+    )
+    assertSuccess(result, [test.expected], msg=test.msg)
+
+
+@pytest.mark.parametrize("test", pytest_params(UPSERT_TESTS))
+def test_pop_upsert(collection, test: UpdateTestCase):
+    """Test $pop upsert document results."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 

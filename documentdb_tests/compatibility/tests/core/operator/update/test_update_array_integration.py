@@ -381,22 +381,6 @@ POSITIONAL_INTEGRATION_TESTS: list[UpdateTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(POSITIONAL_INTEGRATION_TESTS))
-def test_positional_query_operators(collection, test: UpdateTestCase):
-    """Test $ positional with various query operators and update operators."""
-    if test.setup_docs:
-        collection.insert_many(test.setup_docs)
-
-    execute_command(
-        collection, {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]}
-    )
-
-    result = execute_command(
-        collection, {"find": collection.name, "filter": {"_id": test.expected["_id"]}}
-    )
-    assertSuccess(result, [test.expected], msg=test.msg)
-
-
 POP_COMBINATION_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
         "pop_and_set_different_fields",
@@ -417,9 +401,11 @@ POP_COMBINATION_TESTS: list[UpdateTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(POP_COMBINATION_TESTS))
-def test_pop_combination(collection, test: UpdateTestCase):
-    """Test $pop combined with other update operators on different fields."""
+@pytest.mark.parametrize(
+    "test", pytest_params(POSITIONAL_INTEGRATION_TESTS + POP_COMBINATION_TESTS)
+)
+def test_positional_query_operators(collection, test: UpdateTestCase):
+    """Test $ positional with query operators and $pop combined with other update operators."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 
