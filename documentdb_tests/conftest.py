@@ -18,6 +18,12 @@ from documentdb_tests.framework import fixtures  # noqa: E402
 from documentdb_tests.framework.error_codes_validator import (  # noqa: E402
     validate_error_codes_sorted,
 )
+from documentdb_tests.framework.preconditions import (  # noqa: E402
+    REQUIRES_MARKER,
+    detect_capabilities,
+    marker_spec,
+    unmet_requirements,
+)
 from documentdb_tests.framework.test_format_validator import validate_test_format  # noqa: E402
 from documentdb_tests.framework.test_structure_validator import (  # noqa: E402
     validate_python_files_in_tests,
@@ -54,6 +60,10 @@ def pytest_configure(config):
     # If no connection string specified, default to localhost
     if not connection_string:
         config.connection_string = "mongodb://localhost:27017"
+
+    # Register the requires marker from its single source of truth so it need
+    # not be duplicated in the pytest configuration file.
+    config.addinivalue_line("markers", marker_spec())
 
 
 def pytest_runtest_setup(item):
@@ -206,26 +216,25 @@ def pytest_collection_modifyitems(session, config, items):
         pytest -m no_parallel -p no:xdist
     Or run them manually with: pytest -m no_parallel -p no:xdist
 
-    Tests marked 'replica_set' are skipped when the server is not a replica set member.
+    Tests carrying a ``requires`` marker are skipped when the connected server's
+    capabilities do not match what the test requires (see
+    ``framework.preconditions``).
     """
-    # Skip replica_set tests when not connected to a replica set
+    # Skip a capability-gated test when the connected server's capabilities do
+    # not match its requires(...) marker.
     conn_str = getattr(config, "connection_string", "") or ""
-    try:
-        from pymongo import MongoClient
-
-        client = MongoClient(conn_str, serverSelectionTimeoutMS=5000, directConnection=True)
-        is_replica_set = bool(client.admin.command("hello").get("setName"))
-        client.close()
-    except Exception:
-        is_replica_set = False
-    if not is_replica_set:
-        for item in items:
-            if item.get_closest_marker("replica_set"):
-                item.add_marker(
-                    pytest.mark.skip(
-                        reason="requires replica set " "(server is not a replica set member)"
-                    )
-                )
+    engine = getattr(config, "engine_name", "") or ""
+    capabilities = detect_capabilities(engine, conn_str)
+    for item in items:
+        marker = item.get_closest_marker(REQUIRES_MARKER)
+        if marker is None or not marker.kwargs:
+            continue
+        unmet = unmet_requirements(marker.kwargs, capabilities)
+        if unmet:
+            needs = ", ".join(f"{name}={expected}" for name, expected in sorted(unmet.items()))
+            item.add_marker(
+                pytest.mark.skip(reason=f"connected server does not meet requires({needs})")
+            )
 
     # Deselect no_parallel tests when running under xdist
     is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")

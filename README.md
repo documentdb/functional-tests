@@ -237,7 +237,21 @@ tests/
 - `smoke`: Quick smoke tests for feature detection
 - `slow`: Tests that take longer to execute
 - `no_parallel`: Tests that must run sequentially (e.g., tests that kill sessions/ops, modify server config, or drop all users/roles). Automatically deferred to Phase 2 when using `-n`.
-- `replica_set`: Tests that require a replica set topology (e.g., change streams, encryption, certain admin commands). Skipped by default in CI. To run locally, pass a replica set connection string: `pytest -m replica_set --connection-string "mongodb://localhost:27017/?directConnection=true"`
+
+### Capability Requirements
+
+Some behaviors are only available in certain deployment environments. A test
+declares the capabilities it needs with the `requires` marker, for example
+`@pytest.mark.requires(change_streams=True)` for a behavior that needs change
+streams, or `@pytest.mark.requires(change_streams=False)` for one that only
+applies where they are absent.
+
+A capability is a named fact about a target rather than a topology. Which
+capabilities a target has is determined by its engine and topology, and the full
+set of capabilities and how they map to each environment lives in
+`documentdb_tests/framework/preconditions.py`, which is the single source of
+truth. A test runs only against the targets whose capabilities match what it
+requires, and is otherwise skipped.
 
 ## Writing Tests
 
