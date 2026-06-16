@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from functools import reduce
+from typing import Any, List, cast
 
 import pytest
 from bson import (
@@ -18,7 +19,7 @@ from bson import (
     Timestamp,
 )
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -124,10 +125,10 @@ AGGREGATE_PIPELINE_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "x": 1}],
         command=lambda ctx: {
             "aggregate": ctx.collection,
-            "pipeline": reduce(
+            "pipeline": reduce(  # type: ignore[dict-item]
                 lambda p, i: [{"$lookup": {"from": ctx.collection, "pipeline": p, "as": f"j{i}"}}],
                 range(20),
-                [{"$addFields": {"x": 1}}],
+                cast(List[Any], [{"$addFields": {"x": 1}}]),
             ),
             "cursor": {},
         },
@@ -139,10 +140,10 @@ AGGREGATE_PIPELINE_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         docs=[{"_id": 1, "x": 1}],
         command=lambda ctx: {
             "aggregate": ctx.collection,
-            "pipeline": reduce(
+            "pipeline": reduce(  # type: ignore[dict-item]
                 lambda p, _: [{"$unionWith": {"coll": ctx.collection, "pipeline": p}}],
                 range(20),
-                [{"$addFields": {"x": 1}}],
+                cast(List[Any], [{"$addFields": {"x": 1}}]),
             ),
             "cursor": {},
         },
