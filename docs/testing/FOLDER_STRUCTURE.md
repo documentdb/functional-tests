@@ -33,6 +33,8 @@
 - `$expr/` → one test per operator usable inside $expr
 - `$lookup/` → 1-2 cases per pipeline sub-stage
 
+See `TEST_COVERAGE.md` §11 for expression-operator containers and §21 for query-operator containers.
+
 **Step 4: Interaction between multiple same-level features?**
 → YES: parent folder (e.g., `{$add: [{$subtract: ...}]}` tests expression nesting, not `$add` itself — goes in `expressions/`, not `add/`)
 
