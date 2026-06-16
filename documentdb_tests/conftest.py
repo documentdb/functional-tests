@@ -207,6 +207,8 @@ def pytest_collection_modifyitems(session, config, items):
     Or run them manually with: pytest -m no_parallel -p no:xdist
 
     Tests marked 'replica_set' are skipped when the server is not a replica set member.
+
+    Tests marked 'skip_localhost' are skipped when connected to a localhost server.
     """
     # Skip replica_set tests when not connected to a replica set
     conn_str = getattr(config, "connection_string", "") or ""
@@ -225,6 +227,22 @@ def pytest_collection_modifyitems(session, config, items):
                     pytest.mark.skip(
                         reason="requires replica set " "(server is not a replica set member)"
                     )
+                )
+
+    # Skip skip_localhost tests when connected to a localhost server
+    try:
+        from pymongo.uri_parser import parse_uri
+
+        localhost_hosts = {"localhost", "127.0.0.1", "::1"}
+        nodes = parse_uri(conn_str)["nodelist"] if conn_str else []
+        is_localhost = any(host in localhost_hosts for host, _ in nodes)
+    except Exception:
+        is_localhost = False
+    if is_localhost:
+        for item in items:
+            if item.get_closest_marker("skip_localhost"):
+                item.add_marker(
+                    pytest.mark.skip(reason="skipped on localhost (server connection is local)")
                 )
 
     # Deselect no_parallel tests when running under xdist

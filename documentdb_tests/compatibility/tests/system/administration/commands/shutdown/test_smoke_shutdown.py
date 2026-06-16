@@ -9,7 +9,7 @@ import pytest
 from documentdb_tests.framework.assertions import assertFailure
 from documentdb_tests.framework.executor import execute_admin_command
 
-pytestmark = pytest.mark.smoke
+pytestmark = [pytest.mark.smoke, pytest.mark.skip_localhost]
 
 
 def test_smoke_shutdown(collection):
