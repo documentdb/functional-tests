@@ -113,7 +113,9 @@ def test_delete_ordered_true_stops_on_error(collection):
         result,
         {
             "n": Eq(1),
-            "writeErrors": [Len(1), Eq([{"index": 1, "code": BAD_VALUE_ERROR}])],
+            "writeErrors": Len(1),
+            "writeErrors.0.index": Eq(1),
+            "writeErrors.0.code": Eq(BAD_VALUE_ERROR),
         },
         msg="delete ordered:true should stop at first error with exactly one writeError",
         raw_res=True,
@@ -139,7 +141,9 @@ def test_delete_ordered_false_continues_on_error(collection):
         result,
         {
             "n": Eq(2),
-            "writeErrors": [Len(1), Eq([{"index": 1, "code": BAD_VALUE_ERROR}])],
+            "writeErrors": Len(1),
+            "writeErrors.0.index": Eq(1),
+            "writeErrors.0.code": Eq(BAD_VALUE_ERROR),
         },
         msg="delete ordered:false should continue past errors and report exactly one writeError",
         raw_res=True,
@@ -164,7 +168,9 @@ def test_delete_ordered_true_error_at_first(collection):
         result,
         {
             "n": Eq(0),
-            "writeErrors": [Len(1), Eq([{"index": 0, "code": BAD_VALUE_ERROR}])],
+            "writeErrors": Len(1),
+            "writeErrors.0.index": Eq(0),
+            "writeErrors.0.code": Eq(BAD_VALUE_ERROR),
         },
         msg="delete ordered:true should stop on first error with exactly one writeError",
         raw_res=True,
@@ -189,7 +195,9 @@ def test_delete_ordered_false_error_at_first(collection):
         result,
         {
             "n": Eq(1),
-            "writeErrors": [Len(1), Eq([{"index": 0, "code": BAD_VALUE_ERROR}])],
+            "writeErrors": Len(1),
+            "writeErrors.0.index": Eq(0),
+            "writeErrors.0.code": Eq(BAD_VALUE_ERROR),
         },
         msg="delete ordered:false should continue past errors and report exactly one writeError",
         raw_res=True,
