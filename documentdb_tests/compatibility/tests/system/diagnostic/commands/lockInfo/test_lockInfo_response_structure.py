@@ -1,7 +1,7 @@
 """Tests for lockInfo command response structure.
 
-Verifies the structure of the lockInfo response including field types
-and lock mode values in granted/pending entries.
+Verifies the top-level structure of the lockInfo response: ok field and
+lockInfo array field.
 """
 
 import pytest
@@ -14,7 +14,7 @@ from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, IsType
 
-pytestmark = pytest.mark.admin
+pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
 RESPONSE_STRUCTURE_TESTS: list[DiagnosticTestCase] = [
@@ -38,40 +38,26 @@ def test_lockInfo_response_structure(collection, test):
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
-def test_lockInfo_entry_resourceId_is_string(collection):
-    """Test lock entry contains resourceId field as a string."""
-    collection.insert_one({"_id": 1})
-    result = execute_admin_command(collection, {"lockInfo": 1})
-    entry = result.get("lockInfo", [{}])[0] if result.get("lockInfo") else {}
+def test_lockInfo_entry_structure(collection):
+    """Test a lock entry exposes resourceId (string), granted (array), and pending (array).
+
+    Acquires a global fsync lock so the lock manager reports at least one entry,
+    guaranteeing the assertion runs against a real lock entry rather than an
+    empty snapshot. Must not run in parallel — fsyncLock is a global server lock.
+    """
+    execute_admin_command(collection, {"fsync": 1, "lock": True})
+    try:
+        result = execute_admin_command(collection, {"lockInfo": 1})
+        entry = result["lockInfo"][0]
+    finally:
+        execute_admin_command(collection, {"fsyncUnlock": 1})
     assertProperties(
-        {"resourceId": entry.get("resourceId", "")},
-        {"resourceId": IsType("string")},
-        msg="resourceId should be a string",
-        raw_res=True,
-    )
-
-
-def test_lockInfo_entry_granted_is_array(collection):
-    """Test lock entry contains granted field as an array."""
-    collection.insert_one({"_id": 1})
-    result = execute_admin_command(collection, {"lockInfo": 1})
-    entry = result.get("lockInfo", [{}])[0] if result.get("lockInfo") else {}
-    assertProperties(
-        {"granted": entry.get("granted", [])},
-        {"granted": IsType("array")},
-        msg="granted should be an array",
-        raw_res=True,
-    )
-
-
-def test_lockInfo_entry_pending_is_array(collection):
-    """Test lock entry contains pending field as an array."""
-    collection.insert_one({"_id": 1})
-    result = execute_admin_command(collection, {"lockInfo": 1})
-    entry = result.get("lockInfo", [{}])[0] if result.get("lockInfo") else {}
-    assertProperties(
-        {"pending": entry.get("pending", [])},
-        {"pending": IsType("array")},
-        msg="pending should be an array",
+        entry,
+        {
+            "resourceId": IsType("string"),
+            "granted": IsType("array"),
+            "pending": IsType("array"),
+        },
+        msg="lock entry should expose resourceId (string), granted (array), pending (array)",
         raw_res=True,
     )
