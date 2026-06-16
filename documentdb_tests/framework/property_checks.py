@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime as _datetime
 from typing import Any
 
-from bson import Binary, Decimal128, Int64
+from bson import Binary, Decimal128, Int64, ObjectId, Timestamp
 
 from documentdb_tests.framework.bson_compare import _NUMERIC_BSON_TYPES, strict_equal
 
@@ -22,6 +22,22 @@ class Check:
 
     def check(self, value: Any, path: str) -> str | None:
         raise NotImplementedError
+
+
+class PerDoc:
+    """Apply a positional list of property-check dicts, one per result document.
+
+    A plain checks dict passed to ``assertProperties`` is broadcast to every
+    result document. ``PerDoc`` instead matches each entry against the document
+    at the same index, and requires the document count to match exactly -- use
+    it when a multi-document result needs different expectations per document.
+    """
+
+    def __init__(self, *doc_checks: dict[str, Any]) -> None:
+        self.doc_checks: list[dict[str, Any]] = list(doc_checks)
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.doc_checks!r})"
 
 
 class Exists(Check):
@@ -63,6 +79,8 @@ class IsType(Check):
         Int64: "long",
         Decimal128: "decimal",
         _datetime: "date",
+        ObjectId: "objectId",
+        Timestamp: "timestamp",
     }
 
     _VALID_TYPES: set[str] = set(_PY_TO_BSON.values())
@@ -291,3 +309,22 @@ class Gte(Check):
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.minimum!r})"
+
+
+class NonEmptyStr(Check):
+    """Assert that the field is a non-empty string.
+
+    Stronger than ``IsType('string')`` (which accepts an empty string) and
+    weaker than ``Eq`` (which pins the exact text), for fields whose contract
+    is "present and populated" rather than a specific value.
+    """
+
+    def check(self, value: Any, path: str) -> str | None:
+        if value is _FIELD_ABSENT:
+            return f"expected '{path}' to be a non-empty string, but field is missing"
+        if not isinstance(value, str) or not value:
+            return f"expected '{path}' to be a non-empty string, got {value!r}"
+        return None
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}()"

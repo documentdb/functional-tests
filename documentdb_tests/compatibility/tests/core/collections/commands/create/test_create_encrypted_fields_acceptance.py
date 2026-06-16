@@ -5,13 +5,14 @@ from uuid import uuid4
 import pytest
 from bson import Binary
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
 
 # Property [EncryptedFields Structure Acceptance]: valid encryptedFields
 # documents are accepted, including null (treated as omitted), minimal
@@ -32,7 +33,7 @@ CREATE_ENCRYPTED_FIELDS_STRUCTURE_TESTS: list[CommandTestCase] = [
             "create": f"{ctx.collection}_custom",
             "encryptedFields": {"fields": [{"path": "ssn", "keyId": Binary(uuid4().bytes, 4)}]},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="Minimal encryptedFields with path and keyId should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -50,7 +51,7 @@ CREATE_ENCRYPTED_FIELDS_STRUCTURE_TESTS: list[CommandTestCase] = [
                 ]
             },
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="encryptedFields with optional bsonType should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -69,7 +70,7 @@ CREATE_ENCRYPTED_FIELDS_STRUCTURE_TESTS: list[CommandTestCase] = [
                 ]
             },
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="encryptedFields with queries as object should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -88,7 +89,7 @@ CREATE_ENCRYPTED_FIELDS_STRUCTURE_TESTS: list[CommandTestCase] = [
                 ]
             },
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="encryptedFields with queries as array should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -106,7 +107,7 @@ CREATE_ENCRYPTED_FIELDS_CUSTOM_COLLECTIONS_TESTS: list[CommandTestCase] = [
                 "escCollection": f"enxcol_.{ctx.collection}_custom.esc",
             },
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="Custom escCollection with valid naming pattern should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -119,7 +120,7 @@ CREATE_ENCRYPTED_FIELDS_CUSTOM_COLLECTIONS_TESTS: list[CommandTestCase] = [
                 "ecocCollection": f"enxcol_.{ctx.collection}_custom.ecoc",
             },
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="Custom ecocCollection with valid naming pattern should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -132,7 +133,7 @@ CREATE_ENCRYPTED_FIELDS_CUSTOM_COLLECTIONS_TESTS: list[CommandTestCase] = [
                 "eccCollection": "any_name_works",
             },
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="eccCollection does not have naming pattern validation",
         marks=(pytest.mark.replica_set,),
     ),
@@ -148,7 +149,7 @@ CREATE_ENCRYPTED_FIELDS_CUSTOM_COLLECTIONS_TESTS: list[CommandTestCase] = [
                 ]
             },
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="Null elements in fields array should be silently accepted",
         marks=(pytest.mark.replica_set,),
     ),
@@ -165,7 +166,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
             "clusteredIndex": {"key": {"_id": 1}, "unique": True},
             "encryptedFields": {"fields": [{"path": "ssn", "keyId": Binary(uuid4().bytes, 4)}]},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="encryptedFields with clusteredIndex should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -177,7 +178,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
             "encryptedFields": {"fields": [{"path": "ssn", "keyId": Binary(uuid4().bytes, 4)}]},
             "expireAfterSeconds": 3600,
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="encryptedFields with expireAfterSeconds should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -188,7 +189,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
             "encryptedFields": {"fields": [{"path": "ssn", "keyId": Binary(uuid4().bytes, 4)}]},
             "storageEngine": {"wiredTiger": {"configString": ""}},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="encryptedFields with storageEngine should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -199,7 +200,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
             "encryptedFields": {"fields": [{"path": "ssn", "keyId": Binary(uuid4().bytes, 4)}]},
             "validator": {"x": {"$exists": True}},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="encryptedFields with validator should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -210,7 +211,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
             "encryptedFields": {"fields": [{"path": "ssn", "keyId": Binary(uuid4().bytes, 4)}]},
             "collation": {"locale": "en"},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="encryptedFields with collation should succeed",
         marks=(pytest.mark.replica_set,),
     ),
@@ -221,7 +222,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
             "encryptedFields": {"fields": [{"path": "ssn", "keyId": Binary(uuid4().bytes, 4)}]},
             "changeStreamPreAndPostImages": {"enabled": True},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="encryptedFields with changeStreamPreAndPostImages should succeed",
         marks=(pytest.mark.replica_set,),
     ),
