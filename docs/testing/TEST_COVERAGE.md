@@ -1,6 +1,58 @@
-# DocumentDB Comprehensive Test Coverage Guidelines
+# DocumentDB Compatibility Test Coverage Guidelines
 
-**Purpose**: Define comprehensive test coverage requirements for DocumentDB features to ensure complete validation.
+**Purpose**: Define compatibility test coverage requirements for DocumentDB features to ensure complete validation.
+
+**Target Spec Version**: MongoDB 8.2.4 (see `.github/workflows/pr-tests.yml` for the authoritative image version)
+
+**xfail Policy**: `engine_xfail("mongodb")` is for confirmed MongoDB bugs where MongoDB itself returns incorrect results. DocumentDB failures are **not** handled here — they are tracked in the DocumentDB main repo.
+
+**Usage**: Use this document as a checklist when adding tests for a feature. Walk through each numbered section and confirm coverage exists or is not applicable.
+
+---
+
+## High-Level Guidelines
+
+### Compatibility Tests, Not Functional Tests
+
+These are **compatibility tests based on feature specs**. We validate that DocumentDB produces the same output as the spec defines for each feature's own behavior. We do **not** comprehensively test shared/implied behavior that belongs to other features.
+
+**What to test**: Behavior specific to the feature under test.  
+**What NOT to test**: Shared infrastructure behavior that is already covered by the feature that owns it.
+
+**Example**: When testing `$divide`:
+- ✅ Test that `$divide` returns correct results for numeric type combinations (this is `$divide`'s own spec)
+- ✅ Test that `$divide` rejects invalid types with correct error codes (this is `$divide`'s own spec)
+- ❌ Do NOT exhaustively test field path resolution like `"$a.b.c"` on deeply nested arrays (this belongs to the expression engine tests under `expressions/`)
+- ✅ DO add one smoke test that `$divide` accepts a field path input (confirms wiring, not field path semantics)
+
+The distinction: thorough coverage of shared mechanics lives in the feature that owns them. Per-feature tests only confirm the wiring works (one test per expression type, not exhaustive permutations).
+
+### Adding Tests Requires Multiple Paths
+
+Adding tests for a single feature often requires modifications across multiple directories:
+
+1. **Feature's dedicated path** — Core behavior, argument validation, type coverage  
+   Example: `tests/core/operator/expressions/arithmetic/divide/`
+
+2. **Parent folder** — Interaction tests with sibling features (only add if their interactions have special specs)  
+   Example: `tests/core/operator/expressions/test_expressions_combination_date_construct_operators.py` (e.g., `$dateToString` wrapping `$dateFromString` round-trip verifies millisecond preservation; `$toDate` vs `$convert` equivalence for string/long/ObjectId inputs)
+
+3. **Upper-level container feature** — Wiring tests in pipeline stages that consume the feature  
+   Example: `tests/core/operator/aggregation/stages/project/test_operators_in_project.py` (one test confirming `$divide` works in `$project`)
+
+4. **Cross-cutting feature paths** — Tests combining with orthogonal features  
+   Example: `tests/cross_cutting/collation/test_collation_find.py` (e.g., adding a new string comparison operator requires a test that it respects collation strength levels for case/accent insensitivity)
+
+**Concrete example** — adding `$strcasecmp`:
+| Path | What goes there |
+|------|----------------|
+| `expressions/string/strcasecmp/test_strcasecmp.py` | Core: string comparisons, argument count validation (0, 1, 3+ args error), null/missing per position, all BSON types per position |
+| `expressions/string/strcasecmp/test_strcasecmp_unicode.py` | Unicode: multi-byte chars, accented characters, locale-sensitive ordering |
+| `expressions/string/` (parent) | Interaction: `$strcasecmp` with `$concat` output, `$toLower`/`$toUpper` — verify comparison after case transformation |
+| `stages/project/test_operators_in_project.py` | Wiring: one test of `$strcasecmp` in `$project` |
+| `stages/group/test_operators_in_group.py` | Wiring: one test of `$strcasecmp` in `$group` |
+| `stages/match/test_operators_in_match_expr.py` | Wiring: one test of `$strcasecmp` in `$match` + `$expr` |
+| `cross_cutting/collation/test_collation_aggregate.py` | Cross-cutting: `$strcasecmp` ignores collation (it always uses simple binary comparison) — verify it does NOT change behavior when collation is set |
 
 ---
 
@@ -278,7 +330,6 @@ For each invalid_type in [string, object, array, ...]:
 
 **Pipeline Contexts** (one test case per operator per context):
 - In `core/operator/aggregation/stages/project`: `{$project: {result: {$op: "$field"}}}`
-- In `core/operator/aggregation/stages/addFields`: `{$addFields: {result: {$op: "$field"}}}`
 - In `core/operator/aggregation/stages/match` with `$expr`: `{$match: {$expr: {$gt: [{$op: "$field"}, value]}}}`
 - In `core/operator/aggregation/stages/group` expression: `{$group: {_id: null, result: {$max: {$op: "$field"}}}}` and `{$group: {_id: {$max: {$op: "$field"}}}}`
 - Don't need to add for every operator in find filter $expr: (should have same behavior with aggregation with $expr)
@@ -288,7 +339,6 @@ For each invalid_type in [string, object, array, ...]:
 
 **Example**: generating `$add` tests adds test cases in these files:
 - `stages/project/test_operators_in_project.py`
-- `stages/addFields/test_operators_in_addFields.py`
 - `stages/match/test_operators_in_match_expr.py`
 - `stages/group/test_operators_in_group.py`
 
@@ -487,6 +537,36 @@ For each invalid_type in [string, object, array, ...]:
 
 ---
 
+### 20. Undocumented Type Coercion — Test Per Command
+
+**Rule**: When a command parameter's *accepted-type set in practice* is broader than the spec documents, test the observed coercion in that command's test file. Engines may diverge here; documented-only coverage hides the gap.
+
+**Rationale**: This is the inverse of §19. Foundational behaviors that have a single source of truth get tested once; coercion behaviors that have *no* source of truth get tested per consumer because that's the only place divergence shows up. Spec wording is necessary but not sufficient — the engine's actual accepted-type set is the contract real applications depend on.
+
+**Applies to** (any param type, not just bool):
+- **Boolean** params accepting numeric/null coercion — `bypassDocumentValidation`, `ordered`, `multi`, `upsert`, `dryRun`, `force`. Test `True`/`False`/omitted plus `1`/`0`/`1.0`/`0.0`/`Int64`/`Decimal128`/`null`/`-0.0`/`NaN`/`Infinity` per the canonical matrix (e.g. `tests/core/aggregation/commands/aggregate/test_aggregate_bypass_validation.py`).
+- **Integer** params accepting whole-number doubles / Decimal128, or rejecting fractionals — `limit`, `skip`, `batchSize`, `maxTimeMS`, `freeSpaceTargetMB`. Test int32, Int64, whole-number double (`3.0`), whole-number Decimal128 (`"3"`), fractional double (`3.5`) rejection, negative values, overflow.
+- **String** params with empty-string / null treatment — verify whether empty string and other types are coerced or rejected.
+- **Document** params with null-as-omitted / empty-doc / array-rejection behavior — `query`, `sort`, `projection`, `writeConcern`, `let`, `collation`. Test that null is treated as omitted, empty doc is accepted, and array is rejected with the correct error code.
+
+**Skip when**:
+- §19 Foundational Spec Behaviors covers the coercion (e.g. BSON type ordering).
+- The coercion is identical across all consumers and centralized in a dedicated test directory — delegate to that site instead.
+
+**Method**: When in doubt, find the most thoroughly-tested consumer of the same parameter (grep `tests/core/` for the param name) and mirror its matrix. If no consumer has thorough coverage, this PR is a good place to set the precedent.
+
+**Example**: `aggregate`'s `bypassDocumentValidation` matrix tests Int64, Decimal128, NaN, Infinity, -Infinity, negative zero alongside the documented `True`/`False`/null cases. PRs adding `bypassDocumentValidation` to `insert`, `update`, `findAndModify` should mirror this matrix.
+
+---
+
+### 21. Query-Operator Containers
+
+**Rule**: Containers that accept a query expression (`$pull` condition, `arrayFilters`, positional `$`) test one case per query operator they accept (`$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$exists`, `$type`, `$regex`, `$mod`, `$all`, `$size`, `$or`, `$not`, `$and`, plus implicit-and).
+
+Same shape as §11, applied to a different axis: §11 covers expression operators in pipeline stages; §21 covers query operators in update/find features that take a query expression. Container-specific contracts (rejections, no-ops, shape constraints) live in the container's own test files alongside its other behavior.
+
+---
+
 ## Test Category Checklist
 
 For any DocumentDB feature, ensure coverage of:
@@ -509,6 +589,7 @@ For any DocumentDB feature, ensure coverage of:
 - [ ] **Underflow handling**: `INT32_MIN`, `INT64_MIN` boundaries
 - [ ] **Decimal128 precision**: high precision, boundaries (if applicable)
 - [ ] **Error codes**: correct error codes for invalid operations
+- [ ] **Undocumented type coercion**: per command — when the engine accepts more types than the spec documents (numeric→bool, whole-double→int, null-as-omitted, etc.), mirror the canonical matrix from the most thoroughly-tested consumer (§20)
 - [ ] **Numeric equivalence**: equivalent values across numeric types grouped/matched correctly (if applicable)
 - [ ] **BSON type distinction**: different BSON types treated as distinct (if applicable)
 - [ ] **Pipeline stage interaction**: interaction with preceding/following stages (if pipeline stage)
