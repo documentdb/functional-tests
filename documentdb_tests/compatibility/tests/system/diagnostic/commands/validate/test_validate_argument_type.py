@@ -71,10 +71,22 @@ INVALID_TYPE_TESTS: list[DiagnosticTestCase] = [
         msg="validate should reject object for collection name",
     ),
     DiagnosticTestCase(
+        "empty_object",
+        command={"validate": {}},
+        error_code=INVALID_NAMESPACE_ERROR,
+        msg="validate should reject empty object for collection name",
+    ),
+    DiagnosticTestCase(
         "array",
         command={"validate": [1, 2]},
         error_code=INVALID_NAMESPACE_ERROR,
         msg="validate should reject array for collection name",
+    ),
+    DiagnosticTestCase(
+        "empty_array",
+        command={"validate": []},
+        error_code=INVALID_NAMESPACE_ERROR,
+        msg="validate should reject empty array for collection name",
     ),
     DiagnosticTestCase(
         "binary",

@@ -46,13 +46,13 @@ def test_validate_numeric_looking_collection_name(database_client, collection):
 
 
 def test_validate_large_document_count(collection):
-    """Test validate with 1000 documents reports correct nrecords."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(1000)])
+    """Test validate with 1_000 documents reports correct nrecords."""
+    collection.insert_many([{"_id": i, "x": i} for i in range(1_000)])
     result = execute_command(collection, {"validate": collection.name})
     assertSuccessPartial(
         result,
-        {"ok": 1.0, "valid": True, "nrecords": 1000},
-        msg="nrecords should be 1000 for 1000 inserted documents",
+        {"ok": 1.0, "valid": True, "nrecords": 1_000},
+        msg="validate should report correct nrecords for large document count",
     )
 
 
@@ -73,7 +73,7 @@ def test_validate_document_with_all_bson_types(collection):
             "regex_val": Regex("test"),
             "int32_val": 42,
             "timestamp_val": Timestamp(1, 1),
-            "int64_val": Int64(123456789),
+            "int64_val": Int64(123_456_789),
             "decimal128_val": Decimal128("1.23"),
             "minkey_val": MinKey(),
             "maxkey_val": MaxKey(),
@@ -126,7 +126,7 @@ def test_validate_documents_with_binary_data(collection):
     collection.insert_many(
         [
             {"_id": 1, "data": Binary(b"small")},
-            {"_id": 2, "data": Binary(b"\x00" * 1024)},
+            {"_id": 2, "data": Binary(b"\x00" * 1_024)},
         ]
     )
     result = execute_command(collection, {"validate": collection.name})
