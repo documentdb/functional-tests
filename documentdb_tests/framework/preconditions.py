@@ -44,6 +44,7 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
         "cluster-wide admin features are available (query settings, default RW concern, user "
         "write-block mode, query sampling)"
     ),
+    "unforced_compact": "compact succeeds without force",
 }
 
 # The capabilities each (engine, topology) target has. To add an engine or
@@ -55,6 +56,11 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "transactions",
             "queryable_encryption",
             "cluster_admin",
+        }
+    ),
+    ("mongodb", "standalone"): frozenset(
+        {
+            "unforced_compact",
         }
     ),
 }
