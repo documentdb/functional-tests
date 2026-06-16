@@ -14,11 +14,11 @@ pytestmark = pytest.mark.smoke
 
 def test_smoke_min(collection):
     """Test basic $min behavior."""
-    collection.insert_one({"_id": 1, "score": 10})
+    collection.insert_one({"_id": 1, "value": 100})
 
     result = execute_command(
         collection,
-        {"update": collection.name, "updates": [{"q": {"_id": 1}, "u": {"$min": {"score": 5}}}]},
+        {"update": collection.name, "updates": [{"q": {"_id": 1}, "u": {"$min": {"value": 50}}}]},
     )
     expected = {"n": 1, "nModified": 1, "ok": 1.0}
     assertSuccessPartial(result, expected, msg="Should support $min operator")

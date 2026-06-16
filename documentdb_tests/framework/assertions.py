@@ -457,9 +457,10 @@ def assertProperties(
                     _run_checks(check, full_path)
                 else:
                     actual = _walk_path(doc, full_path)
-                    err = check.check(actual, full_path)
-                    if err:
-                        failures.append(f"{doc_prefix}{err}")
+                    for one in check if isinstance(check, list) else [check]:
+                        err = one.check(actual, full_path)
+                        if err:
+                            failures.append(f"{doc_prefix}{err}")
 
         _run_checks(doc_checks)
 

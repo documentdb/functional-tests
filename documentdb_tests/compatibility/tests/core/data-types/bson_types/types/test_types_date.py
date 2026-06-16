@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from bson.datetime_ms import DatetimeMS
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -141,6 +142,18 @@ DATE_ROUND_TRIP_TESTS: list[RoundTripTestCase] = [
         value=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone(timedelta(hours=-5))),
         expected=datetime(2024, 6, 15, 17, 0, 0, tzinfo=timezone.utc),
         msg="Non-UTC date should be stored as equivalent UTC instant",
+    ),
+    RoundTripTestCase(
+        "datetime_ms_epoch",
+        value=DatetimeMS(0),
+        expected=datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+        msg="DatetimeMS epoch should be decoded as the UTC epoch datetime.",
+    ),
+    RoundTripTestCase(
+        "datetime_ms_before_epoch",
+        value=DatetimeMS(-1),
+        expected=datetime(1969, 12, 31, 23, 59, 59, 999000, tzinfo=timezone.utc),
+        msg="DatetimeMS before epoch should be decoded as the equivalent UTC datetime.",
     ),
 ]
 
