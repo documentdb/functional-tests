@@ -18,3 +18,6 @@ def test_smoke_startSession(collection):
 
     expected = {"ok": 1.0}
     assertSuccessPartial(result, expected, msg="Should support startSession command")
+
+    if isinstance(result, dict) and "id" in result:
+        collection.database.command({"endSessions": [result["id"]]})
