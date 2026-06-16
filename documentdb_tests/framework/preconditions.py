@@ -45,6 +45,7 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
         "write-block mode, query sampling)"
     ),
     "unforced_compact": "compact succeeds without force",
+    "reindex": "reIndex is permitted",
 }
 
 # The capabilities each (engine, topology) target has. To add an engine or
@@ -61,6 +62,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
     ("mongodb", "standalone"): frozenset(
         {
             "unforced_compact",
+            "reindex",
         }
     ),
 }
