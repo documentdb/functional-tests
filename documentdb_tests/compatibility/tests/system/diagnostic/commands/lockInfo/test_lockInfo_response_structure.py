@@ -1,7 +1,8 @@
 """Tests for lockInfo command response structure.
 
 Verifies the top-level structure of the lockInfo response: ok field and
-lockInfo array field.
+lockInfo array field. Also verifies the structure of individual lock entries
+using an fsync lock to guarantee a non-empty snapshot.
 """
 
 import pytest

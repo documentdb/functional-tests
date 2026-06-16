@@ -1,7 +1,6 @@
 """Tests for lockInfo command argument validation.
 
-Verifies that lockInfo accepts various values for the command field and
-rejects unrecognized fields with error code 40415.
+Verifies that lockInfo accepts any BSON type for the command field value.
 """
 
 import pytest
