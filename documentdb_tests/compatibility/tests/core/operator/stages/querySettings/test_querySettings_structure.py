@@ -191,6 +191,7 @@ def _teardown_query_settings(collection: Collection, query_settings: list[dict[s
 
 @pytest.mark.aggregate
 @pytest.mark.replica_set
+@pytest.mark.no_parallel
 @pytest.mark.parametrize("test_case", pytest_params(QUERYSETTINGS_STRUCTURE_TESTS))
 def test_querySettings_structure(collection: Collection, test_case: QuerySettingsStructureTestCase):
     """Test $querySettings returned document structure."""
