@@ -16,7 +16,7 @@ from bson import (
     Timestamp,
 )
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -27,11 +27,11 @@ from documentdb_tests.framework.error_codes import (
     ENCRYPTED_FIELD_DUPLICATE_PATH_ERROR,
     ENCRYPTED_FIELD_EMPTY_PATH_ERROR,
     ENCRYPTED_FIELD_ID_PATH_ERROR,
-    ENCRYPTED_FIELD_NULL_BYTE_PATH_ERROR,
     ENCRYPTED_FIELD_UNSUPPORTED_TYPE_ERROR,
     ENCRYPTED_FIELD_VIEW_TIMESERIES_ERROR,
     INVALID_UUID_ERROR,
     MISSING_FIELD_ERROR,
+    NULL_BYTE_PATH_ERROR,
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -148,7 +148,7 @@ CREATE_ENCRYPTED_FIELDS_PATH_ERROR_TESTS: list[CommandTestCase] = [
                 "fields": [{"path": "test\x00field", "keyId": Binary(uuid4().bytes, 4)}]
             },
         },
-        error_code=ENCRYPTED_FIELD_NULL_BYTE_PATH_ERROR,
+        error_code=NULL_BYTE_PATH_ERROR,
         msg="null byte in path should fail",
     ),
 ]
