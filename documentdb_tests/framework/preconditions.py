@@ -41,11 +41,21 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
     "transactions": "multi-document transactions are available",
     "queryable_encryption": "encryptedFields / queryable encryption is available",
     "cluster_admin": (
-        "cluster-wide admin features are available (query settings, default RW concern, user "
-        "write-block mode, query sampling)"
+        "cluster-wide admin features are available (query settings, default RW concern, "
+        "user write-block mode, query sampling)"
+    ),
+    "cluster_time": "$$CLUSTER_TIME resolves rather than being unavailable",
+    "cluster_read_concern": (
+        "replication-dependent read concern (afterClusterTime, linearizable, snapshot) "
+        "is accepted rather than rejected"
+    ),
+    "quorum_write_concern": (
+        "a quorum write concern is accepted (reported as a writeConcernError) rather than "
+        "rejected up front"
     ),
     "unforced_compact": "compact succeeds without force",
     "reindex": "reIndex is permitted",
+    "local_rename": "renaming into the unreplicated local database is permitted",
 }
 
 # The capabilities each (engine, topology) target has. To add an engine or
@@ -57,12 +67,16 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "transactions",
             "queryable_encryption",
             "cluster_admin",
+            "cluster_time",
+            "cluster_read_concern",
+            "quorum_write_concern",
         }
     ),
     ("mongodb", "standalone"): frozenset(
         {
             "unforced_compact",
             "reindex",
+            "local_rename",
         }
     ),
 }
@@ -88,9 +102,7 @@ def _check_consistency() -> None:
         mapped |= capabilities
     unknown = mapped - described
     if unknown:
-        raise RuntimeError(
-            f"profile table references undescribed capabilities: {sorted(unknown)}"
-        )
+        raise RuntimeError(f"profile table references undescribed capabilities: {sorted(unknown)}")
     unsatisfiable = described - mapped
     if unsatisfiable:
         raise RuntimeError(
@@ -119,8 +131,7 @@ def marker_spec() -> str:
     """Return the pytest marker definition line for the ``requires`` marker."""
     return (
         "requires(**capabilities): gate a test on capabilities the target must have "
-        "(name=True) or lack (name=False); known names: "
-        + ", ".join(sorted(CAPABILITIES))
+        "(name=True) or lack (name=False); known names: " + ", ".join(sorted(CAPABILITIES))
     )
 
 
@@ -159,9 +170,7 @@ def detect_capabilities(engine: str, connection_string: str) -> frozenset[str]:
     return _CAPABILITIES_BY_PROFILE[profile]
 
 
-def unmet_requirements(
-    required: dict[str, bool], capabilities: frozenset[str]
-) -> dict[str, bool]:
+def unmet_requirements(required: dict[str, bool], capabilities: frozenset[str]) -> dict[str, bool]:
     """Return the subset of ``required`` the target's capabilities do not meet.
 
     ``required`` maps a capability name to whether the test needs it present
@@ -171,11 +180,7 @@ def unmet_requirements(
     """
     unknown = set(required) - CAPABILITIES
     if unknown:
-        raise RuntimeError(
-            f"requires(...) names unknown capabilities: {sorted(unknown)}"
-        )
+        raise RuntimeError(f"requires(...) names unknown capabilities: {sorted(unknown)}")
     return {
-        name: expected
-        for name, expected in required.items()
-        if (name in capabilities) != expected
+        name: expected for name, expected in required.items() if (name in capabilities) != expected
     }
