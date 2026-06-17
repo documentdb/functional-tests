@@ -58,6 +58,12 @@ ARGUMENT_TYPE_TESTS: list[DiagnosticTestCase] = [
         msg="whatsmyuri should accept string",
     ),
     DiagnosticTestCase(
+        "empty_string",
+        command={"whatsmyuri": ""},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept empty string",
+    ),
+    DiagnosticTestCase(
         "null",
         command={"whatsmyuri": None},
         checks={"ok": Eq(1.0)},
@@ -70,16 +76,40 @@ ARGUMENT_TYPE_TESTS: list[DiagnosticTestCase] = [
         msg="whatsmyuri should accept empty object",
     ),
     DiagnosticTestCase(
+        "nested_object",
+        command={"whatsmyuri": {"a": {"b": 1}}},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept nested object",
+    ),
+    DiagnosticTestCase(
         "empty_array",
         command={"whatsmyuri": []},
         checks={"ok": Eq(1.0)},
         msg="whatsmyuri should accept empty array",
     ),
     DiagnosticTestCase(
+        "array_with_elements",
+        command={"whatsmyuri": [1, 2, 3]},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept array with elements",
+    ),
+    DiagnosticTestCase(
         "double",
         command={"whatsmyuri": 1.5},
         checks={"ok": Eq(1.0)},
         msg="whatsmyuri should accept double",
+    ),
+    DiagnosticTestCase(
+        "negative_double",
+        command={"whatsmyuri": -1.5},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept negative double",
+    ),
+    DiagnosticTestCase(
+        "large_int",
+        command={"whatsmyuri": 999_999_999},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept large int",
     ),
     DiagnosticTestCase(
         "int64",
@@ -100,10 +130,34 @@ ARGUMENT_TYPE_TESTS: list[DiagnosticTestCase] = [
         msg="whatsmyuri should accept decimal128 NaN",
     ),
     DiagnosticTestCase(
+        "decimal128_infinity",
+        command={"whatsmyuri": Decimal128("Infinity")},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept decimal128 Infinity",
+    ),
+    DiagnosticTestCase(
+        "decimal128_neg_zero",
+        command={"whatsmyuri": Decimal128("-0")},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept decimal128 negative zero",
+    ),
+    DiagnosticTestCase(
         "infinity",
         command={"whatsmyuri": float("inf")},
         checks={"ok": Eq(1.0)},
         msg="whatsmyuri should accept infinity",
+    ),
+    DiagnosticTestCase(
+        "neg_infinity",
+        command={"whatsmyuri": float("-inf")},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept negative infinity",
+    ),
+    DiagnosticTestCase(
+        "nan",
+        command={"whatsmyuri": float("nan")},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept NaN",
     ),
     DiagnosticTestCase(
         "date",
