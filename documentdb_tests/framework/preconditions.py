@@ -148,9 +148,7 @@ def detect_capabilities(engine: str, connection_string: str) -> frozenset[str]:
     set is empty, so capability-gated tests skip rather than error.
     """
     try:
-        client: MongoClient = MongoClient(
-            connection_string, serverSelectionTimeoutMS=5000, directConnection=True
-        )
+        client: MongoClient = MongoClient(connection_string, serverSelectionTimeoutMS=5000)
     except Exception:
         return frozenset()
 
