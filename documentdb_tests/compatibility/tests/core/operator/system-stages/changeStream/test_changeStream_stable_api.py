@@ -58,7 +58,7 @@ CHANGESTREAM_STABLE_API_V1_TESTS: list[StageTestCase] = [
 ]
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_STABLE_API_V1_TESTS))
 def test_changeStream_stable_api_v1(collection, test_case):

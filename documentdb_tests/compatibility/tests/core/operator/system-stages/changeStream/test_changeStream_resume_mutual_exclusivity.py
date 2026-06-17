@@ -45,7 +45,7 @@ CHANGESTREAM_RESUME_MUTUAL_EXCLUSIVITY_TESTS: list[StageTestCase] = [
 ]
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_RESUME_MUTUAL_EXCLUSIVITY_TESTS))
 def test_changeStream_resume_option_mutual_exclusivity(collection, test_case):

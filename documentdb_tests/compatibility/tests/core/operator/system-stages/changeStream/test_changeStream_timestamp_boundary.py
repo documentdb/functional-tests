@@ -56,7 +56,7 @@ CHANGESTREAM_TIMESTAMP_BOUNDARY_TESTS: list[ChangeStreamTimestampTestCase] = [
 ]
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_TIMESTAMP_BOUNDARY_TESTS))
 def test_changeStream_timestamp_boundary_collection_scope(
@@ -76,7 +76,7 @@ def test_changeStream_timestamp_boundary_collection_scope(
     assertResult(result, expected=test_case.expected, msg=test_case.msg, raw_res=True)
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_TIMESTAMP_BOUNDARY_TESTS))
 def test_changeStream_timestamp_boundary_database_scope(
@@ -98,7 +98,7 @@ def test_changeStream_timestamp_boundary_database_scope(
     assertResult(result, expected=test_case.expected, msg=test_case.msg, raw_res=True)
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_TIMESTAMP_BOUNDARY_TESTS))
 def test_changeStream_timestamp_boundary_cluster_scope(

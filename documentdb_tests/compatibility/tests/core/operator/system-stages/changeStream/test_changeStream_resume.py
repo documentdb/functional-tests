@@ -21,7 +21,7 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.property_checks import Eq, Len
 
-pytestmark = [pytest.mark.replica_set, pytest.mark.aggregate]
+pytestmark = [pytest.mark.requires(change_streams=True), pytest.mark.aggregate]
 
 
 # Token capture helpers. A resume token must be captured from a real stream

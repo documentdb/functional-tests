@@ -33,7 +33,7 @@ CHANGESTREAM_EVENT_READ_ERROR_TESTS: list[StageTestCase] = [
 ]
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_EVENT_READ_ERROR_TESTS))
 def test_changeStream_required_image_event_read_error(collection, test_case):

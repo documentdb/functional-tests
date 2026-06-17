@@ -85,7 +85,7 @@ CHANGESTREAM_NAMESPACE_SCOPE_TESTS: list[CommandTestCase] = [
 ]
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test", pytest_params(CHANGESTREAM_NAMESPACE_SCOPE_TESTS))
 def test_changeStream_namespace_scope(database_client, collection, register_db_cleanup, test):

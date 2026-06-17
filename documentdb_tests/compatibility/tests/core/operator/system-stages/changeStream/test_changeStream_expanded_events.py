@@ -262,7 +262,7 @@ def _emit_ddl_result(collection, database_client, test_case: ChangeStreamGatingT
     )
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_EXPANDED_EVENT_TESTS))
 def test_changeStream_showExpandedEvents_event_gating(

@@ -10,7 +10,7 @@ cannot reliably force.)
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from bson import Timestamp
@@ -33,7 +33,7 @@ def _oldest_oplog_ts(collection) -> Timestamp:
         .limit(1)
         .next()["ts"]
     )
-    return oldest
+    return cast(Timestamp, oldest)
 
 
 @dataclass(frozen=True)
@@ -84,7 +84,7 @@ CHANGESTREAM_EARLY_START_TESTS: list[ChangeStreamEarlyStartTestCase] = [
 ]
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_EARLY_START_TESTS))
 def test_changeStream_early_start_collection_scope(
@@ -101,7 +101,7 @@ def test_changeStream_early_start_collection_scope(
     assertResult(result, expected=test_case.expected, msg=test_case.msg, raw_res=True)
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_EARLY_START_TESTS))
 def test_changeStream_early_start_database_scope(
@@ -120,7 +120,7 @@ def test_changeStream_early_start_database_scope(
     assertResult(result, expected=test_case.expected, msg=test_case.msg, raw_res=True)
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_EARLY_START_TESTS))
 def test_changeStream_early_start_cluster_scope(

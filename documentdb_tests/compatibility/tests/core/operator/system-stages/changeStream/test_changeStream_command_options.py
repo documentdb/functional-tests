@@ -61,7 +61,7 @@ CHANGESTREAM_COMMAND_OPTION_TESTS: list[CommandTestCase] = [
 ]
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test", pytest_params(CHANGESTREAM_COMMAND_OPTION_TESTS))
 def test_changeStream_command_options(database_client, collection, test):

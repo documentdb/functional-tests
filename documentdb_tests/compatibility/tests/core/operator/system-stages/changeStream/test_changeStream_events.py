@@ -455,7 +455,7 @@ def _emit_event(collection, test_case: ChangeStreamEventTestCase) -> dict[str, A
     return event
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_EVENT_STRUCTURE_TESTS))
 def test_changeStream_event_structure(collection, test_case: ChangeStreamEventTestCase):

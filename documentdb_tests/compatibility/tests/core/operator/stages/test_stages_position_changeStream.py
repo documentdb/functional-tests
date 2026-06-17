@@ -271,7 +271,7 @@ CHANGESTREAM_POSITION_TESTS = (
 )
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test", pytest_params(CHANGESTREAM_POSITION_TESTS))
 def test_changeStream_position(

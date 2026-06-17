@@ -130,7 +130,7 @@ CHANGESTREAM_NAMESPACE_ERROR_TESTS = (
 )
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test", pytest_params(CHANGESTREAM_NAMESPACE_ERROR_TESTS))
 def test_changeStream_namespace_errors(database_client, collection, test):

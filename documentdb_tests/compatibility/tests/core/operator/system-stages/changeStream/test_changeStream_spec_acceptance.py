@@ -181,7 +181,7 @@ CHANGESTREAM_SUCCESS_TESTS = (
 )
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_SUCCESS_TESTS))
 def test_changeStream_cases(collection, test_case: StageTestCase):
@@ -197,7 +197,7 @@ def test_changeStream_cases(collection, test_case: StageTestCase):
 # null does not count as a second resume point, so pairing it with another
 # present resume token opens successfully rather than tripping resume-option
 # mutual exclusivity. This holds for every (present token, null option) pairing.
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize(
     "present_field,null_field",
