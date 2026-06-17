@@ -15,7 +15,6 @@ from utils.changeStream_common import change_stream_command, get_more_command
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     CHANGE_STREAM_FATAL_ERROR,
-    CHANGE_STREAM_HISTORY_LOST_ERROR,
     INVALID_RESUME_TOKEN_ERROR,
     OVERFLOW_ERROR,
 )
@@ -64,7 +63,7 @@ def _high_water_mark(collection):
     return _open_stream(collection)["cursor"]["postBatchResumeToken"]
 
 
-def _evicted_token(collection):
+def _pre_oplog_token(collection):
     """Return a token whose captured cluster time predates the oplog window.
 
     Rewrites the cluster-time seconds (four bytes after the version byte) of a
@@ -201,10 +200,12 @@ def test_resume_regular_token_under_show_expanded_events(collection):
     )
 
 
-# Property [Resume After Evicted]: resumeAfter an evicted token fails as history lost.
-def test_resume_after_evicted_token(collection):
-    """Test $changeStream resumeAfter from an evicted token."""
-    token = _evicted_token(collection)
+# Property [Resume After Pre-Oplog]: resumeAfter a token whose cluster time
+# predates the oplog window is accepted, opening from the earliest available
+# event rather than being rejected.
+def test_resume_after_pre_oplog_token(collection):
+    """Test $changeStream resumeAfter from a token predating the oplog window."""
+    token = _pre_oplog_token(collection)
 
     result = execute_command(
         collection,
@@ -213,16 +214,18 @@ def test_resume_after_evicted_token(collection):
 
     assertResult(
         result,
-        error_code=CHANGE_STREAM_HISTORY_LOST_ERROR,
-        msg="$changeStream resumeAfter should reject an evicted token as history lost",
+        expected={"ok": Eq(1.0)},
+        msg="$changeStream resumeAfter should accept a token predating the oplog window",
         raw_res=True,
     )
 
 
-# Property [Start After Evicted]: startAfter an evicted token fails as history lost.
-def test_start_after_evicted_token(collection):
-    """Test $changeStream startAfter from an evicted token."""
-    token = _evicted_token(collection)
+# Property [Start After Pre-Oplog]: startAfter a token whose cluster time
+# predates the oplog window is accepted, opening from the earliest available
+# event rather than being rejected.
+def test_start_after_pre_oplog_token(collection):
+    """Test $changeStream startAfter from a token predating the oplog window."""
+    token = _pre_oplog_token(collection)
 
     result = execute_command(
         collection,
@@ -231,8 +234,8 @@ def test_start_after_evicted_token(collection):
 
     assertResult(
         result,
-        error_code=CHANGE_STREAM_HISTORY_LOST_ERROR,
-        msg="$changeStream startAfter should reject an evicted token as history lost",
+        expected={"ok": Eq(1.0)},
+        msg="$changeStream startAfter should accept a token predating the oplog window",
         raw_res=True,
     )
 
