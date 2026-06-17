@@ -124,9 +124,21 @@ jobs:
             # Bring a replica-set target up to a writable primary so topology
             # detection classifies it correctly (collection does not initiate).
             python -m documentdb_tests.framework.engine_registry
+            # Collect the crash tests not deselected against this target. No
+            # crash test applying to a target is a valid outcome: pytest then
+            # exits 5 (no tests collected), which is not an error here. Any
+            # other non-zero exit is a real collection failure and fails the job.
+            set +e
             pytest documentdb_tests/compatibility/tests \
               --collect-only -m engine_xcrash --run-crash-tests -q > collect.out
+            STATUS=$?
+            set -e
             docker compose -f dev/compose.yaml --profile "$PROFILE" down
+            if [ "$STATUS" -ne 0 ] && [ "$STATUS" -ne 5 ]; then
+              cat collect.out
+              echo "::error::Collecting crash tests for $PROFILE failed (exit $STATUS)"
+              exit 1
+            fi
             TESTS=$(grep '<Function' collect.out \
               | sed 's/.*<Function \(.*\)>/\1/' \
               | jq -R -s -c 'split("\n") | map(select(length > 0))')
