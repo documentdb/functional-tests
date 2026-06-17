@@ -5,106 +5,14 @@ on:
     branches: [main]
 
 jobs:
-  test-mongo-standalone:
-    name: Tests (mongo-standalone)
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Start mongo-standalone target
-        run: docker compose -f dev/compose.yaml --profile mongo-standalone up -d --wait
-
-      - name: Run compatibility tests against mongo-standalone
-        run: |
-          pytest documentdb_tests/compatibility/tests \
-            --connection-string "mongodb://localhost:27017" \
-            --engine-name mongodb \
-            -n auto \
-            -v \
-            --json-report --json-report-file=${{ github.workspace }}/.test-results/mongo-standalone-report.json \
-            --junitxml=${{ github.workspace }}/.test-results/mongo-standalone-results.xml
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results-mongo-standalone
-          include-hidden-files: true
-          path: ${{ github.workspace }}/.test-results/
-          if-no-files-found: warn
-
-      - name: Generate test summary
-        if: always()
-        run: |
-          if [ -f ${{ github.workspace }}/.test-results/mongo-standalone-report.json ]; then
-            python -m documentdb_tests.compatibility.result_analyzer -i ${{ github.workspace }}/.test-results/mongo-standalone-report.json -o ${{ github.workspace }}/.test-results/mongo-standalone-analysis.txt -f text || true
-            echo "## mongo-standalone Test Results" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat ${{ github.workspace }}/.test-results/mongo-standalone-analysis.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          fi
-
-  test-mongo-replset:
-    name: Tests (mongo-replset)
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Start mongo-replset target
-        run: docker compose -f dev/compose.yaml --profile mongo-replset up -d --wait
-
-      - name: Run capability tests against mongo-replset
-        run: |
-          pytest documentdb_tests/compatibility/tests \
-            -m "requires_change_streams or requires_transactions or requires_queryable_encryption or requires_cluster_admin" \
-            --connection-string "mongodb://localhost:27018/?directConnection=true" \
-            --engine-name mongodb \
-            -n auto \
-            -v \
-            --json-report --json-report-file=${{ github.workspace }}/.test-results/mongo-replset-report.json \
-            --junitxml=${{ github.workspace }}/.test-results/mongo-replset-results.xml
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results-mongo-replset
-          include-hidden-files: true
-          path: ${{ github.workspace }}/.test-results/
-          if-no-files-found: warn
-
-      - name: Generate test summary
-        if: always()
-        run: |
-          if [ -f ${{ github.workspace }}/.test-results/mongo-replset-report.json ]; then
-            python -m documentdb_tests.compatibility.result_analyzer -i ${{ github.workspace }}/.test-results/mongo-replset-report.json -o ${{ github.workspace }}/.test-results/mongo-replset-analysis.txt -f text || true
-            echo "## mongo-replset Test Results" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat ${{ github.workspace }}/.test-results/mongo-replset-analysis.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          fi
-
-  collect-xcrash:
-    name: Collect crash tests
+  # Derive the test matrix from dev/compose.yaml so targets are declared in one
+  # place. Each entry has the target name, its compose profile, connection
+  # string, and engine name.
+  discover-targets:
+    name: Discover test targets
     runs-on: ubuntu-latest
     outputs:
-      tests: ${{ steps.collect.outputs.tests }}
+      targets: ${{ steps.matrix.outputs.targets }}
     steps:
       - uses: actions/checkout@v6
 
@@ -115,27 +23,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Collect engine_xcrash test IDs
-        id: collect
+      - name: Build target matrix from compose
+        id: matrix
         run: |
-          TESTS=$(pytest documentdb_tests/compatibility/tests \
-            --connection-string mongodb://localhost:27017 \
-            --engine-name mongodb \
-            --collect-only -m engine_xcrash 2>/dev/null \
-            | grep '<Function' \
-            | sed 's/.*<Function \(.*\)>/\1/' \
-            | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          echo "tests=$TESTS" >> "$GITHUB_OUTPUT"
+          TARGETS=$(python -m documentdb_tests.framework.ci_matrix)
+          echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
 
-  test-mongo-xcrash:
-    name: "Crash Test: ${{ matrix.test }}"
-    needs: collect-xcrash
-    if: needs.collect-xcrash.outputs.tests != '[]'
+  test:
+    name: "Tests (${{ matrix.target.name }})"
+    needs: discover-targets
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        test: ${{ fromJson(needs.collect-xcrash.outputs.tests) }}
+        target: ${{ fromJson(needs.discover-targets.outputs.targets) }}
 
     steps:
       - uses: actions/checkout@v6
@@ -147,19 +48,116 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Start mongo-standalone target
-        run: docker compose -f dev/compose.yaml --profile mongo-standalone up -d --wait
+      - name: Start ${{ matrix.target.name }} target
+        run: docker compose -f dev/compose.yaml --profile ${{ matrix.target.profile }} up -d --wait
 
-      - name: "Run: ${{ matrix.test }}"
+      - name: Run compatibility tests against ${{ matrix.target.name }}
         run: |
-          # Run the test expecting it to crash the server (non-zero exit).
-          # If pytest exits 0, the test passed - meaning the bug is fixed
-          # and the engine_xcrash marker should be removed.
+          pytest documentdb_tests/compatibility/tests \
+            --connection-string "${{ matrix.target.connection_string }}" \
+            --engine-name "${{ matrix.target.engine }}" \
+            -n auto \
+            -v \
+            --json-report --json-report-file=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-report.json \
+            --junitxml=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.target.name }}
+          include-hidden-files: true
+          path: ${{ github.workspace }}/.test-results/
+          if-no-files-found: warn
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          REPORT=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-report.json
+          ANALYSIS=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-analysis.txt
+          if [ -f "$REPORT" ]; then
+            python -m documentdb_tests.compatibility.result_analyzer -i "$REPORT" -o "$ANALYSIS" -f text || true
+            echo "## ${{ matrix.target.name }} Test Results" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat "$ANALYSIS" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Crash tests kill the server, so each runs in isolation in its own job. They
+  # are engine-dependent (gated by engine_xcrash(engine=...)) and not topology-
+  # dependent, so the probe runs once per distinct engine rather than per target.
+  discover-xcrash:
+    name: Collect crash tests
+    runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.collect.outputs.tests }}
+      engines: ${{ steps.engines.outputs.engines }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build engine matrix from compose
+        id: engines
+        run: |
+          ENGINES=$(python -m documentdb_tests.framework.ci_matrix engines)
+          echo "engines=$ENGINES" >> "$GITHUB_OUTPUT"
+
+      - name: Collect engine_xcrash test IDs
+        id: collect
+        run: |
+          # Collection only reads test files, so no database is needed. Running
+          # it as its own command lets a collection failure fail the job (the
+          # shell runs with -e). The output is then parsed for crash-test IDs;
+          # zero matches means there are no crash tests, which is valid.
+          pytest documentdb_tests/compatibility/tests \
+            --collect-only -m engine_xcrash > collect.out
+          TESTS=$(grep '<Function' collect.out \
+            | sed 's/.*<Function \(.*\)>/\1/' \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "tests=$TESTS" >> "$GITHUB_OUTPUT"
+
+  test-xcrash:
+    name: "Crash Test: ${{ matrix.engine.engine }} / ${{ matrix.test }}"
+    needs: discover-xcrash
+    if: needs.discover-xcrash.outputs.tests != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: ${{ fromJson(needs.discover-xcrash.outputs.engines) }}
+        test: ${{ fromJson(needs.discover-xcrash.outputs.tests) }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start a ${{ matrix.engine.engine }} server
+        run: docker compose -f dev/compose.yaml --profile ${{ matrix.engine.profile }} up -d --wait
+
+      - name: "Run: ${{ matrix.test }} against ${{ matrix.engine.engine }}"
+        run: |
+          # Run the test with a probe engine name that does NOT match the
+          # engine_xcrash marker, so the harness does not skip it and the test
+          # actually executes. It is expected to crash the server (non-zero
+          # exit), which is success. If pytest exits 0 the test passed - the bug
+          # is fixed and the engine_xcrash marker should be removed.
           if pytest documentdb_tests/compatibility/tests \
             -m engine_xcrash -k "${{ matrix.test }}" \
-            --connection-string "mongodb://localhost:27017" \
-            --engine-name mongodb-xcrash-probe \
+            --connection-string "${{ matrix.engine.connection_string }}" \
+            --engine-name "${{ matrix.engine.engine }}-xcrash-probe" \
             --timeout=10 -v; then
-            echo "::error::Test passed unexpectedly - server bug may be fixed, remove engine_xcrash marker"
+            echo "::error::Test passed unexpectedly on ${{ matrix.engine.engine }} - server bug may be fixed, remove engine_xcrash marker"
             exit 1
           fi
