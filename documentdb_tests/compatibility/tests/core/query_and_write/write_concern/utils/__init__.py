@@ -33,5 +33,6 @@ def build_cmd(cmd: str, ctx, wc) -> dict:
 
 # Commands to test exhaustively for writeConcern validation.
 # insert excluded: already has dedicated tests at commands/insert/test_insert_write_concern.py.
-# bulkWrite excluded: admin-database command with different infrastructure (nsInfo, ops array).
+# bulkWrite excluded: the MongoDB 8.0+ server-level bulkWrite command uses admin database
+# with nsInfo/ops arrays, requiring fundamentally different command construction.
 WRITE_COMMANDS = ["update", "delete", "findAndModify"]

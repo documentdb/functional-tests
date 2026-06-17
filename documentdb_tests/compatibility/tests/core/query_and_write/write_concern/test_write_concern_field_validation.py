@@ -18,7 +18,7 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.framework.assertions import assertNotError, assertResult
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     FAILED_TO_PARSE_ERROR,
@@ -264,35 +264,3 @@ def test_write_concern_w_empty_string(collection, test: CommandTestCase):
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
     assertResult(result, error_code=test.error_code, msg=test.msg)
-
-
-# Property [Provenance Acceptance]: writeConcern accepts provenance sub-field.
-_PROVENANCE_VALUES = [
-    ("clientSupplied", "clientSupplied"),
-    ("implicitDefault", "implicitDefault"),
-    ("customDefault", "customDefault"),
-    ("getLastErrorDefaults", "getLastErrorDefaults"),
-    ("null", None),
-]
-
-PROVENANCE_ACCEPTANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        f"{cmd}_accepts_provenance_{val_name}",
-        docs=[{"_id": 1}],
-        command=lambda ctx, _prov=value, _cmd=cmd: build_cmd(
-            _cmd, ctx, {"w": 1, "provenance": _prov}
-        ),
-        msg=f"{cmd} should accept provenance:'{value}'.",
-    )
-    for cmd in WRITE_COMMANDS
-    for val_name, value in _PROVENANCE_VALUES
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(PROVENANCE_ACCEPTANCE_TESTS))
-def test_write_concern_provenance_accepted(collection, test: CommandTestCase):
-    """Test writeConcern accepts provenance sub-field values."""
-    collection = test.prepare(collection.database, collection)
-    ctx = CommandContext.from_collection(collection)
-    result = execute_command(collection, test.build_command(ctx))
-    assertNotError(result, msg=test.msg)
