@@ -97,7 +97,7 @@ def test_listLocalSessions_invocation_error(
 # Property [Transaction Invocation Errors]: $listLocalSessions is rejected when run
 # inside a transaction. Transactions require a replica set topology.
 @pytest.mark.aggregate
-@pytest.mark.replica_set
+@pytest.mark.requires(transactions=True)
 def test_listLocalSessions_in_transaction(collection: Collection):
     """Test $listLocalSessions is rejected when run inside a transaction."""
     command = {
