@@ -317,7 +317,7 @@ COLLMOD_PIPELINE_VIEW_INCOMPATIBLE_STAGE_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"collMod": ctx.collection, "pipeline": [{"$changeStream": {}}]},
         error_code=OPTION_NOT_SUPPORTED_ON_VIEW_ERROR,
         msg="collMod should reject a $changeStream stage in a view definition",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(change_streams=True),),
     ),
     CommandTestCase(
         "change_stream_stage_unavailable",
@@ -325,6 +325,7 @@ COLLMOD_PIPELINE_VIEW_INCOMPATIBLE_STAGE_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"collMod": ctx.collection, "pipeline": [{"$changeStream": {}}]},
         error_code=CHANGE_STREAM_NOT_ALLOWED_ERROR,
         msg="collMod should reject a $changeStream stage where change streams are unavailable",
+        marks=(pytest.mark.requires(change_streams=False),),
     ),
     CommandTestCase(
         "documents_stage",

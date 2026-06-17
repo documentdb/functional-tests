@@ -263,7 +263,7 @@ COLLMOD_CAPPED_MAX_TARGET_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"collMod": "oplog.rs", "cappedMax": 1_000},
         error_code=INVALID_OPTIONS_ERROR,
         msg="collMod should reject cappedMax on the oplog",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(oplog=True),),
     ),
 ]
 

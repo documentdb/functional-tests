@@ -98,7 +98,7 @@ COLLMOD_WRITE_CONCERN_W_QUORUM_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg=f"collMod should accept a {wid} quorum writeConcern.w on a replica set",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(quorum_write_concern=True),),
     )
     for wid, val in [
         ("int_fifty", 50),
@@ -276,6 +276,7 @@ COLLMOD_WRITE_CONCERN_W_QUORUM_STANDALONE_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg=f"collMod should reject a {wid} quorum writeConcern.w up front on a standalone",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     )
     for wid, val in [
         ("int_fifty", 50),

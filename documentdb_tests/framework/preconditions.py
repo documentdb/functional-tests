@@ -53,6 +53,7 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
         "a quorum write concern is accepted (reported as a writeConcernError) rather than "
         "rejected up front"
     ),
+    "oplog": "a replicated oplog (local.oplog.rs) exists",
     "unforced_compact": "compact succeeds without force",
     "reindex": "reIndex is permitted",
     "local_rename": "renaming into the unreplicated local database is permitted",
@@ -70,6 +71,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "cluster_time",
             "cluster_read_concern",
             "quorum_write_concern",
+            "oplog",
         }
     ),
     ("mongodb", "standalone"): frozenset(
