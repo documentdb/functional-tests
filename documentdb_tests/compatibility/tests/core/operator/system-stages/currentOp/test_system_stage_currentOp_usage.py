@@ -78,7 +78,7 @@ def test_currentOp_rejects_non_first_stage(collection):
 # Property [Transaction Context Rejected]: $currentOp run inside a
 # multi-document transaction is rejected with OperationNotSupportedInTransaction.
 @pytest.mark.aggregate
-@pytest.mark.replica_set
+@pytest.mark.requires(transactions=True)
 def test_currentOp_in_transaction_error(collection):
     """Test $currentOp is rejected when run inside a multi-document transaction."""
     collection.insert_one({"_id": 1, "v": 0})

@@ -227,7 +227,7 @@ CURRENTOP_IDLE_SESSIONS_TESTS: list[CurrentOpLiveCase] = [
         ],
         expected={"n": Gte(1)},
         msg="$currentOp should report a lock-holding session when idleSessions is true",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(transactions=True),),
     ),
     CurrentOpLiveCase(
         "idle_sessions_default_reports_session",
@@ -239,7 +239,7 @@ CURRENTOP_IDLE_SESSIONS_TESTS: list[CurrentOpLiveCase] = [
         ],
         expected={"n": Gte(1)},
         msg="$currentOp should report a lock-holding session when idleSessions is omitted",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(transactions=True),),
     ),
     CurrentOpLiveCase(
         "idle_sessions_false_suppresses_session",
@@ -251,7 +251,7 @@ CURRENTOP_IDLE_SESSIONS_TESTS: list[CurrentOpLiveCase] = [
         ],
         expected=[],
         msg="$currentOp should suppress a lock-holding session when idleSessions is false",
-        marks=(pytest.mark.replica_set, pytest.mark.no_parallel),
+        marks=(pytest.mark.requires(transactions=True), pytest.mark.no_parallel),
     ),
 ]
 
@@ -284,7 +284,7 @@ CURRENTOP_EMITTED_TYPE_TESTS: list[CurrentOpLiveCase] = [
         ],
         expected=[],
         msg="$currentOp should emit only documents whose type is op, idleSession, or idleCursor",
-        marks=(pytest.mark.replica_set, pytest.mark.no_parallel),
+        marks=(pytest.mark.requires(transactions=True), pytest.mark.no_parallel),
     ),
 ]
 
@@ -350,7 +350,7 @@ CURRENTOP_IDLE_SESSION_FIELD_TESTS: list[CurrentOpLiveCase] = [
             "secs_running": NotExists(),
         },
         msg="$currentOp idleSession documents should carry the transaction sub-document and lsid",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(transactions=True),),
     ),
 ]
 
