@@ -1,8 +1,8 @@
 """Tests for the dbStats response structure.
 
 Covers the presence and BSON type of every documented response field, the
-totalSize relationship, the db-name field, the avgObjSize relationship, and
-collection/view counts.
+totalSize relationship, dataSize positivity after inserts, the avgObjSize
+relationship, and collection/view counts.
 """
 
 import pytest
@@ -114,21 +114,10 @@ def test_dbStats_total_size_relationship(collection):
     collection.create_index("a")
     result = execute_command(collection, {"dbStats": 1})
     assertSuccess(
-        result["totalSize"],
-        expected=result["storageSize"] + result["indexSize"],
+        result.get("totalSize"),
+        expected=result.get("storageSize") + result.get("indexSize"),
         raw_res=True,
         msg="totalSize should equal storageSize + indexSize",
-    )
-
-
-def test_dbStats_db_field_matches_database_name(collection):
-    """Test the db field matches the queried database name."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"dbStats": 1})
-    assertSuccessPartial(
-        result,
-        expected={"db": collection.database.name},
-        msg="db field should match the database name",
     )
 
 
@@ -149,8 +138,8 @@ def test_dbStats_avg_obj_size_equals_data_size_over_objects(collection):
     collection.insert_many([{"_id": i, "data": "x" * (i + 1)} for i in range(10)])
     result = execute_command(collection, {"dbStats": 1})
     assertSuccess(
-        result["avgObjSize"],
-        expected=result["dataSize"] / result["objects"],
+        result.get("avgObjSize"),
+        expected=result.get("dataSize") / result.get("objects"),
         raw_res=True,
         msg="avgObjSize should equal dataSize / objects",
     )

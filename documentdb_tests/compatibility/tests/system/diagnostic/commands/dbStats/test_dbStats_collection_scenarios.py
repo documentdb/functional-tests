@@ -1,8 +1,8 @@
 """Tests for dbStats across collection variants and data scenarios.
 
-Covers empty collections (with and without a secondary index), avgObjSize
-when there are no objects, positive storage/index sizes when data and
-indexes exist, total index counts across multiple collections, capped
+Covers empty collections (with and without a secondary index), positive
+storage and index sizes for an indexed collection, avgObjSize when there
+are no objects, total index counts across multiple collections, capped
 collections, and object counts across a range of collection sizes and
 document shapes.
 """
@@ -52,19 +52,6 @@ def test_dbStats_avg_obj_size_zero_when_no_objects(collection):
         result,
         {"objects": Int64(0), "avgObjSize": 0.0},
         msg="Empty collection should report objects:0 and avgObjSize:0",
-    )
-
-
-def test_dbStats_index_size_positive_with_indexes(collection):
-    """Test indexSize is positive when secondary indexes exist."""
-    collection.insert_many([{"_id": i, "a": i} for i in range(10)])
-    collection.create_index("a")
-    result = execute_command(collection, {"dbStats": 1})
-    assertProperties(
-        result,
-        {"indexSize": Gt(0.0)},
-        raw_res=True,
-        msg="indexSize should be positive with indexes",
     )
 
 

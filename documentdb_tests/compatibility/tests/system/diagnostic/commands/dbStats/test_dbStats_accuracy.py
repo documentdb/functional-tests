@@ -62,7 +62,7 @@ def test_dbStats_storage_size_does_not_decrease_after_delete(collection):
     after = execute_command(collection, {"dbStats": 1})
     assertProperties(
         after,
-        {"storageSize": Gte(before["storageSize"])},
+        {"storageSize": Gte(before.get("storageSize"))},
         raw_res=True,
         msg="storageSize should not decrease after deletes",
     )
@@ -76,7 +76,7 @@ def test_dbStats_data_size_decreases_after_delete(collection):
     after = execute_command(collection, {"dbStats": 1})
     assertProperties(
         before,
-        {"dataSize": Gt(after["dataSize"])},
+        {"dataSize": Gt(after.get("dataSize"))},
         raw_res=True,
         msg="dataSize should decrease after deletes",
     )
@@ -88,7 +88,7 @@ def test_dbStats_fs_total_size_gte_used_size(collection):
     result = execute_command(collection, {"dbStats": 1})
     assertProperties(
         result,
-        {"fsTotalSize": Gte(result["fsUsedSize"])},
+        {"fsTotalSize": Gte(result.get("fsUsedSize"))},
         raw_res=True,
         msg="fsTotalSize should be >= fsUsedSize",
     )
