@@ -3,23 +3,24 @@
 Covers: updateOne, updateMany, bulkWrite, upsert behavior, large arrays.
 """
 
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertSuccess, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
 
 
 def test_pullAll_updateOne(collection):
-    """Test $pullAll with updateOne removes multiple values from array."""
-    collection.insert_one({"_id": 1, "a": [1, 2, 3, 4, 5]})
-    execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"_id": 1}, "u": {"$pullAll": {"a": [2, 4]}}}],
-        },
+    """Test $pullAll with updateOne only modifies one document when multiple match."""
+    collection.insert_many(
+        [
+            {"q": 1, "a": [1, 2, 3]},
+            {"q": 1, "a": [1, 2, 3]},
+        ]
     )
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
-    assertSuccess(
-        result, [{"_id": 1, "a": [1, 3, 5]}], msg="updateOne should remove multiple values"
+    result = execute_command(
+        collection,
+        {"update": collection.name, "updates": [{"q": {"q": 1}, "u": {"$pullAll": {"a": [2, 3]}}}]},
+    )
+    assertSuccessPartial(
+        result, {"n": 1, "nModified": 1, "ok": 1.0}, msg="updateOne should succeed"
     )
 
 
