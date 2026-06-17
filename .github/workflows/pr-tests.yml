@@ -83,15 +83,15 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
-  # Crash tests kill the server, so each runs in isolation in its own job. They
-  # are engine-dependent (gated by engine_xcrash(engine=...)) and not topology-
-  # dependent, so the probe runs once per distinct engine rather than per target.
+  # Crash tests kill the server, so each runs in isolation in its own job (one
+  # job per target/test pair, each starting its own server). They run against
+  # every target; the per-test requires(...) markers skip those that do not
+  # apply to a target's topology, just as in the main suite.
   discover-xcrash:
     name: Collect crash tests
     runs-on: ubuntu-latest
     outputs:
       tests: ${{ steps.collect.outputs.tests }}
-      engines: ${{ steps.engines.outputs.engines }}
     steps:
       - uses: actions/checkout@v6
 
@@ -101,12 +101,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Build engine matrix from compose
-        id: engines
-        run: |
-          ENGINES=$(python -m documentdb_tests.framework.ci_matrix engines)
-          echo "engines=$ENGINES" >> "$GITHUB_OUTPUT"
 
       - name: Collect engine_xcrash test IDs
         id: collect
@@ -123,14 +117,14 @@ jobs:
           echo "tests=$TESTS" >> "$GITHUB_OUTPUT"
 
   test-xcrash:
-    name: "Crash Test: ${{ matrix.engine.engine }} / ${{ matrix.test }}"
-    needs: discover-xcrash
+    name: "Crash Test: ${{ matrix.target.name }} / ${{ matrix.test }}"
+    needs: [discover-targets, discover-xcrash]
     if: needs.discover-xcrash.outputs.tests != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        engine: ${{ fromJson(needs.discover-xcrash.outputs.engines) }}
+        target: ${{ fromJson(needs.discover-targets.outputs.targets) }}
         test: ${{ fromJson(needs.discover-xcrash.outputs.tests) }}
 
     steps:
@@ -143,21 +137,33 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Start a ${{ matrix.engine.engine }} server
-        run: docker compose -f dev/compose.yaml --profile ${{ matrix.engine.profile }} up -d --wait
+      - name: Start ${{ matrix.target.name }} target
+        run: docker compose -f dev/compose.yaml --profile ${{ matrix.target.profile }} up -d --wait
 
-      - name: "Run: ${{ matrix.test }} against ${{ matrix.engine.engine }}"
+      - name: "Run: ${{ matrix.test }} against ${{ matrix.target.name }}"
         run: |
-          # Run the test with a probe engine name that does NOT match the
-          # engine_xcrash marker, so the harness does not skip it and the test
-          # actually executes. It is expected to crash the server (non-zero
-          # exit), which is success. If pytest exits 0 the test passed - the bug
-          # is fixed and the engine_xcrash marker should be removed.
+          # --run-crash-tests lets the test execute against the engine it
+          # crashes (it is skipped by default). The real engine name is used so
+          # the requires(...) markers gate it by topology.
+          #
+          # Three outcomes, only the last is a failure:
+          #   - pytest exits non-zero: the server crashed (expected) -> success.
+          #   - pytest exits 0 but the test was skipped: it does not apply to
+          #     this target's topology -> success.
+          #   - pytest exits 0 and the test ran and passed: the server no longer
+          #     crashes -> the bug is fixed and the engine_xcrash marker should
+          #     be removed -> fail the job.
           if pytest documentdb_tests/compatibility/tests \
             -m engine_xcrash -k "${{ matrix.test }}" \
-            --connection-string "${{ matrix.engine.connection_string }}" \
-            --engine-name "${{ matrix.engine.engine }}-xcrash-probe" \
+            --run-crash-tests \
+            --connection-string "${{ matrix.target.connection_string }}" \
+            --engine-name "${{ matrix.target.engine }}" \
+            --junitxml=crash-result.xml \
             --timeout=10 -v; then
-            echo "::error::Test passed unexpectedly on ${{ matrix.engine.engine }} - server bug may be fixed, remove engine_xcrash marker"
-            exit 1
+            if grep -q '<skipped' crash-result.xml; then
+              echo "Skipped on ${{ matrix.target.name }}: does not apply to this topology."
+            else
+              echo "::error::Test passed unexpectedly on ${{ matrix.target.name }} - server bug may be fixed, remove engine_xcrash marker"
+              exit 1
+            fi
           fi

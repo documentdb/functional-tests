@@ -53,6 +53,14 @@ def pytest_addoption(parser):
         default="default",
         help="Optional engine identifier for metadata. " "Example: --engine-name documentdb",
     )
+    parser.addoption(
+        "--run-crash-tests",
+        action="store_true",
+        default=False,
+        help="Run tests marked engine_xcrash against the engine they crash. They "
+        "are skipped by default because they kill the server; enable this only "
+        "in an isolated job that can tolerate (and expects) a server crash.",
+    )
 
 
 def pytest_configure(config):
@@ -157,8 +165,12 @@ def pytest_runtest_setup(item):
                     raises=marker.kwargs.get("raises", AssertionError),
                 )
             )
+    # A crash test kills the server, so it is skipped against the engine it
+    # crashes unless the run-crash-tests option opts in. The dedicated crash job
+    # sets it and runs each such test in isolation against a server it can lose.
+    run_crash_tests = item.config.getoption("--run-crash-tests")
     for marker in item.iter_markers("engine_xcrash"):
-        if engine == marker.kwargs.get("engine"):
+        if engine == marker.kwargs.get("engine") and not run_crash_tests:
             pytest.skip(marker.kwargs.get("reason", "crashes the server"))
 
 
