@@ -336,32 +336,38 @@ def pytest_collection_modifyitems(session, config, items):
         pytest -m no_parallel -p no:xdist
     Or run them manually with: pytest -m no_parallel -p no:xdist
 
-    Tests carrying a ``requires`` marker are skipped when their target's
-    capabilities do not match what the test requires. A target's capabilities
-    are determined by its engine and topology, resolved per target at runtime
-    (see ``framework.preconditions``).
+    Tests carrying a ``requires`` marker are deselected when their target's
+    capabilities do not match what the test requires, so they do not run against
+    a target they do not apply to (rather than appearing as skips). A target's
+    capabilities are determined by its engine and topology, resolved per target
+    at runtime (see ``framework.preconditions``).
     """
-    # Skip a capability-gated test when its target's capabilities do not match
-    # its requires(...) marker. Each item is parametrized over a target; probe
-    # each distinct target once.
+    # Deselect a capability-gated test when its target's capabilities do not
+    # match its requires(...) marker. Each item is parametrized over a target;
+    # probe each distinct target once.
     capabilities_by_target: dict[str, frozenset[str]] = {}
+    kept: list = []
+    requires_deselected: list = []
     for item in items:
         marker = item.get_closest_marker(REQUIRES_MARKER)
         if marker is None or not marker.kwargs:
+            kept.append(item)
             continue
         target = _item_target(item)
         if target is None:
+            kept.append(item)
             continue
         capabilities = capabilities_by_target.get(target.connection_string)
         if capabilities is None:
             capabilities = detect_capabilities(target.engine, target.connection_string)
             capabilities_by_target[target.connection_string] = capabilities
-        unmet = unmet_requirements(marker.kwargs, capabilities)
-        if unmet:
-            needs = ", ".join(f"{name}={expected}" for name, expected in sorted(unmet.items()))
-            item.add_marker(
-                pytest.mark.skip(reason=f"target '{target.name}' does not meet requires({needs})")
-            )
+        if unmet_requirements(marker.kwargs, capabilities):
+            requires_deselected.append(item)
+        else:
+            kept.append(item)
+    if requires_deselected:
+        config.hook.pytest_deselected(items=requires_deselected)
+        items[:] = kept
 
     # Deselect no_parallel tests when running under xdist
     is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")

@@ -84,14 +84,17 @@ jobs:
           fi
 
   # Crash tests kill the server, so each runs in isolation in its own job (one
-  # job per target/test pair, each starting its own server). They run against
-  # every target; the per-test requires(...) markers skip those that do not
-  # apply to a target's topology, just as in the main suite.
+  # job per intended target/test pair, each starting its own server). A pair is
+  # "intended" when the test is not deselected against that target by its
+  # requires(...) markers, so a test that does not apply to a target's topology
+  # produces no job at all. Discovery brings each target up and collects against
+  # it, so the intended set (and the test ids) match what the run will see.
   discover-xcrash:
     name: Collect crash tests
+    needs: discover-targets
     runs-on: ubuntu-latest
     outputs:
-      tests: ${{ steps.collect.outputs.tests }}
+      pairs: ${{ steps.collect.outputs.pairs }}
     steps:
       - uses: actions/checkout@v6
 
@@ -102,30 +105,48 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Collect engine_xcrash test IDs
+      - name: Enumerate intended target/test pairs
         id: collect
+        env:
+          TARGETS: ${{ needs.discover-targets.outputs.targets }}
         run: |
-          # Collection only reads test files, so no database is needed. Running
-          # it as its own command lets a collection failure fail the job (the
-          # shell runs with -e). The output is then parsed for crash-test IDs;
-          # zero matches means there are no crash tests, which is valid.
-          pytest documentdb_tests/compatibility/tests \
-            --collect-only -m engine_xcrash > collect.out
-          TESTS=$(grep '<Function' collect.out \
-            | sed 's/.*<Function \(.*\)>/\1/' \
-            | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          echo "tests=$TESTS" >> "$GITHUB_OUTPUT"
+          # For each target, bring its server up and collect the crash tests
+          # that are not deselected by their requires(...) markers against that
+          # target (zero-config discovery resolves the live topology, exactly as
+          # the run will). Collection runs as its own command so a failure fails
+          # the job. The result is one matrix entry per (target, test) pair,
+          # carrying the full target. Each target is torn down before the next
+          # so only one topology is live at a time.
+          PAIRS='[]'
+          for row in $(echo "$TARGETS" | jq -c '.[]'); do
+            PROFILE=$(echo "$row" | jq -r .profile)
+            docker compose -f dev/compose.yaml --profile "$PROFILE" up -d --wait
+            # Bring a replica-set target up to a writable primary so topology
+            # detection classifies it correctly (collection does not initiate).
+            python -m documentdb_tests.framework.engine_registry
+            pytest documentdb_tests/compatibility/tests \
+              --collect-only -m engine_xcrash --run-crash-tests -q > collect.out
+            docker compose -f dev/compose.yaml --profile "$PROFILE" down
+            TESTS=$(grep '<Function' collect.out \
+              | sed 's/.*<Function \(.*\)>/\1/' \
+              | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            PAIRS=$(jq -c \
+              --argjson target "$row" \
+              --argjson tests "$TESTS" \
+              '. + [$tests[] | { target: $target, test: . }]' \
+              <<< "$PAIRS")
+          done
+          echo "pairs=$PAIRS" >> "$GITHUB_OUTPUT"
 
   test-xcrash:
-    name: "Crash Test: ${{ matrix.target.name }} / ${{ matrix.test }}"
-    needs: [discover-targets, discover-xcrash]
-    if: needs.discover-xcrash.outputs.tests != '[]'
+    name: "Crash Test: ${{ matrix.pair.target.name }} / ${{ matrix.pair.test }}"
+    needs: discover-xcrash
+    if: needs.discover-xcrash.outputs.pairs != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJson(needs.discover-targets.outputs.targets) }}
-        test: ${{ fromJson(needs.discover-xcrash.outputs.tests) }}
+        pair: ${{ fromJson(needs.discover-xcrash.outputs.pairs) }}
 
     steps:
       - uses: actions/checkout@v6
@@ -137,33 +158,35 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Start ${{ matrix.target.name }} target
-        run: docker compose -f dev/compose.yaml --profile ${{ matrix.target.profile }} up -d --wait
+      - name: Start ${{ matrix.pair.target.name }} target
+        run: docker compose -f dev/compose.yaml --profile ${{ matrix.pair.target.profile }} up -d --wait
 
-      - name: "Run: ${{ matrix.test }} against ${{ matrix.target.name }}"
+      - name: "Run: ${{ matrix.pair.test }} against ${{ matrix.pair.target.name }}"
         run: |
-          # --run-crash-tests lets the test execute against the engine it
-          # crashes (it is skipped by default). The real engine name is used so
-          # the requires(...) markers gate it by topology.
+          # The pair survived discovery, so the test is intended to run against
+          # this target. --run-crash-tests lets it execute (it is skipped by
+          # default); zero-config discovery resolves the same live target as in
+          # the discovery step, so the test id is stable and always selected.
           #
-          # Three outcomes, only the last is a failure:
-          #   - pytest exits non-zero: the server crashed (expected) -> success.
-          #   - pytest exits 0 but the test was skipped: it does not apply to
-          #     this target's topology -> success.
-          #   - pytest exits 0 and the test ran and passed: the server no longer
-          #     crashes -> the bug is fixed and the engine_xcrash marker should
-          #     be removed -> fail the job.
-          if pytest documentdb_tests/compatibility/tests \
-            -m engine_xcrash -k "${{ matrix.test }}" \
+          # Outcomes:
+          #   - exit 5 (no tests selected): discovery and run disagree, a
+          #     harness bug, not a crash -> fail the job.
+          #   - exit 0 (the test ran and passed): the server no longer crashes,
+          #     the bug is fixed and the engine_xcrash marker should be removed
+          #     -> fail the job.
+          #   - any other non-zero exit: the server crashed (expected)
+          #     -> success.
+          set +e
+          pytest documentdb_tests/compatibility/tests \
+            -m engine_xcrash -k "${{ matrix.pair.test }}" \
             --run-crash-tests \
-            --connection-string "${{ matrix.target.connection_string }}" \
-            --engine-name "${{ matrix.target.engine }}" \
-            --junitxml=crash-result.xml \
-            --timeout=10 -v; then
-            if grep -q '<skipped' crash-result.xml; then
-              echo "Skipped on ${{ matrix.target.name }}: does not apply to this topology."
-            else
-              echo "::error::Test passed unexpectedly on ${{ matrix.target.name }} - server bug may be fixed, remove engine_xcrash marker"
-              exit 1
-            fi
+            --timeout=10 -v
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -eq 5 ]; then
+            echo "::error::No tests selected for ${{ matrix.pair.test }} on ${{ matrix.pair.target.name }} - discovery and run disagree"
+            exit 1
+          elif [ "$STATUS" -eq 0 ]; then
+            echo "::error::Test passed unexpectedly on ${{ matrix.pair.target.name }} - server bug may be fixed, remove engine_xcrash marker"
+            exit 1
           fi

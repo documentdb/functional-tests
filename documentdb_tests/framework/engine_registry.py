@@ -152,3 +152,11 @@ def ensure_initiated(connection_string: str, timeout_s: float = 30.0) -> None:
 def live_targets(compose_path: Path = COMPOSE_PATH) -> list[Target]:
     """Return the declared targets that are currently reachable."""
     return [t for t in load_targets(compose_path) if _is_reachable(t.connection_string)]
+
+
+if __name__ == "__main__":
+    # Initiate every reachable target's replica set, if any. Useful before a
+    # collection-only run (which does not initiate on its own) so that topology
+    # detection sees a usable server. A no-op for standalone targets.
+    for _target in live_targets():
+        ensure_initiated(_target.connection_string)
