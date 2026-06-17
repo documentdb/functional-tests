@@ -62,7 +62,7 @@ target (see Running Tests below).
 #### Basic Usage
 
 ```bash
-# Run all tests against default localhost
+# Run all tests against every live target discovered from dev/compose.yaml
 pytest
 
 # Run against the mongo-standalone target
@@ -70,10 +70,12 @@ pytest --connection-string "mongodb://localhost:27017" --engine-name mongodb
 
 # Run against the mongo-replset target
 pytest --connection-string "mongodb://localhost:27018/?directConnection=true" --engine-name mongodb
-
-# Run with just connection string (engine-name defaults to "default")
-pytest --connection-string mongodb://localhost:27017
 ```
+
+With no `--connection-string`, the suite discovers the live targets from
+`dev/compose.yaml` and runs against each. When `--connection-string` is given it
+pins that single target, and `--engine-name` must name a known engine so the
+target's capabilities resolve the same way as for a discovered one.
 
 #### Filter by Tags
 
