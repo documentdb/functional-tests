@@ -48,7 +48,7 @@ GETDEFAULTRWCONCERN_OUTPUT_SCHEMA_TESTS: list[CommandTestCase] = [
 ]
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(cluster_admin=True)
 @pytest.mark.parametrize("test", pytest_params(GETDEFAULTRWCONCERN_OUTPUT_SCHEMA_TESTS))
 def test_getDefaultRWConcern_output_schema(collection, test):
     """Test getDefaultRWConcern always returns the full defaults schema."""
@@ -64,6 +64,7 @@ def test_getDefaultRWConcern_output_schema(collection, test):
 
 # Property [Topology Errors]: on a standalone node the command is unsupported
 # and is rejected.
+@pytest.mark.requires(cluster_admin=False)
 def test_getDefaultRWConcern_topology_error(collection):
     """Test getDefaultRWConcern is unsupported on standalone nodes."""
     result = execute_admin_command(collection, {"getDefaultRWConcern": 1})
@@ -79,7 +80,7 @@ def test_getDefaultRWConcern_topology_error(collection):
 # corresponding source from implicit to global and surfaces the update
 # timestamps. This mutates global state irreversibly (the default write concern
 # cannot be unset), so it runs no_parallel.
-@pytest.mark.replica_set
+@pytest.mark.requires(cluster_admin=True)
 @pytest.mark.no_parallel
 def test_getDefaultRWConcern_source_global_after_set(collection):
     """Test getDefaultRWConcern reports global sources once defaults are set."""
@@ -111,7 +112,7 @@ def test_getDefaultRWConcern_source_global_after_set(collection):
 # reverts its source to implicit, while the write concern source stays global
 # because it cannot be unset. This mutates global state irreversibly, so it runs
 # no_parallel.
-@pytest.mark.replica_set
+@pytest.mark.requires(cluster_admin=True)
 @pytest.mark.no_parallel
 def test_getDefaultRWConcern_read_source_reverts_on_unset(collection):
     """Test getDefaultRWConcern reverts the read source to implicit on unset."""

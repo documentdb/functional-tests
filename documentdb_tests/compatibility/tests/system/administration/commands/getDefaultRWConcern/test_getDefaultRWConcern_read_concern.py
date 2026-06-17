@@ -250,7 +250,7 @@ GETDEFAULTRWCONCERN_READ_CONCERN_ALL_TESTS: list[CommandTestCase] = (
 )
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(cluster_admin=True)
 @pytest.mark.parametrize("test", pytest_params(GETDEFAULTRWCONCERN_READ_CONCERN_ALL_TESTS))
 def test_getDefaultRWConcern_read_concern(collection, test):
     """Test getDefaultRWConcern readConcern acceptance and rejection behavior."""

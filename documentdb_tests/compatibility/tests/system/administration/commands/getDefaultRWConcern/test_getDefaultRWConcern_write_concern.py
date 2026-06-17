@@ -92,7 +92,7 @@ GETDEFAULTRWCONCERN_WRITE_CONCERN_ALL_TESTS: list[CommandTestCase] = (
 )
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(cluster_admin=True)
 @pytest.mark.parametrize("test", pytest_params(GETDEFAULTRWCONCERN_WRITE_CONCERN_ALL_TESTS))
 def test_getDefaultRWConcern_write_concern(collection, test):
     """Test getDefaultRWConcern writeConcern acceptance and rejection behavior."""

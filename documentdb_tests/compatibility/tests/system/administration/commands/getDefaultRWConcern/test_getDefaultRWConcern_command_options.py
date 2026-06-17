@@ -215,7 +215,7 @@ GETDEFAULTRWCONCERN_COMMAND_OPTION_TESTS: list[CommandTestCase] = (
 )
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(cluster_admin=True)
 @pytest.mark.parametrize("test", pytest_params(GETDEFAULTRWCONCERN_COMMAND_OPTION_TESTS))
 def test_getDefaultRWConcern_command_options(collection, test):
     """Test getDefaultRWConcern command value and option acceptance and rejection behavior."""
