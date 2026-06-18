@@ -4,10 +4,11 @@ The value of the ``dbStats`` field is ignored by the server: any value
 selects the current database, so every BSON type should be accepted,
 including numeric edge cases such as 0, -1, and Infinity.
 
-Also covers the ``scale`` parameter (valid/invalid values and types,
-truncation, duplicate keys, and the scaling applied to size fields) and the
-``freeStorage`` parameter (acceptance, free-storage field presence and the
-totalFreeStorageSize relationship, and omission when unset or 0).
+Also covers the ``scale`` parameter (type-level acceptance and rejection,
+value truncation, and duplicate-key behavior) and the ``freeStorage``
+parameter (type-level acceptance and rejection, free-storage field
+presence, and omission when unset or 0). Value-level errors (BadValue)
+are in test_dbStats_errors.py.
 """
 
 import pytest
@@ -19,7 +20,6 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
 from documentdb_tests.framework.assertions import (
     assertFailureCode,
     assertProperties,
-    assertSuccess,
     assertSuccessPartial,
 )
 from documentdb_tests.framework.bson_type_validator import (
@@ -27,7 +27,7 @@ from documentdb_tests.framework.bson_type_validator import (
     generate_bson_acceptance_test_cases,
     generate_bson_rejection_test_cases,
 )
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Exists, NotExists
@@ -36,7 +36,6 @@ from documentdb_tests.framework.test_constants import FLOAT_INFINITY, BsonType
 pytestmark = pytest.mark.admin
 
 
-# dbStats ignores the command field value — all BSON types should succeed.
 DBSTATS_VALUE_PARAMS: list[BsonTypeTestCase] = [
     BsonTypeTestCase(
         id="dbStats_value",
@@ -60,7 +59,6 @@ def test_dbStats_accepts_any_value_type(collection, bson_type, sample_value, spe
     )
 
 
-# Specific numeric edge-case values for the command field.
 EDGE_CASE_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         id="value_zero",
@@ -90,10 +88,6 @@ def test_dbStats_accepts_value_edge_cases(collection, test):
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
-# Type-level acceptance and rejection for the scale parameter.
-# Valid numeric types: double, int, long, decimal, null.
-# The default decimal sample (0.5) is overridden to 1024 since 0.5 would fail
-# with BadValue rather than TypeMismatch.
 SCALE_TYPE_PARAMS: list[BsonTypeTestCase] = [
     BsonTypeTestCase(
         id="scale",
@@ -123,7 +117,6 @@ def test_dbStats_scale_rejects_invalid_type(collection, bson_type, sample_value,
     assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
 
 
-# Truncation and default behaviour edge cases not covered by type-level tests.
 SCALE_EDGE_CASES: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         "double_truncates",
@@ -159,116 +152,59 @@ def test_dbStats_scale_edge_cases(collection, test):
     assertProperties(result, test.checks, raw_res=True, msg=test.msg)
 
 
-# Invalid scale values (BadValue). Non-positive or truncate-to-zero values of
-# otherwise-valid numeric types are rejected with code 2. Type-level rejections
-# (TypeMismatch) are covered by SCALE_REJECTION_CASES above.
-INVALID_SCALE_TESTS: list[DiagnosticTestCase] = [
-    DiagnosticTestCase(
-        "zero",
-        command={"dbStats": 1, "scale": 0},
-        error_code=BAD_VALUE_ERROR,
-        msg="scale=0 should error with BadValue",
-    ),
-    DiagnosticTestCase(
-        "negative_int",
-        command={"dbStats": 1, "scale": -1},
-        error_code=BAD_VALUE_ERROR,
-        msg="Negative int scale should error with BadValue",
-    ),
-    DiagnosticTestCase(
-        "fractional_lt_1",
-        command={"dbStats": 1, "scale": 0.5},
-        error_code=BAD_VALUE_ERROR,
-        msg="Fractional scale < 1 should error with BadValue",
-    ),
-    DiagnosticTestCase(
-        "duplicate_keys_last_invalid",
-        command=SON([("dbStats", 1), ("scale", 1024), ("scale", -1)]),
-        error_code=BAD_VALUE_ERROR,
-        msg="Invalid last duplicate scale value should error",
+FREE_STORAGE_TYPE_PARAMS: list[BsonTypeTestCase] = [
+    BsonTypeTestCase(
+        id="freeStorage",
+        msg="freeStorage should reject non-numeric, non-bool types with TypeMismatch",
+        keyword="freeStorage",
+        valid_types=[
+            BsonType.BOOL,
+            BsonType.DOUBLE,
+            BsonType.INT,
+            BsonType.LONG,
+            BsonType.DECIMAL,
+            BsonType.NULL,
+        ],
+        default_error_code=TYPE_MISMATCH_ERROR,
     ),
 ]
 
-
-@pytest.mark.parametrize("test", pytest_params(INVALID_SCALE_TESTS))
-def test_dbStats_invalid_scale_errors(collection, test):
-    """Test dbStats rejects invalid (non-positive/truncate-to-zero) scale values with BadValue."""
-    result = execute_command(collection, test.command)
-    assertFailureCode(result, test.error_code, msg=test.msg)
+FREE_STORAGE_REJECTION_CASES = generate_bson_rejection_test_cases(FREE_STORAGE_TYPE_PARAMS)
+FREE_STORAGE_ACCEPTANCE_CASES = generate_bson_acceptance_test_cases(FREE_STORAGE_TYPE_PARAMS)
 
 
-def test_dbStats_scale_divides_storage_size(collection):
-    """Test the scale factor divides storageSize in the response."""
-    collection.insert_many([{"_id": i, "a": i} for i in range(20)])
-    scale = 1024
-    unscaled = execute_command(collection, {"dbStats": 1})
-    scaled = execute_command(collection, {"dbStats": 1, "scale": scale})
-    assertSuccessPartial(
-        scaled,
-        expected={"storageSize": unscaled.get("storageSize") / scale},
-        msg="storageSize should be divided by the scale factor",
-    )
+@pytest.mark.parametrize("bson_type,sample_value,spec", FREE_STORAGE_ACCEPTANCE_CASES)
+def test_dbStats_free_storage_accepts_valid_type(collection, bson_type, sample_value, spec):
+    """Test dbStats accepts valid BSON types for the freeStorage parameter."""
+    result = execute_command(collection, {"dbStats": 1, "freeStorage": sample_value})
+    assertSuccessPartial(result, {"ok": 1.0}, msg=spec.msg)
 
 
-def test_dbStats_scale_divides_index_size(collection):
-    """Test the scale factor divides indexSize in the response."""
-    collection.insert_many([{"_id": i, "a": i} for i in range(20)])
-    collection.create_index("a")
-    scale = 1024
-    unscaled = execute_command(collection, {"dbStats": 1})
-    scaled = execute_command(collection, {"dbStats": 1, "scale": scale})
-    assertSuccessPartial(
-        scaled,
-        expected={"indexSize": unscaled.get("indexSize") / scale},
-        msg="indexSize should be divided by the scale factor",
-    )
+@pytest.mark.parametrize("bson_type,sample_value,spec", FREE_STORAGE_REJECTION_CASES)
+def test_dbStats_free_storage_rejects_invalid_type(collection, bson_type, sample_value, spec):
+    """Test dbStats rejects non-numeric, non-bool BSON types for freeStorage with TypeMismatch."""
+    result = execute_command(collection, {"dbStats": 1, "freeStorage": sample_value})
+    assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
 
 
-def test_dbStats_scale_does_not_affect_avg_obj_size(collection):
-    """Test avgObjSize is not affected by the scale factor."""
-    collection.insert_many([{"_id": i, "a": i} for i in range(20)])
-    unscaled = execute_command(collection, {"dbStats": 1})
-    scaled = execute_command(collection, {"dbStats": 1, "scale": 1024})
-    assertSuccessPartial(
-        scaled,
-        expected={"avgObjSize": unscaled.get("avgObjSize")},
-        msg="avgObjSize should be unaffected by scale",
-    )
-
-
-def test_dbStats_free_storage_one_includes_expected_fields(collection):
-    """Test dbStats with freeStorage:1 includes the three free-storage fields."""
-    collection.insert_one({"_id": 1})
-    collection.create_index("a")
-    result = execute_command(collection, {"dbStats": 1, "freeStorage": 1})
-    assertProperties(
-        result,
-        {
+FREE_STORAGE_FIELD_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "free_storage_one_includes_fields",
+        setup=[
+            {"insert": "c1", "documents": [{"_id": 1}]},
+            {"createIndexes": "c1", "indexes": [{"key": {"a": 1}, "name": "a_1"}]},
+        ],
+        command={"dbStats": 1, "freeStorage": 1},
+        checks={
             "freeStorageSize": Exists(),
             "indexFreeStorageSize": Exists(),
             "totalFreeStorageSize": Exists(),
         },
-        raw_res=True,
         msg="freeStorage:1 should include free-storage fields",
-    )
-
-
-def test_dbStats_total_free_storage_size_relationship(collection):
-    """Test totalFreeStorageSize equals freeStorageSize plus indexFreeStorageSize."""
-    collection.insert_many([{"_id": i, "a": i} for i in range(20)])
-    collection.create_index("a")
-    result = execute_command(collection, {"dbStats": 1, "freeStorage": 1})
-    assertSuccess(
-        result.get("totalFreeStorageSize"),
-        result.get("freeStorageSize") + result.get("indexFreeStorageSize"),
-        raw_res=True,
-        msg="totalFreeStorageSize should equal freeStorageSize + indexFreeStorageSize",
-    )
-
-
-OMITS_FREE_STORAGE_TESTS: list[DiagnosticTestCase] = [
+    ),
     DiagnosticTestCase(
         "no_free_storage_param",
+        setup=[{"insert": "c1", "documents": [{"_id": 1}]}],
         command={"dbStats": 1},
         checks={
             "freeStorageSize": NotExists(),
@@ -279,6 +215,7 @@ OMITS_FREE_STORAGE_TESTS: list[DiagnosticTestCase] = [
     ),
     DiagnosticTestCase(
         "free_storage_zero",
+        setup=[{"insert": "c1", "documents": [{"_id": 1}]}],
         command={"dbStats": 1, "freeStorage": 0},
         checks={
             "freeStorageSize": NotExists(),
@@ -290,9 +227,12 @@ OMITS_FREE_STORAGE_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(OMITS_FREE_STORAGE_TESTS))
-def test_dbStats_omits_free_storage_fields(collection, test):
-    """Test dbStats omits free-storage fields when freeStorage is not set or 0."""
-    collection.insert_one({"_id": 1})
+@pytest.mark.parametrize("test", pytest_params(FREE_STORAGE_FIELD_TESTS))
+def test_dbStats_free_storage_fields(collection, test):
+    """Test dbStats free-storage field presence based on the freeStorage option."""
+    for setup_command in test.setup:
+        setup_result = execute_command(collection, setup_command)
+        if isinstance(setup_result, Exception):
+            raise setup_result
     result = execute_command(collection, test.command)
     assertProperties(result, test.checks, raw_res=True, msg=test.msg)

@@ -1,40 +1,64 @@
 """Tests for dbStats command core behavior.
 
 Covers success on populated and empty databases, the all-zero response for
-a non-existent database, execution against the admin database, and rejection
-of unrecognized command fields.
+a non-existent database, and execution against the admin database.
+Command-level errors are in test_dbStats_errors.py.
 """
 
 import pytest
 from bson import Int64
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
-from documentdb_tests.framework.error_codes import UNRECOGNIZED_COMMAND_FIELD_ERROR
-from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
+    DiagnosticTestCase,
+)
+from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
+from documentdb_tests.framework.executor import execute_admin_command, execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq, IsType
 from documentdb_tests.framework.target_collection import TargetDatabase
 
 pytestmark = pytest.mark.admin
 
 
-def test_dbStats_populated_database_returns_ok(collection):
-    """Test dbStats returns ok:1 on a database that has collections."""
-    collection.insert_many([{"_id": 0, "a": 1}, {"_id": 1, "a": 2}])
-    result = execute_command(collection, {"dbStats": 1})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "db": collection.database.name},
+# Success cases across populated, empty, and admin databases. The db name is
+# checked by type (it varies per test/run); its exact value is asserted by the
+# smoke test and by the admin case below.
+SUCCESS_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        id="populated_database",
+        setup=[{"insert": "c1", "documents": [{"_id": 0, "a": 1}, {"_id": 1, "a": 2}]}],
+        command={"dbStats": 1},
+        use_admin=False,
+        checks={"ok": Eq(1.0), "db": IsType("string")},
         msg="Populated database should return ok:1",
-    )
-
-
-def test_dbStats_empty_database_returns_ok(collection):
-    """Test dbStats returns ok:1 with zero collections on an empty database."""
-    result = execute_command(collection, {"dbStats": 1})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "db": collection.database.name, "collections": Int64(0)},
+    ),
+    DiagnosticTestCase(
+        id="empty_database",
+        command={"dbStats": 1},
+        use_admin=False,
+        checks={"ok": Eq(1.0), "db": IsType("string"), "collections": Eq(Int64(0))},
         msg="Empty database should return ok:1 with zero collections",
-    )
+    ),
+    DiagnosticTestCase(
+        id="admin_database",
+        command={"dbStats": 1},
+        use_admin=True,
+        checks={"ok": Eq(1.0), "db": Eq("admin")},
+        msg="dbStats on admin database should report db:admin",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(SUCCESS_TESTS))
+def test_dbStats_core_behavior(collection, test):
+    """Test dbStats succeeds and reports expected top-level fields across databases."""
+    for setup_command in test.setup:
+        setup_result = execute_command(collection, setup_command)
+        if isinstance(setup_result, Exception):
+            raise setup_result
+    executor = execute_admin_command if test.use_admin else execute_command
+    result = executor(collection, test.command)
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
 def test_dbStats_nonexistent_database_returns_zeros(collection, register_db_cleanup):
@@ -54,26 +78,4 @@ def test_dbStats_nonexistent_database_returns_zeros(collection, register_db_clea
             "indexSize": 0.0,
         },
         msg="Non-existent database should report all counts and sizes as zero",
-    )
-
-
-def test_dbStats_admin_database_reports_admin_name(collection):
-    """Test dbStats executed against the admin database reports db:admin."""
-    admin_coll = collection.database.client["admin"]["unused"]
-    result = execute_command(admin_coll, {"dbStats": 1})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "db": "admin"},
-        msg="dbStats on admin database should report db:admin",
-    )
-
-
-def test_dbStats_unrecognized_field_errors(collection):
-    """Test dbStats rejects an unrecognized command field."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"dbStats": 1, "bogusField": 1})
-    assertFailureCode(
-        result,
-        UNRECOGNIZED_COMMAND_FIELD_ERROR,
-        msg="Unrecognized command field should error with code 40415",
     )

@@ -11,15 +11,10 @@ from bson import Int64
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
 )
-from documentdb_tests.framework.assertions import (
-    assertProperties,
-    assertSuccess,
-    assertSuccessPartial,
-)
+from documentdb_tests.framework.assertions import assertProperties, assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Gt, IsType
-from documentdb_tests.framework.target_collection import ViewCollection
+from documentdb_tests.framework.property_checks import Eq, Gt, IsType
 
 pytestmark = pytest.mark.admin
 
@@ -121,18 +116,6 @@ def test_dbStats_total_size_relationship(collection):
     )
 
 
-def test_dbStats_data_size_positive_after_insert(collection):
-    """Test dataSize is greater than zero after inserting documents."""
-    collection.insert_many([{"_id": i, "data": "x" * 50} for i in range(10)])
-    result = execute_command(collection, {"dbStats": 1})
-    assertProperties(
-        result,
-        {"dataSize": Gt(0.0)},
-        raw_res=True,
-        msg="dataSize should be positive after inserts",
-    )
-
-
 def test_dbStats_avg_obj_size_equals_data_size_over_objects(collection):
     """Test avgObjSize equals dataSize divided by objects."""
     collection.insert_many([{"_id": i, "data": "x" * (i + 1)} for i in range(10)])
@@ -145,27 +128,44 @@ def test_dbStats_avg_obj_size_equals_data_size_over_objects(collection):
     )
 
 
-def test_dbStats_collections_count_includes_system_views(collection):
-    """Test collections count includes system.views after a view is created."""
-    collection.insert_many([{"_id": i} for i in range(3)])
-    collection.database.command(
-        "create", f"{collection.name}_view", viewOn=collection.name, pipeline=[]
-    )
-    result = execute_command(collection, {"dbStats": 1})
-    assertSuccessPartial(
-        result,
-        expected={"collections": Int64(2)},
+# Cases asserting response fields reflect database state established via setup.
+RESPONSE_STATE_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        id="data_size_positive_after_insert",
+        setup=[{"insert": "c1", "documents": [{"_id": i, "data": "x" * 50} for i in range(10)]}],
+        command={"dbStats": 1},
+        checks={"dataSize": Gt(0.0)},
+        msg="dataSize should be positive after inserts",
+    ),
+    DiagnosticTestCase(
+        id="collections_count_includes_system_views",
+        setup=[
+            {"insert": "c1", "documents": [{"_id": i} for i in range(3)]},
+            {"create": "c1_view", "viewOn": "c1", "pipeline": []},
+        ],
+        command={"dbStats": 1},
+        checks={"collections": Eq(Int64(2))},
         msg="collections should include the base collection and system.views",
-    )
-
-
-def test_dbStats_views_count(collection):
-    """Test the views field counts created views."""
-    collection.insert_many([{"_id": i} for i in range(3)])
-    ViewCollection().resolve(collection.database, collection)
-    result = execute_command(collection, {"dbStats": 1})
-    assertSuccessPartial(
-        result,
-        expected={"views": Int64(1)},
+    ),
+    DiagnosticTestCase(
+        id="views_count",
+        setup=[
+            {"insert": "c1", "documents": [{"_id": i} for i in range(3)]},
+            {"create": "c1_view", "viewOn": "c1", "pipeline": []},
+        ],
+        command={"dbStats": 1},
+        checks={"views": Eq(Int64(1))},
         msg="views should count the created view",
-    )
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(RESPONSE_STATE_TESTS))
+def test_dbStats_response_reflects_state(collection, test):
+    """Test dbStats response fields reflect database state from setup commands."""
+    for setup_command in test.setup:
+        setup_result = execute_command(collection, setup_command)
+        if isinstance(setup_result, Exception):
+            raise setup_result
+    result = execute_command(collection, test.command)
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
