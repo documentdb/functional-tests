@@ -19,7 +19,6 @@ from documentdb_tests.framework.property_checks import Eq, Gt, IsType
 pytestmark = pytest.mark.admin
 
 
-# One DiagnosticTestCase per documented response field, following the buildInfo pattern.
 RESPONSE_PROPERTY_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         id="db_is_string",
@@ -128,7 +127,6 @@ def test_dbStats_avg_obj_size_equals_data_size_over_objects(collection):
     )
 
 
-# Cases asserting response fields reflect database state established via setup.
 RESPONSE_STATE_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         id="data_size_positive_after_insert",

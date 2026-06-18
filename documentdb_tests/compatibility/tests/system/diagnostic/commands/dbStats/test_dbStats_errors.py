@@ -19,9 +19,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 
-# Non-positive or truncate-to-zero values of otherwise-valid numeric types are
-# rejected with BadValue (code 2). Type-level rejections (TypeMismatch) are
-# covered in test_dbStats_argument_handling.py.
 INVALID_SCALE_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         "zero",

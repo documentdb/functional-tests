@@ -19,11 +19,6 @@ from documentdb_tests.framework.property_checks import Eq
 pytestmark = pytest.mark.admin
 
 
-# Each case establishes database state via ``setup`` runCommand documents,
-# runs dbStats, then checks the database-level response. The per-test database
-# is unique (provided by the ``collection`` fixture), so setup collections use
-# fixed names; dbStats aggregates the whole database regardless of which
-# collection it is issued against.
 COLLECTION_SCENARIO_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         id="empty_collection_index_count",

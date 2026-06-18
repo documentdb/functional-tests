@@ -20,9 +20,6 @@ from documentdb_tests.framework.target_collection import TargetDatabase
 pytestmark = pytest.mark.admin
 
 
-# Success cases across populated, empty, and admin databases. The db name is
-# checked by type (it varies per test/run); its exact value is asserted by the
-# smoke test and by the admin case below.
 SUCCESS_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         id="populated_database",
