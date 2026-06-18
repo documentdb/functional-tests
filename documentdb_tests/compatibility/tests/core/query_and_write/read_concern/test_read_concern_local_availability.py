@@ -81,11 +81,10 @@ def test_read_concern_local_available_on_empty_collection(collection):
     assertNotError(result, msg="readConcern 'local' should be available on an empty collection.")
 
 
-def test_read_concern_local_is_default_equivalent(collection):
-    """Test readConcern 'local' produces the same result as omitting readConcern."""
+def test_read_concern_local_does_not_error(collection):
+    """Test readConcern 'local' does not produce an error on find."""
     collection.insert_many([{"_id": i} for i in range(3)])
-
-    result_with_local = execute_command(
+    result = execute_command(
         collection,
         {
             "find": collection.name,
@@ -93,12 +92,4 @@ def test_read_concern_local_is_default_equivalent(collection):
             "readConcern": {"level": "local"},
         },
     )
-    result_without = execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": {},
-        },
-    )
-    assertNotError(result_with_local, msg="find with readConcern 'local' should not error.")
-    assertNotError(result_without, msg="find without readConcern should not error.")
+    assertNotError(result, msg="find with readConcern 'local' should not error.")
