@@ -21,7 +21,12 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
 from documentdb_tests.framework.assertions import assertNotError
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import INT32_MAX
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_NEGATIVE_INFINITY,
+    FLOAT_NEGATIVE_INFINITY,
+    INT32_MAX,
+    INT32_MIN,
+)
 
 _VALID_WC_VALUES = [
     ("null", None),
@@ -243,3 +248,32 @@ def test_write_concern_null_equivalent_to_omitted(collection):
         },
     )
     assertNotError(result, msg="update with writeConcern:null should not error.")
+
+
+_WTIMEOUT_BOUNDARY_ACCEPTED_VALUES = [
+    ("int32_min", {"w": 1, "wtimeout": INT32_MIN}),
+    ("negative_inf", {"w": 1, "wtimeout": FLOAT_NEGATIVE_INFINITY}),
+    ("decimal128_neg_inf", {"w": 1, "wtimeout": DECIMAL128_NEGATIVE_INFINITY}),
+]
+
+# Property [wtimeout Boundary Acceptance]: wtimeout accepts INT32_MIN, -Infinity, and
+# Decimal128 -Infinity — only values *exceeding* INT32_MAX are rejected.
+WTIMEOUT_BOUNDARY_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        f"{cmd}_accepts_wtimeout_{val_name}",
+        docs=[{"_id": 1}],
+        command=lambda ctx, _wc=value, _cmd=cmd: build_cmd(_cmd, ctx, _wc),
+        msg=f"{cmd} should accept wtimeout boundary value {val_name}.",
+    )
+    for cmd in WRITE_COMMANDS
+    for val_name, value in _WTIMEOUT_BOUNDARY_ACCEPTED_VALUES
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(WTIMEOUT_BOUNDARY_TESTS))
+def test_write_concern_wtimeout_boundary_accepted(collection, test: CommandTestCase):
+    """Test wtimeout accepts boundary values that fall at or below INT32_MAX."""
+    collection = test.prepare(collection.database, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
+    assertNotError(result, msg=test.msg)

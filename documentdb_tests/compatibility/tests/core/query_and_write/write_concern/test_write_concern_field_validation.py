@@ -37,6 +37,9 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NEGATIVE_INFINITY,
     FLOAT_NEGATIVE_NAN,
     INT32_MAX,
+    INT32_OVERFLOW,
+    INT64_MAX,
+    INT64_MIN,
 )
 
 _NON_DOCUMENT_TYPES = [
@@ -125,6 +128,8 @@ _W_INVALID_VALUES = [
     ("decimal128_inf", DECIMAL128_INFINITY, FAILED_TO_PARSE_ERROR),
     ("decimal128_neg_inf", DECIMAL128_NEGATIVE_INFINITY, FAILED_TO_PARSE_ERROR),
     ("tagged_non_numeric", {"dc1": "hello"}, FAILED_TO_PARSE_ERROR),
+    ("int64_max", INT64_MAX, FAILED_TO_PARSE_ERROR),
+    ("int64_min", INT64_MIN, FAILED_TO_PARSE_ERROR),
 ]
 
 # Property [w Value Rejection]: w rejects null, negatives, >50, NaN, and Infinity.
@@ -261,6 +266,93 @@ W_EMPTY_STRING_TESTS: list[CommandTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(W_EMPTY_STRING_TESTS))
 def test_write_concern_w_empty_string(collection, test: CommandTestCase):
     """Test w empty string is rejected as custom tag on standalone."""
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
+    assertResult(result, error_code=test.error_code, msg=test.msg)
+
+
+# Property [w Tagged Object Validation]: w as an object must be non-empty with numeric values only.
+W_TAGGED_OBJECT_TESTS: list[CommandTestCase] = (
+    [
+        CommandTestCase(
+            f"{cmd}_w_tagged_rejects_empty_object",
+            command=lambda ctx, _cmd=cmd: build_cmd(_cmd, ctx, {"w": {}}),
+            error_code=FAILED_TO_PARSE_ERROR,
+            msg=f"{cmd} should reject empty object w (tagged write concern requires tags).",
+        )
+        for cmd in WRITE_COMMANDS
+    ]
+    + [
+        CommandTestCase(
+            f"{cmd}_w_tagged_rejects_string_value",
+            command=lambda ctx, _cmd=cmd: build_cmd(_cmd, ctx, {"w": {"dc1": "hello"}}),
+            error_code=FAILED_TO_PARSE_ERROR,
+            msg=f"{cmd} should reject tagged w with non-numeric tag value.",
+        )
+        for cmd in WRITE_COMMANDS
+    ]
+    + [
+        CommandTestCase(
+            f"{cmd}_w_tagged_rejects_nested_object",
+            command=lambda ctx, _cmd=cmd: build_cmd(_cmd, ctx, {"w": {"dc1": {"nested": 1}}}),
+            error_code=FAILED_TO_PARSE_ERROR,
+            msg=f"{cmd} should reject tagged w with nested object tag value.",
+        )
+        for cmd in WRITE_COMMANDS
+    ]
+)
+
+
+@pytest.mark.parametrize("test", pytest_params(W_TAGGED_OBJECT_TESTS))
+def test_write_concern_w_tagged_object_validation(collection, test: CommandTestCase):
+    """Test w sub-field validates tagged write concern object structure."""
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
+    assertResult(result, error_code=test.error_code, msg=test.msg)
+
+
+# Property [wtimeout Extended Overflow Rejection]: wtimeout rejects double, Decimal128,
+# and +Infinity values exceeding INT32_MAX, in addition to Int64 overflow.
+WTIMEOUT_EXTENDED_OVERFLOW_TESTS: list[CommandTestCase] = (
+    [
+        CommandTestCase(
+            f"{cmd}_wtimeout_rejects_double_overflow",
+            command=lambda ctx, _cmd=cmd: build_cmd(
+                _cmd, ctx, {"w": 1, "wtimeout": float(INT32_OVERFLOW)}
+            ),
+            error_code=FAILED_TO_PARSE_ERROR,
+            msg=f"{cmd} should reject double wtimeout exceeding INT32_MAX.",
+        )
+        for cmd in WRITE_COMMANDS
+    ]
+    + [
+        CommandTestCase(
+            f"{cmd}_wtimeout_rejects_decimal128_overflow",
+            command=lambda ctx, _cmd=cmd: build_cmd(
+                _cmd, ctx, {"w": 1, "wtimeout": Decimal128(str(INT32_OVERFLOW))}
+            ),
+            error_code=FAILED_TO_PARSE_ERROR,
+            msg=f"{cmd} should reject Decimal128 wtimeout exceeding INT32_MAX.",
+        )
+        for cmd in WRITE_COMMANDS
+    ]
+    + [
+        CommandTestCase(
+            f"{cmd}_wtimeout_rejects_float_infinity",
+            command=lambda ctx, _cmd=cmd: build_cmd(
+                _cmd, ctx, {"w": 1, "wtimeout": FLOAT_INFINITY}
+            ),
+            error_code=FAILED_TO_PARSE_ERROR,
+            msg=f"{cmd} should reject +Infinity wtimeout (exceeds INT32_MAX).",
+        )
+        for cmd in WRITE_COMMANDS
+    ]
+)
+
+
+@pytest.mark.parametrize("test", pytest_params(WTIMEOUT_EXTENDED_OVERFLOW_TESTS))
+def test_write_concern_wtimeout_extended_overflow(collection, test: CommandTestCase):
+    """Test wtimeout rejects double, Decimal128, and +Infinity values exceeding INT32_MAX."""
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
     assertResult(result, error_code=test.error_code, msg=test.msg)
