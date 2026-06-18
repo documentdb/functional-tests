@@ -95,7 +95,7 @@ SCALE_TYPE_PARAMS: list[BsonTypeTestCase] = [
         keyword="scale",
         valid_types=[BsonType.DOUBLE, BsonType.INT, BsonType.LONG, BsonType.DECIMAL, BsonType.NULL],
         default_error_code=TYPE_MISMATCH_ERROR,
-        valid_inputs={BsonType.DECIMAL: Decimal128("1024")},
+        valid_inputs={BsonType.DECIMAL: Decimal128("1024"), BsonType.LONG: Int64(1024)},
     ),
 ]
 
