@@ -16,7 +16,7 @@ from documentdb_tests.framework.bson_type_validator import (
     generate_bson_acceptance_test_cases,
     generate_bson_rejection_test_cases,
 )
-from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.error_codes import MISSING_FIELD_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.test_constants import BsonType
 
@@ -69,6 +69,7 @@ EXPLAIN_ARGUMENT_TYPE_SPEC = [
         keyword="explain",
         valid_types=[BsonType.OBJECT],
         default_error_code=TYPE_MISMATCH_ERROR,
+        error_code_overrides={BsonType.NULL: MISSING_FIELD_ERROR},
     )
 ]
 EXPLAIN_ARGUMENT_REJECTION_CASES = generate_bson_rejection_test_cases(EXPLAIN_ARGUMENT_TYPE_SPEC)

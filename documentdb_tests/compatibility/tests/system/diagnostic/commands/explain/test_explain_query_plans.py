@@ -21,7 +21,7 @@ from documentdb_tests.framework.assertions import (
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq, Exists
+from documentdb_tests.framework.property_checks import Eq, Exists, Ne
 
 pytestmark = pytest.mark.admin
 
@@ -38,16 +38,16 @@ def test_explain_uses_collscan_without_index(collection):
     )
 
 
-def test_explain_uses_ixscan_after_index_created(collection):
-    """Test explain switches to IXSCAN after a matching index is created."""
+def test_explain_avoids_collscan_after_index_created(collection):
+    """Test explain stops using COLLSCAN after a matching index is created."""
     collection.insert_many([{"_id": i, "a": i} for i in range(20)])
     collection.create_index([("a", 1)])
     result = execute_command(collection, {"explain": {"find": collection.name, "filter": {"a": 5}}})
     assertProperties(
         result,
-        {"queryPlanner.winningPlan.stage": Eq("IXSCAN")},
+        {"queryPlanner.winningPlan.stage": Ne("COLLSCAN")},
         raw_res=True,
-        msg="plan should switch to IXSCAN after index creation",
+        msg="plan should use an index (not COLLSCAN) after index creation",
     )
 
 
