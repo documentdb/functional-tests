@@ -110,7 +110,7 @@ STDDEVSAMP_CORE_TESTS: list[StdDevSampTest] = [
         expected=0.0,
         msg="Should return 0.0 when there's no variance",
     ),
-    # NaN & Inf
+    # NaN
     StdDevSampTest(
         "core_nan_present",
         values=[1, 2, FLOAT_NAN],
