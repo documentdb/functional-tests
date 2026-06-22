@@ -294,9 +294,37 @@ COLLMOD_INDEX_EXPIRE_NEGATIVE_ERROR_TESTS: list[CommandTestCase] = [
     ]
 ]
 
+# Property [Index expireAfterSeconds Converts Special Single-Field Index Types]:
+# setting expireAfterSeconds on a single-field hashed or geospatial (2dsphere)
+# index converts it to a TTL index, echoing expireAfterSeconds_new with no
+# expireAfterSeconds_old, because TTL eligibility is decided by the key shape
+# (single-field non-_id), not the index sub-type.
+COLLMOD_INDEX_EXPIRE_SPECIAL_TYPE_CONVERT_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        f"expire_converts_{tid}",
+        indexes=[IndexModel(key, name=name)],
+        docs=[],
+        command=lambda ctx, n=name: {
+            "collMod": ctx.collection,
+            "index": {"name": n, "expireAfterSeconds": 100},
+        },
+        expected={
+            "ok": Eq(1.0),
+            "expireAfterSeconds_old": NotExists(),
+            "expireAfterSeconds_new": Eq(Int64(100)),
+        },
+        msg=f"collMod should convert a single-field {tid} index to TTL with a new value "
+        "and no old value",
+    )
+    for tid, key, name in [
+        ("hashed", [("a", "hashed")], "a_hashed"),
+        ("2dsphere", [("loc", "2dsphere")], "loc_2dsphere"),
+    ]
+]
+
 # Property [Index expireAfterSeconds Non-Single-Field Rejection]: applying
-# expireAfterSeconds to a compound index or to the _id_ index is rejected as an
-# invalid option, since TTL is supported only on single-field non-_id indexes.
+# expireAfterSeconds to certain index types is rejected as an invalid option,
+# since TTL is supported only on single-field non-_id indexes.
 COLLMOD_INDEX_EXPIRE_NON_SINGLE_FIELD_ERROR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "expire_compound_index",
@@ -320,6 +348,41 @@ COLLMOD_INDEX_EXPIRE_NON_SINGLE_FIELD_ERROR_TESTS: list[CommandTestCase] = [
         error_code=INVALID_OPTIONS_ERROR,
         msg="collMod should reject expireAfterSeconds on the _id_ index as an invalid option",
     ),
+    CommandTestCase(
+        "expire_text_index",
+        indexes=[IndexModel([("a", "text")], name="a_text")],
+        docs=[],
+        command=lambda ctx: {
+            "collMod": ctx.collection,
+            "index": {"name": "a_text", "expireAfterSeconds": 100},
+        },
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="collMod should reject expireAfterSeconds on a text index as an invalid option",
+    ),
+]
+
+# Property [Index expireAfterSeconds Wildcard Crash]: applying expireAfterSeconds
+# to a wildcard index must not crash the engine and must return a clean
+# InvalidOptions error, since a wildcard index is not a valid TTL target.
+COLLMOD_INDEX_EXPIRE_WILDCARD_CRASH_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "expire_wildcard_index",
+        indexes=[IndexModel([("$**", 1)], name="wild")],
+        docs=[],
+        command=lambda ctx: {
+            "collMod": ctx.collection,
+            "index": {"name": "wild", "expireAfterSeconds": 100},
+        },
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="collMod should reject expireAfterSeconds on a wildcard index with a clean error "
+        "and not crash",
+        marks=(
+            pytest.mark.engine_xcrash(
+                engine="mongodb",
+                reason="Server crashes when expireAfterSeconds is applied to a wildcard index",
+            ),
+        ),
+    ),
 ]
 
 COLLMOD_INDEX_EXPIRE_TESTS: list[CommandTestCase] = (
@@ -329,11 +392,13 @@ COLLMOD_INDEX_EXPIRE_TESTS: list[CommandTestCase] = (
     + COLLMOD_INDEX_EXPIRE_NAN_TESTS
     + COLLMOD_INDEX_EXPIRE_SAME_VALUE_TESTS
     + COLLMOD_INDEX_EXPIRE_CONVERT_TESTS
+    + COLLMOD_INDEX_EXPIRE_SPECIAL_TYPE_CONVERT_TESTS
     + COLLMOD_INDEX_COMBO_EXPIRE_HIDDEN_TESTS
     + COLLMOD_INDEX_EXPIRE_TYPE_ERROR_TESTS
     + COLLMOD_INDEX_EXPIRE_NULL_ERROR_TESTS
     + COLLMOD_INDEX_EXPIRE_NEGATIVE_ERROR_TESTS
     + COLLMOD_INDEX_EXPIRE_NON_SINGLE_FIELD_ERROR_TESTS
+    + COLLMOD_INDEX_EXPIRE_WILDCARD_CRASH_TESTS
 )
 
 
