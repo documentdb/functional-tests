@@ -23,9 +23,9 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    API_VERSION_REQUIRED_ERROR,
     API_STRICT_ERROR,
     API_VERSION_ERROR,
+    API_VERSION_REQUIRED_ERROR,
     MISSING_FIELD_ERROR,
     TYPE_MISMATCH_ERROR,
 )
