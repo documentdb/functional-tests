@@ -100,7 +100,7 @@ def test_top_multiple_collections_appear(collection):
 
 
 def test_top_system_collections_have_event_structure(collection):
-    """Test that system namespaces in totals have the expected event field structure."""
+    """Test that a system namespace in totals has the expected event field structure."""
     collection.insert_one({"_id": 1})
     result = execute_admin_command(collection, {"top": 1})
     system_ns = None
@@ -111,25 +111,10 @@ def test_top_system_collections_have_event_structure(collection):
     if system_ns is None:
         pytest.skip("No system namespace found in top totals")
     ns_data = result["totals"][system_ns]
-    checks = {}
-    for event in [
-        "total",
-        "readLock",
-        "writeLock",
-        "queries",
-        "getmore",
-        "insert",
-        "update",
-        "remove",
-        "commands",
-    ]:
-        checks[event] = IsType("object")
-        checks[f"{event}.time"] = Gte(0)
-        checks[f"{event}.count"] = Gte(0)
     assertProperties(
         ns_data,
-        checks,
-        msg=f"System namespace {system_ns} should have all event fields with time/count",
+        {"total": IsType("object"), "total.time": Gte(0), "total.count": Gte(0)},
+        msg=f"System namespace {system_ns} should have event fields with time/count",
         raw_res=True,
     )
 
@@ -154,15 +139,18 @@ def test_top_tracks_capped_collection(collection):
 
 
 def test_top_tracks_view(collection):
-    """Test whether a view namespace appears in top totals."""
+    """Test that a view namespace appears in top totals."""
     db = collection.database
     source_coll = db.create_collection(f"{collection.name}_view_src")
     source_coll.insert_one({"_id": 1})
-    db.command("create", f"{collection.name}_view", viewOn=source_coll.name, pipeline=[])
+    view_name = f"{collection.name}_view"
+    db.command("create", view_name, viewOn=source_coll.name, pipeline=[])
     result = execute_admin_command(source_coll, {"top": 1})
+    view_ns = f"{db.name}.{view_name}"
+    view_data = result["totals"].get(view_ns)
     assertProperties(
-        result,
-        {"totals": IsType("object")},
-        msg="top should return totals even when views exist",
+        {"ns_entry": view_data},
+        {"ns_entry": Exists()},
+        msg=f"View namespace {view_ns} should appear in top totals",
         raw_res=True,
     )

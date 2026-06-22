@@ -16,12 +16,17 @@ from documentdb_tests.framework.property_checks import Eq, Gte, IsType
 pytestmark = pytest.mark.admin
 
 
-# Property [Top-Level Fields]: top response contains totals and ok fields.
+# Property [Top-Level Fields]: top response contains totals, totals.note, and ok fields.
 TOP_LEVEL_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         id="response_has_totals",
         checks={"totals": IsType("object")},
         msg="'totals' field should be an object",
+    ),
+    DiagnosticTestCase(
+        id="response_has_note",
+        checks={"totals.note": Eq("all times in microseconds")},
+        msg="'totals.note' should describe time units",
     ),
     DiagnosticTestCase(
         id="response_has_ok",

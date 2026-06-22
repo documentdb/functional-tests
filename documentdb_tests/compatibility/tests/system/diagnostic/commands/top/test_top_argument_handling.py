@@ -131,14 +131,6 @@ ARGUMENT_TYPE_TESTS: list[DiagnosticTestCase] = [
     ),
 ]
 
-
-@pytest.mark.parametrize("test", pytest_params(ARGUMENT_TYPE_TESTS))
-def test_top_argument_types(collection, test):
-    """Test that top accepts various BSON types as argument value."""
-    result = execute_admin_command(collection, test.command)
-    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
-
-
 # Property [Unrecognized Fields]: top accepts and ignores unrecognized fields.
 UNRECOGNIZED_FIELD_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
@@ -155,9 +147,11 @@ UNRECOGNIZED_FIELD_TESTS: list[DiagnosticTestCase] = [
     ),
 ]
 
+ARGUMENT_HANDLING_TESTS = ARGUMENT_TYPE_TESTS + UNRECOGNIZED_FIELD_TESTS
 
-@pytest.mark.parametrize("test", pytest_params(UNRECOGNIZED_FIELD_TESTS))
-def test_top_unrecognized_fields(collection, test):
-    """Test that top accepts unrecognized fields."""
+
+@pytest.mark.parametrize("test", pytest_params(ARGUMENT_HANDLING_TESTS))
+def test_top_argument_handling(collection, test):
+    """Test that top accepts various BSON types and unrecognized fields."""
     result = execute_admin_command(collection, test.command)
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
