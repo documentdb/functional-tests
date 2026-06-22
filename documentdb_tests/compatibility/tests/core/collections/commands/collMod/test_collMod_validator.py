@@ -28,6 +28,7 @@ from documentdb_tests.framework.target_collection import (
     ExistingDatabase,
     SystemViewsCollection,
     TimeseriesCollection,
+    ValidatedCollection,
     ViewCollection,
 )
 from documentdb_tests.framework.test_constants import (
@@ -145,6 +146,40 @@ COLLMOD_VALIDATOR_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="collMod should accept a validator regex pattern at the 16384-byte limit",
+    ),
+]
+
+# Property [validator No Retroactive Validation]: setting a validator does not
+# validate documents already present in the collection, so the command succeeds
+# (ok:1.0) even when an existing document would fail the newly-set validator,
+# including under an explicit strict/error validation mode.
+COLLMOD_VALIDATOR_NO_RETROACTIVE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "json_schema_existing_doc_violates",
+        docs=[{"_id": 1, "a": "not_an_int"}],
+        command=lambda ctx: {
+            "collMod": ctx.collection,
+            "validator": {"$jsonSchema": {"properties": {"a": {"bsonType": "int"}}}},
+            "validationLevel": "strict",
+            "validationAction": "error",
+        },
+        expected={"ok": Eq(1.0)},
+        msg="collMod should accept a $jsonSchema validator even when an existing document "
+        "violates it, since existing documents are not validated retroactively",
+    ),
+]
+
+# Property [validator Clears Previously-Set Validator]: an empty {} validator
+# applied to a collection that already has a validator is accepted (ok:1.0),
+# resetting it to no validation.
+COLLMOD_VALIDATOR_CLEAR_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "empty_clears_existing_validator",
+        target_collection=ValidatedCollection(),
+        docs=[],
+        command=lambda ctx: {"collMod": ctx.collection, "validator": {}},
+        expected={"ok": Eq(1.0)},
+        msg="collMod should accept an empty {} validator that clears a previously-set validator",
     ),
 ]
 
@@ -382,6 +417,8 @@ COLLMOD_VALIDATOR_UNSUPPORTED_TARGET_ERROR_TESTS: list[CommandTestCase] = [
 
 COLLMOD_VALIDATOR_TESTS: list[CommandTestCase] = (
     COLLMOD_VALIDATOR_SUCCESS_TESTS
+    + COLLMOD_VALIDATOR_NO_RETROACTIVE_TESTS
+    + COLLMOD_VALIDATOR_CLEAR_TESTS
     + COLLMOD_VALIDATOR_TYPE_ERROR_TESTS
     + COLLMOD_VALIDATOR_OPERATOR_ERROR_TESTS
     + COLLMOD_VALIDATOR_JSON_SCHEMA_ERROR_TESTS
