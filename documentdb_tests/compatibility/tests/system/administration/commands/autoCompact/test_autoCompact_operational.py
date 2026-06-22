@@ -21,6 +21,7 @@ from documentdb_tests.framework.executor import (
     execute_command,
 )
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
 
 # Property [Admin-Scope Errors]: a fully valid autoCompact run against a
 # non-admin database is rejected as out of scope.
@@ -65,14 +66,39 @@ def test_autoCompact_admin_scope(database_client, collection, test):
 def test_autoCompact_reconfigure_conflict(collection):
     """Test autoCompact rejects a differing reconfigure while enabled."""
     ensure_autocompact_idle(collection)
-    # Establish a running config. This enable reliably succeeds from the idle
-    # state ensure_autocompact_idle guarantees, installing a persistent config
-    # that the differing enable below then conflicts with.
+
+    # Establish a running config.
     execute_admin_command(collection, {"autoCompact": True, "freeSpaceTargetMB": 30})
+
+    # Second should be rejected as the value differs.
     result = execute_admin_command(collection, {"autoCompact": True, "freeSpaceTargetMB": 50})
+
     assertResult(
         result,
         error_code=CONFLICTING_OPERATION_IN_PROGRESS_ERROR,
         msg="autoCompact should reject reconfiguring an enabled compaction with a different config",
+        raw_res=True,
+    )
+
+
+# Property [Running-State Idempotent Reconfigure]: re-enabling an already
+# enabled autoCompact with an identical config is accepted as a no-op rather
+# than rejected, confirming the reconfigure conflict is driven by the config
+# difference and not the already-running state.
+@pytest.mark.no_parallel
+def test_autoCompact_reconfigure_idempotent(collection):
+    """Test autoCompact accepts re-enabling an enabled compaction with an identical config."""
+    ensure_autocompact_idle(collection)
+
+    # Establish a running config.
+    execute_admin_command(collection, {"autoCompact": True, "freeSpaceTargetMB": 30})
+
+    # Second should be accepted as a no-op since the value is the same.
+    result = execute_admin_command(collection, {"autoCompact": True, "freeSpaceTargetMB": 30})
+
+    assertResult(
+        result,
+        expected={"ok": Eq(1.0)},
+        msg="autoCompact should accept re-enabling an enabled compaction with an identical config",
         raw_res=True,
     )
