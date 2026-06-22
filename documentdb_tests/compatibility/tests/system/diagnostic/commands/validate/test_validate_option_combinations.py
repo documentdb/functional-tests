@@ -20,54 +20,52 @@ from documentdb_tests.framework.property_checks import Eq
 # Property [Valid Combinations]: validate succeeds with valid option combinations.
 VALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
-        "minimal_command",
-        checks={"ok": Eq(1.0)},
-        msg="Minimal validate command should succeed",
-    ),
-    DiagnosticTestCase(
         "all_defaults_explicit",
+        command={"full": False, "repair": False, "metadata": False, "checkBSONConformance": False},
         checks={"ok": Eq(1.0)},
         msg="All options set to false explicitly should succeed",
     ),
     DiagnosticTestCase(
         "full_true",
+        command={"full": True},
         checks={"ok": Eq(1.0)},
         msg="validate with full: true should succeed",
     ),
     DiagnosticTestCase(
         "checkBSONConformance_true",
+        command={"checkBSONConformance": True},
         checks={"ok": Eq(1.0)},
         msg="validate with checkBSONConformance: true should succeed",
     ),
     DiagnosticTestCase(
         "full_and_checkBSONConformance",
+        command={"full": True, "checkBSONConformance": True},
         checks={"ok": Eq(1.0)},
         msg="validate with full: true and checkBSONConformance: true should succeed",
     ),
     DiagnosticTestCase(
         "metadata_true",
+        command={"metadata": True},
         checks={"ok": Eq(1.0)},
         msg="validate with metadata: true should succeed",
     ),
     DiagnosticTestCase(
         "fixMultikey_true_alone",
+        command={"fixMultikey": True},
         checks={"ok": Eq(1.0)},
         msg="validate with fixMultikey: true alone should succeed",
     ),
     DiagnosticTestCase(
         "repair_true_alone",
+        command={"repair": True},
         checks={"ok": Eq(1.0)},
         msg="validate with repair: true alone should succeed",
     ),
     DiagnosticTestCase(
         "repair_true_with_fixMultikey",
+        command={"repair": True, "fixMultikey": True},
         checks={"ok": Eq(1.0)},
         msg="validate with repair: true and fixMultikey: true should succeed",
-    ),
-    DiagnosticTestCase(
-        "background_false",
-        checks={"ok": Eq(1.0)},
-        msg="validate with background: false should succeed",
     ),
 ]
 
@@ -76,36 +74,7 @@ VALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
 def test_validate_valid_option_combinations(collection, test):
     """Test that validate succeeds with valid option combinations."""
     collection.insert_one({"_id": 1})
-    commands = {
-        "minimal_command": {"validate": collection.name},
-        "all_defaults_explicit": {
-            "validate": collection.name,
-            "full": False,
-            "repair": False,
-            "metadata": False,
-            "checkBSONConformance": False,
-        },
-        "full_true": {"validate": collection.name, "full": True},
-        "checkBSONConformance_true": {
-            "validate": collection.name,
-            "checkBSONConformance": True,
-        },
-        "full_and_checkBSONConformance": {
-            "validate": collection.name,
-            "full": True,
-            "checkBSONConformance": True,
-        },
-        "metadata_true": {"validate": collection.name, "metadata": True},
-        "fixMultikey_true_alone": {"validate": collection.name, "fixMultikey": True},
-        "repair_true_alone": {"validate": collection.name, "repair": True},
-        "repair_true_with_fixMultikey": {
-            "validate": collection.name,
-            "repair": True,
-            "fixMultikey": True,
-        },
-        "background_false": {"validate": collection.name, "background": False},
-    }
-    result = execute_command(collection, commands[test.id])
+    result = execute_command(collection, {"validate": collection.name, **test.command})
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
@@ -113,21 +82,25 @@ def test_validate_valid_option_combinations(collection, test):
 INVALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         "metadata_with_full",
+        command={"metadata": True, "full": True},
         error_code=INVALID_OPTIONS_ERROR,
         msg="metadata: true with full: true should error",
     ),
     DiagnosticTestCase(
         "metadata_with_repair",
+        command={"metadata": True, "repair": True, "fixMultikey": True},
         error_code=INVALID_OPTIONS_ERROR,
         msg="metadata: true with repair: true should error",
     ),
     DiagnosticTestCase(
         "metadata_with_checkBSONConformance",
+        command={"metadata": True, "checkBSONConformance": True},
         error_code=INVALID_OPTIONS_ERROR,
         msg="metadata: true with checkBSONConformance: true should error",
     ),
     DiagnosticTestCase(
         "checkBSONConformance_with_repair",
+        command={"checkBSONConformance": True, "repair": True, "fixMultikey": True},
         error_code=INVALID_OPTIONS_ERROR,
         msg="checkBSONConformance: true with repair: true should error",
     ),
@@ -138,29 +111,5 @@ INVALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
 def test_validate_invalid_option_combinations(collection, test):
     """Test that validate errors on invalid option combinations."""
     collection.insert_one({"_id": 1})
-    commands = {
-        "metadata_with_full": {
-            "validate": collection.name,
-            "metadata": True,
-            "full": True,
-        },
-        "metadata_with_repair": {
-            "validate": collection.name,
-            "metadata": True,
-            "repair": True,
-            "fixMultikey": True,
-        },
-        "metadata_with_checkBSONConformance": {
-            "validate": collection.name,
-            "metadata": True,
-            "checkBSONConformance": True,
-        },
-        "checkBSONConformance_with_repair": {
-            "validate": collection.name,
-            "checkBSONConformance": True,
-            "repair": True,
-            "fixMultikey": True,
-        },
-    }
-    result = execute_command(collection, commands[test.id])
+    result = execute_command(collection, {"validate": collection.name, **test.command})
     assertFailureCode(result, test.error_code, msg=test.msg)

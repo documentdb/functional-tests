@@ -61,19 +61,6 @@ def test_validate_after_insert_and_delete_all(collection):
     )
 
 
-def test_validate_with_secondary_indexes(collection):
-    """Test validate with secondary indexes reports correct nIndexes."""
-    collection.insert_many([{"_id": i, "x": i, "y": i} for i in range(5)])
-    collection.create_index("x")
-    collection.create_index([("y", -1)])
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "nIndexes": 3},
-        msg="nIndexes should be 3 (_id + x_1 + y_-1)",
-    )
-
-
 def test_validate_consistent_across_calls(collection):
     """Test validate returns consistent results across multiple calls."""
     collection.insert_many([{"_id": i, "x": i} for i in range(5)])
@@ -129,27 +116,4 @@ def test_validate_with_comment(collection):
         result,
         {"ok": 1.0},
         msg="validate with comment parameter should succeed",
-    )
-
-
-def test_validate_with_full_true(collection):
-    """Test validate with full: true returns valid: true on healthy collection."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(5)])
-    result = execute_command(collection, {"validate": collection.name, "full": True})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True},
-        msg="validate with full: true should succeed on healthy collection",
-    )
-
-
-def test_validate_metadata_true(collection):
-    """Test validate with metadata: true succeeds."""
-    collection.insert_one({"_id": 1, "x": 1})
-    collection.create_index("x")
-    result = execute_command(collection, {"validate": collection.name, "metadata": True})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
-        msg="validate with metadata: true should succeed",
     )

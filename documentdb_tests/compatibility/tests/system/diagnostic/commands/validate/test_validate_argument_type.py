@@ -14,11 +14,10 @@ from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Rege
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
 )
-from documentdb_tests.framework.assertions import assertFailureCode, assertProperties
+from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import INVALID_NAMESPACE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq
 
 # Property [Type Rejection]: validate rejects all non-string BSON types for the collection name.
 INVALID_TYPE_TESTS: list[DiagnosticTestCase] = [
@@ -144,21 +143,3 @@ def test_validate_rejects_non_string_types(collection, test):
     """Test that validate rejects non-string BSON types for the collection name."""
     result = execute_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)
-
-
-# Property [String Acceptance]: validate accepts a valid string collection name.
-VALID_STRING_TESTS: list[DiagnosticTestCase] = [
-    DiagnosticTestCase(
-        "valid_collection_name",
-        checks={"ok": Eq(1.0)},
-        msg="validate should accept a valid collection name string",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(VALID_STRING_TESTS))
-def test_validate_accepts_string(collection, test):
-    """Test that validate accepts a valid string collection name."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"validate": collection.name})
-    assertProperties(result, test.checks, msg=test.msg, raw_res=True)

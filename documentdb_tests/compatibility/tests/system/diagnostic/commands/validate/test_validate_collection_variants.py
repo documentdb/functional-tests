@@ -12,17 +12,6 @@ from documentdb_tests.framework.error_codes import COMMAND_NOT_SUPPORTED_ON_VIEW
 from documentdb_tests.framework.executor import execute_command
 
 
-def test_validate_regular_collection(collection):
-    """Test validate on a regular collection succeeds."""
-    collection.insert_one({"_id": 1, "x": 1})
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True},
-        msg="validate should succeed on a regular collection",
-    )
-
-
 def test_validate_capped_collection(database_client, collection):
     """Test validate on a capped collection succeeds."""
     coll_name = f"{collection.name}_capped"

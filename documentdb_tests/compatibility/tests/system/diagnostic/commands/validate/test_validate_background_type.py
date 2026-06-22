@@ -23,44 +23,41 @@ from documentdb_tests.framework.property_checks import Eq
 FALSY_TYPE_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         "bool_false",
+        command={"background": False},
         checks={"ok": Eq(1.0)},
         msg="background should accept bool false",
     ),
     DiagnosticTestCase(
         "int32_0",
+        command={"background": 0},
         checks={"ok": Eq(1.0)},
         msg="background should accept int32 0 (coerces to false)",
     ),
     DiagnosticTestCase(
         "double_0",
+        command={"background": 0.0},
         checks={"ok": Eq(1.0)},
         msg="background should accept double 0.0 (coerces to false)",
     ),
     DiagnosticTestCase(
         "int64_0",
+        command={"background": Int64(0)},
         checks={"ok": Eq(1.0)},
         msg="background should accept Int64(0) (coerces to false)",
     ),
     DiagnosticTestCase(
         "decimal128_0",
+        command={"background": Decimal128("0")},
         checks={"ok": Eq(1.0)},
         msg="background should accept Decimal128('0') (coerces to false)",
     ),
     DiagnosticTestCase(
         "null",
+        command={"background": None},
         checks={"ok": Eq(1.0)},
         msg="background should accept null (treated as omitted/false)",
     ),
 ]
-
-_FALSY_VALUES = {
-    "bool_false": False,
-    "int32_0": 0,
-    "double_0": 0.0,
-    "int64_0": Int64(0),
-    "decimal128_0": Decimal128("0"),
-    "null": None,
-}
 
 
 @pytest.mark.parametrize("test", pytest_params(FALSY_TYPE_TESTS))
@@ -69,7 +66,7 @@ def test_validate_background_falsy_types(collection, test):
     collection.insert_one({"_id": 1})
     result = execute_command(
         collection,
-        {"validate": collection.name, "background": _FALSY_VALUES[test.id]},
+        {"validate": collection.name, **test.command},
     )
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
@@ -78,26 +75,23 @@ def test_validate_background_falsy_types(collection, test):
 TRUTHY_TYPE_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         "bool_true",
+        command={"background": True},
         error_code=COMMAND_NOT_SUPPORTED_ERROR,
         msg="background: true not supported on standalone",
     ),
     DiagnosticTestCase(
         "int32_1",
+        command={"background": 1},
         error_code=COMMAND_NOT_SUPPORTED_ERROR,
         msg="background: int 1 (truthy) not supported on standalone",
     ),
     DiagnosticTestCase(
         "string",
+        command={"background": "true"},
         error_code=COMMAND_NOT_SUPPORTED_ERROR,
         msg="background: string (truthy) not supported on standalone",
     ),
 ]
-
-_TRUTHY_VALUES = {
-    "bool_true": True,
-    "int32_1": 1,
-    "string": "true",
-}
 
 
 @pytest.mark.parametrize("test", pytest_params(TRUTHY_TYPE_TESTS))
@@ -106,6 +100,6 @@ def test_validate_background_truthy_standalone_error(collection, test):
     collection.insert_one({"_id": 1})
     result = execute_command(
         collection,
-        {"validate": collection.name, "background": _TRUTHY_VALUES[test.id]},
+        {"validate": collection.name, **test.command},
     )
     assertFailureCode(result, test.error_code, msg=test.msg)
