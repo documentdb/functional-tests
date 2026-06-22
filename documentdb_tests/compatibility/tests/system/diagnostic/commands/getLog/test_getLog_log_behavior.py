@@ -16,8 +16,12 @@ import json
 
 import pytest
 
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
+    DiagnosticTestCase,
+)
 from documentdb_tests.framework.assertions import assertProperties, assertSuccess
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Exists, Gte
 
 pytestmark = pytest.mark.admin
@@ -37,59 +41,52 @@ def _parses_as_json(entry: object) -> bool:
         return False
 
 
-def test_getLog_global_has_log_entries(collection):
-    """Test getLog 'global' returns at least one log entry from the RAM cache."""
-    result = execute_admin_command(collection, {"getLog": "global"})
-    assertProperties(
-        result, {"log.0": Exists()}, msg="A running server should have log entries", raw_res=True
-    )
-
-
-def test_getLog_global_totalLinesWritten_non_zero(collection):
-    """Test getLog 'global' reports a non-zero totalLinesWritten on a running server."""
-    result = execute_admin_command(collection, {"getLog": "global"})
-    assertProperties(
-        result,
-        {"totalLinesWritten": Gte(1)},
+PROPERTY_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "has_log_entries",
+        command={"getLog": "global"},
+        checks={"log.0": Exists()},
+        msg="A running server should have log entries",
+    ),
+    DiagnosticTestCase(
+        "totalLinesWritten_non_zero",
+        command={"getLog": "global"},
+        checks={"totalLinesWritten": Gte(1)},
         msg="totalLinesWritten should be >= 1 on a running server",
-        raw_res=True,
-    )
+    ),
+]
+
+BEHAVIOR_CASES = [
+    pytest.param(
+        "totalLinesWritten should be >= len(log)",
+        lambda r: r["totalLinesWritten"] >= len(r["log"]),
+        id="totalLinesWritten_gte_log_length",
+    ),
+    pytest.param(
+        "log array should contain at most 1024 entries",
+        lambda r: len(r["log"]) <= MAX_LOG_EVENTS,
+        id="log_capped_at_1024",
+    ),
+    pytest.param(
+        "log entries should be JSON-parseable strings",
+        lambda r: all(_parses_as_json(entry) for entry in r["log"]),
+        id="entries_parse_as_json",
+    ),
+]
 
 
-def test_getLog_global_totalLinesWritten_gte_log_length(collection):
-    """Test totalLinesWritten is >= the number of returned log entries."""
+@pytest.mark.parametrize("test", pytest_params(PROPERTY_TESTS))
+def test_getLog_global_properties(collection, test):
+    """Verify a getLog 'global' response field exists and has the expected type or value."""
+    result = execute_admin_command(collection, test.command)
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
+
+
+@pytest.mark.parametrize("msg,transform", BEHAVIOR_CASES)
+def test_getLog_global_invariants(collection, msg, transform):
+    """Verify stable invariants of the getLog 'global' log array and line counter."""
     result = execute_admin_command(collection, {"getLog": "global"})
-    assertSuccess(
-        result,
-        True,
-        msg="totalLinesWritten should be >= len(log)",
-        raw_res=True,
-        transform=lambda r: r["totalLinesWritten"] >= len(r["log"]),
-    )
-
-
-def test_getLog_global_log_capped_at_1024(collection):
-    """Test getLog 'global' returns at most 1024 log entries."""
-    result = execute_admin_command(collection, {"getLog": "global"})
-    assertSuccess(
-        result,
-        True,
-        msg="log array should contain at most 1024 entries",
-        raw_res=True,
-        transform=lambda r: len(r["log"]) <= MAX_LOG_EVENTS,
-    )
-
-
-def test_getLog_global_entries_parse_as_json(collection):
-    """Test every getLog 'global' log entry is a JSON-parseable string."""
-    result = execute_admin_command(collection, {"getLog": "global"})
-    assertSuccess(
-        result,
-        True,
-        msg="log entries should be JSON-parseable strings",
-        raw_res=True,
-        transform=lambda r: all(_parses_as_json(entry) for entry in r["log"]),
-    )
+    assertSuccess(result, True, msg=msg, raw_res=True, transform=transform)
 
 
 def test_getLog_totalLinesWritten_non_decreasing_after_logRotate(collection):

@@ -51,19 +51,21 @@ ERROR_TESTS: list[DiagnosticTestCase] = [
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="Unrecognized command field should error",
     ),
+    DiagnosticTestCase(
+        "non_admin_database",
+        command={"getLog": "global"},
+        use_admin=False,
+        error_code=UNAUTHORIZED_ERROR,
+        msg="getLog should only run on the admin database",
+    ),
 ]
 
 
 @pytest.mark.parametrize("test", pytest_params(ERROR_TESTS))
 def test_getLog_error(collection, test):
     """Test getLog returns the expected error code for invalid arguments."""
-    result = execute_admin_command(collection, test.command)
+    if test.use_admin:
+        result = execute_admin_command(collection, test.command)
+    else:
+        result = execute_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)
-
-
-def test_getLog_non_admin_database(collection):
-    """Test getLog run against a non-admin database returns Unauthorized."""
-    result = execute_command(collection, {"getLog": "global"})
-    assertFailureCode(
-        result, UNAUTHORIZED_ERROR, msg="getLog should only run on the admin database"
-    )

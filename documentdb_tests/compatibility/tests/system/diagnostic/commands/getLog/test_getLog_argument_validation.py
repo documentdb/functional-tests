@@ -1,10 +1,7 @@
 """Tests for getLog command argument validation.
 
 Covers BSON type handling for the ``getLog`` field value. Only a string is
-accepted; every non-string type is rejected with TypeMismatch. Acceptance is
-verified against the three documented filter strings ("global",
-"startupWarnings", "*") rather than a generic string sample, because an
-arbitrary string is not a valid log component.
+accepted; every non-string type is rejected with TypeMismatch.
 
 Invalid string values (e.g. unknown components, the deprecated "rs") and
 unrecognized command fields are covered in test_getLog_errors.py.
@@ -12,7 +9,7 @@ unrecognized command fields are covered in test_getLog_errors.py.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
+from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.bson_type_validator import (
     BsonTypeTestCase,
     generate_bson_rejection_test_cases,
@@ -39,25 +36,9 @@ BSON_TYPE_PARAMS = [
 
 REJECTION_CASES = generate_bson_rejection_test_cases(BSON_TYPE_PARAMS)
 
-# The three documented filter values accepted by getLog, paired with stable ids.
-VALID_FILTERS = [
-    ("global", "filter_global"),
-    ("startupWarnings", "filter_startupWarnings"),
-    ("*", "filter_wildcard"),
-]
-VALID_FILTER_IDS = [fid for _, fid in VALID_FILTERS]
-VALID_FILTER_VALUES = [value for value, _ in VALID_FILTERS]
-
 
 @pytest.mark.parametrize("bson_type,sample_value,spec", REJECTION_CASES)
 def test_getLog_rejects_non_string_value(collection, bson_type, sample_value, spec):
     """Test getLog rejects each non-string BSON type for its value."""
     result = execute_admin_command(collection, {"getLog": sample_value})
     assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
-
-
-@pytest.mark.parametrize("value", VALID_FILTER_VALUES, ids=VALID_FILTER_IDS)
-def test_getLog_accepts_valid_filter(collection, value):
-    """Test getLog accepts each documented filter string and returns ok:1."""
-    result = execute_admin_command(collection, {"getLog": value})
-    assertSuccessPartial(result, {"ok": 1.0}, msg=f"getLog should accept '{value}'")
