@@ -1,7 +1,8 @@
 """Tests for validate command argument type handling.
 
 Validates that the validate parameter (collection name) must be a string and
-rejects all other BSON types with the correct error code.
+rejects all other BSON types with the correct error code. Also validates that
+the background parameter accepts falsy BSON types via coercion.
 """
 
 from __future__ import annotations
@@ -14,10 +15,11 @@ from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Rege
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
 )
-from documentdb_tests.framework.assertions import assertFailureCode
+from documentdb_tests.framework.assertions import assertFailureCode, assertProperties
 from documentdb_tests.framework.error_codes import INVALID_NAMESPACE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
 
 # Property [Type Rejection]: validate rejects all non-string BSON types for the collection name.
 INVALID_TYPE_TESTS: list[DiagnosticTestCase] = [
@@ -143,3 +145,55 @@ def test_validate_rejects_non_string_types(collection, test):
     """Test that validate rejects non-string BSON types for the collection name."""
     result = execute_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)
+
+
+# Property [Falsy Type Acceptance]: validate accepts falsy BSON types for the background parameter.
+FALSY_TYPE_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "bool_false",
+        command={"background": False},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept bool false",
+    ),
+    DiagnosticTestCase(
+        "int32_0",
+        command={"background": 0},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept int32 0 (coerces to false)",
+    ),
+    DiagnosticTestCase(
+        "double_0",
+        command={"background": 0.0},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept double 0.0 (coerces to false)",
+    ),
+    DiagnosticTestCase(
+        "int64_0",
+        command={"background": Int64(0)},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept Int64(0) (coerces to false)",
+    ),
+    DiagnosticTestCase(
+        "decimal128_0",
+        command={"background": Decimal128("0")},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept Decimal128('0') (coerces to false)",
+    ),
+    DiagnosticTestCase(
+        "null",
+        command={"background": None},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept null (treated as omitted/false)",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(FALSY_TYPE_TESTS))
+def test_validate_background_falsy_types(collection, test):
+    """Test that validate accepts falsy types for the background parameter."""
+    collection.insert_one({"_id": 1})
+    result = execute_command(
+        collection,
+        {"validate": collection.name, **test.command},
+    )
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
