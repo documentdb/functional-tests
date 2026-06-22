@@ -5,146 +5,138 @@ Validates that counters reflect operations and cross-lock consistency invariants
 
 import pytest
 
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
+    DiagnosticTestCase,
+)
 from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Gt, Gte
 
 pytestmark = pytest.mark.admin
 
 
-# Property [Counter Behavior]: operations increment the corresponding event counters.
-
-
-def test_top_insert_increments_insert_count(collection):
-    """Test that inserting documents increments the insert count."""
-    collection.insert_many([{"_id": i} for i in range(5)])
-    result = execute_admin_command(collection, {"top": 1})
-    ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
-    assertProperties(
-        ns_data,
-        {"insert.count": Gte(1)},
+# Property [Counter Behavior — Insert]: insert operations increment insert and writeLock counters.
+INSERT_COUNTER_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "insert_increments_insert_count",
+        command={"top": 1},
+        checks={"insert.count": Gte(1)},
         msg="insert.count should be >= 1 after inserts",
-        raw_res=True,
-    )
-
-
-def test_top_insert_increments_writeLock_count(collection):
-    """Test that inserting documents increments the writeLock count."""
-    collection.insert_many([{"_id": i} for i in range(5)])
-    result = execute_admin_command(collection, {"top": 1})
-    ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
-    assertProperties(
-        ns_data,
-        {"writeLock.count": Gte(1)},
+    ),
+    DiagnosticTestCase(
+        "insert_increments_writeLock_count",
+        command={"top": 1},
+        checks={"writeLock.count": Gte(1)},
         msg="writeLock.count should be >= 1 after inserts",
-        raw_res=True,
-    )
+    ),
+    DiagnosticTestCase(
+        "insert_time_positive",
+        command={"top": 1},
+        checks={"insert.time": Gt(0)},
+        msg="insert.time should be > 0 after inserts",
+    ),
+]
 
 
-def test_top_query_increments_queries_count(collection):
-    """Test that running a find query increments the queries count."""
-    collection.insert_one({"_id": 1})
-    list(collection.find())
-    result = execute_admin_command(collection, {"top": 1})
-    ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
-    assertProperties(
-        ns_data, {"queries.count": Gte(1)}, msg="queries.count should be >= 1", raw_res=True
-    )
-
-
-def test_top_query_increments_readLock_count(collection):
-    """Test that running a find query increments the readLock count."""
-    collection.insert_one({"_id": 1})
-    list(collection.find())
-    result = execute_admin_command(collection, {"top": 1})
-    ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
-    assertProperties(
-        ns_data, {"readLock.count": Gte(1)}, msg="readLock.count should be >= 1", raw_res=True
-    )
-
-
-def test_top_update_increments_update_count(collection):
-    """Test that running an update increments the update count."""
-    collection.insert_one({"_id": 1, "a": 1})
-    collection.update_one({"_id": 1}, {"$set": {"a": 2}})
-    result = execute_admin_command(collection, {"top": 1})
-    ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
-    assertProperties(
-        ns_data, {"update.count": Gte(1)}, msg="update.count should be >= 1", raw_res=True
-    )
-
-
-def test_top_update_increments_writeLock_count(collection):
-    """Test that running an update increments the writeLock count."""
-    collection.insert_one({"_id": 1, "a": 1})
-    collection.update_one({"_id": 1}, {"$set": {"a": 2}})
-    result = execute_admin_command(collection, {"top": 1})
-    ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
-    assertProperties(
-        ns_data,
-        {"writeLock.count": Gte(1)},
-        msg="writeLock.count should be >= 1 after update",
-        raw_res=True,
-    )
-
-
-def test_top_remove_increments_remove_count(collection):
-    """Test that running a delete increments the remove count."""
-    collection.insert_one({"_id": 1})
-    collection.delete_one({"_id": 1})
-    result = execute_admin_command(collection, {"top": 1})
-    ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
-    assertProperties(
-        ns_data, {"remove.count": Gte(1)}, msg="remove.count should be >= 1", raw_res=True
-    )
-
-
-def test_top_remove_increments_writeLock_count(collection):
-    """Test that running a delete increments the writeLock count."""
-    collection.insert_one({"_id": 1})
-    collection.delete_one({"_id": 1})
-    result = execute_admin_command(collection, {"top": 1})
-    ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
-    assertProperties(
-        ns_data,
-        {"writeLock.count": Gte(1)},
-        msg="writeLock.count should be >= 1 after delete",
-        raw_res=True,
-    )
-
-
-# Property [Time Tracking]: time metrics are positive after corresponding operations.
-
-
-def test_top_insert_time_positive_after_inserts(collection):
-    """Test that insert.time is positive after inserting documents."""
+@pytest.mark.parametrize("test", pytest_params(INSERT_COUNTER_TESTS))
+def test_top_insert_counters(collection, test):
+    """Test that insert operations increment the expected counters."""
     collection.insert_many([{"_id": i} for i in range(10)])
-    result = execute_admin_command(collection, {"top": 1})
+    result = execute_admin_command(collection, test.command)
     ns = f"{collection.database.name}.{collection.name}"
     ns_data = result["totals"][ns]
-    assertProperties(
-        ns_data, {"insert.time": Gt(0)}, msg="insert.time should be > 0 after inserts", raw_res=True
-    )
+    assertProperties(ns_data, test.checks, msg=test.msg, raw_res=True)
 
 
-def test_top_query_time_positive_after_query(collection):
-    """Test that queries.time is positive after running a find query."""
+# Property [Counter Behavior — Query]: find operations increment queries and readLock counters.
+QUERY_COUNTER_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "query_increments_queries_count",
+        command={"top": 1},
+        checks={"queries.count": Gte(1)},
+        msg="queries.count should be >= 1 after query",
+    ),
+    DiagnosticTestCase(
+        "query_increments_readLock_count",
+        command={"top": 1},
+        checks={"readLock.count": Gte(1)},
+        msg="readLock.count should be >= 1 after query",
+    ),
+    DiagnosticTestCase(
+        "query_time_positive",
+        command={"top": 1},
+        checks={"queries.time": Gt(0)},
+        msg="queries.time should be > 0 after query",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(QUERY_COUNTER_TESTS))
+def test_top_query_counters(collection, test):
+    """Test that find operations increment the expected counters."""
     collection.insert_one({"_id": 1})
     list(collection.find())
-    result = execute_admin_command(collection, {"top": 1})
+    result = execute_admin_command(collection, test.command)
     ns = f"{collection.database.name}.{collection.name}"
     ns_data = result["totals"][ns]
-    assertProperties(
-        ns_data, {"queries.time": Gt(0)}, msg="queries.time should be > 0 after query", raw_res=True
-    )
+    assertProperties(ns_data, test.checks, msg=test.msg, raw_res=True)
+
+
+# Property [Counter Behavior — Update]: update operations increment update and writeLock counters.
+UPDATE_COUNTER_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "update_increments_update_count",
+        command={"top": 1},
+        checks={"update.count": Gte(1)},
+        msg="update.count should be >= 1 after update",
+    ),
+    DiagnosticTestCase(
+        "update_increments_writeLock_count",
+        command={"top": 1},
+        checks={"writeLock.count": Gte(1)},
+        msg="writeLock.count should be >= 1 after update",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(UPDATE_COUNTER_TESTS))
+def test_top_update_counters(collection, test):
+    """Test that update operations increment the expected counters."""
+    collection.insert_one({"_id": 1, "a": 1})
+    collection.update_one({"_id": 1}, {"$set": {"a": 2}})
+    result = execute_admin_command(collection, test.command)
+    ns = f"{collection.database.name}.{collection.name}"
+    ns_data = result["totals"][ns]
+    assertProperties(ns_data, test.checks, msg=test.msg, raw_res=True)
+
+
+# Property [Counter Behavior — Remove]: delete operations increment remove and writeLock counters.
+REMOVE_COUNTER_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "remove_increments_remove_count",
+        command={"top": 1},
+        checks={"remove.count": Gte(1)},
+        msg="remove.count should be >= 1 after delete",
+    ),
+    DiagnosticTestCase(
+        "remove_increments_writeLock_count",
+        command={"top": 1},
+        checks={"writeLock.count": Gte(1)},
+        msg="writeLock.count should be >= 1 after delete",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(REMOVE_COUNTER_TESTS))
+def test_top_remove_counters(collection, test):
+    """Test that delete operations increment the expected counters."""
+    collection.insert_one({"_id": 1})
+    collection.delete_one({"_id": 1})
+    result = execute_admin_command(collection, test.command)
+    ns = f"{collection.database.name}.{collection.name}"
+    ns_data = result["totals"][ns]
+    assertProperties(ns_data, test.checks, msg=test.msg, raw_res=True)
 
 
 # Property [Cross-Lock Invariants]: aggregate lock counters are >= the sum of their components.
