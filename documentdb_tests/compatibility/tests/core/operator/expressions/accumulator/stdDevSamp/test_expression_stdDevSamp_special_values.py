@@ -13,8 +13,11 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
+    DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_NEGATIVE_NAN,
     FLOAT_INFINITY,
+    FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
 )
 
@@ -124,9 +127,45 @@ STDDEVSAMP_INFINITY_TESTS: list[StdDevSampTest] = [
 ]
 
 
-@pytest.mark.parametrize("test_case", pytest_params(STDDEVSAMP_INFINITY_TESTS))
-def test_stdDevSamp_infinity_from_list(collection, test_case: StdDevSampTest):
-    """Test $stdDevSamp expression infinity properties from a literal argument list."""
+STDDEVSAMP_NAN_TESTS: list[StdDevSampTest] = [
+    StdDevSampTest(
+        "core_nan_present",
+        values=[1, 2, FLOAT_NAN],
+        expected=pytest.approx(math.nan, nan_ok=True),
+        msg="Should return NaN when a NaN is present",
+    ),
+    StdDevSampTest(
+        "core_nan_decimal_present",
+        values=[1, 2, DECIMAL128_NAN],
+        expected=pytest.approx(math.nan, nan_ok=True),
+        msg="Should return NaN when a Decimal NaN value is present",
+    ),
+    StdDevSampTest(
+        "core_negative_nan_present",
+        values=[1, 2, DECIMAL128_NEGATIVE_NAN],
+        expected=pytest.approx(math.nan, nan_ok=True),
+        msg="Should still return NaN when negative NaN is present",
+    ),
+    StdDevSampTest(
+        "core_nan_pair",
+        values=[FLOAT_NAN, FLOAT_NAN],
+        expected=pytest.approx(math.nan, nan_ok=True),
+        msg="Should return NaN even for NaN pairs",
+    ),
+    StdDevSampTest(
+        "core_single_value_nan",
+        values=[FLOAT_NAN],
+        expected=None,
+        msg="Should return None when single value",
+    ),
+]
+
+STDDEVSAMP_SPECIAL_TESTS = STDDEVSAMP_INFINITY_TESTS + STDDEVSAMP_NAN_TESTS
+
+
+@pytest.mark.parametrize("test_case", pytest_params(STDDEVSAMP_SPECIAL_TESTS))
+def test_stdDevSamp_special_from_list(collection, test_case: StdDevSampTest):
+    """Test $stdDevSamp expression infinity & NaN properties from a literal argument list."""
 
     result = execute_expression(collection, {"$stdDevSamp": test_case.values})
 
@@ -138,9 +177,9 @@ def test_stdDevSamp_infinity_from_list(collection, test_case: StdDevSampTest):
     )
 
 
-@pytest.mark.parametrize("test_case", pytest_params(STDDEVSAMP_INFINITY_TESTS))
-def test_stdDevSamp_infinity_from_field(collection, test_case: StdDevSampTest):
-    """Test $stdDevSamp expression infinity properties from an inserted array field."""
+@pytest.mark.parametrize("test_case", pytest_params(STDDEVSAMP_SPECIAL_TESTS))
+def test_stdDevSamp_special_from_field(collection, test_case: StdDevSampTest):
+    """Test $stdDevSamp expression infinity & NaN properties from an inserted array field."""
     result = execute_expression_with_insert(
         collection, {"$stdDevSamp": "$values"}, {"values": test_case.values}
     )

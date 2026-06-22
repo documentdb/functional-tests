@@ -1,4 +1,3 @@
-import math
 from dataclasses import dataclass
 from typing import Any
 
@@ -13,10 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
-    DECIMAL128_NAN,
-    DECIMAL128_NEGATIVE_NAN,
     DOUBLE_NEGATIVE_ZERO,
-    FLOAT_NAN,
 )
 
 
@@ -109,37 +105,6 @@ STDDEVSAMP_CORE_TESTS: list[StdDevSampTest] = [
         values=[5, 5, 5],
         expected=0.0,
         msg="Should return 0.0 when there's no variance",
-    ),
-    # NaN
-    StdDevSampTest(
-        "core_nan_present",
-        values=[1, 2, FLOAT_NAN],
-        expected=pytest.approx(math.nan, nan_ok=True),
-        msg="Should return NaN when a NaN is present",
-    ),
-    StdDevSampTest(
-        "core_nan_decimal_present",
-        values=[1, 2, DECIMAL128_NAN],
-        expected=pytest.approx(math.nan, nan_ok=True),
-        msg="Should return NaN when a Decimal NaN value is present",
-    ),
-    StdDevSampTest(
-        "core_negative_nan_present",
-        values=[1, 2, DECIMAL128_NEGATIVE_NAN],
-        expected=pytest.approx(math.nan, nan_ok=True),
-        msg="Should still return NaN when negative NaN is present",
-    ),
-    StdDevSampTest(
-        "core_nan_pair",
-        values=[FLOAT_NAN, FLOAT_NAN],
-        expected=pytest.approx(math.nan, nan_ok=True),
-        msg="Should return NaN even for NaN pairs",
-    ),
-    StdDevSampTest(
-        "core_single_value_nan",
-        values=[FLOAT_NAN],
-        expected=None,
-        msg="Should return None when single value",
     ),
 ]
 
