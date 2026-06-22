@@ -23,7 +23,7 @@ VALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
         "all_defaults_explicit",
         command={"full": False, "repair": False, "metadata": False, "checkBSONConformance": False},
         checks={"ok": Eq(1.0)},
-        msg="All options set to false explicitly should succeed",
+        msg="validate should succeed with all options set to false explicitly",
     ),
     DiagnosticTestCase(
         "full_true",
@@ -84,25 +84,25 @@ INVALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
         "metadata_with_full",
         command={"metadata": True, "full": True},
         error_code=INVALID_OPTIONS_ERROR,
-        msg="metadata: true with full: true should error",
+        msg="validate should error with metadata: true and full: true",
     ),
     DiagnosticTestCase(
         "metadata_with_repair",
         command={"metadata": True, "repair": True, "fixMultikey": True},
         error_code=INVALID_OPTIONS_ERROR,
-        msg="metadata: true with repair: true should error",
+        msg="validate should error with metadata: true and repair: true",
     ),
     DiagnosticTestCase(
         "metadata_with_checkBSONConformance",
         command={"metadata": True, "checkBSONConformance": True},
         error_code=INVALID_OPTIONS_ERROR,
-        msg="metadata: true with checkBSONConformance: true should error",
+        msg="validate should error with metadata: true and checkBSONConformance: true",
     ),
     DiagnosticTestCase(
         "checkBSONConformance_with_repair",
         command={"checkBSONConformance": True, "repair": True, "fixMultikey": True},
         error_code=INVALID_OPTIONS_ERROR,
-        msg="checkBSONConformance: true with repair: true should error",
+        msg="validate should error with checkBSONConformance: true and repair: true",
     ),
 ]
 

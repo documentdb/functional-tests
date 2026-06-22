@@ -21,132 +21,132 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         "ok_is_1",
         checks={"ok": Eq(1.0)},
-        msg="'ok' field should be 1.0",
+        msg="validate should return ok: 1.0",
     ),
     DiagnosticTestCase(
         "ns_is_string",
         checks={"ns": IsType("string")},
-        msg="'ns' field should be a string",
+        msg="validate should return ns as a string",
     ),
     DiagnosticTestCase(
         "nInvalidDocuments_is_int",
         checks={"nInvalidDocuments": IsType("int")},
-        msg="'nInvalidDocuments' field should be an int",
+        msg="validate should return nInvalidDocuments as an int",
     ),
     DiagnosticTestCase(
         "nNonCompliantDocuments_is_int",
         checks={"nNonCompliantDocuments": IsType("int")},
-        msg="'nNonCompliantDocuments' field should be an int",
+        msg="validate should return nNonCompliantDocuments as an int",
     ),
     DiagnosticTestCase(
         "nrecords_is_int",
         checks={"nrecords": IsType("int")},
-        msg="'nrecords' field should be an int",
+        msg="validate should return nrecords as an int",
     ),
     DiagnosticTestCase(
         "nIndexes_is_int",
         checks={"nIndexes": IsType("int")},
-        msg="'nIndexes' field should be an int",
+        msg="validate should return nIndexes as an int",
     ),
     DiagnosticTestCase(
         "keysPerIndex_is_object",
         checks={"keysPerIndex": IsType("object")},
-        msg="'keysPerIndex' field should be an object",
+        msg="validate should return keysPerIndex as an object",
     ),
     DiagnosticTestCase(
         "indexDetails_is_object",
         checks={"indexDetails": IsType("object")},
-        msg="'indexDetails' field should be an object",
+        msg="validate should return indexDetails as an object",
     ),
     DiagnosticTestCase(
         "valid_is_bool",
         checks={"valid": IsType("bool")},
-        msg="'valid' field should be a bool",
+        msg="validate should return valid as a bool",
     ),
     DiagnosticTestCase(
         "repaired_is_bool",
         checks={"repaired": IsType("bool")},
-        msg="'repaired' field should be a bool",
+        msg="validate should return repaired as a bool",
     ),
     DiagnosticTestCase(
         "warnings_is_array",
         checks={"warnings": IsType("array")},
-        msg="'warnings' field should be an array",
+        msg="validate should return warnings as an array",
     ),
     DiagnosticTestCase(
         "errors_is_array",
         checks={"errors": IsType("array")},
-        msg="'errors' field should be an array",
+        msg="validate should return errors as an array",
     ),
     DiagnosticTestCase(
         "extraIndexEntries_is_array",
         checks={"extraIndexEntries": IsType("array")},
-        msg="'extraIndexEntries' field should be an array",
+        msg="validate should return extraIndexEntries as an array",
     ),
     DiagnosticTestCase(
         "missingIndexEntries_is_array",
         checks={"missingIndexEntries": IsType("array")},
-        msg="'missingIndexEntries' field should be an array",
+        msg="validate should return missingIndexEntries as an array",
     ),
     DiagnosticTestCase(
         "corruptRecords_is_array",
         checks={"corruptRecords": IsType("array")},
-        msg="'corruptRecords' field should be an array",
+        msg="validate should return corruptRecords as an array",
     ),
     DiagnosticTestCase(
         "uuid_exists",
         checks={"uuid": Exists()},
-        msg="'uuid' field should exist (since 6.2)",
+        msg="validate should return uuid field",
     ),
     DiagnosticTestCase(
         "nInvalidDocuments_zero_healthy",
         checks={"nInvalidDocuments": Eq(0)},
-        msg="'nInvalidDocuments' should be 0 for a healthy collection",
+        msg="validate should return nInvalidDocuments: 0 for a healthy collection",
     ),
     DiagnosticTestCase(
         "nNonCompliantDocuments_zero_healthy",
         checks={"nNonCompliantDocuments": Eq(0)},
-        msg="'nNonCompliantDocuments' should be 0 for a healthy collection",
+        msg="validate should return nNonCompliantDocuments: 0 for a healthy collection",
     ),
     DiagnosticTestCase(
         "valid_true_healthy",
         checks={"valid": Eq(True)},
-        msg="'valid' should be true for a healthy collection",
+        msg="validate should return valid: true for a healthy collection",
     ),
     DiagnosticTestCase(
         "repaired_false_no_repair",
         checks={"repaired": Eq(False)},
-        msg="'repaired' should be false when no repair requested",
+        msg="validate should return repaired: false when no repair requested",
     ),
     DiagnosticTestCase(
         "warnings_empty_healthy",
         checks={"warnings": Eq([])},
-        msg="'warnings' should be empty for a healthy collection",
+        msg="validate should return empty warnings for a healthy collection",
     ),
     DiagnosticTestCase(
         "errors_empty_healthy",
         checks={"errors": Eq([])},
-        msg="'errors' should be empty for a healthy collection",
+        msg="validate should return empty errors for a healthy collection",
     ),
     DiagnosticTestCase(
         "extraIndexEntries_empty_healthy",
         checks={"extraIndexEntries": Eq([])},
-        msg="'extraIndexEntries' should be empty for a healthy collection",
+        msg="validate should return empty extraIndexEntries for a healthy collection",
     ),
     DiagnosticTestCase(
         "missingIndexEntries_empty_healthy",
         checks={"missingIndexEntries": Eq([])},
-        msg="'missingIndexEntries' should be empty for a healthy collection",
+        msg="validate should return empty missingIndexEntries for a healthy collection",
     ),
     DiagnosticTestCase(
         "corruptRecords_empty_healthy",
         checks={"corruptRecords": Eq([])},
-        msg="'corruptRecords' should be empty for a healthy collection",
+        msg="validate should return empty corruptRecords for a healthy collection",
     ),
     DiagnosticTestCase(
         "nIndexes_gte_1",
         checks={"nIndexes": Gte(1)},
-        msg="'nIndexes' should be >= 1 (at least _id index)",
+        msg="validate should return nIndexes >= 1 (at least _id index)",
     ),
 ]
 
@@ -164,14 +164,18 @@ def test_validate_ns_matches_namespace(collection):
     collection.insert_one({"_id": 1})
     result = execute_command(collection, {"validate": collection.name})
     expected_ns = f"{collection.database.name}.{collection.name}"
-    assertSuccessPartial(result, {"ns": expected_ns}, msg="ns should match actual namespace")
+    assertSuccessPartial(
+        result, {"ns": expected_ns}, msg="validate should return ns matching the actual namespace"
+    )
 
 
 def test_validate_nrecords_matches_count(collection):
     """Test validate nrecords matches the number of inserted documents."""
     collection.insert_many([{"_id": i} for i in range(10)])
     result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(result, {"nrecords": 10}, msg="nrecords should match document count")
+    assertSuccessPartial(
+        result, {"nrecords": 10}, msg="validate should return nrecords matching document count"
+    )
 
 
 def test_validate_nIndexes_with_secondary(collection):
@@ -180,4 +184,6 @@ def test_validate_nIndexes_with_secondary(collection):
     collection.create_index("x")
     collection.create_index("y")
     result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(result, {"nIndexes": 3}, msg="nIndexes should be 3 (_id + x + y)")
+    assertSuccessPartial(
+        result, {"nIndexes": 3}, msg="validate should return nIndexes: 3 with two secondary indexes"
+    )

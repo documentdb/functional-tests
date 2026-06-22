@@ -22,7 +22,7 @@ def test_validate_populated_collection(collection):
     assertSuccessPartial(
         result,
         {"ok": 1.0, "valid": True, "nrecords": 5},
-        msg="Populated collection should validate with correct nrecords",
+        msg="validate should return valid: true with correct nrecords for a populated collection",
     )
 
 
@@ -35,7 +35,7 @@ def test_validate_empty_collection(database_client, collection):
     assertSuccessPartial(
         result,
         {"ok": 1.0, "valid": True, "nrecords": 0, "nIndexes": 1},
-        msg="Empty collection should be valid with nrecords: 0 and nIndexes: 1",
+        msg="validate should return nrecords: 0 and nIndexes: 1 for an empty collection",
     )
 
 
@@ -45,7 +45,7 @@ def test_validate_non_existent_collection(collection):
     assertFailureCode(
         result,
         NAMESPACE_NOT_FOUND_ERROR,
-        msg="Non-existent collection should return NamespaceNotFound error",
+        msg="validate should return NamespaceNotFound for a non-existent collection",
     )
 
 
@@ -57,7 +57,7 @@ def test_validate_after_insert_and_delete_all(collection):
     assertSuccessPartial(
         result,
         {"ok": 1.0, "valid": True, "nrecords": 0},
-        msg="After deleting all docs, nrecords should be 0",
+        msg="validate should return nrecords: 0 after deleting all documents",
     )
 
 
@@ -74,7 +74,7 @@ def test_validate_consistent_across_calls(collection):
             "valid": Eq(result2["valid"]),
         },
         raw_res=True,
-        msg="Two consecutive validates should return identical key fields",
+        msg="validate should return identical key fields across consecutive calls",
     )
 
 
@@ -88,7 +88,7 @@ def test_validate_reflects_modifications(collection):
         result2,
         {"nrecords": Eq(8)},
         raw_res=True,
-        msg="Second validate should reflect updated nrecords after insert",
+        msg="validate should reflect updated nrecords after additional inserts",
     )
 
 
@@ -101,7 +101,7 @@ def test_validate_after_dropping_indexes(collection):
     assertSuccessPartial(
         result,
         {"ok": 1.0, "nIndexes": 1},
-        msg="After dropping secondary indexes, nIndexes should be 1 (only _id)",
+        msg="validate should return nIndexes: 1 after dropping secondary indexes",
     )
 
 

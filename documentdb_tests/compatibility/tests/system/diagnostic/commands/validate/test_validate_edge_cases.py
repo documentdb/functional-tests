@@ -23,7 +23,9 @@ def test_validate_long_collection_name(database_client, collection):
     coll = database_client[coll_name]
     coll.insert_one({"_id": 1})
     result = execute_command(coll, {"validate": coll.name})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Long collection name should succeed")
+    assertSuccessPartial(
+        result, {"ok": 1.0}, msg="validate should succeed with a long collection name"
+    )
 
 
 def test_validate_unicode_collection_name(database_client, collection):
@@ -33,7 +35,9 @@ def test_validate_unicode_collection_name(database_client, collection):
     coll = database_client[coll_name]
     coll.insert_one({"_id": 1})
     result = execute_command(coll, {"validate": coll.name})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Unicode collection name should succeed")
+    assertSuccessPartial(
+        result, {"ok": 1.0}, msg="validate should succeed with unicode collection name"
+    )
 
 
 def test_validate_numeric_looking_collection_name(database_client, collection):
@@ -42,7 +46,9 @@ def test_validate_numeric_looking_collection_name(database_client, collection):
     coll = database_client[coll_name]
     coll.insert_one({"_id": 1})
     result = execute_command(coll, {"validate": coll.name})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Numeric-looking collection name should succeed")
+    assertSuccessPartial(
+        result, {"ok": 1.0}, msg="validate should succeed with numeric-looking collection name"
+    )
 
 
 def test_validate_large_document_count(collection):
@@ -83,7 +89,7 @@ def test_validate_document_with_all_bson_types(collection):
     assertSuccessPartial(
         result,
         {"ok": 1.0, "valid": True},
-        msg="Document with all BSON types should be valid",
+        msg="validate should return valid: true for a document with all BSON types",
     )
 
 
@@ -100,7 +106,7 @@ def test_validate_deeply_nested_document(collection):
     assertSuccessPartial(
         result,
         {"ok": 1.0, "valid": True},
-        msg="Deeply nested document should be valid",
+        msg="validate should return valid: true for a deeply nested document",
     )
 
 
@@ -117,7 +123,7 @@ def test_validate_documents_with_arrays(collection):
     assertSuccessPartial(
         result,
         {"ok": 1.0, "valid": True, "nrecords": 3},
-        msg="Documents with arrays should be valid",
+        msg="validate should return valid: true for documents with arrays",
     )
 
 
@@ -133,7 +139,7 @@ def test_validate_documents_with_binary_data(collection):
     assertSuccessPartial(
         result,
         {"ok": 1.0, "valid": True, "nrecords": 2},
-        msg="Documents with binary data should be valid",
+        msg="validate should return valid: true for documents with binary data",
     )
 
 
@@ -149,5 +155,5 @@ def test_validate_many_indexes(collection):
     assertSuccessPartial(
         result,
         {"ok": 1.0, "valid": True, "nIndexes": 6},
-        msg="nIndexes should be 6 (_id + 5 secondary indexes)",
+        msg="validate should report nIndexes: 6 with 5 secondary indexes",
     )
