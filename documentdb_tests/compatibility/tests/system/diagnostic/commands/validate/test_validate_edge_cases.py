@@ -8,10 +8,154 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.framework.assertions import assertSuccessPartial
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
+    DiagnosticTestCase,
+)
+from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
+
+# Property [Document Variety]: validate succeeds for collections with diverse
+# document shapes, sizes, and BSON types.
+DOCUMENT_VARIETY_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "large_document_count",
+        setup=[
+            {
+                "insert": "",
+                "documents": [{"_id": i, "x": i} for i in range(1_000)],
+            }
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nrecords": Eq(1_000)},
+        msg="validate should report correct nrecords for large document count",
+    ),
+    DiagnosticTestCase(
+        "all_bson_types",
+        setup=[
+            {
+                "insert": "",
+                "documents": [
+                    {
+                        "_id": 1,
+                        "double_val": 3.14,
+                        "string_val": "hello",
+                        "object_val": {"nested": 1},
+                        "array_val": [1, 2, 3],
+                        "binary_val": Binary(b"data"),
+                        "objectid_val": ObjectId(),
+                        "bool_val": True,
+                        "date_val": datetime(2024, 1, 1, tzinfo=timezone.utc),
+                        "null_val": None,
+                        "regex_val": Regex("test"),
+                        "int32_val": 42,
+                        "timestamp_val": Timestamp(1, 1),
+                        "int64_val": Int64(123_456_789),
+                        "decimal128_val": Decimal128("1.23"),
+                        "minkey_val": MinKey(),
+                        "maxkey_val": MaxKey(),
+                    }
+                ],
+            }
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True)},
+        msg="validate should return valid: true for a document with all BSON types",
+    ),
+    DiagnosticTestCase(
+        "deeply_nested_document",
+        setup=[
+            {
+                "insert": "",
+                "documents": [
+                    {
+                        "_id": 1,
+                        "level_0": {
+                            "level_1": {
+                                "level_2": {
+                                    "level_3": {
+                                        "level_4": {
+                                            "level_5": {
+                                                "level_6": {
+                                                    "level_7": {
+                                                        "level_8": {"level_9": {"value": "deep"}}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    }
+                ],
+            }
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True)},
+        msg="validate should return valid: true for a deeply nested document",
+    ),
+    DiagnosticTestCase(
+        "documents_with_arrays",
+        setup=[
+            {
+                "insert": "",
+                "documents": [
+                    {"_id": 1, "arr": []},
+                    {"_id": 2, "arr": [1, 2, 3]},
+                    {"_id": 3, "arr": list(range(100))},
+                ],
+            }
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nrecords": Eq(3)},
+        msg="validate should return valid: true for documents with arrays",
+    ),
+    DiagnosticTestCase(
+        "documents_with_binary_data",
+        setup=[
+            {
+                "insert": "",
+                "documents": [
+                    {"_id": 1, "data": Binary(b"small")},
+                    {"_id": 2, "data": Binary(b"\x00" * 1_024)},
+                ],
+            }
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nrecords": Eq(2)},
+        msg="validate should return valid: true for documents with binary data",
+    ),
+    DiagnosticTestCase(
+        "many_indexes",
+        setup=[
+            {
+                "insert": "",
+                "documents": [{"_id": i, "a": i, "b": i, "c": i, "d": i, "e": i} for i in range(5)],
+            },
+            {
+                "createIndexes": "",
+                "indexes": [
+                    {"key": {"a": 1}, "name": "a_1"},
+                    {"key": {"b": 1}, "name": "b_1"},
+                    {"key": {"c": 1}, "name": "c_1"},
+                    {"key": {"d": 1}, "name": "d_1"},
+                    {"key": {"e": 1}, "name": "e_1"},
+                ],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nIndexes": Eq(6)},
+        msg="validate should report nIndexes: 6 with 5 secondary indexes",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(DOCUMENT_VARIETY_TESTS))
+def test_validate_document_variety(collection, test):
+    """Test validate with diverse document shapes and index counts."""
+    for cmd in test.setup:
+        execute_command(collection, {**cmd, next(iter(cmd)): collection.name})
+    result = execute_command(collection, {"validate": collection.name})
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
 def test_validate_long_collection_name(database_client, collection):
@@ -47,113 +191,7 @@ def test_validate_numeric_looking_collection_name(database_client, collection):
     coll.insert_one({"_id": 1})
     result = execute_command(coll, {"validate": coll.name})
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="validate should succeed with numeric-looking collection name"
-    )
-
-
-def test_validate_large_document_count(collection):
-    """Test validate with 1_000 documents reports correct nrecords."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(1_000)])
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
         result,
-        {"ok": 1.0, "valid": True, "nrecords": 1_000},
-        msg="validate should report correct nrecords for large document count",
-    )
-
-
-def test_validate_document_with_all_bson_types(collection):
-    """Test validate on a collection with a document containing all BSON types."""
-    collection.insert_one(
-        {
-            "_id": 1,
-            "double_val": 3.14,
-            "string_val": "hello",
-            "object_val": {"nested": 1},
-            "array_val": [1, 2, 3],
-            "binary_val": Binary(b"data"),
-            "objectid_val": ObjectId(),
-            "bool_val": True,
-            "date_val": datetime(2024, 1, 1, tzinfo=timezone.utc),
-            "null_val": None,
-            "regex_val": Regex("test"),
-            "int32_val": 42,
-            "timestamp_val": Timestamp(1, 1),
-            "int64_val": Int64(123_456_789),
-            "decimal128_val": Decimal128("1.23"),
-            "minkey_val": MinKey(),
-            "maxkey_val": MaxKey(),
-        }
-    )
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True},
-        msg="validate should return valid: true for a document with all BSON types",
-    )
-
-
-def test_validate_deeply_nested_document(collection):
-    """Test validate on a collection with a deeply nested document."""
-    doc = {"_id": 1}
-    nested = doc
-    for i in range(10):
-        nested[f"level_{i}"] = {}
-        nested = nested[f"level_{i}"]
-    nested["value"] = "deep"
-    collection.insert_one(doc)
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True},
-        msg="validate should return valid: true for a deeply nested document",
-    )
-
-
-def test_validate_documents_with_arrays(collection):
-    """Test validate on a collection with documents containing arrays."""
-    collection.insert_many(
-        [
-            {"_id": 1, "arr": []},
-            {"_id": 2, "arr": [1, 2, 3]},
-            {"_id": 3, "arr": list(range(100))},
-        ]
-    )
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True, "nrecords": 3},
-        msg="validate should return valid: true for documents with arrays",
-    )
-
-
-def test_validate_documents_with_binary_data(collection):
-    """Test validate on a collection with documents containing Binary fields."""
-    collection.insert_many(
-        [
-            {"_id": 1, "data": Binary(b"small")},
-            {"_id": 2, "data": Binary(b"\x00" * 1_024)},
-        ]
-    )
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True, "nrecords": 2},
-        msg="validate should return valid: true for documents with binary data",
-    )
-
-
-def test_validate_many_indexes(collection):
-    """Test validate with 5 secondary indexes reports correct nIndexes."""
-    collection.insert_many([{"_id": i, "a": i, "b": i, "c": i, "d": i, "e": i} for i in range(5)])
-    collection.create_index("a")
-    collection.create_index("b")
-    collection.create_index("c")
-    collection.create_index("d")
-    collection.create_index("e")
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True, "nIndexes": 6},
-        msg="validate should report nIndexes: 6 with 5 secondary indexes",
+        {"ok": 1.0},
+        msg="validate should succeed with numeric-looking collection name",
     )

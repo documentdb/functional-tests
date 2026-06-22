@@ -159,31 +159,51 @@ def test_validate_response_properties(collection, test):
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
+# Property [Response Values]: validate returns correct dynamic values matching
+# collection state (nrecords, nIndexes, ns).
+RESPONSE_VALUE_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "nrecords_matches_count",
+        setup=[
+            {"insert": "", "documents": [{"_id": i} for i in range(10)]},
+        ],
+        checks={"nrecords": Eq(10)},
+        msg="validate should return nrecords matching document count",
+    ),
+    DiagnosticTestCase(
+        "nIndexes_with_secondary",
+        setup=[
+            {"insert": "", "documents": [{"_id": 1, "x": 1, "y": 1}]},
+            {
+                "createIndexes": "",
+                "indexes": [
+                    {"key": {"x": 1}, "name": "x_1"},
+                    {"key": {"y": 1}, "name": "y_1"},
+                ],
+            },
+        ],
+        checks={"nIndexes": Eq(3)},
+        msg="validate should return nIndexes: 3 with two secondary indexes",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(RESPONSE_VALUE_TESTS))
+def test_validate_response_values(collection, test):
+    """Test validate response values match collection state."""
+    for cmd in test.setup:
+        execute_command(collection, {**cmd, next(iter(cmd)): collection.name})
+    result = execute_command(collection, {"validate": collection.name})
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
+
+
 def test_validate_ns_matches_namespace(collection):
     """Test validate ns field matches the actual database.collection namespace."""
     collection.insert_one({"_id": 1})
     result = execute_command(collection, {"validate": collection.name})
     expected_ns = f"{collection.database.name}.{collection.name}"
     assertSuccessPartial(
-        result, {"ns": expected_ns}, msg="validate should return ns matching the actual namespace"
-    )
-
-
-def test_validate_nrecords_matches_count(collection):
-    """Test validate nrecords matches the number of inserted documents."""
-    collection.insert_many([{"_id": i} for i in range(10)])
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result, {"nrecords": 10}, msg="validate should return nrecords matching document count"
-    )
-
-
-def test_validate_nIndexes_with_secondary(collection):
-    """Test validate nIndexes includes secondary indexes."""
-    collection.insert_one({"_id": 1, "x": 1, "y": 1})
-    collection.create_index("x")
-    collection.create_index("y")
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result, {"nIndexes": 3}, msg="validate should return nIndexes: 3 with two secondary indexes"
+        result,
+        {"ns": expected_ns},
+        msg="validate should return ns matching the actual namespace",
     )

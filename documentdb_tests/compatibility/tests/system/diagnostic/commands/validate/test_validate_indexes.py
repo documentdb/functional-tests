@@ -9,135 +9,202 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
+import pytest
+
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
+    DiagnosticTestCase,
+)
+from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 
-
-def test_validate_unique_index(collection):
-    """Test validate with a unique index reports it in results."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(5)])
-    collection.create_index("x", unique=True)
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True, "nIndexes": 2},
+# Property [Index Types]: validate succeeds and reports correct nIndexes for
+# collections with various index types.
+INDEX_TYPE_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "unique_index",
+        setup=[
+            {"insert": "", "documents": [{"_id": i, "x": i} for i in range(5)]},
+            {
+                "createIndexes": "",
+                "indexes": [{"key": {"x": 1}, "name": "x_1", "unique": True}],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nIndexes": Eq(2)},
         msg="validate should succeed and report unique index",
-    )
-
-
-def test_validate_sparse_index(collection):
-    """Test validate with a sparse index shows fewer keys than nrecords."""
-    collection.insert_many(
-        [{"_id": i, "x": i} for i in range(5)]
-        + [{"_id": i} for i in range(5, 10)]  # 5 docs without 'x' field
-    )
-    collection.create_index("x", sparse=True)
-    result = execute_command(collection, {"validate": collection.name})
-    assertProperties(
-        result,
-        {"ok": Eq(1.0), "valid": Eq(True), "nrecords": Eq(10), "nIndexes": Eq(2)},
-        raw_res=True,
+    ),
+    DiagnosticTestCase(
+        "sparse_index",
+        setup=[
+            {
+                "insert": "",
+                "documents": [{"_id": i, "x": i} for i in range(5)]
+                + [{"_id": i} for i in range(5, 10)],
+            },
+            {
+                "createIndexes": "",
+                "indexes": [{"key": {"x": 1}, "name": "x_1_sparse", "sparse": True}],
+            },
+        ],
+        checks={
+            "ok": Eq(1.0),
+            "valid": Eq(True),
+            "nrecords": Eq(10),
+            "nIndexes": Eq(2),
+        },
         msg="validate should succeed with sparse index",
-    )
-
-
-def test_validate_ttl_index(collection):
-    """Test validate with a TTL index reports it in results."""
-    collection.insert_one({"_id": 1, "created": datetime(2024, 1, 1, tzinfo=timezone.utc)})
-    collection.create_index("created", expireAfterSeconds=3600)
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True, "nIndexes": 2},
+    ),
+    DiagnosticTestCase(
+        "ttl_index",
+        setup=[
+            {
+                "insert": "",
+                "documents": [
+                    {
+                        "_id": 1,
+                        "created": datetime(2024, 1, 1, tzinfo=timezone.utc),
+                    }
+                ],
+            },
+            {
+                "createIndexes": "",
+                "indexes": [
+                    {
+                        "key": {"created": 1},
+                        "name": "created_ttl",
+                        "expireAfterSeconds": 3600,
+                    }
+                ],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nIndexes": Eq(2)},
         msg="validate should succeed and report TTL index",
-    )
-
-
-def test_validate_text_index(collection):
-    """Test validate with a text index succeeds."""
-    collection.insert_many([{"_id": i, "content": f"document text {i}"} for i in range(5)])
-    collection.create_index([("content", "text")])
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True},
+    ),
+    DiagnosticTestCase(
+        "text_index",
+        setup=[
+            {
+                "insert": "",
+                "documents": [{"_id": i, "content": f"document text {i}"} for i in range(5)],
+            },
+            {
+                "createIndexes": "",
+                "indexes": [{"key": {"content": "text"}, "name": "content_text"}],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True)},
         msg="validate should succeed with text index",
-    )
-
-
-def test_validate_2dsphere_index(collection):
-    """Test validate with a 2dsphere index succeeds."""
-    collection.insert_one({"_id": 1, "location": {"type": "Point", "coordinates": [0.0, 0.0]}})
-    collection.create_index([("location", "2dsphere")])
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True},
+    ),
+    DiagnosticTestCase(
+        "2dsphere_index",
+        setup=[
+            {
+                "insert": "",
+                "documents": [
+                    {
+                        "_id": 1,
+                        "location": {
+                            "type": "Point",
+                            "coordinates": [0.0, 0.0],
+                        },
+                    }
+                ],
+            },
+            {
+                "createIndexes": "",
+                "indexes": [{"key": {"location": "2dsphere"}, "name": "location_2dsphere"}],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True)},
         msg="validate should succeed with 2dsphere index",
-    )
-
-
-def test_validate_hashed_index(collection):
-    """Test validate with a hashed index succeeds."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(5)])
-    collection.create_index([("x", "hashed")])
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True, "nIndexes": 2},
+    ),
+    DiagnosticTestCase(
+        "hashed_index",
+        setup=[
+            {"insert": "", "documents": [{"_id": i, "x": i} for i in range(5)]},
+            {
+                "createIndexes": "",
+                "indexes": [{"key": {"x": "hashed"}, "name": "x_hashed"}],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nIndexes": Eq(2)},
         msg="validate should succeed with hashed index",
-    )
-
-
-def test_validate_wildcard_index(collection):
-    """Test validate with a wildcard index succeeds."""
-    collection.insert_many([{"_id": i, "a": i, "b": str(i)} for i in range(5)])
-    collection.create_index([("$**", 1)])
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True},
+    ),
+    DiagnosticTestCase(
+        "wildcard_index",
+        setup=[
+            {
+                "insert": "",
+                "documents": [{"_id": i, "a": i, "b": str(i)} for i in range(5)],
+            },
+            {
+                "createIndexes": "",
+                "indexes": [{"key": {"$**": 1}, "name": "wildcard"}],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True)},
         msg="validate should succeed with wildcard index",
-    )
-
-
-def test_validate_compound_index(collection):
-    """Test validate with a compound index reports it in results."""
-    collection.insert_many([{"_id": i, "a": i, "b": -i} for i in range(5)])
-    collection.create_index([("a", 1), ("b", -1)])
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True, "nIndexes": 2},
+    ),
+    DiagnosticTestCase(
+        "compound_index",
+        setup=[
+            {
+                "insert": "",
+                "documents": [{"_id": i, "a": i, "b": -i} for i in range(5)],
+            },
+            {
+                "createIndexes": "",
+                "indexes": [{"key": {"a": 1, "b": -1}, "name": "a_1_b_neg1"}],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nIndexes": Eq(2)},
         msg="validate should succeed and report compound index",
-    )
-
-
-def test_validate_partial_filter_index(collection):
-    """Test validate with a partial filter index succeeds."""
-    collection.insert_many([{"_id": i, "x": i} for i in range(10)])
-    collection.create_index(
-        "x",
-        partialFilterExpression={"x": {"$gt": 4}},
-    )
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True, "nIndexes": 2},
+    ),
+    DiagnosticTestCase(
+        "partial_filter_index",
+        setup=[
+            {"insert": "", "documents": [{"_id": i, "x": i} for i in range(10)]},
+            {
+                "createIndexes": "",
+                "indexes": [
+                    {
+                        "key": {"x": 1},
+                        "name": "x_partial",
+                        "partialFilterExpression": {"x": {"$gt": 4}},
+                    }
+                ],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nIndexes": Eq(2)},
         msg="validate should succeed with partial filter index",
-    )
-
-
-def test_validate_multiple_indexes(collection):
-    """Test validate with multiple index types reports correct nIndexes."""
-    collection.insert_many([{"_id": i, "a": i, "b": str(i)} for i in range(5)])
-    collection.create_index("a", unique=True)
-    collection.create_index("b")
-    collection.create_index([("a", 1), ("b", 1)])
-    result = execute_command(collection, {"validate": collection.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0, "valid": True, "nIndexes": 4},
+    ),
+    DiagnosticTestCase(
+        "multiple_indexes",
+        setup=[
+            {
+                "insert": "",
+                "documents": [{"_id": i, "a": i, "b": str(i)} for i in range(5)],
+            },
+            {
+                "createIndexes": "",
+                "indexes": [
+                    {"key": {"a": 1}, "name": "a_unique", "unique": True},
+                    {"key": {"b": 1}, "name": "b_1"},
+                    {"key": {"a": 1, "b": 1}, "name": "a_1_b_1"},
+                ],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nIndexes": Eq(4)},
         msg="validate should report all 4 indexes (_id + 3 secondary)",
-    )
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(INDEX_TYPE_TESTS))
+def test_validate_index_types(collection, test):
+    """Test validate with various index types."""
+    for cmd in test.setup:
+        execute_command(collection, {**cmd, next(iter(cmd)): collection.name})
+    result = execute_command(collection, {"validate": collection.name})
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
