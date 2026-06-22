@@ -2,6 +2,11 @@
 
 Validates idempotency, namespace visibility, system namespace structure,
 and behavior with capped collections and views.
+
+Standalone functions are used throughout because every test requires runtime
+logic that DiagnosticTestCase cannot express: multi-call comparisons with
+dynamic thresholds, namespace key extraction from the response, conditional
+skips, or ad-hoc collection creation (capped, views).
 """
 
 import pytest
