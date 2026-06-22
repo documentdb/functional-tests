@@ -13,6 +13,7 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     INDEX_NOT_FOUND_ERROR,
     INVALID_OPTIONS_ERROR,
+    UNRECOGNIZED_COMMAND_FIELD_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -367,10 +368,32 @@ COLLMOD_TIMESERIES_INDEX_RESOLUTION_ERROR_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [Top-Level Unknown Field Rejection]: an unrecognized top-level command
+# field is rejected, and field-name matching is case-sensitive, so a case-variant
+# of a known option is rejected too.
+COLLMOD_TOP_LEVEL_UNKNOWN_FIELD_ERROR_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "unknown_top_level_field",
+        docs=[{"_id": 1, "a": 1}],
+        command=lambda ctx: {"collMod": ctx.collection, "unknownField": "hello"},
+        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        msg="collMod should reject an unrecognized top-level command field",
+    ),
+    CommandTestCase(
+        "case_variant_top_level_field",
+        target_collection=CappedCollection(),
+        docs=[],
+        command=lambda ctx: {"collMod": ctx.collection, "CappedSize": 100_000},
+        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        msg="collMod should reject a case-variant of a known top-level field as unrecognized",
+    ),
+]
+
 COLLMOD_INTERACTIONS_ERROR_TESTS: list[CommandTestCase] = (
     COLLMOD_INDEX_RESOLUTION_NOT_SUPPRESSED_ERROR_TESTS
     + COLLMOD_VIEW_OPTION_ON_REGULAR_ERROR_TESTS
     + COLLMOD_TIMESERIES_INDEX_RESOLUTION_ERROR_TESTS
+    + COLLMOD_TOP_LEVEL_UNKNOWN_FIELD_ERROR_TESTS
 )
 
 COLLMOD_INTERACTIONS_TESTS: list[CommandTestCase] = (
