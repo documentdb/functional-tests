@@ -67,6 +67,12 @@ RESPONSE_TESTS: list[DiagnosticTestCase] = [
         checks={"ok": Eq(1.0)},
         msg="startupWarnings should return ok:1",
     ),
+    DiagnosticTestCase(
+        "startupWarnings_totalLinesWritten_number",
+        command={"getLog": "startupWarnings"},
+        checks={"totalLinesWritten": Gte(0)},
+        msg="startupWarnings should return a non-negative totalLinesWritten",
+    ),
     # "*" filter lists the available log filters
     DiagnosticTestCase(
         "wildcard_names_is_array",

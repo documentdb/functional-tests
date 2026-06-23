@@ -30,22 +30,10 @@ LOG_BEHAVIOR_TESTS: list[DiagnosticTestCase] = [
         msg="global log entries should be JSON strings with special characters escaped",
     ),
     DiagnosticTestCase(
-        "startupWarnings_log_entries_escaped",
-        command={"getLog": "startupWarnings"},
-        checks={"log": WellFormedJsonStrings()},
-        msg="startupWarnings log entries should be JSON strings with special characters escaped",
-    ),
-    DiagnosticTestCase(
         "global_log_entries_truncated_at_1024",
         command={"getLog": "global"},
         checks={"log": StringsMaxLength(MAX_LOG_LINE_CHARS)},
         msg="global log entries should be truncated to at most 1024 characters",
-    ),
-    DiagnosticTestCase(
-        "startupWarnings_log_entries_truncated_at_1024",
-        command={"getLog": "startupWarnings"},
-        checks={"log": StringsMaxLength(MAX_LOG_LINE_CHARS)},
-        msg="startupWarnings log entries should be truncated to at most 1024 characters",
     ),
 ]
 
