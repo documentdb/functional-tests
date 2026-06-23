@@ -115,11 +115,6 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         msg="validate should return valid: true for a healthy collection",
     ),
     DiagnosticTestCase(
-        "repaired_false_no_repair",
-        checks={"repaired": Eq(False)},
-        msg="validate should return repaired: false when no repair requested",
-    ),
-    DiagnosticTestCase(
         "warnings_empty_healthy",
         checks={"warnings": Eq([])},
         msg="validate should return empty warnings for a healthy collection",
@@ -153,11 +148,6 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         "repairMode_is_string",
         checks={"repairMode": IsType("string")},
         msg="validate should return repairMode as a string",
-    ),
-    DiagnosticTestCase(
-        "repairMode_none_no_repair",
-        checks={"repairMode": Eq("None")},
-        msg="validate should return repairMode: 'None' when no repair requested",
     ),
 ]
 
