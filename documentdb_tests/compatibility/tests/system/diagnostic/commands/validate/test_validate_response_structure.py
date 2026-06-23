@@ -189,15 +189,6 @@ RESPONSE_VALUE_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(RESPONSE_VALUE_TESTS))
-def test_validate_response_values(collection, test):
-    """Test validate response values match collection state."""
-    for cmd in test.setup:
-        execute_command(collection, {**cmd, next(iter(cmd)): collection.name})
-    result = execute_command(collection, {"validate": collection.name})
-    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
-
-
 def test_validate_ns_matches_namespace(collection):
     """Test validate ns field matches the actual database.collection namespace."""
     collection.insert_one({"_id": 1})
@@ -282,9 +273,12 @@ DETAILED_STRUCTURE_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(DETAILED_STRUCTURE_TESTS))
-def test_validate_detailed_structure(collection, test):
-    """Test validate response sub-structure for indexes and option modes."""
+RESPONSE_DETAIL_TESTS = RESPONSE_VALUE_TESTS + DETAILED_STRUCTURE_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(RESPONSE_DETAIL_TESTS))
+def test_validate_response_details(collection, test):
+    """Test validate response values, sub-structure, and option-specific shapes."""
     for cmd in test.setup:
         execute_command(collection, {**cmd, next(iter(cmd)): collection.name})
     cmd = {"validate": collection.name}

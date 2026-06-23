@@ -91,14 +91,6 @@ INVALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(INVALID_COMBINATION_TESTS))
-def test_validate_invalid_option_combinations(collection, test):
-    """Test that validate errors on invalid option combinations."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, {"validate": collection.name, **test.command})
-    assertFailureCode(result, test.error_code, msg=test.msg)
-
-
 # Property [Truthy Standalone Error]: validate rejects truthy background
 # values on standalone mode.
 TRUTHY_TYPE_TESTS: list[DiagnosticTestCase] = [
@@ -123,12 +115,12 @@ TRUTHY_TYPE_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TRUTHY_TYPE_TESTS))
-def test_validate_background_truthy_standalone_error(collection, test):
-    """Test that background with truthy values errors on standalone mode."""
+OPTION_ERROR_TESTS = INVALID_COMBINATION_TESTS + TRUTHY_TYPE_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(OPTION_ERROR_TESTS))
+def test_validate_option_errors(collection, test):
+    """Test that validate errors on invalid option combinations and truthy background."""
     collection.insert_one({"_id": 1})
-    result = execute_command(
-        collection,
-        {"validate": collection.name, **test.command},
-    )
+    result = execute_command(collection, {"validate": collection.name, **test.command})
     assertFailureCode(result, test.error_code, msg=test.msg)

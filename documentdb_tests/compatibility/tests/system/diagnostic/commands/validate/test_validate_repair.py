@@ -156,17 +156,6 @@ REPAIR_TYPE_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(REPAIR_TYPE_TESTS))
-def test_validate_repair_accepted_types(collection, test):
-    """Test that validate accepts all BSON types for the repair parameter."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(
-        collection,
-        {"validate": collection.name, **test.command},
-    )
-    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
-
-
 # Property [Type Coercion]: validate accepts all BSON types for the fixMultikey parameter.
 FIXMULTIKEY_TYPE_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
@@ -304,17 +293,6 @@ FIXMULTIKEY_TYPE_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(FIXMULTIKEY_TYPE_TESTS))
-def test_validate_fixMultikey_accepted_types(collection, test):
-    """Test that validate accepts all BSON types for the fixMultikey parameter."""
-    collection.insert_one({"_id": 1})
-    result = execute_command(
-        collection,
-        {"validate": collection.name, **test.command},
-    )
-    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
-
-
 # Property [Repair Mode]: validate returns correct repairMode for different configurations.
 REPAIR_MODE_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
@@ -344,9 +322,12 @@ REPAIR_MODE_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(REPAIR_MODE_TESTS))
-def test_validate_repair_mode(collection, test):
-    """Test that validate returns correct repairMode for different configurations."""
+REPAIR_AND_FIXMULTIKEY_TESTS = REPAIR_TYPE_TESTS + FIXMULTIKEY_TYPE_TESTS + REPAIR_MODE_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(REPAIR_AND_FIXMULTIKEY_TESTS))
+def test_validate_repair_and_fixMultikey(collection, test):
+    """Test repair/fixMultikey type coercion and repairMode values."""
     collection.insert_one({"_id": 1})
     result = execute_command(
         collection,

@@ -143,13 +143,6 @@ INVALID_TYPE_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(INVALID_TYPE_TESTS))
-def test_validate_rejects_non_string_types(collection, test):
-    """Test that validate rejects non-string BSON types for the collection name."""
-    result = execute_command(collection, test.command)
-    assertFailureCode(result, test.error_code, msg=test.msg)
-
-
 # Property [Invalid String Values]: validate rejects invalid string values for collection name.
 INVALID_STRING_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
@@ -167,9 +160,12 @@ INVALID_STRING_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(INVALID_STRING_TESTS))
-def test_validate_rejects_invalid_string_values(collection, test):
-    """Test that validate rejects invalid string values for collection name."""
+INVALID_ARGUMENT_TESTS = INVALID_TYPE_TESTS + INVALID_STRING_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(INVALID_ARGUMENT_TESTS))
+def test_validate_rejects_invalid_arguments(collection, test):
+    """Test that validate rejects non-string types and invalid string values."""
     result = execute_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)
 
