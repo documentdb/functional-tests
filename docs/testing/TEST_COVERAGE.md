@@ -526,10 +526,8 @@ For each invalid_type in [string, object, array, ...]:
   - BSON type ordering → `tests/core/bson_types/`. Operators that use it (e.g. `$max`, `$gt`, `$sort`) get 1-2 wiring cases, not the full type-pair matrix.
   - Collation comparison → `tests/core/collation/`. Commands that accept `collation` test syntactic acceptance only. Sub-fields testing and semantic behavior is in 'tests/core/collation/'.
   - GeoJSON parsing and validation → `geospatial/specifiers/geometry/`. Geo operators that accept GeoJSON — test that the operator wires to the GeoJSON parser, not GeoJSON syntax tests.
+  - Wire-protocol namespace validation → TBD. Commands that take a namespace as their first field — single representative case, not the full character matrix.
   - Field path validation  → Issue #118.
-
-  **Not foundational** (test exhaustively per command per §1 and §8e):
-  - Wire-protocol namespace validation — commands that take a collection name as their first field must test the full canonical BSON type set for non-string type rejection. Different engines may handle specific BSON types differently for specific commands, so this is a per-command input property, not a uniform foundational behavior.
 
   **Test naming convention**: wiring tests typically use the suffix `_bson_wiring.py` or `_<feature>_wiring.py`. Compare to `tests/core/operator/expressions/comparisons/gt/test_gt_bson_wiring.py` for the right
   shape — small, representative, explicitly named.
