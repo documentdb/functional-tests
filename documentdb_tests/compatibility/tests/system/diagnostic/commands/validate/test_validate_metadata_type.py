@@ -1,6 +1,7 @@
-"""Tests for validate command 'metadata' parameter type coercion.
+"""Tests for validate command 'metadata' and 'background' parameter type coercion.
 
-Validates that the metadata parameter accepts all BSON types via coercion.
+Validates that the metadata parameter accepts all BSON types via coercion
+and that the background parameter accepts falsy BSON types via coercion.
 """
 
 from __future__ import annotations
@@ -155,9 +156,53 @@ ACCEPTED_TYPE_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(ACCEPTED_TYPE_TESTS))
-def test_validate_metadata_accepted_types(collection, test):
-    """Test that validate accepts all BSON types for the metadata parameter."""
+# Property [Falsy Type Acceptance]: validate accepts falsy BSON types for the background parameter.
+FALSY_TYPE_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "bool_false",
+        command={"background": False},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept bool false",
+    ),
+    DiagnosticTestCase(
+        "int32_0",
+        command={"background": 0},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept int32 0 (coerces to false)",
+    ),
+    DiagnosticTestCase(
+        "double_0",
+        command={"background": 0.0},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept double 0.0 (coerces to false)",
+    ),
+    DiagnosticTestCase(
+        "int64_0",
+        command={"background": Int64(0)},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept Int64(0) (coerces to false)",
+    ),
+    DiagnosticTestCase(
+        "decimal128_0",
+        command={"background": Decimal128("0")},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept Decimal128('0') (coerces to false)",
+    ),
+    DiagnosticTestCase(
+        "null",
+        command={"background": None},
+        checks={"ok": Eq(1.0)},
+        msg="background should accept null (treated as omitted/false)",
+    ),
+]
+
+
+METADATA_AND_BACKGROUND_TESTS = ACCEPTED_TYPE_TESTS + FALSY_TYPE_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(METADATA_AND_BACKGROUND_TESTS))
+def test_validate_metadata_and_background_types(collection, test):
+    """Test type coercion for metadata and background parameters."""
     collection.insert_one({"_id": 1})
     result = execute_command(
         collection,
