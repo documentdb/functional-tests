@@ -128,6 +128,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="wtimeout=-1 (negative) should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_wtimeout_neg_infinity",
@@ -139,6 +140,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="wtimeout=-Infinity should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_wtimeout_nan",
@@ -271,6 +273,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="wtimeout=Decimal128('-Infinity') should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_wtimeout_neg_zero",
