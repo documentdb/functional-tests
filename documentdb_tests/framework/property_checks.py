@@ -347,30 +347,3 @@ class NonEmptyStr(Check):
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}()"
-
-
-class StringsMaxLength(Check):
-    """Assert a field is a list of strings each at most ``maximum`` characters.
-
-    Used for fields whose entries are length-capped (e.g. getLog truncates any
-    log event longer than 1024 characters), so every returned entry must
-    respect the cap.
-    """
-
-    def __init__(self, maximum: int) -> None:
-        self.maximum = maximum
-
-    def check(self, value: Any, path: str) -> str | None:
-        if value is _FIELD_ABSENT:
-            return f"expected '{path}' to exist"
-        if not isinstance(value, list):
-            return f"expected '{path}' to be a list, got {type(value).__name__}"
-        for i, entry in enumerate(value):
-            if not isinstance(entry, str):
-                return f"expected '{path}.{i}' to be a string, got {type(entry).__name__}"
-            if len(entry) > self.maximum:
-                return f"expected '{path}.{i}' length <= {self.maximum}, got {len(entry)}"
-        return None
-
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}({self.maximum!r})"

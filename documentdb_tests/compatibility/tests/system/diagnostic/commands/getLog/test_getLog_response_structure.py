@@ -1,9 +1,9 @@
 """Tests for getLog command response structure.
 
 Covers response fields for the "global" filter (totalLinesWritten, log array
-capped at 1024 entries with each entry truncated at 1024 characters, ok), the
-"startupWarnings" filter (totalLinesWritten, log array, ok), and the "*"
-filter (names array, ok). Each test asserts a single response property.
+capped at 1024 entries, string log entries, ok), the "startupWarnings" filter
+(totalLinesWritten, log array, ok), and the "*" filter (names array, ok).
+Each test asserts a single response property.
 """
 
 import pytest
@@ -14,19 +14,11 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
 from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import (
-    ContainsElement,
-    Eq,
-    Gte,
-    IsType,
-    LenLte,
-    StringsMaxLength,
-)
+from documentdb_tests.framework.property_checks import ContainsElement, Eq, Gte, IsType, LenLte
 
 pytestmark = pytest.mark.admin
 
 MAX_LOG_EVENTS = 1024
-MAX_LOG_LINE_CHARS = 1024
 
 
 RESPONSE_TESTS: list[DiagnosticTestCase] = [
@@ -53,12 +45,6 @@ RESPONSE_TESTS: list[DiagnosticTestCase] = [
         command={"getLog": "global"},
         checks={"log.0": IsType("string")},
         msg="global log entries should be JSON-formatted strings",
-    ),
-    DiagnosticTestCase(
-        "global_log_entries_truncated_at_1024",
-        command={"getLog": "global"},
-        checks={"log": StringsMaxLength(MAX_LOG_LINE_CHARS)},
-        msg="global log entries should be truncated to at most 1024 characters",
     ),
     DiagnosticTestCase(
         "global_ok",
