@@ -14,9 +14,12 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
 from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import ContainsElement, Eq, Gte, IsType
+from documentdb_tests.framework.property_checks import ContainsElement, Eq, Gte, IsType, LenLte
 
 pytestmark = pytest.mark.admin
+
+# getLog "global" returns at most the most recent 1024 logged events.
+MAX_LOG_EVENTS = 1024
 
 
 RESPONSE_TESTS: list[DiagnosticTestCase] = [
@@ -32,6 +35,12 @@ RESPONSE_TESTS: list[DiagnosticTestCase] = [
         command={"getLog": "global"},
         checks={"log": IsType("array")},
         msg="global should return a log array",
+    ),
+    DiagnosticTestCase(
+        "global_log_capped_at_1024",
+        command={"getLog": "global"},
+        checks={"log": LenLte(MAX_LOG_EVENTS)},
+        msg="global log array should contain at most 1024 entries",
     ),
     DiagnosticTestCase(
         "global_log_entry_is_string",
