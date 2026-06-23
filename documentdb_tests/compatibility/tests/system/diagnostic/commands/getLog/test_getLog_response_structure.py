@@ -1,9 +1,9 @@
-"""Tests for getLog command core behavior and response structure.
+"""Tests for getLog command response structure.
 
-Covers the response shape for the "global" and "startupWarnings" filters
-(totalLinesWritten, log array, string log entries truncated at 1024 chars, ok)
-and for the "*" filter (names array listing the available filters, ok). Each
-test asserts a single response property.
+Covers response fields for the "global" filter (totalLinesWritten, log array
+capped at 1024 entries with each entry truncated at 1024 characters, ok), the
+"startupWarnings" filter (totalLinesWritten, log array, ok), and the "*"
+filter (names array, ok). Each test asserts a single response property.
 """
 
 import pytest
@@ -25,14 +25,11 @@ from documentdb_tests.framework.property_checks import (
 
 pytestmark = pytest.mark.admin
 
-# getLog "global" returns at most the most recent 1024 logged events.
 MAX_LOG_EVENTS = 1024
-# getLog truncates any individual log event longer than 1024 characters.
 MAX_LOG_LINE_CHARS = 1024
 
 
 RESPONSE_TESTS: list[DiagnosticTestCase] = [
-    # "global" filter response structure
     DiagnosticTestCase(
         "global_totalLinesWritten_number",
         command={"getLog": "global"},
@@ -69,7 +66,6 @@ RESPONSE_TESTS: list[DiagnosticTestCase] = [
         checks={"ok": Eq(1.0)},
         msg="global should return ok:1",
     ),
-    # "startupWarnings" filter response structure (log array may be empty)
     DiagnosticTestCase(
         "startupWarnings_log_is_array",
         command={"getLog": "startupWarnings"},
@@ -88,7 +84,6 @@ RESPONSE_TESTS: list[DiagnosticTestCase] = [
         checks={"totalLinesWritten": Gte(0)},
         msg="startupWarnings should return a non-negative totalLinesWritten",
     ),
-    # "*" filter lists the available log filters
     DiagnosticTestCase(
         "wildcard_names_is_array",
         command={"getLog": "*"},

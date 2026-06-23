@@ -25,7 +25,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 
-# An unknown, deprecated, or empty log component name fails with OperationFailed.
 ERROR_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         "unknown_component",

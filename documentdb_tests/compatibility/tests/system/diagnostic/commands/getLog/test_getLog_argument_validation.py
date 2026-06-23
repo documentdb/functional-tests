@@ -20,9 +20,6 @@ from documentdb_tests.framework.test_constants import BsonType
 
 pytestmark = pytest.mark.admin
 
-# getLog accepts only a string value; every other BSON type is rejected with
-# TypeMismatch, except a null value, which is treated as an absent required
-# field (MissingField).
 BSON_TYPE_PARAMS = [
     BsonTypeTestCase(
         id="getLog_value",
