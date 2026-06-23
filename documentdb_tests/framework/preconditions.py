@@ -79,6 +79,20 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "local_rename",
         }
     ),
+    ("documentdb", "standalone"): frozenset(
+        {
+            "change_streams",
+            "transactions",
+            "queryable_encryption",
+            "cluster_admin",
+            "cluster_time",
+            "cluster_read_concern",
+            "quorum_write_concern",
+            "search",
+            "unforced_compact",
+            "reindex",
+        }
+    ),
 }
 
 # The single marker tests use to declare capability requirements.
@@ -123,6 +137,11 @@ def _detect_topology(engine: str, client: MongoClient) -> str:
         # server does not.
         if client.admin.command("hello").get("setName"):
             return "replica_set"
+        return "standalone"
+    if engine == "documentdb":
+        # One deployment form. Issue hello so an unreachable target raises here
+        # and resolves to no capabilities rather than the full set.
+        client.admin.command("hello")
         return "standalone"
     raise ValueError(f"unknown engine {engine!r}; cannot classify topology")
 
