@@ -6,10 +6,38 @@ databases, and is unaffected by server settings.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess, assertSuccessPartial
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
+    DiagnosticTestCase,
+)
+from documentdb_tests.framework.assertions import (
+    assertProperties,
+    assertSuccess,
+    assertSuccessPartial,
+)
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
 
 pytestmark = pytest.mark.admin
+
+
+# Property [Database Independence]: whatsmyuri succeeds on any database.
+DATABASE_INDEPENDENCE_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "any_database",
+        command={"whatsmyuri": 1},
+        use_admin=False,
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should succeed on non-admin database",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(DATABASE_INDEPENDENCE_TESTS))
+def test_whatsmyuri_consistency(collection, test):
+    """Test whatsmyuri consistency."""
+    result = execute_command(collection, test.command)
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
 def test_whatsmyuri_idempotent(collection):
@@ -22,12 +50,6 @@ def test_whatsmyuri_idempotent(collection):
         msg="whatsmyuri should return identical results across calls",
         raw_res=True,
     )
-
-
-def test_whatsmyuri_any_database(collection):
-    """Test whatsmyuri on a non-admin database."""
-    result = execute_command(collection, {"whatsmyuri": 1})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="whatsmyuri should succeed on non-admin database")
 
 
 def test_whatsmyuri_same_result_any_database(collection):
