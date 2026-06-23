@@ -157,7 +157,7 @@ def generate_text_report(analysis: Dict[str, Any], output_path: str):
     lines.append("=" * 80)
 
     with open(output_path, "w") as f:
-        f.write("\n".join(lines))
+        f.write("\n".join(lines) + "\n")
 
 
 def print_summary(analysis: Dict[str, Any]):
