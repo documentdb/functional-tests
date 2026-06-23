@@ -8,14 +8,13 @@ import pytest
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
 )
-from documentdb_tests.framework.assertions import assertFailureCode, assertProperties
+from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     COMMAND_NOT_FOUND_ERROR,
     UNKNOWN_PIPELINE_STAGE_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq
 
 pytestmark = pytest.mark.admin
 
@@ -62,21 +61,3 @@ def test_whatsmyuri_as_aggregation_stage(collection):
         UNKNOWN_PIPELINE_STAGE_ERROR,
         msg="whatsmyuri should not be usable as an aggregation stage",
     )
-
-
-# Property [Extra Fields Ignored]: whatsmyuri ignores unrecognized fields.
-EXTRA_FIELD_TESTS: list[DiagnosticTestCase] = [
-    DiagnosticTestCase(
-        id="extra_field_ignored",
-        command={"whatsmyuri": 1, "unknownField": 1},
-        checks={"ok": Eq(1.0)},
-        msg="whatsmyuri should succeed even with unrecognized fields",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(EXTRA_FIELD_TESTS))
-def test_whatsmyuri_extra_fields(collection, test):
-    """Test whatsmyuri with extra fields."""
-    result = execute_admin_command(collection, test.command)
-    assertProperties(result, test.checks, msg=test.msg, raw_res=True)

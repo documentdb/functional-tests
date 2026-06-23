@@ -1,6 +1,7 @@
 """Tests for whatsmyuri command argument handling.
 
-Validates that whatsmyuri accepts any BSON type as its argument value.
+Validates that whatsmyuri accepts any BSON type as its argument value
+and ignores unrecognized fields.
 """
 
 from datetime import datetime, timezone
@@ -11,7 +12,7 @@ from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Rege
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
 )
-from documentdb_tests.framework.assertions import assertProperties
+from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
@@ -215,3 +216,14 @@ def test_whatsmyuri_argument_types(collection, test):
     """Test whatsmyuri argument type acceptance."""
     result = execute_admin_command(collection, test.command)
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
+
+
+# Property [Extra Fields Ignored]: whatsmyuri ignores unrecognized fields.
+def test_whatsmyuri_extra_field_ignored(collection):
+    """Test whatsmyuri succeeds with unrecognized fields."""
+    result = execute_admin_command(collection, {"whatsmyuri": 1, "unknownField": 1})
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="whatsmyuri should succeed even with unrecognized fields",
+    )
