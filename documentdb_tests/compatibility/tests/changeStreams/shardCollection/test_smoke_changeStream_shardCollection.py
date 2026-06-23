@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.skip(reason="shardCollection events not captured even with showExpandedEvents")
 def test_smoke_changeStream_shardCollection(collection):
     """Test basic shardCollection change stream event behavior."""

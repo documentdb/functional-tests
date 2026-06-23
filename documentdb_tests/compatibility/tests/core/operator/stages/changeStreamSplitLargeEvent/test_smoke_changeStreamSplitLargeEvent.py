@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 def test_smoke_changeStreamSplitLargeEvent(collection):
     """Test basic $changeStreamSplitLargeEvent stage behavior."""
     result = execute_command(
