@@ -167,10 +167,11 @@ def test_validate_clustered_collection(database_client, collection):
     )
 
 
-# Property [Valid Combinations]: validate succeeds with valid option combinations.
-VALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
+# Property [Valid Options]: validate succeeds with each option individually
+# and with compatible multi-option combinations.
+VALID_OPTION_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
-        "all_defaults_explicit",
+        "all_options_false",
         command={"full": False, "repair": False, "metadata": False, "checkBSONConformance": False},
         checks={"ok": Eq(1.0)},
         msg="validate should succeed with all options set to false explicitly",
@@ -188,7 +189,7 @@ VALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
         msg="validate with checkBSONConformance: true should succeed",
     ),
     DiagnosticTestCase(
-        "full_and_checkBSONConformance",
+        "full_with_checkBSONConformance",
         command={"full": True, "checkBSONConformance": True},
         checks={"ok": Eq(1.0)},
         msg="validate with full: true and checkBSONConformance: true should succeed",
@@ -200,19 +201,19 @@ VALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
         msg="validate with metadata: true should succeed",
     ),
     DiagnosticTestCase(
-        "fixMultikey_true_alone",
+        "fixMultikey_true",
         command={"fixMultikey": True},
         checks={"ok": Eq(1.0)},
-        msg="validate with fixMultikey: true alone should succeed",
+        msg="validate with fixMultikey: true should succeed",
     ),
     DiagnosticTestCase(
-        "repair_true_alone",
+        "repair_true",
         command={"repair": True},
         checks={"ok": Eq(1.0)},
-        msg="validate with repair: true alone should succeed",
+        msg="validate with repair: true should succeed",
     ),
     DiagnosticTestCase(
-        "repair_true_with_fixMultikey",
+        "repair_with_fixMultikey",
         command={"repair": True, "fixMultikey": True},
         checks={"ok": Eq(1.0)},
         msg="validate with repair: true and fixMultikey: true should succeed",
@@ -220,9 +221,9 @@ VALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(VALID_COMBINATION_TESTS))
-def test_validate_valid_option_combinations(collection, test):
-    """Test that validate succeeds with valid option combinations."""
+@pytest.mark.parametrize("test", pytest_params(VALID_OPTION_TESTS))
+def test_validate_valid_options(collection, test):
+    """Test that validate succeeds with valid option values."""
     collection.insert_one({"_id": 1})
     result = execute_command(collection, {"validate": collection.name, **test.command})
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)

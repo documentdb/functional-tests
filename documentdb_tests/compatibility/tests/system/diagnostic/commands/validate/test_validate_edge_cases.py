@@ -125,27 +125,6 @@ DOCUMENT_VARIETY_TESTS: list[DiagnosticTestCase] = [
         checks={"ok": Eq(1.0), "valid": Eq(True), "nrecords": Eq(2)},
         msg="validate should return valid: true for documents with binary data",
     ),
-    DiagnosticTestCase(
-        "many_indexes",
-        setup=[
-            {
-                "insert": "",
-                "documents": [{"_id": i, "a": i, "b": i, "c": i, "d": i, "e": i} for i in range(5)],
-            },
-            {
-                "createIndexes": "",
-                "indexes": [
-                    {"key": {"a": 1}, "name": "a_1"},
-                    {"key": {"b": 1}, "name": "b_1"},
-                    {"key": {"c": 1}, "name": "c_1"},
-                    {"key": {"d": 1}, "name": "d_1"},
-                    {"key": {"e": 1}, "name": "e_1"},
-                ],
-            },
-        ],
-        checks={"ok": Eq(1.0), "valid": Eq(True), "nIndexes": Eq(6)},
-        msg="validate should report nIndexes: 6 with 5 secondary indexes",
-    ),
 ]
 
 
@@ -158,32 +137,30 @@ def test_validate_document_variety(collection, test):
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
-# Property [Collection Name Edge Cases]: validate succeeds with unusual but
-# valid collection name suffixes.
-COLLECTION_NAME_TESTS: list[DiagnosticTestCase] = [
-    DiagnosticTestCase(
-        "unicode_name",
-        command={"suffix": "_\u00e9\u00e8\u00ea"},
-        checks={"ok": Eq(1.0)},
-        msg="validate should succeed with unicode collection name",
-    ),
-    DiagnosticTestCase(
-        "numeric_looking_name",
-        command={"suffix": "_12345"},
-        checks={"ok": Eq(1.0)},
-        msg="validate should succeed with numeric-looking collection name",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(COLLECTION_NAME_TESTS))
-def test_validate_collection_name_edge_cases(database_client, collection, test):
-    """Test validate succeeds with unusual but valid collection names."""
-    coll_name = f"{collection.name}{test.command['suffix']}"
+def test_validate_unicode_collection_name(database_client, collection):
+    """Test validate succeeds with a unicode collection name."""
+    coll_name = f"{collection.name}_\u00e9\u00e8\u00ea"
     coll = database_client[coll_name]
     coll.insert_one({"_id": 1})
     result = execute_command(coll, {"validate": coll.name})
-    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="validate should succeed with unicode collection name",
+    )
+
+
+def test_validate_numeric_looking_collection_name(database_client, collection):
+    """Test validate succeeds with a numeric-looking collection name."""
+    coll_name = f"{collection.name}_12345"
+    coll = database_client[coll_name]
+    coll.insert_one({"_id": 1})
+    result = execute_command(coll, {"validate": coll.name})
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="validate should succeed with numeric-looking collection name",
+    )
 
 
 def test_validate_long_collection_name(database_client, collection):

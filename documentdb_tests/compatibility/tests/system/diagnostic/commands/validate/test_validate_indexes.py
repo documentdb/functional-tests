@@ -198,6 +198,27 @@ INDEX_TYPE_TESTS: list[DiagnosticTestCase] = [
         checks={"ok": Eq(1.0), "valid": Eq(True), "nIndexes": Eq(4)},
         msg="validate should report all 4 indexes (_id + 3 secondary)",
     ),
+    DiagnosticTestCase(
+        "many_indexes",
+        setup=[
+            {
+                "insert": "",
+                "documents": [{"_id": i, "a": i, "b": i, "c": i, "d": i, "e": i} for i in range(5)],
+            },
+            {
+                "createIndexes": "",
+                "indexes": [
+                    {"key": {"a": 1}, "name": "a_1"},
+                    {"key": {"b": 1}, "name": "b_1"},
+                    {"key": {"c": 1}, "name": "c_1"},
+                    {"key": {"d": 1}, "name": "d_1"},
+                    {"key": {"e": 1}, "name": "e_1"},
+                ],
+            },
+        ],
+        checks={"ok": Eq(1.0), "valid": Eq(True), "nIndexes": Eq(6)},
+        msg="validate should report nIndexes: 6 with 5 secondary indexes",
+    ),
 ]
 
 
