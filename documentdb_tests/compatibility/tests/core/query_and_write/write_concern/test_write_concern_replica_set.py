@@ -20,7 +20,7 @@ from documentdb_tests.framework.assertions import assertNotError
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.replica_set
+pytestmark = pytest.mark.requires(quorum_write_concern=True)
 
 _W_REPLICA_VALUES = [
     ("w_50_max", {"w": 50}),
