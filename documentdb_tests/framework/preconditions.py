@@ -88,7 +88,6 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "cluster_time",
             "cluster_read_concern",
             "quorum_write_concern",
-            "search",
             "unforced_compact",
             "reindex",
         }
