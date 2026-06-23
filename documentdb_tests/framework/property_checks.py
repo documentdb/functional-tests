@@ -6,6 +6,7 @@ and returns an error string on failure or ``None`` on success.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime as _datetime
 from typing import Any
 
@@ -347,3 +348,65 @@ class NonEmptyStr(Check):
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}()"
+
+
+class WellFormedJsonStrings(Check):
+    """Assert a field is a list of well-formed, properly escaped JSON strings.
+
+    Each entry must be a string that parses as JSON -- which fails if a quote
+    or backslash is left unescaped -- and must contain no raw C0 control
+    characters (newline, tab, etc.), which a Relaxed Extended JSON v2.0 log
+    line is required to emit as escape sequences rather than literal bytes.
+    """
+
+    _CONTROL_CHARS = frozenset(chr(c) for c in range(0x20))
+
+    def check(self, value: Any, path: str) -> str | None:
+        if value is _FIELD_ABSENT:
+            return f"expected '{path}' to exist"
+        if not isinstance(value, list):
+            return f"expected '{path}' to be a list, got {type(value).__name__}"
+        for i, entry in enumerate(value):
+            if not isinstance(entry, str):
+                return f"expected '{path}.{i}' to be a string, got {type(entry).__name__}"
+            try:
+                json.loads(entry)
+            except ValueError as exc:
+                return f"expected '{path}.{i}' to be valid escaped JSON, got {entry!r}: {exc}"
+            raw = self._CONTROL_CHARS.intersection(entry)
+            if raw:
+                return (
+                    f"expected '{path}.{i}' to escape control characters, "
+                    f"found raw {sorted(ord(c) for c in raw)!r} in {entry!r}"
+                )
+        return None
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}()"
+
+
+class StringsMaxLength(Check):
+    """Assert a field is a list of strings each at most ``maximum`` characters.
+
+    Used for fields whose entries are length-capped (e.g. getLog truncates any
+    log event longer than 1024 characters), so every returned entry must
+    respect the cap.
+    """
+
+    def __init__(self, maximum: int) -> None:
+        self.maximum = maximum
+
+    def check(self, value: Any, path: str) -> str | None:
+        if value is _FIELD_ABSENT:
+            return f"expected '{path}' to exist"
+        if not isinstance(value, list):
+            return f"expected '{path}' to be a list, got {type(value).__name__}"
+        for i, entry in enumerate(value):
+            if not isinstance(entry, str):
+                return f"expected '{path}.{i}' to be a string, got {type(entry).__name__}"
+            if len(entry) > self.maximum:
+                return f"expected '{path}.{i}' length <= {self.maximum}, got {len(entry)}"
+        return None
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.maximum!r})"
