@@ -12,7 +12,7 @@ from documentdb_tests.framework.assertions import assertFailureCode, assertResul
 from documentdb_tests.framework.error_codes import INVALID_OPTIONS_ERROR
 from documentdb_tests.framework.executor import execute_command
 
-pytestmark = pytest.mark.replica_set
+pytestmark = pytest.mark.requires(cluster_read_concern=True)
 
 
 def test_find_accepts_linearizable(collection):

@@ -11,7 +11,7 @@ from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_command
 
-pytestmark = pytest.mark.replica_set
+pytestmark = pytest.mark.requires(cluster_read_concern=True)
 
 
 def test_find_afterClusterTime_rejects_string(collection):
