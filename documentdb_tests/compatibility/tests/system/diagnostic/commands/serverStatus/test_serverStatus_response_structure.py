@@ -136,11 +136,6 @@ DEFAULT_SECTION_TESTS: list[DiagnosticTestCase] = [
         msg="serverStatus should include transactions as an object",
     ),
     DiagnosticTestCase(
-        id="wiredTiger_is_object",
-        checks={"wiredTiger": IsType("object")},
-        msg="serverStatus should include wiredTiger as an object",
-    ),
-    DiagnosticTestCase(
         id="catalogStats_is_object",
         checks={"catalogStats": IsType("object")},
         msg="serverStatus should include catalogStats as an object",

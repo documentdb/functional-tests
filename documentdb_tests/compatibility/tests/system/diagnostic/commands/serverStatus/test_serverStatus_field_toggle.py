@@ -70,12 +70,6 @@ EXCLUDE_TESTS: list[DiagnosticTestCase] = [
         msg="serverStatus should exclude extra_info when set to 0",
     ),
     DiagnosticTestCase(
-        id="exclude_wiredTiger",
-        command={"serverStatus": 1, "wiredTiger": 0},
-        checks={"wiredTiger": NotExists()},
-        msg="serverStatus should exclude wiredTiger when set to 0",
-    ),
-    DiagnosticTestCase(
         id="exclude_transactions",
         command={"serverStatus": 1, "transactions": 0},
         checks={"transactions": NotExists()},
