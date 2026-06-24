@@ -133,12 +133,15 @@ _W_INVALID_VALUES = [
 ]
 
 # Property [w Value Rejection]: w rejects null, negatives, >50, NaN, and Infinity.
+_STANDALONE_ONLY_MARK = (pytest.mark.requires(quorum_write_concern=False),)
+
 W_VALUE_REJECTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         f"{cmd}_w_rejects_{val_name}",
         command=lambda ctx, _wc={"w": value}, _cmd=cmd: build_cmd(_cmd, ctx, _wc),
         error_code=err,
         msg=f"{cmd} should reject w value {val_name}.",
+        marks=_STANDALONE_ONLY_MARK if val_name == "null" else (),
     )
     for cmd in WRITE_COMMANDS
     for val_name, value, err in _W_INVALID_VALUES
@@ -243,6 +246,7 @@ W_CASE_SENSITIVITY_TESTS: list[CommandTestCase] = [
 ]
 
 
+@pytest.mark.requires(quorum_write_concern=False)
 @pytest.mark.parametrize("test", pytest_params(W_CASE_SENSITIVITY_TESTS))
 def test_write_concern_w_case_sensitivity(collection, test: CommandTestCase):
     """Test w field is case-sensitive for 'majority'."""
@@ -263,6 +267,7 @@ W_EMPTY_STRING_TESTS: list[CommandTestCase] = [
 ]
 
 
+@pytest.mark.requires(quorum_write_concern=False)
 @pytest.mark.parametrize("test", pytest_params(W_EMPTY_STRING_TESTS))
 def test_write_concern_w_empty_string(collection, test: CommandTestCase):
     """Test w empty string is rejected as custom tag on standalone."""
