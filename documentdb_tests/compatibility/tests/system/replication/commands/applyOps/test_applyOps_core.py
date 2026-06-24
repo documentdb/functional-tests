@@ -20,7 +20,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 from documentdb_tests.framework.target_collection import CappedCollection, SiblingCollection
 
-pytestmark = [pytest.mark.requires(change_streams=True), pytest.mark.no_parallel]
+pytestmark = [pytest.mark.requires(replication=True), pytest.mark.no_parallel]
 
 
 # Property [Insert Operations]: applyOps inserts documents into existing

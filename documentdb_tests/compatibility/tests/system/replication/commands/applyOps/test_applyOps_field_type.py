@@ -28,7 +28,7 @@ from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = [pytest.mark.requires(change_streams=True), pytest.mark.no_parallel]
+pytestmark = [pytest.mark.requires(replication=True), pytest.mark.no_parallel]
 
 
 # Property [Command Field Type Rejection]: the applyOps command field expects

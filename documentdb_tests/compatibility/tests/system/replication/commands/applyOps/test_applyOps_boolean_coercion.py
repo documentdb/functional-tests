@@ -20,7 +20,7 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = [pytest.mark.requires(change_streams=True), pytest.mark.no_parallel]
+pytestmark = [pytest.mark.requires(replication=True), pytest.mark.no_parallel]
 
 
 # Property [allowAtomic Accepts All Types]: allowAtomic accepts any value

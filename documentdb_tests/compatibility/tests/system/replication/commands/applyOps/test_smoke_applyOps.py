@@ -10,7 +10,7 @@ import pytest
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 
-pytestmark = [pytest.mark.smoke, pytest.mark.requires(change_streams=True), pytest.mark.no_parallel]
+pytestmark = [pytest.mark.smoke, pytest.mark.requires(replication=True), pytest.mark.no_parallel]
 
 
 def test_smoke_applyOps(collection):
