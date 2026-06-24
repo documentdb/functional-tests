@@ -103,10 +103,10 @@ class ActiveGetMore(LiveState):
 
         thread = threading.Thread(target=run, daemon=True)
         thread.start()
-        # Wait until the find has issued its first getMore so $currentOp can
-        # observe it, rather than relying on a fixed delay.
-        self._wait_for_op(collection, "getmore")
         try:
+            # Wait until the find has issued its first getMore so $currentOp can
+            # observe it, rather than relying on a fixed delay.
+            self._wait_for_op(collection, "getmore")
             yield
         finally:
             thread.join(timeout=10)
@@ -142,10 +142,10 @@ class InFlightLargeCommand(LiveState):
 
         thread = threading.Thread(target=run, daemon=True)
         thread.start()
-        # Wait until the in-flight find command is observable to $currentOp
-        # instead of relying on a fixed delay.
-        self._wait_for_op(collection, "query")
         try:
+            # Wait until the in-flight find command is observable to $currentOp
+            # instead of relying on a fixed delay.
+            self._wait_for_op(collection, "query")
             yield
         finally:
             thread.join(timeout=10)
