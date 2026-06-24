@@ -19,7 +19,7 @@ from documentdb_tests.framework.error_codes import QUERYSETTINGS_QUERY_REJECTED_
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.no_parallel
+pytestmark = [pytest.mark.requires(cluster_admin=True), pytest.mark.no_parallel]
 
 # Property [Reject Blocks Find]: reject: true blocks matching find queries.
 # Property [Reject Blocks Distinct]: reject: true blocks matching distinct queries.
@@ -117,7 +117,6 @@ SET_QUERY_SETTINGS_REJECT_ERROR_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_REJECT_ERROR_TESTS))
 def test_setQuerySettings_reject_errors(collection, test):
     """Test that reject: true blocks matching queries."""

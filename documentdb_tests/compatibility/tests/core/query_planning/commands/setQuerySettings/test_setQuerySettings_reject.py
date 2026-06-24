@@ -18,7 +18,7 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.no_parallel
+pytestmark = [pytest.mark.requires(cluster_admin=True), pytest.mark.no_parallel]
 
 # Property [Reject Scope]: reject: true does not affect unrelated query shapes.
 # Property [Reject Reversal via Update]: updating reject to false re-enables the query.
@@ -172,7 +172,6 @@ SET_QUERY_SETTINGS_REJECT_SUCCESS_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_REJECT_SUCCESS_TESTS))
 def test_setQuerySettings_reject_success(collection, test):
     """Test that reject scope and reversal work correctly."""

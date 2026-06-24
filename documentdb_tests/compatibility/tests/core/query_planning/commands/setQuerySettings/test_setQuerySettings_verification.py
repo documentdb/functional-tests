@@ -24,7 +24,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 from .utils.setQuerySettings_common import get_query_settings
 
-pytestmark = pytest.mark.no_parallel
+pytestmark = [pytest.mark.requires(cluster_admin=True), pytest.mark.no_parallel]
 
 # Property [Hash Format]: queryShapeHash is a 64-character hexadecimal string.
 # Property [Hash Consistency]: same query shape produces the same hash.
@@ -85,7 +85,6 @@ SET_QUERY_SETTINGS_NS_MISMATCH_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_NS_MISMATCH_TESTS))
 def test_setQuerySettings_ns_coll_mismatch_accepted(collection, test):
     """Test that indexHints ns.coll can differ from query shape collection."""
@@ -318,7 +317,6 @@ SET_QUERY_SETTINGS_HASH_DIFFERENT_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_HASH_SAME_TESTS))
 def test_setQuerySettings_hash_same(collection, test):
     """Test that equivalent query shapes produce the same hash."""
@@ -345,7 +343,6 @@ def test_setQuerySettings_hash_same(collection, test):
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_HASH_DIFFERENT_TESTS))
 def test_setQuerySettings_hash_different(collection, test):
     """Test that distinct query shapes produce different hashes."""
@@ -409,7 +406,6 @@ SET_QUERY_SETTINGS_HASH_FORMAT_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_HASH_FORMAT_TESTS))
 def test_setQuerySettings_hash_format(collection, test):
     """Test that queryShapeHash matches expected format."""
@@ -500,7 +496,6 @@ SET_QUERY_SETTINGS_QS_STAGE_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_QS_STAGE_TESTS))
 def test_setQuerySettings_qs_stage(collection, test):
     """Test $querySettings returns correct representativeQuery."""
@@ -590,7 +585,6 @@ SET_QUERY_SETTINGS_DEBUG_SHAPE_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_DEBUG_SHAPE_TESTS))
 def test_setQuerySettings_debug_shape(collection, test):
     """Test showDebugQueryShape controls debugQueryShape presence."""
@@ -759,7 +753,6 @@ SET_QUERY_SETTINGS_FIELD_VERIFICATION_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_FIELD_VERIFICATION_TESTS))
 def test_setQuerySettings_field_verification(collection, test):
     """Test settings fields are visible and correctly updated in $querySettings."""
@@ -947,7 +940,6 @@ SET_QUERY_SETTINGS_MULTI_SETUP_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_MULTI_SETUP_TESTS))
 def test_setQuerySettings_multi_setup(collection, test):
     """Test multi-setup settings management via $querySettings inspection."""

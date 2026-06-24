@@ -25,7 +25,7 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.no_parallel
+pytestmark = [pytest.mark.requires(cluster_admin=True), pytest.mark.no_parallel]
 
 # Property [Primary Argument Type Rejection]: the setQuerySettings field must
 # be a document (query shape) or string (hash). All other BSON types are
@@ -297,7 +297,6 @@ SET_QUERY_SETTINGS_TYPE_ERROR_TESTS: list[CommandTestCase] = (
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_TYPE_ERROR_TESTS))
 def test_setQuerySettings_type_errors(collection, test):
     """Test setQuerySettings BSON type rejection."""

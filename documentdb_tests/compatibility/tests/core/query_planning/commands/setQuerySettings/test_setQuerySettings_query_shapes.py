@@ -19,7 +19,7 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.no_parallel
+pytestmark = [pytest.mark.requires(cluster_admin=True), pytest.mark.no_parallel]
 
 # Property [Command Shape Acceptance]: accepts find, distinct, and aggregate shapes.
 # Property [Find Shape Variations]: setQuerySettings accepts find shapes with various field combos.
@@ -587,7 +587,6 @@ SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS))
 def test_setQuerySettings_query_shapes(collection, test):
     """Test setQuerySettings accepts valid query shapes."""

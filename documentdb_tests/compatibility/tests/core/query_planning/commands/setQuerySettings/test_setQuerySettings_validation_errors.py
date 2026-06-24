@@ -32,7 +32,7 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.no_parallel
+pytestmark = [pytest.mark.requires(cluster_admin=True), pytest.mark.no_parallel]
 
 # Property [Query Shape Validation]: rejects malformed or unknown query shape documents.
 # Property [Hash String Validation]: rejects invalid hash string formats.
@@ -415,7 +415,6 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS))
 def test_setQuerySettings_validation_errors(collection, test):
     """Test setQuerySettings structural and validation error rejection."""

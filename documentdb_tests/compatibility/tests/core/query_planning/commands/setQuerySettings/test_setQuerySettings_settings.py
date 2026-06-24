@@ -19,7 +19,7 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.no_parallel
+pytestmark = [pytest.mark.requires(cluster_admin=True), pytest.mark.no_parallel]
 
 # Property [indexHints Acceptance]: setQuerySettings accepts valid indexHints configurations.
 # Property [reject Acceptance]: setQuerySettings accepts reject: true alone or with indexHints.
@@ -655,7 +655,6 @@ SET_QUERY_SETTINGS_SETTINGS_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_SETTINGS_TESTS))
 def test_setQuerySettings_settings(collection, test):
     """Test setQuerySettings accepts valid settings configurations."""
@@ -768,7 +767,6 @@ SET_QUERY_SETTINGS_UPDATE_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_UPDATE_TESTS))
 def test_setQuerySettings_update(collection, test):
     """Test setQuerySettings can update existing settings by query or hash."""

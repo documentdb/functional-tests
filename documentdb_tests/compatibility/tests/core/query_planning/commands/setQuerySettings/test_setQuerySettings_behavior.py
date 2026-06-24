@@ -21,7 +21,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 from .utils.setQuerySettings_common import get_query_settings
 
-pytestmark = pytest.mark.no_parallel
+pytestmark = [pytest.mark.requires(cluster_admin=True), pytest.mark.no_parallel]
 
 # Property [Response Structure]: setQuerySettings response includes hash, query, and settings.
 SET_QUERY_SETTINGS_RESPONSE_TESTS: list[SettingsTestCase] = [
@@ -126,7 +126,6 @@ SET_QUERY_SETTINGS_RESPONSE_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_RESPONSE_TESTS))
 def test_setQuerySettings_response(collection, test):
     """Test setQuerySettings response structure."""
@@ -224,7 +223,6 @@ SET_QUERY_SETTINGS_REMOVE_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_REMOVE_TESTS))
 def test_setQuerySettings_remove(collection, test):
     """Test removeQuerySettings removes settings."""
@@ -352,7 +350,6 @@ SET_QUERY_SETTINGS_QS_STAGE_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_QS_STAGE_TESTS))
 def test_setQuerySettings_qs_stage(collection, test):
     """Test that settings are visible via $querySettings aggregation stage."""
