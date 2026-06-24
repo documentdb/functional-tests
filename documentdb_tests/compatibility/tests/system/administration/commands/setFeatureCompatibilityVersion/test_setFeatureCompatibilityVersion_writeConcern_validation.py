@@ -15,7 +15,7 @@ pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
 def _get_fcv(collection):
-    """Read the current FCV."""
+    """Read the current FCV via getParameter."""
     result = execute_admin_command(
         collection, {"getParameter": 1, "featureCompatibilityVersion": 1}
     )
@@ -28,7 +28,7 @@ def _get_fcv(collection):
 
 
 def test_setFeatureCompatibilityVersion_writeConcern_object_accepted(collection):
-    """Test writeConcern as object is accepted."""
+    """Test setFeatureCompatibilityVersion accepts writeConcern as object."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -38,11 +38,15 @@ def test_setFeatureCompatibilityVersion_writeConcern_object_accepted(collection)
             "writeConcern": {"wtimeout": 5000},
         },
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="writeConcern as object should be accepted")
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should accept writeConcern as object",
+    )
 
 
 def test_setFeatureCompatibilityVersion_writeConcern_empty_object_accepted(collection):
-    """Test writeConcern = {} (empty doc) is accepted with defaults applied."""
+    """Test setFeatureCompatibilityVersion accepts writeConcern as empty object."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -52,11 +56,15 @@ def test_setFeatureCompatibilityVersion_writeConcern_empty_object_accepted(colle
             "writeConcern": {},
         },
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="writeConcern = {} should be accepted")
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should accept writeConcern as empty object",
+    )
 
 
 def test_setFeatureCompatibilityVersion_writeConcern_null_as_omitted(collection):
-    """Test writeConcern = null is treated as omitted (accepted)."""
+    """Test setFeatureCompatibilityVersion treats writeConcern=null as omitted."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -67,12 +75,14 @@ def test_setFeatureCompatibilityVersion_writeConcern_null_as_omitted(collection)
         },
     )
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="writeConcern = null should be treated as omitted"
+        result,
+        {"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should treat writeConcern=null as omitted",
     )
 
 
 def test_setFeatureCompatibilityVersion_writeConcern_string_rejected(collection):
-    """Test writeConcern as string fails with TYPE_MISMATCH_ERROR."""
+    """Test setFeatureCompatibilityVersion rejects writeConcern as string."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -82,11 +92,15 @@ def test_setFeatureCompatibilityVersion_writeConcern_string_rejected(collection)
             "writeConcern": "majority",
         },
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="writeConcern as string should be rejected")
+    assertFailureCode(
+        result,
+        TYPE_MISMATCH_ERROR,
+        msg="setFeatureCompatibilityVersion should reject writeConcern as string",
+    )
 
 
 def test_setFeatureCompatibilityVersion_writeConcern_int_rejected(collection):
-    """Test writeConcern as int fails with TYPE_MISMATCH_ERROR."""
+    """Test setFeatureCompatibilityVersion rejects writeConcern as int."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -96,11 +110,15 @@ def test_setFeatureCompatibilityVersion_writeConcern_int_rejected(collection):
             "writeConcern": 1,
         },
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="writeConcern as int should be rejected")
+    assertFailureCode(
+        result,
+        TYPE_MISMATCH_ERROR,
+        msg="setFeatureCompatibilityVersion should reject writeConcern as int",
+    )
 
 
 def test_setFeatureCompatibilityVersion_writeConcern_bool_rejected(collection):
-    """Test writeConcern as bool fails with TYPE_MISMATCH_ERROR."""
+    """Test setFeatureCompatibilityVersion rejects writeConcern as bool."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -110,11 +128,15 @@ def test_setFeatureCompatibilityVersion_writeConcern_bool_rejected(collection):
             "writeConcern": True,
         },
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="writeConcern as bool should be rejected")
+    assertFailureCode(
+        result,
+        TYPE_MISMATCH_ERROR,
+        msg="setFeatureCompatibilityVersion should reject writeConcern as bool",
+    )
 
 
 def test_setFeatureCompatibilityVersion_writeConcern_array_rejected(collection):
-    """Test writeConcern as array fails with TYPE_MISMATCH_ERROR."""
+    """Test setFeatureCompatibilityVersion rejects writeConcern as array."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -124,11 +146,15 @@ def test_setFeatureCompatibilityVersion_writeConcern_array_rejected(collection):
             "writeConcern": [{"w": 1}],
         },
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="writeConcern as array should be rejected")
+    assertFailureCode(
+        result,
+        TYPE_MISMATCH_ERROR,
+        msg="setFeatureCompatibilityVersion should reject writeConcern as array",
+    )
 
 
 def test_setFeatureCompatibilityVersion_writeConcern_long_rejected(collection):
-    """Test writeConcern as long fails with TYPE_MISMATCH_ERROR."""
+    """Test setFeatureCompatibilityVersion rejects writeConcern as long."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -138,11 +164,15 @@ def test_setFeatureCompatibilityVersion_writeConcern_long_rejected(collection):
             "writeConcern": Int64(1),
         },
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="writeConcern as long should be rejected")
+    assertFailureCode(
+        result,
+        TYPE_MISMATCH_ERROR,
+        msg="setFeatureCompatibilityVersion should reject writeConcern as long",
+    )
 
 
 def test_setFeatureCompatibilityVersion_writeConcern_double_rejected(collection):
-    """Test writeConcern as double fails with TYPE_MISMATCH_ERROR."""
+    """Test setFeatureCompatibilityVersion rejects writeConcern as double."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -152,11 +182,15 @@ def test_setFeatureCompatibilityVersion_writeConcern_double_rejected(collection)
             "writeConcern": 1.0,
         },
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="writeConcern as double should be rejected")
+    assertFailureCode(
+        result,
+        TYPE_MISMATCH_ERROR,
+        msg="setFeatureCompatibilityVersion should reject writeConcern as double",
+    )
 
 
 def test_setFeatureCompatibilityVersion_writeConcern_decimal_rejected(collection):
-    """Test writeConcern as decimal128 fails with TYPE_MISMATCH_ERROR."""
+    """Test setFeatureCompatibilityVersion rejects writeConcern as Decimal128."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -167,22 +201,28 @@ def test_setFeatureCompatibilityVersion_writeConcern_decimal_rejected(collection
         },
     )
     assertFailureCode(
-        result, TYPE_MISMATCH_ERROR, msg="writeConcern as decimal128 should be rejected"
+        result,
+        TYPE_MISMATCH_ERROR,
+        msg="setFeatureCompatibilityVersion should reject writeConcern as Decimal128",
     )
 
 
 def test_setFeatureCompatibilityVersion_omitting_writeConcern_succeeds(collection):
-    """Test omitting writeConcern still succeeds (default wtimeout applied)."""
+    """Test setFeatureCompatibilityVersion succeeds when writeConcern is omitted."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
         {"setFeatureCompatibilityVersion": current_fcv, "confirm": True},
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Omitting writeConcern should succeed")
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should succeed when writeConcern is omitted",
+    )
 
 
 def test_setFeatureCompatibilityVersion_wtimeout_double_coercion(collection):
-    """Test writeConcern.wtimeout as whole-number double (5000.0) is accepted."""
+    """Test setFeatureCompatibilityVersion accepts wtimeout as whole-number double."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -193,12 +233,14 @@ def test_setFeatureCompatibilityVersion_wtimeout_double_coercion(collection):
         },
     )
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="wtimeout as whole-number double should be accepted"
+        result,
+        {"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should accept wtimeout as whole-number double",
     )
 
 
 def test_setFeatureCompatibilityVersion_wtimeout_long_coercion(collection):
-    """Test writeConcern.wtimeout as Int64 is accepted."""
+    """Test setFeatureCompatibilityVersion accepts wtimeout as Int64."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -208,11 +250,15 @@ def test_setFeatureCompatibilityVersion_wtimeout_long_coercion(collection):
             "writeConcern": {"wtimeout": Int64(5000)},
         },
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="wtimeout as Int64 should be accepted")
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should accept wtimeout as Int64",
+    )
 
 
 def test_setFeatureCompatibilityVersion_wtimeout_decimal_whole_coercion(collection):
-    """Test writeConcern.wtimeout as whole-number Decimal128 coercion."""
+    """Test setFeatureCompatibilityVersion accepts wtimeout as whole-number Decimal128."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -223,12 +269,14 @@ def test_setFeatureCompatibilityVersion_wtimeout_decimal_whole_coercion(collecti
         },
     )
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="wtimeout as whole-number Decimal128 should be accepted"
+        result,
+        {"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should accept wtimeout as whole-number Decimal128",
     )
 
 
 def test_setFeatureCompatibilityVersion_wtimeout_fractional_double_accepted(collection):
-    """Test writeConcern.wtimeout as fractional double (5000.5) is accepted."""
+    """Test setFeatureCompatibilityVersion accepts wtimeout as fractional double."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -239,12 +287,14 @@ def test_setFeatureCompatibilityVersion_wtimeout_fractional_double_accepted(coll
         },
     )
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="wtimeout as fractional double should be accepted"
+        result,
+        {"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should accept wtimeout as fractional double",
     )
 
 
 def test_setFeatureCompatibilityVersion_wtimeout_negative_value_accepted(collection):
-    """Test writeConcern.wtimeout as negative value (-1) is accepted."""
+    """Test setFeatureCompatibilityVersion accepts wtimeout as negative value."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
@@ -254,4 +304,8 @@ def test_setFeatureCompatibilityVersion_wtimeout_negative_value_accepted(collect
             "writeConcern": {"wtimeout": -1},
         },
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="wtimeout as negative value should be accepted")
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should accept wtimeout as negative value",
+    )
