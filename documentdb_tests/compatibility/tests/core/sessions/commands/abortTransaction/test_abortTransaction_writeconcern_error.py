@@ -23,7 +23,7 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = [pytest.mark.admin, pytest.mark.requires(change_streams=True)]
+pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
 
 # Property [writeConcern Type Rejection]: non-document types are rejected with TypeMismatch.
 WRITECONCERN_TYPE_REJECTION_TESTS: list[CommandTestCase] = [

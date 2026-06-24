@@ -23,7 +23,7 @@ from documentdb_tests.framework.assertions import (
 from documentdb_tests.framework.executor import execute_abort_session_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = pytest.mark.admin
+pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
 
 # Property [Abort Rollback]: aborted operations are rolled back.
 ABORT_ROLLBACK_TESTS: list[SessionTestCase] = [
@@ -115,7 +115,6 @@ PRE_TRANSACTION_TESTS: list[SessionTestCase] = [
 ABORT_READBACK_TESTS: list[SessionTestCase] = ABORT_ROLLBACK_TESTS + PRE_TRANSACTION_TESTS
 
 
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(ABORT_READBACK_TESTS))
 def test_abortTransaction_core(collection, test):
     """Test abortTransaction rolls back operations and preserves pre-existing data."""
@@ -133,7 +132,6 @@ EMPTY_TRANSACTION_TESTS: list[SessionTestCase] = [
 ]
 
 
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(EMPTY_TRANSACTION_TESTS))
 def test_abortTransaction_core_empty(collection, test):
     """Test abortTransaction succeeds on an empty transaction."""
@@ -153,7 +151,6 @@ RESPONSE_STRUCTURE_TESTS: list[SessionTestCase] = [
 ]
 
 
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(RESPONSE_STRUCTURE_TESTS))
 def test_abortTransaction_core_response(collection, test):
     """Test abortTransaction returns expected response fields."""

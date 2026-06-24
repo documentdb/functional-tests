@@ -20,6 +20,8 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_abort_session_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
+
 # Property [writeConcern Document Acceptance]: writeConcern accepts document values.
 WRITECONCERN_ACCEPTANCE_TESTS: list[SessionTestCase] = [
     SessionTestCase(
@@ -237,7 +239,6 @@ WRITECONCERN_ACCEPTANCE_ALL_TESTS: list[SessionTestCase] = (
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(WRITECONCERN_ACCEPTANCE_ALL_TESTS))
 def test_abortTransaction_writeconcern(collection, test):
     """Test abortTransaction writeConcern parameter acceptance in a transaction."""
