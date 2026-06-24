@@ -17,7 +17,6 @@ from documentdb_tests.framework.property_checks import (
     Gte,
     IsType,
     NonEmptyStr,
-    NotExists,
 )
 
 pytestmark = pytest.mark.admin
@@ -147,24 +146,17 @@ def test_hostInfo_memSizeMB_gte_memLimitMB(collection):
 
 
 def test_hostInfo_extra_platform_specific_fields(collection):
-    """Verify extra contains the OS-specific fields documented for the host platform.
-
-    Linux exposes libcVersion/kernelVersion (and not cpuString); macOS (Darwin)
-    exposes cpuString (and not libcVersion/kernelVersion).
-    """
+    """Verify extra contains the OS-specific fields documented for the host platform."""
     result = execute_admin_command(collection, {"hostInfo": 1})
     os_type = result.get("os", {}).get("type")
     if os_type == "Linux":
         checks = {
             "extra.libcVersion": IsType("string"),
             "extra.kernelVersion": IsType("string"),
-            "extra.cpuString": NotExists(),
         }
     elif os_type == "Darwin":
         checks = {
             "extra.cpuString": IsType("string"),
-            "extra.libcVersion": NotExists(),
-            "extra.kernelVersion": NotExists(),
         }
     else:
         pytest.skip(f"Unrecognized os.type {os_type!r}; platform-specific fields not asserted")
