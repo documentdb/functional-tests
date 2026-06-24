@@ -1,0 +1,99 @@
+"""
+Tests for $bitAnd expression type smoke tests.
+
+Covers literal, field reference, expression operator, array expression,
+and object expression.
+"""
+
+import pytest
+
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (
+    ExpressionTestCase,
+)
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression,
+    execute_expression_with_insert,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+
+
+LITERAL_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "literal_zero_and",
+        expression={"$bitAnd": [5, 3]},
+        expected=1,
+        msg="$bitAnd of two literals should compute bitwise AND",
+    ),
+    ExpressionTestCase(
+        "literal_all_zero",
+        expression={"$bitAnd": [0, 7]},
+        expected=0,
+        msg="$bitAnd with zero should produce zero",
+    ),
+]
+
+FIELD_REFERENCE_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "field_refs",
+        expression={"$bitAnd": ["$a", "$b"]},
+        doc={"a": 5, "b": 3},
+        expected=1,
+        msg="$bitAnd should compute bitwise AND of two field values",
+    ),
+    ExpressionTestCase(
+        "field_refs_negative",
+        expression={"$bitAnd": ["$a", "$b"]},
+        doc={"a": 12, "b": 10},
+        expected=8,
+        msg="$bitAnd should compute bitwise AND for other field values",
+    ),
+]
+
+EXPRESSION_OPERATOR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "nested_expression",
+        expression={"$bitAnd": [{"$add": [4, 1]}, {"$subtract": [6, 1]}]},
+        expected=5,
+        msg="$bitAnd should accept nested expression operator inputs",
+    ),
+]
+
+ARRAY_EXPRESSION_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "array_expression",
+        expression={"$bitAnd": [["$a", "$b"], 3]},
+        doc={"a": 1, "b": 3},
+        expected=1,
+        msg="$bitAnd should accept an array expression as first operand",
+    ),
+]
+
+OBJECT_EXPRESSION_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "object_expression",
+        expression={"$bitAnd": [{"x": "$a", "y": "$b"}, 0]},
+        doc={"a": 1, "b": 3},
+        expected=0,
+        msg="$bitAnd should accept an object expression as an input",
+    ),
+]
+
+ALL_INSERT_TESTS = (
+    FIELD_REFERENCE_TESTS
+    + EXPRESSION_OPERATOR_TESTS
+    + ARRAY_EXPRESSION_TESTS
+    + OBJECT_EXPRESSION_TESTS
+)
+
+
+@pytest.mark.parametrize("test", pytest_params(LITERAL_TESTS))
+def test_bitAnd_expression_types_literal(collection, test):
+    result = execute_expression(collection, test.expression)
+    assert_expression_result(result, expected=test.expected, msg=test.msg)
+
+
+@pytest.mark.parametrize("test", pytest_params(ALL_INSERT_TESTS))
+def test_bitAnd_expression_types_insert(collection, test):
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
+    assert_expression_result(result, expected=test.expected, msg=test.msg)
