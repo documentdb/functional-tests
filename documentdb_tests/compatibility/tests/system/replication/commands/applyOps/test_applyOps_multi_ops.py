@@ -308,8 +308,8 @@ def test_applyOps_multi_ops_doc_check(database_client, collection, test):
     )
 
 
-def test_applyOps_cross_namespace_doc_check(database_client, collection):
-    """Test applyOps cross-namespace inserts create documents in both collections."""
+def test_applyOps_cross_namespace_doc_check_ns1(database_client, collection):
+    """Test applyOps cross-namespace insert creates document in first collection."""
     db = database_client
     coll_name = collection.name
     ns1 = f"{db.name}.{coll_name}_ns1"
@@ -326,9 +326,35 @@ def test_applyOps_cross_namespace_doc_check(database_client, collection):
         },
     )
     coll1 = db[f"{coll_name}_ns1"]
-    result1 = execute_command(coll1, {"find": coll1.name, "filter": {"_id": 1}})
+    result = execute_command(coll1, {"find": coll1.name, "filter": {"_id": 1}})
     assertSuccess(
-        result1,
+        result,
         [{"_id": 1, "src": "coll1"}],
         msg="applyOps should create document in first namespace",
+    )
+
+
+def test_applyOps_cross_namespace_doc_check_ns2(database_client, collection):
+    """Test applyOps cross-namespace insert creates document in second collection."""
+    db = database_client
+    coll_name = collection.name
+    ns1 = f"{db.name}.{coll_name}_ns1"
+    ns2 = f"{db.name}.{coll_name}_ns2"
+    db.create_collection(f"{coll_name}_ns1")
+    db.create_collection(f"{coll_name}_ns2")
+    execute_admin_command(
+        collection,
+        {
+            "applyOps": [
+                {"op": "i", "ns": ns1, "o": {"_id": 1, "src": "coll1"}},
+                {"op": "i", "ns": ns2, "o": {"_id": 1, "src": "coll2"}},
+            ]
+        },
+    )
+    coll2 = db[f"{coll_name}_ns2"]
+    result = execute_command(coll2, {"find": coll2.name, "filter": {"_id": 1}})
+    assertSuccess(
+        result,
+        [{"_id": 1, "src": "coll2"}],
+        msg="applyOps should create document in second namespace",
     )
