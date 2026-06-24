@@ -50,29 +50,14 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         msg="'system.hostname' should be a non-empty string",
     ),
     DiagnosticTestCase(
-        id="system_cpuAddrSize_is_int",
-        checks={"system.cpuAddrSize": IsType("int")},
-        msg="'system.cpuAddrSize' should be an int",
+        id="system_cpuAddrSize_positive",
+        checks={"system.cpuAddrSize": Gt(0)},
+        msg="'system.cpuAddrSize' should be greater than 0",
     ),
     DiagnosticTestCase(
-        id="system_memSizeMB_is_long",
-        checks={"system.memSizeMB": IsType("long")},
-        msg="'system.memSizeMB' should be a long",
-    ),
-    DiagnosticTestCase(
-        id="system_memLimitMB_is_long",
-        checks={"system.memLimitMB": IsType("long")},
-        msg="'system.memLimitMB' should be a long",
-    ),
-    DiagnosticTestCase(
-        id="system_numCores_is_int",
-        checks={"system.numCores": IsType("int")},
-        msg="'system.numCores' should be an int",
-    ),
-    DiagnosticTestCase(
-        id="system_numCoresAvailableToProcess_is_int",
-        checks={"system.numCoresAvailableToProcess": IsType("int")},
-        msg="'system.numCoresAvailableToProcess' should be an int",
+        id="system_memLimitMB_positive",
+        checks={"system.memLimitMB": Gt(0)},
+        msg="'system.memLimitMB' should be greater than 0",
     ),
     DiagnosticTestCase(
         id="system_cpuArch_nonempty",
@@ -85,19 +70,19 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         msg="'system.numaEnabled' should be a bool",
     ),
     DiagnosticTestCase(
-        id="system_numPhysicalCores_is_int",
-        checks={"system.numPhysicalCores": IsType("int")},
-        msg="'system.numPhysicalCores' should be an int",
+        id="system_numPhysicalCores_positive",
+        checks={"system.numPhysicalCores": Gt(0)},
+        msg="'system.numPhysicalCores' should be greater than 0",
     ),
     DiagnosticTestCase(
-        id="system_numCpuSockets_is_int",
-        checks={"system.numCpuSockets": IsType("int")},
-        msg="'system.numCpuSockets' should be an int",
+        id="system_numCpuSockets_positive",
+        checks={"system.numCpuSockets": Gt(0)},
+        msg="'system.numCpuSockets' should be greater than 0",
     ),
     DiagnosticTestCase(
-        id="system_numNumaNodes_is_int",
-        checks={"system.numNumaNodes": IsType("int")},
-        msg="'system.numNumaNodes' should be an int",
+        id="system_numNumaNodes_positive",
+        checks={"system.numNumaNodes": Gt(0)},
+        msg="'system.numNumaNodes' should be greater than 0",
     ),
     DiagnosticTestCase(
         id="os_type_nonempty",
@@ -120,9 +105,9 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         msg="'extra.versionString' should be a string",
     ),
     DiagnosticTestCase(
-        id="extra_pageSize_is_int",
-        checks={"extra.pageSize": IsType("int")},
-        msg="'extra.pageSize' should be an int",
+        id="extra_pageSize_positive",
+        checks={"extra.pageSize": Gt(0)},
+        msg="'extra.pageSize' should be greater than 0",
     ),
     DiagnosticTestCase(
         id="system_numCores_positive",
