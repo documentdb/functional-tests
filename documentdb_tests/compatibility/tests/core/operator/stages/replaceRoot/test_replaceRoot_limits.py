@@ -9,6 +9,7 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.shared_limits import (
     BIG_STORED_STRING_BYTES,
     BOUNDARY_PAD_BYTES,
+    MAX_COMMAND_NESTING_DEPTH,
     MAX_OUTPUT_DOC_SIZE,
     MAX_STORED_NESTING_DEPTH,
     OVER_LIMIT_PAD_BYTES,
@@ -34,8 +35,12 @@ def _nest(depth: int, leaf: Any) -> Any:
     return value
 
 
-# The maximum object nesting depth accepted in a constructed newRoot literal.
-_MAX_NESTING_DEPTH = 197
+# The maximum object nesting depth accepted in a $replaceRoot newRoot literal.
+# The aggregate command nests the literal three levels below the command root
+# (the pipeline array, the {"$replaceRoot": ...} stage object, and the
+# {"newRoot": <literal>} specification object), so the accepted depth is the
+# global command ceiling minus those three wrapper levels.
+REPLACEROOT_MAX_NESTING_DEPTH = MAX_COMMAND_NESTING_DEPTH - 3
 
 
 # Property [Deeply Nested Promotion Accepted]: a sub-document stored at the
@@ -76,8 +81,10 @@ REPLACEROOT_NESTING_BOUNDARY_TESTS: list[StageTestCase] = [
     StageTestCase(
         "nesting_boundary_max_depth_accepted",
         docs=[{"_id": 1}],
-        pipeline=[{"$replaceRoot": {"newRoot": _nest(depth=_MAX_NESTING_DEPTH, leaf=1)}}],
-        expected=[_nest(depth=_MAX_NESTING_DEPTH, leaf=1)],
+        pipeline=[
+            {"$replaceRoot": {"newRoot": _nest(depth=REPLACEROOT_MAX_NESTING_DEPTH, leaf=1)}}
+        ],
+        expected=[_nest(depth=REPLACEROOT_MAX_NESTING_DEPTH, leaf=1)],
         msg="$replaceRoot should accept a constructed literal at the maximum nesting depth",
     ),
 ]
@@ -107,7 +114,9 @@ REPLACEROOT_NESTING_LIMIT_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "nesting_limit_one_over_rejected",
         docs=[{"_id": 1}],
-        pipeline=[{"$replaceRoot": {"newRoot": _nest(depth=_MAX_NESTING_DEPTH + 1, leaf=1)}}],
+        pipeline=[
+            {"$replaceRoot": {"newRoot": _nest(depth=REPLACEROOT_MAX_NESTING_DEPTH + 1, leaf=1)}}
+        ],
         error_code=OVERFLOW_ERROR,
         msg="$replaceRoot should reject a literal one level over the maximum nesting depth",
     ),
