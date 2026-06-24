@@ -477,7 +477,7 @@ CREATE_ENCRYPTED_FIELDS_QUERY_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=ENCRYPTED_FIELD_TRIM_FACTOR_OUT_OF_RANGE_ERROR,
         msg="trimFactor must be less than the bit width of the field type",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="ef_err_contention_fractional",
