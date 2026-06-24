@@ -7,7 +7,7 @@ Verifies that readConcern works correctly with other command options
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.query_and_write.commands.read_concern.utils import (
+from documentdb_tests.compatibility.tests.core.query_and_write.read_concern.utils import (
     is_cursor_command,
 )
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
