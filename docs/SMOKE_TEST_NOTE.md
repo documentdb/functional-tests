@@ -41,8 +41,8 @@ transaction, no encrypted collection, not permitted, etc.).
 
 ## Replica Set Tests — Standalone Errors (24)
 
-These smoke tests are marked with `replica_set` and cannot run against a standalone MongoDB instance.
-They are automatically skipped when the server is not a replica set member.
+These smoke tests carry a `requires_*` capability marker (change streams, transactions, queryable encryption, or cluster admin) and cannot run against a standalone MongoDB instance.
+They are automatically skipped when the connected server does not provide the capability.
 Below are the errors returned when running each against a standalone MongoDB instance.
 
 ### Change Streams (16)

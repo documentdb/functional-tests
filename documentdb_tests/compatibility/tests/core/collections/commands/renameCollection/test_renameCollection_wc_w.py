@@ -193,6 +193,7 @@ RENAME_WC_W_VALUE_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=2 on standalone should be rejected",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_50_standalone",
@@ -204,6 +205,7 @@ RENAME_WC_W_VALUE_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=50 on standalone should be rejected",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_decimal128_1_5_bankers_rounding",
@@ -215,6 +217,7 @@ RENAME_WC_W_VALUE_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=Decimal128('1.5') rounds to 2 (banker's rounding) → w>1 on standalone",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_decimal128_2_5_bankers_rounding",
@@ -226,6 +229,7 @@ RENAME_WC_W_VALUE_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=Decimal128('2.5') rounds to 2 (banker's rounding) → w>1 on standalone",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_decimal128_50_5_bankers_rounding",
@@ -237,6 +241,7 @@ RENAME_WC_W_VALUE_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=Decimal128('50.5') rounds to 50 (banker's rounding) → w>1 on standalone",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
 ]
 
@@ -368,6 +373,7 @@ RENAME_WC_W_NULL_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=null should coerce to empty string and be rejected",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
 ]
 
@@ -385,6 +391,7 @@ RENAME_WC_W_STRING_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w='' (empty string) should be rejected on standalone",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_string_case_sensitive",
@@ -396,6 +403,7 @@ RENAME_WC_W_STRING_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w='Majority' (wrong case) should be rejected on standalone",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_string_leading_space",
@@ -407,6 +415,7 @@ RENAME_WC_W_STRING_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=' majority' (leading space) should be rejected on standalone",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_string_other",
@@ -418,6 +427,7 @@ RENAME_WC_W_STRING_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w='other' should be rejected on standalone",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
 ]
 
@@ -521,6 +531,7 @@ RENAME_WC_W_OBJECT_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="w={tag:1} (number value) should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_object_dollar_key",
@@ -532,6 +543,7 @@ RENAME_WC_W_OBJECT_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="w={'$tag':1} (dollar-prefixed key) should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_object_empty_key",
@@ -543,6 +555,7 @@ RENAME_WC_W_OBJECT_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="w={'':1} (empty-string key) should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
 ]
 
