@@ -150,6 +150,22 @@ REDACT_SENTINEL_STRING_ERROR_TESTS: list[StageTestCase] = [
         error_code=REDACT_NON_SENTINEL_ERROR,
         msg="$redact should reject a stored field whose value is the string '$$DESCEND'",
     ),
+    StageTestCase(
+        "sentinel_string_concat_literals",
+        docs=[{"_id": 1}],
+        pipeline=[{"$redact": {"$concat": [{"$literal": "$$"}, "PRUNE"]}}],
+        error_code=REDACT_NON_SENTINEL_ERROR,
+        msg="$redact should reject a string equal to '$$PRUNE' assembled by $concat from "
+        "literal parts, not treat it as the sentinel",
+    ),
+    StageTestCase(
+        "sentinel_string_concat_fields",
+        docs=[{"_id": 1, "prefix": "$$", "name": "PRUNE"}],
+        pipeline=[{"$redact": {"$concat": ["$prefix", "$name"]}}],
+        error_code=REDACT_NON_SENTINEL_ERROR,
+        msg="$redact should reject a string equal to '$$PRUNE' assembled by $concat from "
+        "field references, not treat it as the sentinel",
+    ),
 ]
 
 # Property [Defined Non-Sentinel System Variables]: a defined non-sentinel
