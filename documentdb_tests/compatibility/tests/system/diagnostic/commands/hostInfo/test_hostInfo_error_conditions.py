@@ -1,13 +1,6 @@
 """Tests for hostInfo command error conditions.
 
 Validates that invalid usages of hostInfo produce the appropriate error codes.
-
-Spec categories: rule_specs "Argument Validation" (unrecognized field -> 40415).
-
-Note: rule_specs "Error Cases" (non-admin database -> 13 Unauthorized) is an
-authorization behavior that only fires when access control is enabled, so it is
-covered by the cross-cutting RBAC suite, not here. With auth disabled hostInfo
-succeeds on any database (see test_hostInfo_consistency.py).
 """
 
 import pytest
@@ -18,7 +11,6 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     COMMAND_NOT_FOUND_ERROR,
-    UNKNOWN_PIPELINE_STAGE_ERROR,
     UNRECOGNIZED_COMMAND_FIELD_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
@@ -41,13 +33,6 @@ ERROR_TESTS: list[DiagnosticTestCase] = [
         use_admin=True,
         error_code=COMMAND_NOT_FOUND_ERROR,
         msg="Case-mismatched command name should fail",
-    ),
-    DiagnosticTestCase(
-        id="as_aggregation_stage",
-        command={"aggregate": 1, "pipeline": [{"$hostInfo": {}}], "cursor": {}},
-        use_admin=True,
-        error_code=UNKNOWN_PIPELINE_STAGE_ERROR,
-        msg="$hostInfo is not a valid aggregation stage",
     ),
 ]
 

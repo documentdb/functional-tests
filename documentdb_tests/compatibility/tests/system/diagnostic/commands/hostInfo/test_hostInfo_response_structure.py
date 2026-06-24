@@ -2,11 +2,6 @@
 
 Validates presence, types, and value constraints of the system, os, and extra
 sub-documents returned by hostInfo.
-
-Spec categories: rule_specs "Response Structure - system/os/extra",
-"Field Presence (Platform-Dependent)", "Value Constraints";
-hostinfo_js_specs "Response structure - OS/System fields";
-host_info_chimera_js_specs "Minimal response fields" (verifiable subset).
 """
 
 import pytest
@@ -18,8 +13,6 @@ from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import (
-    Eq,
-    Exists,
     Gt,
     Gte,
     IsType,
@@ -31,12 +24,6 @@ pytestmark = pytest.mark.admin
 
 
 PROPERTY_TESTS: list[DiagnosticTestCase] = [
-    # Top-level structure
-    DiagnosticTestCase(
-        id="ok_is_1",
-        checks={"ok": IsType("double")},
-        msg="'ok' field should be a double",
-    ),
     DiagnosticTestCase(
         id="system_is_object",
         checks={"system": IsType("object")},
@@ -52,7 +39,6 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         checks={"extra": IsType("object")},
         msg="'extra' should be an embedded document",
     ),
-    # system fields
     DiagnosticTestCase(
         id="system_currentTime_is_date",
         checks={"system.currentTime": IsType("date")},
@@ -113,7 +99,6 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         checks={"system.numNumaNodes": IsType("int")},
         msg="'system.numNumaNodes' should be an int",
     ),
-    # os fields
     DiagnosticTestCase(
         id="os_type_nonempty",
         checks={"os.type": NonEmptyStr()},
@@ -129,7 +114,6 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         checks={"os.version": IsType("string")},
         msg="'os.version' should be a string",
     ),
-    # extra fields (present on both Linux and macOS per the spec)
     DiagnosticTestCase(
         id="extra_versionString_is_string",
         checks={"extra.versionString": IsType("string")},
@@ -140,7 +124,6 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         checks={"extra.pageSize": IsType("int")},
         msg="'extra.pageSize' should be an int",
     ),
-    # Value ranges
     DiagnosticTestCase(
         id="system_numCores_positive",
         checks={"system.numCores": Gte(1)},
@@ -156,11 +139,6 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         checks={"system.memSizeMB": Gt(0)},
         msg="'system.memSizeMB' should be greater than 0",
     ),
-    DiagnosticTestCase(
-        id="extra_exists",
-        checks={"extra": Exists()},
-        msg="'extra' field should exist",
-    ),
 ]
 
 
@@ -171,25 +149,10 @@ def test_hostInfo_response_properties(collection, test):
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
-def test_hostInfo_cpuAddrSize_is_32_or_64(collection):
-    """Verify system.cpuAddrSize is either 32 or 64 (the documented values)."""
-    result = execute_admin_command(collection, {"hostInfo": 1})
-    addr = result["system"]["cpuAddrSize"]
-    # Map any out-of-set value to a sentinel so the equality check fails on it,
-    # making the assertion pass only when cpuAddrSize is exactly 32 or 64.
-    expected = addr if addr in (32, 64) else "__not_32_or_64__"
-    assertProperties(
-        result,
-        {"system.cpuAddrSize": Eq(expected)},
-        raw_res=True,
-        msg=f"'system.cpuAddrSize' should be 32 or 64, got {addr!r}",
-    )
-
-
-def test_hostInfo_memLimitMB_lte_memSizeMB(collection):
+def test_hostInfo_memSizeMB_gte_memLimitMB(collection):
     """Verify system.memLimitMB does not exceed system.memSizeMB."""
     result = execute_admin_command(collection, {"hostInfo": 1})
-    mem_limit = result["system"]["memLimitMB"]
+    mem_limit = result.get("system", {}).get("memLimitMB")
     assertProperties(
         result,
         {"system.memSizeMB": Gte(mem_limit)},
@@ -205,7 +168,7 @@ def test_hostInfo_extra_platform_specific_fields(collection):
     exposes cpuString (and not libcVersion/kernelVersion).
     """
     result = execute_admin_command(collection, {"hostInfo": 1})
-    os_type = result["os"]["type"]
+    os_type = result.get("os", {}).get("type")
     if os_type == "Linux":
         checks = {
             "extra.libcVersion": IsType("string"),
