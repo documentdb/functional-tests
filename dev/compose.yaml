@@ -1,0 +1,73 @@
+# Development database targets for the functional test suite.
+#
+# Each service is an engine-topology target the tests can run against. A target
+# names both the engine and its deployment topology (e.g. standalone, replset),
+# because topology is an engine-specific concept and does not map cleanly across
+# engines. Bring up a single target with its profile, or the whole stack with
+# the "all" profile, e.g.:
+#
+#   docker compose -f dev/compose.yaml --profile mongo-standalone up -d --wait
+#   docker compose -f dev/compose.yaml --profile mongo-replset    up -d --wait
+#   docker compose -f dev/compose.yaml --profile all              up -d --wait
+#
+# Each target binds a distinct host port (see the ports: mapping below) so
+# several can run at once locally; the same ports are used in CI for
+# consistency. See the README for the canonical connection string per target.
+#
+# This file is the single source of truth for these topologies: CI brings them
+# up from here rather than declaring containers separately, so local runs match
+# CI by construction. It is also the source of truth for the test harness: each
+# runnable target carries an `x-test-target` block that the test registry reads
+# to build its connection string and engine identity (see
+# documentdb_tests/framework/engine_registry.py). The host port comes from the
+# `ports:` mapping, so nothing is duplicated.
+#
+#   x-test-target:
+#     engine: <engine name used for engine_xfail / engine_xcrash markers>
+#     query: <optional connection-string query string, without leading '?'>
+#
+# A service with no `x-test-target` is not a test target and is ignored by the
+# registry.
+#
+# Memory: each mongod caps its WiredTiger cache (--wiredTigerCacheSizeGB). By
+# default a mongod sizes its cache to ~50% of the host/VM RAM; with several
+# targets running at once that double-counts memory and the whole suite (which
+# creates many collections across both targets) gradually fills both caches
+# until the VM is exhausted and a container is OOM-killed mid-run. Capping the
+# cache keeps the combined footprint within the VM. There is intentionally no
+# per-container mem_limit: that caps total process memory (not just cache) and a
+# transient working-set spike then kills mongod even when the VM has room.
+
+services:
+  # mongo-standalone: a single standalone server.
+  mongo-standalone:
+    image: mongo:8.2.4
+    profiles: ["mongo-standalone", "all"]
+    command: ["--wiredTigerCacheSizeGB", "1.5"]
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    x-test-target:
+      engine: mongodb
+
+  # mongo-replset: a single-node replica set. Provides capabilities the
+  # reference server gates behind a replica set (change streams, transactions,
+  # queryable encryption, cluster-wide admin). Connect with directConnection=true.
+  mongo-replset:
+    image: mongo:8.2.4
+    profiles: ["mongo-replset", "all"]
+    command: ["--replSet", "rs0", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1.5"]
+    ports:
+      - "27018:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    x-test-target:
+      engine: mongodb
+      query: directConnection=true

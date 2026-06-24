@@ -17,7 +17,7 @@ This testing framework provides:
 ### Prerequisites
 
 - Python 3.9 or higher
-- Access to a DocumentDB or MongoDB instance
+- Docker (with Compose v2) to run database targets locally, or access to an existing instance
 - pip package manager
 
 ### Installation
@@ -31,20 +31,51 @@ cd functional-tests
 pip install -r requirements.txt
 ```
 
+### Database Targets
+
+Tests run against a target, identified by both its engine and deployment
+topology (e.g. `mongo-standalone`, `mongo-replset`). Topology is an
+engine-specific concept and does not map across engines, so each target is its
+own named environment. `dev/compose.yaml` is the single source of truth for
+these targets and is used by both local runs and CI, so local matches CI by
+construction.
+
+Bring up a target with its profile (each binds a distinct host port, so several
+can run at once):
+
+```bash
+# Standalone server
+docker compose -f dev/compose.yaml --profile mongo-standalone up -d --wait
+
+# Single-node replica set
+docker compose -f dev/compose.yaml --profile mongo-replset up -d --wait
+
+# Everything at once
+docker compose -f dev/compose.yaml --profile all up -d --wait
+```
+
+Tear down with the same profile and `down`. Then point pytest at the matching
+target (see Running Tests below).
+
 ### Running Tests
 
 #### Basic Usage
 
 ```bash
-# Run all tests against default localhost
+# Run all tests against every live target discovered from dev/compose.yaml
 pytest
 
-# Run against specific engine
-pytest --connection-string mongodb://localhost:27017 --engine-name documentdb
+# Run against the mongo-standalone target
+pytest --connection-string "mongodb://localhost:27017" --engine-name mongodb
 
-# Run with just connection string (engine-name defaults to "default")
-pytest --connection-string mongodb://localhost:27017
+# Run against the mongo-replset target
+pytest --connection-string "mongodb://localhost:27018/?directConnection=true" --engine-name mongodb
 ```
+
+With no `--connection-string`, the suite discovers the live targets from
+`dev/compose.yaml` and runs against each. When `--connection-string` is given it
+pins that single target, and `--engine-name` must name a known engine so the
+target's capabilities resolve the same way as for a discovered one.
 
 #### Filter by Tags
 
@@ -237,7 +268,25 @@ tests/
 - `smoke`: Quick smoke tests for feature detection
 - `slow`: Tests that take longer to execute
 - `no_parallel`: Tests that must run sequentially (e.g., tests that kill sessions/ops, modify server config, or drop all users/roles). Automatically deferred to Phase 2 when using `-n`.
-- `replica_set`: Tests that require a replica set topology (e.g., change streams, encryption, certain admin commands). Skipped by default in CI. To run locally, pass a replica set connection string: `pytest -m replica_set --connection-string "mongodb://localhost:27017/?directConnection=true"`
+
+### Capability Requirements
+
+Some behaviors are only available in certain deployment environments. A test
+declares the capabilities it needs with the `requires` marker, for example
+`@pytest.mark.requires(change_streams=True)` for a behavior that needs change
+streams, or `@pytest.mark.requires(change_streams=False)` for one that only
+applies where they are absent.
+
+A capability is a named fact about a target rather than a topology. Which
+capabilities a target has is determined by its engine and topology, and the full
+set of capabilities and how they map to each environment lives in
+`documentdb_tests/framework/preconditions.py`, which is the single source of
+truth. A test runs only against the targets whose capabilities match what it
+requires, and is otherwise skipped.
+
+When targets are discovered automatically (running `pytest` with no
+`--connection-string`), each test runs against every discovered target it
+applies to, so no manual selection is needed.
 
 ## Writing Tests
 
