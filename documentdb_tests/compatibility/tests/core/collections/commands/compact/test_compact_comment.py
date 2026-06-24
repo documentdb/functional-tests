@@ -335,6 +335,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
 ]
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_COMMENT_ACCEPTANCE_TESTS))
 def test_compact_comment(database_client, collection, test):
