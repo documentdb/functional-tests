@@ -20,7 +20,7 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_session_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = [pytest.mark.admin, pytest.mark.requires(change_streams=True)]
+pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
 
 # Property [Field Type Acceptance]: the command field accepts any BSON type.
 FIELD_TYPE_TESTS: list[SessionTestCase] = [

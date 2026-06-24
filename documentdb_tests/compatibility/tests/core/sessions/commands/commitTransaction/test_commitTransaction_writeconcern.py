@@ -19,7 +19,7 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_session_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = [pytest.mark.admin, pytest.mark.requires(change_streams=True)]
+pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
 
 # Property [writeConcern Document Acceptance]: writeConcern accepts document values.
 WRITECONCERN_ACCEPTANCE_TESTS: list[SessionTestCase] = [
