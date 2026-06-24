@@ -1,7 +1,7 @@
 """Tests for setFeatureCompatibilityVersion version field BSON type validation.
 
 Validates that the version field only accepts string type and rejects
-all other BSON types with TYPE_MISMATCH_ERROR (14).
+all other BSON types with TYPE_MISMATCH_ERROR.
 """
 
 import pytest
@@ -12,7 +12,7 @@ from documentdb_tests.framework.bson_type_validator import (
     BsonTypeTestCase,
     generate_bson_rejection_test_cases,
 )
-from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.error_codes import MISSING_FIELD_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
@@ -50,7 +50,7 @@ VERSION_TYPE_REJECTIONS = generate_bson_rejection_test_cases(VERSION_TYPE_PARAM)
 def test_setFeatureCompatibilityVersion_version_type_rejected(
     collection, bson_type, sample_value, spec
 ):
-    """Test version field rejects non-string BSON types with TYPE_MISMATCH_ERROR."""
+    """Test setFeatureCompatibilityVersion rejects non-string BSON types for version."""
     result = execute_admin_command(
         collection,
         {"setFeatureCompatibilityVersion": sample_value, "confirm": True},
@@ -63,24 +63,27 @@ def test_setFeatureCompatibilityVersion_version_type_rejected(
 
 
 def test_setFeatureCompatibilityVersion_version_string_accepted(collection):
-    """Test version field accepts string type (the current version)."""
+    """Test setFeatureCompatibilityVersion accepts string type for version."""
     current_fcv = _get_fcv(collection)
     result = execute_admin_command(
         collection,
         {"setFeatureCompatibilityVersion": current_fcv, "confirm": True},
     )
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="setFeatureCompatibilityVersion should accept string version"
+        result,
+        {"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should accept string for version",
     )
 
 
 def test_setFeatureCompatibilityVersion_version_null_rejected(collection):
-    """Test version field with null value is rejected (treated as missing field)."""
+    """Test setFeatureCompatibilityVersion rejects null for version."""
     result = execute_admin_command(
         collection,
         {"setFeatureCompatibilityVersion": None, "confirm": True},
     )
-    # null for version is treated as missing required field (code 40414)
     assertFailureCode(
-        result, 40414, msg="setFeatureCompatibilityVersion should reject null for version"
+        result,
+        MISSING_FIELD_ERROR,
+        msg="setFeatureCompatibilityVersion should reject null for version",
     )
