@@ -1,0 +1,1 @@
+Before reviewing any pull request in this repo, read [`docs/REVIEW.md`](../docs/REVIEW.md) end-to-end and apply its severity levels, per-section checklist, and "what not to flag" rules. For project context, read [`AGENTS.md`](../AGENTS.md).

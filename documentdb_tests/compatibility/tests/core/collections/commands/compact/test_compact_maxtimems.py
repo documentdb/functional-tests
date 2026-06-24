@@ -395,6 +395,7 @@ COMPACT_MAXTIMEMS_TESTS: list[CommandTestCase] = (
 )
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_MAXTIMEMS_TESTS))
 def test_compact_maxtimems(database_client, collection, test):

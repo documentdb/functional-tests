@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_admin_command
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(cluster_admin=True)
 def test_smoke_setUserWriteBlockMode(collection):
     """Test basic setUserWriteBlockMode behavior."""
     result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
