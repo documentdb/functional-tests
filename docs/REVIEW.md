@@ -59,7 +59,7 @@ Follow every rule in [`FOLDER_STRUCTURE.md`](testing/FOLDER_STRUCTURE.md). Addit
 - [ ] Shared test data in `utils/` modules
 - [ ] Type annotations on helper functions
 - [ ] Order-independent output uses `ignore_doc_order=True`
-- [ ] Tests that require a replica set are tagged `@pytest.mark.replica`
+- [ ] Tests that depend on an environment capability are gated with `@pytest.mark.requires(<capability>=<bool>)` (e.g. `requires(change_streams=True)`), not a topology marker
 - [ ] Tests that cannot run in parallel are tagged `@pytest.mark.no_parallel`
 - [ ] Tests where MongoDB itself fails are tagged with `engine_xfail` (not skipped)
 - [ ] Tests with non-deterministic output (e.g. `$rand`, `$sample`, server timestamps) assert structure/bounds, not exact values
