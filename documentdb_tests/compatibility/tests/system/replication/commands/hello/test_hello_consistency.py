@@ -209,7 +209,7 @@ def test_hello_read_only_behavior(collection):
 
 # Property [Standalone RS Fields Absent]: on standalone, replica set fields
 # are absent from the hello response.
-@pytest.mark.requires(change_streams=False)
+@pytest.mark.requires(replication=False)
 def test_hello_standalone_rs_fields_absent(collection):
     """Test hello does not return replica set fields on standalone."""
     result = execute_command(collection, {"hello": 1})
