@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.query_and_write.commands.write_concern.utils import (
+from documentdb_tests.compatibility.tests.core.query_and_write.write_concern.utils import (
     WRITE_COMMANDS,
     build_cmd,
 )
