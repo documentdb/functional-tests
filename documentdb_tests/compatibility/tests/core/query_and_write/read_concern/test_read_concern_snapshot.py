@@ -35,9 +35,10 @@ _SNAPSHOT_REPL_SET_PARAMS = [
 ]
 
 
+@pytest.mark.requires(cluster_read_concern=False)
 @pytest.mark.parametrize("build_command", _SNAPSHOT_REPL_SET_PARAMS)
 def test_read_concern_snapshot_outside_transaction(collection, build_command):
-    """Test readConcern 'snapshot' outside a transaction is rejected."""
+    """Test readConcern 'snapshot' outside a transaction is rejected on standalone."""
     collection.insert_many([{"_id": 1}])
     command = build_command(collection.name)
     result = execute_command(collection, command)
