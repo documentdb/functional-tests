@@ -486,7 +486,10 @@ def test_applyOps_doc_check(database_client, collection, test):
     if test.setup:
         test.setup(collection)
     ctx = CommandContext.from_collection(collection)
-    result = execute_command(collection, test.build_command(ctx))
+    if test.use_admin:
+        result = execute_admin_command(collection, test.build_command(ctx))
+    else:
+        result = execute_command(collection, test.build_command(ctx))
     assertResult(
         result,
         expected=test.build_expected(ctx),
