@@ -8,7 +8,7 @@ w values greater than 1.
 import pytest
 from bson import Int64
 
-from documentdb_tests.compatibility.tests.core.query_and_write.write_concern.utils import (
+from documentdb_tests.compatibility.tests.core.query_and_write.commands.write_concern.utils import (
     WRITE_COMMANDS,
     build_cmd,
 )
