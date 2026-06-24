@@ -30,7 +30,8 @@ COLLECTION_NAME_TESTS: list[CommandTestCase] = [
             "compactionTokens": {},
         },
         error_code=NAMESPACE_NOT_FOUND_ERROR,
-        msg="compactStructuredEncryptionData should error on non-existent system prefix collection",
+        msg="compactStructuredEncryptionData should reject system.* prefix"
+        " collection names with namespace-not-found",
     ),
     CommandTestCase(
         "dotted_name",
@@ -39,17 +40,18 @@ COLLECTION_NAME_TESTS: list[CommandTestCase] = [
             "compactionTokens": {},
         },
         error_code=NAMESPACE_NOT_FOUND_ERROR,
-        msg="compactStructuredEncryptionData should error on non-existent dotted collection",
+        msg="compactStructuredEncryptionData should reject multi-segment"
+        " dotted names with namespace-not-found",
     ),
     CommandTestCase(
         "dollar_prefix",
         command=lambda ctx: {
-            "compactStructuredEncryptionData": "$cmd",
+            "compactStructuredEncryptionData": "$myCollection",
             "compactionTokens": {},
         },
         error_code=NAMESPACE_NOT_FOUND_ERROR,
-        msg="compactStructuredEncryptionData should error on non-existent"
-        " dollar-prefixed collection",
+        msg="compactStructuredEncryptionData should reject dollar-prefixed"
+        " collection names with namespace-not-found",
     ),
 ]
 
@@ -64,7 +66,8 @@ COMPACTION_TOKENS_CONTENT_TESTS: list[CommandTestCase] = [
             "compactionTokens": {"ssn": None},
         },
         error_code=NOT_ENCRYPTED_COLLECTION_ERROR,
-        msg="compactStructuredEncryptionData should handle null token values",
+        msg="compactStructuredEncryptionData should reject null token value"
+        " with non-encrypted error",
     ),
     CommandTestCase(
         "empty_string_key",
@@ -74,7 +77,8 @@ COMPACTION_TOKENS_CONTENT_TESTS: list[CommandTestCase] = [
             "compactionTokens": {"": b"\x00\x01"},
         },
         error_code=NOT_ENCRYPTED_COLLECTION_ERROR,
-        msg="compactStructuredEncryptionData should handle empty string key in tokens",
+        msg="compactStructuredEncryptionData should reject empty-string"
+        " token key with non-encrypted error",
     ),
     CommandTestCase(
         "dot_notation_key",
@@ -84,7 +88,8 @@ COMPACTION_TOKENS_CONTENT_TESTS: list[CommandTestCase] = [
             "compactionTokens": {"a.b": b"\x00\x01"},
         },
         error_code=NOT_ENCRYPTED_COLLECTION_ERROR,
-        msg="compactStructuredEncryptionData should handle dot-notation key in tokens",
+        msg="compactStructuredEncryptionData should reject dot-notation"
+        " token key with non-encrypted error",
     ),
     CommandTestCase(
         "nested_document_value",
@@ -94,16 +99,33 @@ COMPACTION_TOKENS_CONTENT_TESTS: list[CommandTestCase] = [
             "compactionTokens": {"field": {"nested": b"\x00\x01"}},
         },
         error_code=NOT_ENCRYPTED_COLLECTION_ERROR,
-        msg="compactStructuredEncryptionData should handle nested document in token value",
+        msg="compactStructuredEncryptionData should reject nested document"
+        " token value with non-encrypted error",
     ),
 ]
 
-EDGE_CASE_TESTS = COLLECTION_NAME_TESTS + COMPACTION_TOKENS_CONTENT_TESTS
+
+@pytest.mark.parametrize("test", pytest_params(COLLECTION_NAME_TESTS))
+def test_compactStructuredEncryptionData_collection_name_edge_cases(
+    database_client, collection, test
+):
+    """Test compactStructuredEncryptionData rejects special collection name patterns."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
+    assertResult(
+        result,
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
+    )
 
 
-@pytest.mark.parametrize("test", pytest_params(EDGE_CASE_TESTS))
-def test_compactStructuredEncryptionData_edge_cases(database_client, collection, test):
-    """Test compactStructuredEncryptionData edge cases."""
+@pytest.mark.parametrize("test", pytest_params(COMPACTION_TOKENS_CONTENT_TESTS))
+def test_compactStructuredEncryptionData_compactionTokens_content_edge_cases(
+    database_client, collection, test
+):
+    """Test compactStructuredEncryptionData rejects edge-case compactionTokens document content."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_command(collection, test.build_command(ctx))
