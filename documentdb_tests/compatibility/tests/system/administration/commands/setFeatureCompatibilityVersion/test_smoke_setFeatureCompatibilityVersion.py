@@ -25,21 +25,18 @@ def _get_fcv(collection):
     return str(fcv_data)
 
 
-def _set_fcv(collection, version):
-    """Set FCV with confirm:true."""
-    return execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": version, "confirm": True}
-    )
-
-
 def test_smoke_setFeatureCompatibilityVersion(collection):
     """Test basic setFeatureCompatibilityVersion behavior."""
     original_fcv = _get_fcv(collection)
     new_fcv = "8.0" if original_fcv != "8.0" else "8.2"
-    result = _set_fcv(collection, new_fcv)
+    result = execute_admin_command(
+        collection, {"setFeatureCompatibilityVersion": new_fcv, "confirm": True}
+    )
     assertSuccessPartial(
         result,
         {"ok": 1.0},
         msg="setFeatureCompatibilityVersion should succeed with a valid version change",
     )
-    _set_fcv(collection, original_fcv)
+    execute_admin_command(
+        collection, {"setFeatureCompatibilityVersion": original_fcv, "confirm": True}
+    )

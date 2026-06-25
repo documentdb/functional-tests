@@ -120,7 +120,6 @@ VERSION_VALUE_REJECTION_TESTS: list[CommandTestCase] = [
 CURRENT_VERSION_ACCEPTED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "current_version",
-        command=lambda ctx: {"setFeatureCompatibilityVersion": "CURRENT_FCV", "confirm": True},
         expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should accept the current binary version",
     ),
@@ -147,10 +146,10 @@ def test_setFeatureCompatibilityVersion_current_version_accepted(database_client
     """Test setFeatureCompatibilityVersion accepts the current binary version."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    current_fcv = _get_fcv(collection)
-    cmd = test.build_command(ctx)
-    cmd = {k: current_fcv if v == "CURRENT_FCV" else v for k, v in cmd.items()}
-    result = execute_admin_command(collection, cmd)
+    fcv = _get_fcv(collection)
+    result = execute_admin_command(
+        collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
+    )
     assertResult(
         result,
         expected=test.build_expected(ctx),

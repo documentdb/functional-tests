@@ -209,17 +209,13 @@ WTIMEOUT_COERCION_TESTS: list[CommandTestCase] = [
 ]
 
 
-def _resolve_fcv(command_dict, current_fcv):
-    """Replace the CURRENT_FCV placeholder in a command dict."""
-    return {k: current_fcv if v == "CURRENT_FCV" else v for k, v in command_dict.items()}
-
-
 @pytest.mark.parametrize("test", pytest_params(WRITE_CONCERN_ACCEPTED_TESTS))
 def test_setFeatureCompatibilityVersion_writeConcern_accepted(database_client, collection, test):
     """Test setFeatureCompatibilityVersion accepts valid writeConcern values."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    cmd = _resolve_fcv(test.build_command(ctx), _get_fcv(collection))
+    cmd = test.build_command(ctx)
+    cmd["setFeatureCompatibilityVersion"] = _get_fcv(collection)
     result = execute_admin_command(collection, cmd)
     assertResult(
         result,
@@ -235,7 +231,8 @@ def test_setFeatureCompatibilityVersion_writeConcern_rejected(database_client, c
     """Test setFeatureCompatibilityVersion rejects non-object writeConcern types."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    cmd = _resolve_fcv(test.build_command(ctx), _get_fcv(collection))
+    cmd = test.build_command(ctx)
+    cmd["setFeatureCompatibilityVersion"] = _get_fcv(collection)
     result = execute_admin_command(collection, cmd)
     assertResult(
         result,
@@ -251,7 +248,8 @@ def test_setFeatureCompatibilityVersion_wtimeout_coercion(database_client, colle
     """Test setFeatureCompatibilityVersion accepts various numeric types for wtimeout."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    cmd = _resolve_fcv(test.build_command(ctx), _get_fcv(collection))
+    cmd = test.build_command(ctx)
+    cmd["setFeatureCompatibilityVersion"] = _get_fcv(collection)
     result = execute_admin_command(collection, cmd)
     assertResult(
         result,

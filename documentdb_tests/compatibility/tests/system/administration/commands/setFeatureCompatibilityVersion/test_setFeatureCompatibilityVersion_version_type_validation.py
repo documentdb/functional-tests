@@ -72,7 +72,6 @@ def test_setFeatureCompatibilityVersion_version_type_rejected(
 VERSION_STRING_ACCEPTED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "version_string_accepted",
-        command=lambda ctx: {"setFeatureCompatibilityVersion": "CURRENT_FCV", "confirm": True},
         expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should accept string for version",
     ),
@@ -94,10 +93,10 @@ def test_setFeatureCompatibilityVersion_version_string_accepted(database_client,
     """Test setFeatureCompatibilityVersion accepts string type for version."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    current_fcv = _get_fcv(collection)
-    cmd = test.build_command(ctx)
-    cmd = {k: current_fcv if v == "CURRENT_FCV" else v for k, v in cmd.items()}
-    result = execute_admin_command(collection, cmd)
+    fcv = _get_fcv(collection)
+    result = execute_admin_command(
+        collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
+    )
     assertResult(
         result,
         expected=test.build_expected(ctx),
