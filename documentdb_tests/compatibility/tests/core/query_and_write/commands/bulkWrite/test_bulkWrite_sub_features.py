@@ -141,6 +141,35 @@ def test_bulkWrite_sub_features(database_client, collection, test):
     assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
 
 
+def test_bulkWrite_arrayFilters_modifies_correct_nested_elements(collection):
+    """Test a valid arrayFilters + $[identifier] update changes only matching nested elements."""
+    collection.insert_one(
+        {"_id": 1, "items": [{"x": 1, "k": "a"}, {"x": 2, "k": "b"}, {"x": 3, "k": "c"}]}
+    )
+    ns = f"{collection.database.name}.{collection.name}"
+    execute_admin_command(
+        collection,
+        {
+            "bulkWrite": 1,
+            "ops": [
+                {
+                    "update": 0,
+                    "filter": {"_id": 1},
+                    "updateMods": {"$set": {"items.$[elem].x": 99}},
+                    "arrayFilters": [{"elem.x": {"$gt": 1}}],
+                }
+            ],
+            "nsInfo": [{"ns": ns}],
+        },
+    )
+    assertSuccess(
+        execute_command(collection, {"find": collection.name, "filter": {"_id": 1}}),
+        [{"_id": 1, "items": [{"x": 1, "k": "a"}, {"x": 99, "k": "b"}, {"x": 99, "k": "c"}]}],
+        msg="bulkWrite arrayFilters should modify only the elements matching the identifier "
+        "predicate and leave the rest unchanged",
+    )
+
+
 def test_bulkWrite_collation_affects_arrayFilters_selection(collection):
     """Test op-level collation makes arrayFilters match array elements case-insensitively.
 

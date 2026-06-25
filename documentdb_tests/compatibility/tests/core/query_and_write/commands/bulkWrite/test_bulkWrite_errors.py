@@ -253,6 +253,24 @@ BULKWRITE_OPERATION_ERROR_TESTS: list[CommandTestCase] = [
         msg="bulkWrite update on a view should report nErrors:1",
     ),
     CommandTestCase(
+        "delete_on_view",
+        target_collection=ViewCollection(),
+        docs=[{"_id": 1, "x": 1}],
+        command={
+            "bulkWrite": 1,
+            "ops": [{"delete": 0, "filter": {}}],
+        },
+        expected={
+            "ok": Eq(1.0),
+            "nErrors": Eq(1),
+            "nDeleted": Eq(0),
+            "cursor.firstBatch.0.ok": Eq(0.0),
+            "cursor.firstBatch.0.idx": Eq(0),
+            "cursor.firstBatch.0.code": Eq(COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR),
+        },
+        msg="bulkWrite delete on a view should report nErrors:1",
+    ),
+    CommandTestCase(
         "schema_validation_rejects_insert",
         target_collection=CustomCollection(
             options={"validator": {"$jsonSchema": {"required": ["name"]}}}

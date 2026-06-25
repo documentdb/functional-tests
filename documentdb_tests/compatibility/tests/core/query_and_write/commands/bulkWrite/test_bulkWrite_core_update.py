@@ -232,6 +232,25 @@ def test_bulkWrite_sequential_ops_accumulate_on_same_document(collection):
     assertSuccess(result, [{"_id": 1, "x": 12}])
 
 
+def test_bulkWrite_replacement_style_update_replaces_document(collection):
+    """Test a replacement-style updateMods (no $ operators) replaces the whole document body."""
+    collection.insert_one({"_id": 1, "x": 10, "y": 20, "z": 30})
+    ns = f"{collection.database.name}.{collection.name}"
+    execute_admin_command(
+        collection,
+        {
+            "bulkWrite": 1,
+            "ops": [{"update": 0, "filter": {"_id": 1}, "updateMods": {"a": 1, "b": 2}}],
+            "nsInfo": [{"ns": ns}],
+        },
+    )
+    assertSuccess(
+        execute_command(collection, {"find": collection.name, "filter": {"_id": 1}}),
+        [{"_id": 1, "a": 1, "b": 2}],
+        msg="bulkWrite replacement-style update should replace the body, removing non-_id fields",
+    )
+
+
 def test_bulkWrite_upsert_id_in_response(collection):
     """Test an upsert carries the upserted _id in cursor.firstBatch[].upserted._id."""
     ns = f"{collection.database.name}.{collection.name}"
