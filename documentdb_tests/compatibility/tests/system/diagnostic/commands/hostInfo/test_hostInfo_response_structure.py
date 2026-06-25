@@ -68,6 +68,10 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         checks={"system.numaEnabled": IsType("bool")},
         msg="'system.numaEnabled' should be a bool",
     ),
+    # The following three fields (numPhysicalCores, numCpuSockets, numNumaNodes) are
+    # observed in DocumentDB responses but are NOT listed in the MongoDB manual's
+    # hostInfo reference. The manual only documents numCores and
+    # numCoresAvailableToProcess under the system sub-document.
     DiagnosticTestCase(
         id="system_numPhysicalCores_positive",
         checks={"system.numPhysicalCores": Gt(0)},
@@ -153,6 +157,8 @@ def test_hostInfo_extra_platform_specific_fields(collection):
         checks = {
             "extra.libcVersion": IsType("string"),
             "extra.kernelVersion": IsType("string"),
+            "extra.numPages": Gt(0),
+            "extra.maxOpenFiles": Gt(0),
         }
     elif os_type == "Darwin":
         checks = {

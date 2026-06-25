@@ -18,6 +18,8 @@ pytestmark = pytest.mark.admin
 
 
 ACCESS_TESTS = [
+    # The MongoDB manual states hostInfo must be run against the admin database,
+    # but in practice it succeeds on any database.
     DiagnosticTestCase(
         id="succeeds_on_non_admin_db",
         use_admin=False,
