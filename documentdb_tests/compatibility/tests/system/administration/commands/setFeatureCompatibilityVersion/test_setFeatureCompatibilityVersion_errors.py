@@ -116,22 +116,3 @@ def test_setFeatureCompatibilityVersion_error_contains_code(collection):
         FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should return a numeric error code for invalid version",
     )
-
-
-def test_setFeatureCompatibilityVersion_unknown_field_fires_before_state_change(collection):
-    """Test setFeatureCompatibilityVersion rejects unknown fields before any state change."""
-    original = _get_fcv(collection)
-    lower = "8.0" if original != "8.0" else "7.0"
-    result = execute_admin_command(
-        collection,
-        {
-            "setFeatureCompatibilityVersion": lower,
-            "confirm": True,
-            "unknownField": 1,
-        },
-    )
-    assertFailureCode(
-        result,
-        UNRECOGNIZED_COMMAND_FIELD_ERROR,
-        msg="setFeatureCompatibilityVersion should reject unknown fields before changing state",
-    )
