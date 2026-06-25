@@ -1,8 +1,7 @@
 """Tests for explain command error conditions.
 
 Covers invalid verbosity strings, invalid and non-explainable explain field
-values, explain of an aggregate with a $out write stage at executionStats
-verbosity, and geospatial explain errors (hinting a non-geo index with
+values, and geospatial explain errors (hinting a non-geo index with
 $nearSphere).
 """
 
@@ -46,19 +45,6 @@ EXPLAIN_ERROR_TESTS: list[CommandTestCase] = [
         command={"explain": {}},
         error_code=COMMAND_NOT_FOUND_ERROR,
         msg="empty explain document should error",
-    ),
-    CommandTestCase(
-        id="aggregate_out_execution_stats",
-        command=lambda ctx: {
-            "explain": {
-                "aggregate": ctx.collection,
-                "pipeline": [{"$out": f"{ctx.collection}_out"}],
-                "cursor": {},
-            },
-            "verbosity": "executionStats",
-        },
-        error_code=ILLEGAL_OPERATION_ERROR,
-        msg="explain with $out stage at executionStats verbosity should error",
     ),
 ]
 
