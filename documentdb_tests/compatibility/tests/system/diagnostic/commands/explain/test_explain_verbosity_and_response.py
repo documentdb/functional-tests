@@ -191,6 +191,15 @@ MODE_BEHAVIOR_TESTS: list[CommandTestCase] = [
         expected={"executionStats.allPlansExecution": NotExists()},
         msg="executionStats mode should not include rejected-plan execution",
     ),
+    CommandTestCase(
+        id="default_verbosity_matches_allPlansExecution",
+        docs=[{"_id": i, "a": i % 5} for i in range(20)],
+        command=lambda ctx: {
+            "explain": {"find": ctx.collection, "filter": {"a": 1}},
+        },
+        expected={"queryPlanner": Exists(), "executionStats": Exists()},
+        msg="default verbosity should include both queryPlanner and executionStats",
+    ),
 ]
 
 
