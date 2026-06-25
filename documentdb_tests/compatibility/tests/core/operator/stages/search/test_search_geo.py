@@ -13,7 +13,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -308,7 +308,7 @@ SEARCH_GEO_WITHIN_COORDINATE_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search geoWithin should reject a latitude outside the valid range",
     ),
     StageTestCase(
@@ -329,7 +329,7 @@ SEARCH_GEO_WITHIN_COORDINATE_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search geoWithin should reject a longitude outside the valid range",
     ),
     StageTestCase(
@@ -350,7 +350,7 @@ SEARCH_GEO_WITHIN_COORDINATE_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search geoWithin should reject a negative circle radius",
     ),
     StageTestCase(
@@ -368,7 +368,7 @@ SEARCH_GEO_WITHIN_COORDINATE_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search geoWithin should reject a coordinate with fewer than two numbers",
     ),
 ]
@@ -379,7 +379,7 @@ SEARCH_GEO_WITHIN_SHAPE_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "geo_within_no_shape",
         pipeline=[{"$search": {"geoWithin": {"path": "loc"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search geoWithin should reject a spec with no shape key",
     ),
 ]
@@ -427,7 +427,7 @@ SEARCH_GEO_SHAPE_GEOMETRY_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search geoShape should reject a relation outside the allowed set",
     ),
     StageTestCase(
@@ -452,7 +452,7 @@ SEARCH_GEO_SHAPE_GEOMETRY_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search geoShape should reject a polygon with fewer than four positions",
     ),
     StageTestCase(
@@ -471,7 +471,7 @@ SEARCH_GEO_SHAPE_GEOMETRY_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search geoShape should reject the within relation applied to a Point geometry",
     ),
 ]
@@ -503,7 +503,7 @@ SEARCH_GEO_SHAPE_INDEX_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search geoShape should reject a geo path not indexed with indexShapes=true",
     ),
 ]

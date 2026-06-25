@@ -16,7 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -537,7 +537,7 @@ SEARCH_RANGE_BOUND_TYPE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"range": {"path": "num", "gte": val}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search range should reject a {tid} bound as an unsupported type",
     )
     for tid, val in [
@@ -564,7 +564,7 @@ SEARCH_RANGE_STRING_BOUND_DATE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"range": {"path": "dt", "gte": "2020-01-01"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search range should reject a string bound on a date path as needing a token index",
     ),
 ]
@@ -575,7 +575,7 @@ SEARCH_RANGE_NO_BOUND_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "no_bound",
         pipeline=[{"$search": {"range": {"path": "num"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search range should reject a spec that specifies no bound",
     ),
 ]
@@ -588,7 +588,7 @@ SEARCH_RANGE_DUPLICATE_BOUND_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"range": {"path": "num", "gt": 0, "gte": 0}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search range should reject specifying both gt and gte",
     ),
     StageTestCase(
@@ -596,7 +596,7 @@ SEARCH_RANGE_DUPLICATE_BOUND_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"range": {"path": "num", "lt": 10, "lte": 10}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search range should reject specifying both lt and lte",
     ),
 ]
@@ -609,7 +609,7 @@ SEARCH_RANGE_INTERVAL_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"range": {"path": "num", "gte": 10, "lte": 5}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search range should reject an inverted interval where gte exceeds lte",
     ),
     StageTestCase(
@@ -617,7 +617,7 @@ SEARCH_RANGE_INTERVAL_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"range": {"path": "num", "gt": 5, "lt": 5}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search range should reject an exclusive degenerate interval where gt equals lt",
     ),
 ]

@@ -15,7 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -304,7 +304,7 @@ SEARCH_INDEX_OPTION_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"text": {"query": "quick", "path": "title"}, "index": val}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search should reject a {tid} index option as a non-string",
         )
         for tid, val in [
@@ -330,7 +330,7 @@ SEARCH_INDEX_OPTION_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, "index": ""}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an empty-string index option",
     ),
 ]
@@ -344,7 +344,7 @@ SEARCH_SORT_VALUE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, "sort": {}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a sort document with no sort field",
     ),
     StageTestCase(
@@ -352,7 +352,7 @@ SEARCH_SORT_VALUE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, "sort": {"n": 2}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a sort direction other than 1 or -1",
     ),
     StageTestCase(
@@ -365,7 +365,7 @@ SEARCH_SORT_VALUE_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a $meta sort key other than searchScore",
     ),
 ]
@@ -379,7 +379,7 @@ SEARCH_CONCURRENT_OPTION_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, "concurrent": val}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a {tid} concurrent option as a non-boolean",
     )
     for tid, val in [

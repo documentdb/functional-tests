@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -136,7 +136,7 @@ SEARCH_REGEX_ANALYZED_PATH_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"regex": {"query": "qu.*", "path": "title"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search regex should reject an analyzed path when allowAnalyzedField is omitted",
     ),
 ]
@@ -147,7 +147,7 @@ SEARCH_REGEX_QUERY_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "regex_query_missing",
         pipeline=[{"$search": {"regex": {"path": "title", "allowAnalyzedField": True}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search regex should reject an operator missing the required query",
     ),
     *[
@@ -156,7 +156,7 @@ SEARCH_REGEX_QUERY_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"regex": {"query": val, "path": "title", "allowAnalyzedField": True}}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search regex should reject a {tid} query as a non-string",
         )
         for tid, val in [
@@ -181,7 +181,7 @@ SEARCH_REGEX_QUERY_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"regex": {"query": [], "path": "title", "allowAnalyzedField": True}}}
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search regex should reject an empty-array query",
     ),
     StageTestCase(
@@ -193,7 +193,7 @@ SEARCH_REGEX_QUERY_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search regex should reject a null query-array element",
     ),
     StageTestCase(
@@ -205,7 +205,7 @@ SEARCH_REGEX_QUERY_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search regex should reject a non-string query-array element",
     ),
 ]
@@ -217,7 +217,7 @@ SEARCH_REGEX_ALLOW_ANALYZED_TYPE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"regex": {"query": "qu.*", "path": "title", "allowAnalyzedField": val}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search regex should reject a {tid} allowAnalyzedField as a non-boolean",
     )
     for tid, val in [
@@ -245,7 +245,7 @@ SEARCH_REGEX_PATH_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "regex_path_missing",
         pipeline=[{"$search": {"regex": {"query": "qu.*", "allowAnalyzedField": True}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search regex should reject an operator missing the required path",
     ),
     *[
@@ -254,7 +254,7 @@ SEARCH_REGEX_PATH_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"regex": {"query": "qu.*", "path": val, "allowAnalyzedField": True}}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search regex should reject a {tid} path as neither a string, document, "
             "nor array",
         )

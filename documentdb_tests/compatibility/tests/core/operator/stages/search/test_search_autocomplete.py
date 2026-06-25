@@ -16,7 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -282,7 +282,7 @@ SEARCH_AUTOCOMPLETE_PATH_MAPPING_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"autocomplete": {"path": "title", "query": "sep"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search autocomplete should reject a path with no autocomplete index field definition",
     ),
 ]
@@ -299,7 +299,7 @@ SEARCH_AUTOCOMPLETE_FUZZY_MAX_EDITS_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search autocomplete should reject a fuzzy.maxEdits of {val}, which is not 1 or 2",
     )
     for val in [0, 3]
@@ -313,7 +313,7 @@ SEARCH_AUTOCOMPLETE_TOKEN_ORDER_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"autocomplete": {"path": "ac", "query": "sep", "tokenOrder": "bogus"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search autocomplete should reject a tokenOrder outside the [any, sequential] enum",
     ),
 ]
@@ -324,26 +324,26 @@ SEARCH_AUTOCOMPLETE_QUERY_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "autocomplete_query_missing",
         pipeline=[{"$search": {"autocomplete": {"path": "ac"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search autocomplete should reject an operator missing the required query",
     ),
     StageTestCase(
         "autocomplete_query_empty_string",
         pipeline=[{"$search": {"autocomplete": {"path": "ac", "query": ""}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search autocomplete should reject an empty-string query",
     ),
     StageTestCase(
         "autocomplete_query_empty_array",
         pipeline=[{"$search": {"autocomplete": {"path": "ac", "query": []}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search autocomplete should reject an empty-array query",
     ),
     *[
         StageTestCase(
             f"autocomplete_query_non_string_{tid}",
             pipeline=[{"$search": {"autocomplete": {"path": "ac", "query": val}}}],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search autocomplete should reject a {tid} query as a non-string",
         )
         for tid, val in [
@@ -366,13 +366,13 @@ SEARCH_AUTOCOMPLETE_QUERY_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "autocomplete_query_array_element_null",
         pipeline=[{"$search": {"autocomplete": {"path": "ac", "query": ["sep", None]}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search autocomplete should reject a null query-array element",
     ),
     StageTestCase(
         "autocomplete_query_array_element_non_string",
         pipeline=[{"$search": {"autocomplete": {"path": "ac", "query": ["sep", 1]}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search autocomplete should reject a non-string query-array element",
     ),
 ]
@@ -383,14 +383,14 @@ SEARCH_AUTOCOMPLETE_PATH_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "autocomplete_path_missing",
         pipeline=[{"$search": {"autocomplete": {"query": "sep"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search autocomplete should reject an operator missing the required path",
     ),
     *[
         StageTestCase(
             f"autocomplete_path_{tid}",
             pipeline=[{"$search": {"autocomplete": {"path": val, "query": "sep"}}}],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search autocomplete should reject a {tid} path as a non-string type",
         )
         for tid, val in [
@@ -431,7 +431,7 @@ SEARCH_AUTOCOMPLETE_FUZZY_BOUNDS_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search autocomplete should reject a negative fuzzy.prefixLength",
     ),
     *[
@@ -448,7 +448,7 @@ SEARCH_AUTOCOMPLETE_FUZZY_BOUNDS_ERROR_TESTS: list[StageTestCase] = [
                     }
                 },
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search autocomplete should reject a fuzzy.maxExpansions of {val} outside the "
             "bounds 1 to 1000",
         )

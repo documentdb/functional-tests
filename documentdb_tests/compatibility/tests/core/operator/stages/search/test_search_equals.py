@@ -17,7 +17,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -307,7 +307,7 @@ SEARCH_EQUALS_VALUE_TYPE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"equals_value_type_{tid}",
         pipeline=[{"$search": {"equals": {"path": "num", "value": val}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search equals should reject a {tid} value as an unsupported type",
     )
     for tid, val in [
@@ -330,7 +330,7 @@ SEARCH_EQUALS_BINARY_SUBTYPE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"equals": {"path": "u", "value": Binary(b"\x01\x02\x03")}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search equals should reject a Binary value that is not UUID subtype 4",
     ),
 ]
@@ -343,7 +343,7 @@ SEARCH_EQUALS_ANALYZED_PATH_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"equals": {"path": "txt", "value": "quick brown"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search equals should reject a string value against an analyzed non-token path",
     ),
 ]

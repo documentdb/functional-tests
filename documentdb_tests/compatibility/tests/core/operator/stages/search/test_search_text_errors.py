@@ -15,7 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -33,19 +33,19 @@ SEARCH_TEXT_QUERY_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "text_query_missing",
         pipeline=[{"$search": {"text": {"path": "title"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a text operator missing the required query",
     ),
     StageTestCase(
         "text_query_empty_string",
         pipeline=[{"$search": {"text": {"query": "", "path": "title"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an empty-string text.query",
     ),
     StageTestCase(
         "text_query_empty_array",
         pipeline=[{"$search": {"text": {"query": [], "path": "title"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an empty-array text.query",
     ),
     *[
@@ -54,7 +54,7 @@ SEARCH_TEXT_QUERY_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"text": {"query": val, "path": "title"}}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search should reject a {tid} text.query as a non-string",
         )
         for tid, val in [
@@ -79,7 +79,7 @@ SEARCH_TEXT_QUERY_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": ["quick", None], "path": "title"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a null query-array element",
     ),
     StageTestCase(
@@ -87,7 +87,7 @@ SEARCH_TEXT_QUERY_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": ["quick", 1], "path": "title"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a non-string query-array element",
     ),
 ]
@@ -99,13 +99,13 @@ SEARCH_TEXT_PATH_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "text_path_missing",
         pipeline=[{"$search": {"text": {"query": "quick"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a text operator missing the required path",
     ),
     StageTestCase(
         "text_path_empty_array",
         pipeline=[{"$search": {"text": {"query": "quick", "path": []}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an empty-array text.path",
     ),
     *[
@@ -114,7 +114,7 @@ SEARCH_TEXT_PATH_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"text": {"query": "quick", "path": val}}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search should reject a {tid} text.path as neither a string nor a document",
         )
         for tid, val in [
@@ -136,7 +136,7 @@ SEARCH_TEXT_PATH_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "text_path_object_no_value",
         pipeline=[{"$search": {"text": {"query": "quick", "path": {}}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a text.path document with no value field",
     ),
     StageTestCase(
@@ -144,7 +144,7 @@ SEARCH_TEXT_PATH_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": {"value": "title", "multi": "nope"}}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a text.path document referencing an absent "
         "multi-analyzer config",
     ),
@@ -158,7 +158,7 @@ SEARCH_TEXT_MATCH_CRITERIA_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title", "matchCriteria": "none"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a matchCriteria outside the set [all, any]",
     ),
     *[
@@ -167,7 +167,7 @@ SEARCH_TEXT_MATCH_CRITERIA_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"text": {"query": "quick", "path": "title", "matchCriteria": val}}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search should reject a {tid} matchCriteria as a non-string",
         )
         for tid, val in [
@@ -198,7 +198,7 @@ SEARCH_TEXT_SYNONYMS_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title", "synonyms": "nope"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a text.synonyms referencing an unknown synonym mapping name",
     ),
 ]
@@ -212,7 +212,7 @@ SEARCH_TEXT_FUZZY_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"text": {"query": "quick", "path": "title", "fuzzy": val}}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search should reject a {tid} text.fuzzy as a non-document",
         )
         for tid, val in [
@@ -238,7 +238,7 @@ SEARCH_TEXT_FUZZY_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title", "fuzzy": {"bogus": 1}}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an unknown text.fuzzy sub-field",
     ),
 ]
@@ -251,7 +251,7 @@ SEARCH_TEXT_SCORE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title", "score": val}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a {tid} text.score as a non-document",
     )
     for tid, val in [
@@ -289,7 +289,7 @@ SEARCH_QUERY_TOKEN_SIZE_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a query array one past the inclusive clause cap",
     ),
     # The run spans the BSON string size limit; it is still rejected with the
@@ -299,7 +299,7 @@ SEARCH_QUERY_TOKEN_SIZE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "a" * STRING_SIZE_LIMIT_BYTES, "path": "title"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a multi-megabyte single-character run the analyzer "
         "splits into more sub-tokens than the clause cap",
     ),
@@ -312,7 +312,7 @@ SEARCH_QUERY_TOKEN_SIZE_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a multi-byte run at the same byte size, showing the "
         "cap is clause-count based and not byte based",
     ),
@@ -326,7 +326,7 @@ SEARCH_FUZZY_MAX_EDITS_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title", "fuzzy": {"maxEdits": val}}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a fuzzy.maxEdits of {tid} outside the set 1 or 2",
     )
     for tid, val in [
@@ -347,7 +347,7 @@ SEARCH_FUZZY_PREFIX_LENGTH_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a negative fuzzy.prefixLength",
     ),
 ]
@@ -364,7 +364,7 @@ SEARCH_FUZZY_MAX_EXPANSIONS_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a fuzzy.maxExpansions of {tid} outside the bounds 1 to 1000",
     )
     for tid, val in [

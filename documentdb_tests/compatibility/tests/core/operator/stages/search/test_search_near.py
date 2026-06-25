@@ -16,7 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -314,7 +314,7 @@ SEARCH_NEAR_PIVOT_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"near": {"path": "num", "origin": 10, "pivot": 0}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search near should reject a pivot of zero as not positive",
     ),
     StageTestCase(
@@ -322,7 +322,7 @@ SEARCH_NEAR_PIVOT_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"near": {"path": "num", "origin": 10, "pivot": -1}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search near should reject a negative pivot as not positive",
     ),
     StageTestCase(
@@ -330,7 +330,7 @@ SEARCH_NEAR_PIVOT_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"near": {"path": "num", "origin": 10, "pivot": FLOAT_NAN}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search near should reject a NaN pivot as not finite",
     ),
     StageTestCase(
@@ -338,7 +338,7 @@ SEARCH_NEAR_PIVOT_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"near": {"path": "num", "origin": 10, "pivot": FLOAT_INFINITY}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search near should reject an infinite pivot as not finite",
     ),
     StageTestCase(
@@ -346,7 +346,7 @@ SEARCH_NEAR_PIVOT_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"near": {"path": "num", "origin": 10, "pivot": "ten"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search near should reject a non-number pivot",
     ),
 ]
@@ -360,7 +360,7 @@ SEARCH_NEAR_ORIGIN_TYPE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"near": {"path": "num", "origin": val, "pivot": 10}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search near should reject a {tid} origin as an unsupported type",
     )
     for tid, val in [

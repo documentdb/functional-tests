@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -34,7 +34,7 @@ SEARCH_DOCUMENT_OPTION_TYPE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, opt: val}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a {tid} {opt} option as a non-document",
     )
     for opt in ("count", "highlight", "sort")
@@ -67,7 +67,7 @@ SEARCH_INTEGER_COERCION_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"phrase": {"query": "quick brown", "path": "title", "slop": -1}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a negative phrase.slop",
     ),
     StageTestCase(
@@ -75,7 +75,7 @@ SEARCH_INTEGER_COERCION_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"phrase": {"query": "quick brown", "path": "title", "slop": 1.5}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a fractional-double phrase.slop as a non-integer",
     ),
     StageTestCase(
@@ -83,7 +83,7 @@ SEARCH_INTEGER_COERCION_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"phrase": {"query": "quick brown", "path": "title", "slop": FLOAT_NAN}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a NaN phrase.slop as a non-integer",
     ),
     StageTestCase(
@@ -95,7 +95,7 @@ SEARCH_INTEGER_COERCION_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an infinite phrase.slop as not fitting in a 32-bit integer",
     ),
     StageTestCase(
@@ -111,7 +111,7 @@ SEARCH_INTEGER_COERCION_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an int64 phrase.slop past the 32-bit integer range",
     ),
 ]
@@ -125,7 +125,7 @@ SEARCH_INTEGER_TYPE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"phrase": {"query": "quick brown", "path": "title", "slop": val}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a {tid} phrase.slop as a non-integer",
     )
     for tid, val in [
@@ -154,7 +154,7 @@ SEARCH_UNKNOWN_OPTION_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, "bogus": 1}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an unknown top-level option field",
     ),
     *[
@@ -163,7 +163,7 @@ SEARCH_UNKNOWN_OPTION_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"text": {"query": "quick", "path": "title"}, name: value}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search should reject the {tid} option name as an unrecognized option",
         )
         for tid, name, value in [

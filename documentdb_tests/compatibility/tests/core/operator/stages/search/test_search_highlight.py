@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -164,7 +164,7 @@ SEARCH_HIGHLIGHT_SUBFIELD_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, "highlight": {}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a highlight document missing the required path",
     ),
     *[
@@ -178,7 +178,7 @@ SEARCH_HIGHLIGHT_SUBFIELD_ERROR_TESTS: list[StageTestCase] = [
                     }
                 },
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search should reject a {tid} highlight.path as neither a string, document, "
             "nor array",
         )
@@ -208,7 +208,7 @@ SEARCH_HIGHLIGHT_SUBFIELD_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an unknown highlight sub-field",
     ),
 ]
@@ -227,7 +227,7 @@ SEARCH_HIGHLIGHT_INTEGER_BOUNDS_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a {tid} highlight.{opt} as non-positive",
     )
     for opt, opt_id in [

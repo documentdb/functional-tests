@@ -15,7 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -33,7 +33,7 @@ SEARCH_NULL_MISSING_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "null_missing_operator",
         pipeline=[{"$search": {"text": None}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should treat a null operator value as a missing operator and reject it",
     ),
     StageTestCase(
@@ -41,7 +41,7 @@ SEARCH_NULL_MISSING_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": None, "path": "title"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should treat a null text.query as missing and reject the required query",
     ),
     StageTestCase(
@@ -49,7 +49,7 @@ SEARCH_NULL_MISSING_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": None}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should treat a null text.path as missing and reject the required path",
     ),
 ]
@@ -60,13 +60,13 @@ SEARCH_OPERATOR_MISSING_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "operator_missing_empty_spec",
         pipeline=[{"$search": {}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an empty spec that contains no operator",
     ),
     StageTestCase(
         "operator_missing_options_only",
         pipeline=[{"$search": {"index": SEARCH_INDEX_NAME}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an options-only spec that contains no operator",
     ),
     StageTestCase(
@@ -74,7 +74,7 @@ SEARCH_OPERATOR_MISSING_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"bogus": {"query": "quick", "path": "title"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an unknown operator key as no recognized operator",
     ),
 ]
@@ -92,7 +92,7 @@ SEARCH_OPERATOR_DUPLICATE_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a spec containing two search operators",
     ),
 ]
@@ -104,7 +104,7 @@ SEARCH_OPERATOR_VALUE_TYPE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"operator_value_{tid}",
         pipeline=[{"$search": {"text": val}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a {tid} operator value as a non-document",
     )
     for tid, val in [
@@ -134,7 +134,7 @@ SEARCH_OPERATOR_NAME_CASE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {name: {"query": "quick", "path": "title"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject the {tid} operator name as an unrecognized operator",
     )
     for tid, name in [

@@ -16,7 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -265,7 +265,7 @@ SEARCH_WILDCARD_ANALYZED_PATH_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"wildcard": {"query": "qu*", "path": "std"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search wildcard should reject a standard-analyzed path without allowAnalyzedField",
     ),
     StageTestCase(
@@ -273,7 +273,7 @@ SEARCH_WILDCARD_ANALYZED_PATH_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"wildcard": {"query": "qu*", "path": ""}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search wildcard should reject an empty path that resolves to no keyword field",
     ),
     StageTestCase(
@@ -281,7 +281,7 @@ SEARCH_WILDCARD_ANALYZED_PATH_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"wildcard": {"query": "qu*", "path": "a.b"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search wildcard should reject a dotted path that resolves to no keyword field",
     ),
 ]
@@ -294,7 +294,7 @@ SEARCH_WILDCARD_ALLOW_ANALYZED_TYPE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"wildcard": {"query": "qu*", "path": "kw", "allowAnalyzedField": val}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search wildcard should reject a {tid} allowAnalyzedField as a non-boolean",
     )
     for tid, val in [
@@ -322,7 +322,7 @@ SEARCH_WILDCARD_QUERY_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "wildcard_query_missing",
         pipeline=[{"$search": {"wildcard": {"path": "kw"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search wildcard should reject an operator missing the required query",
     ),
     StageTestCase(
@@ -330,19 +330,19 @@ SEARCH_WILDCARD_QUERY_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"wildcard": {"query": None, "path": "kw"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search wildcard should reject a null query treated as missing",
     ),
     StageTestCase(
         "wildcard_query_empty_string",
         pipeline=[{"$search": {"wildcard": {"query": "", "path": "kw"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search wildcard should reject an empty-string query",
     ),
     StageTestCase(
         "wildcard_query_empty_array",
         pipeline=[{"$search": {"wildcard": {"query": [], "path": "kw"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search wildcard should reject an empty-array query",
     ),
     *[
@@ -351,7 +351,7 @@ SEARCH_WILDCARD_QUERY_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"wildcard": {"query": val, "path": "kw"}}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search wildcard should reject a {tid} query as a non-string",
         )
         for tid, val in [
@@ -376,7 +376,7 @@ SEARCH_WILDCARD_QUERY_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"wildcard": {"query": ["qu*", None], "path": "kw"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search wildcard should reject a null query-array element",
     ),
     StageTestCase(
@@ -384,7 +384,7 @@ SEARCH_WILDCARD_QUERY_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"wildcard": {"query": ["qu*", 1], "path": "kw"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search wildcard should reject a non-string query-array element",
     ),
 ]
@@ -396,7 +396,7 @@ SEARCH_WILDCARD_PATH_ERROR_TESTS: list[StageTestCase] = [
         StageTestCase(
             f"wildcard_path_{tid}",
             pipeline=[{"$search": {"wildcard": {"query": "qu*", "path": val}}}],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search wildcard should reject a {tid} path as neither a document, string, "
             "nor array",
         )
@@ -421,7 +421,7 @@ SEARCH_WILDCARD_PATH_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"wildcard": {"query": "qu*", "path": None}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search wildcard should reject a null path treated as missing",
     ),
 ]

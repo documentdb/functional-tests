@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -309,7 +309,7 @@ SEARCH_SPAN_OPERATOR_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "span_empty",
         pipeline=[{"$search": {"span": {}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span should reject an empty document with no sub-operator",
     ),
 ]
@@ -320,13 +320,13 @@ SEARCH_SPAN_SUBOPERATOR_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "term_missing_path",
         pipeline=[{"$search": {"span": {"term": {"query": "quick"}}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span term should reject a missing path",
     ),
     StageTestCase(
         "term_missing_query",
         pipeline=[{"$search": {"span": {"term": {"path": "title"}}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span term should reject a missing query",
     ),
     StageTestCase(
@@ -334,19 +334,19 @@ SEARCH_SPAN_SUBOPERATOR_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"span": {"first": {"endPositionLte": 1}}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span first should reject a missing operator",
     ),
     StageTestCase(
         "near_missing_clauses",
         pipeline=[{"$search": {"span": {"near": {"slop": 0}}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span near should reject missing clauses",
     ),
     StageTestCase(
         "or_missing_clauses",
         pipeline=[{"$search": {"span": {"or": {}}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span or should reject missing clauses",
     ),
     StageTestCase(
@@ -358,7 +358,7 @@ SEARCH_SPAN_SUBOPERATOR_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span subtract should reject a missing include",
     ),
     StageTestCase(
@@ -370,7 +370,7 @@ SEARCH_SPAN_SUBOPERATOR_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span subtract should reject a missing exclude",
     ),
     StageTestCase(
@@ -387,7 +387,7 @@ SEARCH_SPAN_SUBOPERATOR_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span contains should reject a missing little",
     ),
     StageTestCase(
@@ -404,7 +404,7 @@ SEARCH_SPAN_SUBOPERATOR_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span contains should reject a missing spanToReturn",
     ),
     StageTestCase(
@@ -421,7 +421,7 @@ SEARCH_SPAN_SUBOPERATOR_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span contains should reject a missing big",
     ),
 ]
@@ -444,7 +444,7 @@ SEARCH_SPAN_CONTAINS_ENUM_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search span contains should reject a spanToReturn outside the [inner, outer] enum",
     ),
 ]
@@ -467,7 +467,7 @@ SEARCH_SPAN_NEAR_TYPE_ERROR_TESTS: list[StageTestCase] = [
                     }
                 },
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search span near should reject a {tid} slop as a non-integer",
         )
         for tid, val in [
@@ -502,7 +502,7 @@ SEARCH_SPAN_NEAR_TYPE_ERROR_TESTS: list[StageTestCase] = [
                     }
                 },
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search span near should reject a {tid} inOrder as a non-boolean",
         )
         for tid, val in [

@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -131,7 +131,7 @@ SEARCH_PAGINATION_TOKEN_TYPE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, opt: val}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a {tid} {opt} token as a non-string",
     )
     for opt in ("searchAfter", "searchBefore")
@@ -162,7 +162,7 @@ SEARCH_PAGINATION_TOKEN_FORMAT_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, opt: "not_a_token"}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a malformed {opt} string as an invalid token value",
     )
     for opt in ("searchAfter", "searchBefore")

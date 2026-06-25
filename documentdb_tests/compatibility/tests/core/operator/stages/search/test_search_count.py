@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -149,7 +149,7 @@ SEARCH_COUNT_TYPE_ENUM_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, "count": {"type": "bogus"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a count.type outside the recognized set of count types",
     ),
     *[
@@ -158,7 +158,7 @@ SEARCH_COUNT_TYPE_ENUM_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"text": {"query": "quick", "path": "title"}, "count": {"type": val}}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search should reject a {tid} count.type as a non-string",
         )
         for tid, val in [
@@ -189,7 +189,7 @@ SEARCH_COUNT_THRESHOLD_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, "count": {"threshold": -1}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a negative count.threshold",
     ),
     *[
@@ -203,7 +203,7 @@ SEARCH_COUNT_THRESHOLD_ERROR_TESTS: list[StageTestCase] = [
                     }
                 },
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search should reject a {tid} count.threshold as a non-integer",
         )
         for tid, val in [

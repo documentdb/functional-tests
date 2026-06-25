@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -101,7 +101,7 @@ SEARCH_EXISTS_PATH_TYPE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"exists_path_type_{tid}",
         pipeline=[{"$search": {"exists": {"path": val}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search exists should reject a {tid} path as a non-string type",
     )
     for tid, val in [
@@ -129,13 +129,13 @@ SEARCH_EXISTS_PATH_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "exists_path_missing",
         pipeline=[{"$search": {"exists": {}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search exists should reject a missing path as required",
     ),
     StageTestCase(
         "exists_path_null",
         pipeline=[{"$search": {"exists": {"path": None}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search exists should reject a null path treated as missing",
     ),
 ]
@@ -146,7 +146,7 @@ SEARCH_EXISTS_UNKNOWN_FIELD_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "exists_unknown_field",
         pipeline=[{"$search": {"exists": {"path": "body", "bogus": 1}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search exists should reject an unrecognized sub-field",
     ),
 ]

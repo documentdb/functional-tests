@@ -18,7 +18,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -343,7 +343,7 @@ SEARCH_IN_EMPTY_VALUE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "in_empty_value_array",
         pipeline=[{"$search": {"in": {"path": "num", "value": []}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search in should reject an empty value array",
     ),
 ]
@@ -354,7 +354,7 @@ SEARCH_IN_NULL_ELEMENT_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "in_null_element",
         pipeline=[{"$search": {"in": {"path": "num", "value": [None]}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search in should reject a null element in the value array",
     ),
 ]
@@ -368,7 +368,7 @@ SEARCH_IN_MIXED_TYPE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"in": {"path": "num", "value": [20, "apple"]}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search in should reject an array mixing a number and a string",
     ),
 ]
@@ -383,7 +383,7 @@ SEARCH_IN_VALUE_TYPE_ERROR_TESTS: list[StageTestCase] = [
             pipeline=[
                 {"$search": {"in": {"path": "num", "value": [val]}}},
             ],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search in should route a {tid} element through the value-type validator "
             "and reject it",
         )
@@ -403,7 +403,7 @@ SEARCH_IN_VALUE_TYPE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"in": {"path": "u", "value": [Binary(b"\x01\x02\x03")]}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search in should reject a Binary element that is not UUID subtype 4",
     ),
 ]

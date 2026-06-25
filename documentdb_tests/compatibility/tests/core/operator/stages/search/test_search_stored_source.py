@@ -17,7 +17,7 @@ from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     BSON_FIELD_NOT_BOOL_ERROR,
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -140,7 +140,7 @@ SEARCH_RETURN_STORED_SOURCE_CONFIG_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"text": {"query": "quick", "path": "title"}, "returnStoredSource": True}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject returnStoredSource true against an index with no "
         "storedSource configured",
     ),

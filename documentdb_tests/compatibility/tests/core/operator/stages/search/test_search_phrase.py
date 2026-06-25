@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -97,14 +97,14 @@ SEARCH_PHRASE_QUERY_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "phrase_query_missing",
         pipeline=[{"$search": {"phrase": {"path": "title"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search phrase should reject an operator missing the required query",
     ),
     *[
         StageTestCase(
             f"phrase_query_non_string_{tid}",
             pipeline=[{"$search": {"phrase": {"query": val, "path": "title"}}}],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search phrase should reject a {tid} query as a non-string",
         )
         for tid, val in [
@@ -129,7 +129,7 @@ SEARCH_PHRASE_QUERY_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"phrase": {"query": ["quick brown", None], "path": "title"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search phrase should reject a null query-array element",
     ),
     StageTestCase(
@@ -137,7 +137,7 @@ SEARCH_PHRASE_QUERY_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"phrase": {"query": ["quick brown", 1], "path": "title"}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search phrase should reject a non-string query-array element",
     ),
 ]
@@ -148,14 +148,14 @@ SEARCH_PHRASE_PATH_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "phrase_path_missing",
         pipeline=[{"$search": {"phrase": {"query": "quick brown"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search phrase should reject an operator missing the required path",
     ),
     *[
         StageTestCase(
             f"phrase_path_{tid}",
             pipeline=[{"$search": {"phrase": {"query": "quick brown", "path": val}}}],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search phrase should reject a {tid} path as neither a string, document, "
             "nor array",
         )
@@ -184,7 +184,7 @@ SEARCH_PHRASE_FUZZY_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"phrase": {"query": "quick brown", "path": "title", "fuzzy": {}}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a phrase.fuzzy sub-field as unrecognized",
     ),
 ]

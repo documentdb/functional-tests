@@ -9,7 +9,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -33,20 +33,20 @@ SEARCH_HIERARCHY_OP_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search embeddedDocument should reject a path not mapped as an "
         "embeddedDocuments field",
     ),
     StageTestCase(
         "has_ancestor_missing_ancestor_path",
         pipeline=[{"$search": {"hasAncestor": {}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search hasAncestor should reject a spec missing the required ancestorPath",
     ),
     StageTestCase(
         "has_root_missing_operator",
         pipeline=[{"$search": {"hasRoot": {}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search hasRoot should reject a spec missing the required operator",
     ),
 ]
@@ -69,7 +69,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search vectorSearch should reject a path not indexed as vector",
     ),
     StageTestCase(
@@ -87,7 +87,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search vectorSearch should reject an index field placed inside the operator",
     ),
     StageTestCase(
@@ -104,7 +104,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search vectorSearch should reject a non-array queryVector",
     ),
     StageTestCase(
@@ -121,7 +121,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search vectorSearch should reject a queryVector array of strings",
     ),
     StageTestCase(
@@ -138,7 +138,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search vectorSearch should reject an empty queryVector",
     ),
     StageTestCase(
@@ -146,7 +146,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"vectorSearch": {"path": "title", "numCandidates": 10, "limit": 5}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search vectorSearch should reject a spec missing both query and queryVector",
     ),
     StageTestCase(
@@ -162,7 +162,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search vectorSearch should reject a spec missing the required path",
     ),
     StageTestCase(
@@ -174,7 +174,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search vectorSearch should reject a spec missing the required numCandidates",
     ),
     StageTestCase(
@@ -190,7 +190,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search vectorSearch should reject a spec missing the required limit",
     ),
     StageTestCase(
@@ -198,7 +198,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"knnBeta": {"path": "title", "vector": [0.1, 0.2, 0.3], "k": 5}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search knnBeta should reject a path not indexed as knnVector",
     ),
     StageTestCase(
@@ -206,7 +206,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"knnBeta": {"path": "title", "vector": "not_an_array", "k": 5}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search knnBeta should reject a non-array vector",
     ),
     StageTestCase(
@@ -214,7 +214,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"knnBeta": {"path": "title", "vector": [], "k": 5}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search knnBeta should reject an empty vector",
     ),
     StageTestCase(
@@ -222,13 +222,13 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"knnBeta": {"path": "title", "vector": ["a", "b", "c"], "k": 5}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search knnBeta should reject a vector array of strings",
     ),
     StageTestCase(
         "knn_beta_missing_vector",
         pipeline=[{"$search": {"knnBeta": {"path": "title", "k": 5}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search knnBeta should reject a spec missing the required vector",
     ),
     StageTestCase(
@@ -236,7 +236,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"knnBeta": {"path": "title", "vector": [0.1, 0.2, 0.3]}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search knnBeta should reject a spec missing the required k",
     ),
     StageTestCase(
@@ -244,7 +244,7 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$search": {"knnBeta": {"vector": [0.1, 0.2, 0.3], "k": 5}}},
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search knnBeta should reject a spec missing the required path",
     ),
 ]

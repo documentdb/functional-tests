@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -144,20 +144,20 @@ SEARCH_QUERY_STRING_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "query_string_missing_query",
         pipeline=[{"$search": {"queryString": {"defaultPath": "title"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search queryString should reject an operator missing the required query",
     ),
     StageTestCase(
         "query_string_missing_default_path",
         pipeline=[{"$search": {"queryString": {"query": "quick"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search queryString should reject an operator missing the required defaultPath",
     ),
     *[
         StageTestCase(
             f"query_string_query_non_string_{tid}",
             pipeline=[{"$search": {"queryString": {"query": val, "defaultPath": "title"}}}],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search queryString should reject a {tid} query as a non-string",
         )
         for tid, val in [
@@ -182,7 +182,7 @@ SEARCH_QUERY_STRING_ERROR_TESTS: list[StageTestCase] = [
         StageTestCase(
             f"query_string_default_path_non_string_{tid}",
             pipeline=[{"$search": {"queryString": {"query": "quick", "defaultPath": val}}}],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search queryString should reject a {tid} defaultPath as a non-string",
         )
         for tid, val in [
@@ -211,20 +211,20 @@ SEARCH_TERM_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "term_missing_path",
         pipeline=[{"$search": {"term": {"query": "quick"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search term should reject an operator missing the required path",
     ),
     StageTestCase(
         "term_missing_query",
         pipeline=[{"$search": {"term": {"path": "title"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search term should reject an operator missing the required query",
     ),
     *[
         StageTestCase(
             f"term_path_{tid}",
             pipeline=[{"$search": {"term": {"path": val, "query": "quick"}}}],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search term should reject a {tid} path as neither a string, document, "
             "nor array",
         )
@@ -248,7 +248,7 @@ SEARCH_TERM_ERROR_TESTS: list[StageTestCase] = [
         StageTestCase(
             f"term_query_non_string_{tid}",
             pipeline=[{"$search": {"term": {"path": "title", "query": val}}}],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search term should reject a {tid} query as a non-string",
         )
         for tid, val in [
@@ -276,14 +276,14 @@ SEARCH_MORE_LIKE_THIS_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "more_like_this_missing_like",
         pipeline=[{"$search": {"moreLikeThis": {}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search moreLikeThis should reject an operator missing the required like",
     ),
     *[
         StageTestCase(
             f"more_like_this_like_{tid}",
             pipeline=[{"$search": {"moreLikeThis": {"like": val}}}],
-            error_code=SEARCH_EXECUTOR_ERROR,
+            error_code=UNKNOWN_ERROR,
             msg=f"$search moreLikeThis should reject a {tid} like as neither a document nor array",
         )
         for tid, val in [

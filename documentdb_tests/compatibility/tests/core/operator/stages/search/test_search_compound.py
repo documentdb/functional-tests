@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    SEARCH_EXECUTOR_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -365,7 +365,7 @@ SEARCH_COMPOUND_MIN_SHOULD_MATCH_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a negative compound.minimumShouldMatch",
     ),
     StageTestCase(
@@ -380,7 +380,7 @@ SEARCH_COMPOUND_MIN_SHOULD_MATCH_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject a compound.minimumShouldMatch greater than the should-clause "
         "count",
     ),
@@ -401,7 +401,7 @@ SEARCH_COMPOUND_MIN_SHOULD_MATCH_TYPE_ERROR_TESTS: list[StageTestCase] = [
                 }
             },
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$search should reject a {tid} compound.minimumShouldMatch as a non-integer",
     )
     for tid, val in [
@@ -428,7 +428,7 @@ SEARCH_COMPOUND_EMPTY_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "compound_empty",
         pipeline=[{"$search": {"compound": {}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an empty compound with no clause type present",
     ),
 ]
@@ -439,7 +439,7 @@ SEARCH_COMPOUND_EMPTY_CLAUSE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "compound_empty_must",
         pipeline=[{"$search": {"compound": {"must": []}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$search should reject an empty compound must clause array",
     ),
 ]
