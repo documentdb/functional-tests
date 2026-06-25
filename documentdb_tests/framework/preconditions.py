@@ -56,6 +56,7 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
     "unforced_compact": "compact succeeds without force",
     "reindex": "reIndex is permitted",
     "local_rename": "renaming into the unreplicated local database is permitted",
+    "replication": "replication commands are available (applyOps, oplog access)",
 }
 
 # The capabilities each (engine, topology) target has. To add an engine or
@@ -70,6 +71,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "cluster_time",
             "cluster_read_concern",
             "quorum_write_concern",
+            "replication",
         }
     ),
     ("mongodb", "standalone"): frozenset(
@@ -90,6 +92,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "quorum_write_concern",
             "unforced_compact",
             "reindex",
+            "replication",
         }
     ),
 }
