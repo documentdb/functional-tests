@@ -14,13 +14,13 @@ from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_t
     SessionOp,
     SessionOperation,
     SessionTestCase,
+    execute_session_command,
 )
 from documentdb_tests.framework.assertions import (
     assertNotError,
     assertSuccess,
     assertSuccessPartial,
 )
-from documentdb_tests.framework.executor import execute_abort_session_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
@@ -118,7 +118,7 @@ ABORT_READBACK_TESTS: list[SessionTestCase] = ABORT_ROLLBACK_TESTS + PRE_TRANSAC
 @pytest.mark.parametrize("test", pytest_params(ABORT_READBACK_TESTS))
 def test_abortTransaction_core(collection, test):
     """Test abortTransaction rolls back operations and preserves pre-existing data."""
-    result = execute_abort_session_command(collection, test)
+    result = execute_session_command(collection, test, abort=True)
     assertSuccess(result, test.expected, msg=test.msg)
 
 
@@ -135,7 +135,7 @@ EMPTY_TRANSACTION_TESTS: list[SessionTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(EMPTY_TRANSACTION_TESTS))
 def test_abortTransaction_core_empty(collection, test):
     """Test abortTransaction succeeds on an empty transaction."""
-    result = execute_abort_session_command(collection, test)
+    result = execute_session_command(collection, test, abort=True)
     assertNotError(result, msg=test.msg)
 
 
@@ -154,5 +154,5 @@ RESPONSE_STRUCTURE_TESTS: list[SessionTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(RESPONSE_STRUCTURE_TESTS))
 def test_abortTransaction_core_response(collection, test):
     """Test abortTransaction returns expected response fields."""
-    result = execute_abort_session_command(collection, test)
+    result = execute_session_command(collection, test, abort=True)
     assertSuccessPartial(result, test.expected_response, msg=test.msg)

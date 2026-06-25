@@ -15,9 +15,9 @@ from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_t
     SessionOp,
     SessionOperation,
     SessionTestCase,
+    execute_session_command,
 )
 from documentdb_tests.framework.assertions import assertSuccessPartial
-from documentdb_tests.framework.executor import execute_abort_session_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
@@ -181,5 +181,5 @@ COMMENT_TYPE_TESTS: list[SessionTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(COMMENT_TYPE_TESTS))
 def test_abortTransaction_comment(collection, test):
     """Test abortTransaction comment parameter type acceptance in a transaction."""
-    result = execute_abort_session_command(collection, test)
+    result = execute_session_command(collection, test, abort=True)
     assertSuccessPartial(result, test.expected_response, msg=test.msg)
