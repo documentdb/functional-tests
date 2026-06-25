@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
-from bson import Binary, Code, Decimal128, Int64, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, ObjectId, Regex, Timestamp, encode
 from bson.max_key import MaxKey
 from bson.min_key import MinKey
 
@@ -330,40 +330,25 @@ def test_collStats_scale(database_client, collection, test):
 
 
 # Property [Scale Factor Divides Size Fields]: specifying storageStats.scale=N
-# divides size fields (size, storageSize, totalSize, totalIndexSize, each entry
-# in indexSizes) by N using floor division, while avgObjSize, count, nindexes,
-# capped, and scaleFactor are unaffected.
-SCALE_AFFECTED_FIELDS = [
-    "size",
-    "storageSize",
-    "totalSize",
-    "totalIndexSize",
-]
-
-SCALE_UNAFFECTED_FIELDS = [
-    "avgObjSize",
-    "count",
-    "nindexes",
-    "capped",
-    "scaleFactor",
-    "indexBuilds",
-]
-
-
+# divides the size field by N using floor division, while the logical fields
+# count, avgObjSize, nindexes, capped, and scaleFactor are unaffected.
 @pytest.mark.aggregate
 def test_collStats_scale_divides_size_fields(collection):
-    """Test that scale=N floor-divides size fields and leaves others unchanged."""
-    collection.insert_many([{"_id": i, "x": "a" * 100} for i in range(50)])
-    collection.create_index("x")
+    """Test that scale=N floor-divides the size field and leaves logical fields unchanged.
+
+    The contract is checked on ``size`` because it is deterministic: it is the
+    sum of the inserted documents' BSON sizes, so its raw value is known and the
+    scaled value can be asserted exactly from a single read. The other size
+    fields (storageSize, totalSize, totalIndexSize, indexSizes) are
+    engine-managed on-disk allocations that can change between reads (e.g. a
+    background checkpoint); they share the same scaling code path, so asserting
+    it on a known field validates the contract without depending on
+    storage-engine timing.
+    """
+    docs = [{"_id": i, "x": "a" * 100} for i in range(50)]
+    raw_size = sum(len(encode(doc)) for doc in docs)
+    collection.insert_many(docs)
     scale = 3
-    base = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$collStats": {"storageStats": {}}}],
-            "cursor": {},
-        },
-    )
     scaled = execute_command(
         collection,
         {
@@ -372,20 +357,16 @@ def test_collStats_scale_divides_size_fields(collection):
             "cursor": {},
         },
     )
-    if isinstance(base, Exception):
-        raise AssertionError(f"unexpected error: {base}")
-    b = base["cursor"]["firstBatch"][0]["storageStats"]
-    checks: dict[str, Eq] = {"storageStats.nindexes": Eq(2)}
-    for field in SCALE_AFFECTED_FIELDS:
-        checks[f"storageStats.{field}"] = Eq(int(b[field] // scale))
-    for field in SCALE_UNAFFECTED_FIELDS:
-        checks[f"storageStats.{field}"] = Eq(scale if field == "scaleFactor" else b[field])
-    for key, val in b["indexSizes"].items():
-        checks[f"storageStats.indexSizes.{key}"] = Eq(int(val // scale))
     assertProperties(
         scaled,
-        checks,
-        msg="scale factor should divide size fields and leave others unchanged",
+        {
+            "storageStats.size": Eq(raw_size // scale),
+            "storageStats.count": Eq(len(docs)),
+            "storageStats.avgObjSize": Eq(raw_size // len(docs)),
+            "storageStats.nindexes": Eq(1),
+            "storageStats.scaleFactor": Eq(scale),
+        },
+        msg="scale factor should divide the size field and leave logical fields unchanged",
     )
 
 

@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 @pytest.mark.skip(reason="reshardCollection operations not supported in this environment")
 def test_smoke_changeStream_reshardCollection(collection):
     """Test basic reshardCollection change stream event behavior."""
