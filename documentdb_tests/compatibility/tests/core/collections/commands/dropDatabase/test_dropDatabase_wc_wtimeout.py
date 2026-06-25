@@ -97,6 +97,7 @@ WRITE_CONCERN_WTIMEOUT_SPECIAL_VALUES_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="wtimeout:Int64 min should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
         id="wtimeout_int64_min",
     ),
     CommandTestCase(
@@ -115,6 +116,7 @@ WRITE_CONCERN_WTIMEOUT_SPECIAL_VALUES_TESTS: list[CommandTestCase] = [
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": FLOAT_NEGATIVE_INFINITY}},
         expected={"ok": 1.0},
         msg="wtimeout:-Infinity should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
         id="wtimeout_float_neg_infinity",
     ),
     CommandTestCase(
@@ -133,6 +135,7 @@ WRITE_CONCERN_WTIMEOUT_SPECIAL_VALUES_TESTS: list[CommandTestCase] = [
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": DECIMAL128_NEGATIVE_INFINITY}},
         expected={"ok": 1.0},
         msg="wtimeout:Decimal128('-Infinity') should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
         id="wtimeout_decimal128_neg_infinity",
     ),
     CommandTestCase(
