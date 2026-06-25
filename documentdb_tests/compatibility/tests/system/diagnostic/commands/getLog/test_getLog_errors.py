@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
+    COMMAND_NOT_FOUND_ERROR,
     OPERATION_FAILED_ERROR,
     UNAUTHORIZED_ERROR,
     UNRECOGNIZED_COMMAND_FIELD_ERROR,
@@ -56,6 +57,12 @@ ERROR_TESTS: list[DiagnosticTestCase] = [
         use_admin=False,
         error_code=UNAUTHORIZED_ERROR,
         msg="getLog should only run on the admin database",
+    ),
+    DiagnosticTestCase(
+        "case_sensitive_command_name",
+        command={"GetLog": "global"},
+        error_code=COMMAND_NOT_FOUND_ERROR,
+        msg="Command name is case-sensitive; 'GetLog' should not be found",
     ),
 ]
 
