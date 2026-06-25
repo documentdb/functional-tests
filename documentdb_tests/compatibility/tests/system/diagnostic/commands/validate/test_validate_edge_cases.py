@@ -13,6 +13,7 @@ from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Tim
 
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
+    bind_collection,
 )
 from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
@@ -132,7 +133,7 @@ DOCUMENT_VARIETY_TESTS: list[DiagnosticTestCase] = [
 def test_validate_document_variety(collection, test):
     """Test validate with diverse document shapes and index counts."""
     for cmd in test.setup:
-        execute_command(collection, {**cmd, next(iter(cmd)): collection.name})
+        execute_command(collection, bind_collection(cmd, collection.name))
     result = execute_command(collection, {"validate": collection.name})
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 

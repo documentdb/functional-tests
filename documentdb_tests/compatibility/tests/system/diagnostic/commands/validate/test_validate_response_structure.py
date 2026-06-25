@@ -10,6 +10,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
+    bind_collection,
 )
 from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
@@ -280,7 +281,7 @@ RESPONSE_DETAIL_TESTS = RESPONSE_VALUE_TESTS + DETAILED_STRUCTURE_TESTS
 def test_validate_response_details(collection, test):
     """Test validate response values, sub-structure, and option-specific shapes."""
     for cmd in test.setup:
-        execute_command(collection, {**cmd, next(iter(cmd)): collection.name})
+        execute_command(collection, bind_collection(cmd, collection.name))
     cmd = {"validate": collection.name}
     if test.command:
         cmd.update(test.command)

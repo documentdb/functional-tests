@@ -13,6 +13,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
+    bind_collection,
 )
 from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_command
@@ -226,6 +227,6 @@ INDEX_TYPE_TESTS: list[DiagnosticTestCase] = [
 def test_validate_index_types(collection, test):
     """Test validate with various index types."""
     for cmd in test.setup:
-        execute_command(collection, {**cmd, next(iter(cmd)): collection.name})
+        execute_command(collection, bind_collection(cmd, collection.name))
     result = execute_command(collection, {"validate": collection.name})
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)

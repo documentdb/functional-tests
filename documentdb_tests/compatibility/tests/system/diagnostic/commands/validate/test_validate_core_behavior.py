@@ -13,6 +13,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
+    bind_collection,
 )
 from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
@@ -79,7 +80,7 @@ CORE_BEHAVIOR_TESTS: list[DiagnosticTestCase] = [
 def test_validate_core_behavior(collection, test):
     """Test validate core behavior with various collection states."""
     for cmd in test.setup:
-        execute_command(collection, {**cmd, next(iter(cmd)): collection.name})
+        execute_command(collection, bind_collection(cmd, collection.name))
     cmd = {"validate": collection.name}
     if test.command:
         cmd.update(test.command)
