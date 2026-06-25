@@ -13,13 +13,13 @@ from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_t
     SessionOp,
     SessionOperation,
     SessionTestCase,
+    execute_session_command,
 )
 from documentdb_tests.framework.assertions import (
     assertNotError,
     assertSuccess,
     assertSuccessPartial,
 )
-from documentdb_tests.framework.executor import execute_session_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]

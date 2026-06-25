@@ -2,8 +2,6 @@
 Unified execution and assertion utilities for tests.
 """
 
-from __future__ import annotations
-
 from datetime import timezone
 from typing import Any, Dict
 
@@ -52,81 +50,3 @@ def execute_admin_command(collection, command: Dict, session=None) -> Any:
         return result
     except Exception as e:
         return e
-
-
-def execute_session_command(collection, test_case) -> Any:
-    """Execute a SessionTestCase: seed, transact, commit, and return the result.
-
-    Runs the full transaction lifecycle described by *test_case*:
-
-    1. Seed ``test_case.docs`` into *collection* (via ``prepare``).
-    2. Open a client session and start a transaction.
-    3. Execute each ``SessionOperation`` in ``test_case.ops``.
-    4. Commit — either via ``session.commit_transaction()`` or by sending
-       ``test_case.commit_command`` as a raw admin command.
-    5. Return the appropriate result for assertion:
-       - If ``test_case.expected_response`` is set, return the commit
-         command response (a dict).
-       - Otherwise, return the readback query result via
-         ``execute_command``.
-
-    Args:
-        collection: The pytest ``collection`` fixture.
-        test_case: A ``SessionTestCase`` instance.
-
-    Returns:
-        Result dict (commit response or readback) or Exception.
-    """
-    from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_test_case import (  # noqa: E501
-        SessionTestCase,
-    )
-
-    assert isinstance(test_case, SessionTestCase)
-
-    # 1. Seed documents.
-    if test_case.docs is not None:
-        if test_case.docs:
-            collection.insert_many(test_case.docs)
-
-    # 2-4. Transaction lifecycle.
-    client = collection.database.client
-    commit_result = None
-    with client.start_session() as session:
-        session.start_transaction()
-        for op in test_case.ops:
-            op.execute(collection, session)
-        if test_case.commit_command is not None:
-            try:
-                commit_result = client.admin.command(test_case.commit_command, session=session)
-            except Exception as e:
-                commit_result = e
-        else:
-            session.commit_transaction()
-
-    # 5. Return commit response or readback.
-    if test_case.expected_response is not None:
-        # Verify that committed data actually persisted (the raw admin
-        # command path bypasses pymongo's session bookkeeping, so the
-        # driver may auto-abort on exit; the abort is a server no-op
-        # after a real commit, but we assert persistence explicitly).
-        if not isinstance(commit_result, Exception) and test_case.ops:
-            readback = execute_command(
-                collection,
-                {"find": collection.name, "filter": test_case.readback_filter},
-            )
-            assert not isinstance(readback, Exception), f"Readback after commit failed: {readback}"
-            cursor = readback.get("cursor", {})
-            docs = cursor.get("firstBatch", [])
-            assert len(docs) > 0, (
-                "Committed transaction data did not persist — " "readback returned 0 documents"
-            )
-        return commit_result
-
-    return execute_command(
-        collection,
-        {
-            "find": collection.name,
-            "filter": test_case.readback_filter,
-            "sort": test_case.readback_sort,
-        },
-    )
