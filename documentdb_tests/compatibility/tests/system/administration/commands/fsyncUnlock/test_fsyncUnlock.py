@@ -326,9 +326,9 @@ def test_fsyncUnlock_rejects_non_admin_database(collection):
 
 # Property [Cross-Connection Lock Sharing]: the lock count is server-global, so
 # an unlock on one connection releases a lock taken on another.
-def test_fsyncUnlock_releases_lock_taken_on_another_connection(collection, pytestconfig):
+def test_fsyncUnlock_releases_lock_taken_on_another_connection(collection, connection_string):
     """Test fsyncUnlock releases a lock that was taken on a different connection."""
-    other_client: MongoClient = MongoClient(pytestconfig.connection_string)
+    other_client: MongoClient = MongoClient(connection_string)
     try:
         # Take the lock on a separate connection and pool.
         other_client.admin.command({"fsync": 1, "lock": True})
