@@ -200,6 +200,12 @@ VALID_OPTION_TESTS: list[DiagnosticTestCase] = [
         checks={"ok": Eq(1.0)},
         msg="validate with metadata: true should succeed",
     ),
+]
+
+
+# Property [Valid Repair Options]: validate succeeds with repair/fixMultikey
+# options (standalone only).
+VALID_REPAIR_OPTION_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         "fixMultikey_true",
         command={"fixMultikey": True},
@@ -224,6 +230,15 @@ VALID_OPTION_TESTS: list[DiagnosticTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(VALID_OPTION_TESTS))
 def test_validate_valid_options(collection, test):
     """Test that validate succeeds with valid option values."""
+    collection.insert_one({"_id": 1})
+    result = execute_command(collection, {"validate": collection.name, **test.command})
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
+
+
+@pytest.mark.requires(validate_repair=True)
+@pytest.mark.parametrize("test", pytest_params(VALID_REPAIR_OPTION_TESTS))
+def test_validate_valid_repair_options(collection, test):
+    """Test that validate succeeds with repair/fixMultikey options on standalone."""
     collection.insert_one({"_id": 1})
     result = execute_command(collection, {"validate": collection.name, **test.command})
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)

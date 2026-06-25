@@ -266,12 +266,18 @@ TRUTHY_TYPE_TESTS: list[DiagnosticTestCase] = [
 ]
 
 
-OPTION_ERROR_TESTS = INVALID_COMBINATION_TESTS + TRUTHY_TYPE_TESTS
-
-
-@pytest.mark.parametrize("test", pytest_params(OPTION_ERROR_TESTS))
+@pytest.mark.parametrize("test", pytest_params(INVALID_COMBINATION_TESTS))
 def test_validate_option_errors(collection, test):
-    """Test that validate errors on invalid option combinations and truthy background."""
+    """Test that validate errors on invalid option combinations."""
+    collection.insert_one({"_id": 1})
+    result = execute_command(collection, {"validate": collection.name, **test.command})
+    assertFailureCode(result, test.error_code, msg=test.msg)
+
+
+@pytest.mark.requires(validate_repair=True)
+@pytest.mark.parametrize("test", pytest_params(TRUTHY_TYPE_TESTS))
+def test_validate_background_truthy_rejected(collection, test):
+    """Test that validate rejects truthy background values on standalone."""
     collection.insert_one({"_id": 1})
     result = execute_command(collection, {"validate": collection.name, **test.command})
     assertFailureCode(result, test.error_code, msg=test.msg)

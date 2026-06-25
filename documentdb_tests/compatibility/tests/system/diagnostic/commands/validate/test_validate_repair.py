@@ -17,6 +17,8 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 
+pytestmark = pytest.mark.requires(validate_repair=True)
+
 # Property [Type Coercion Wiring]: repair delegates to shared boolean coercion.
 REPAIR_WIRING_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
