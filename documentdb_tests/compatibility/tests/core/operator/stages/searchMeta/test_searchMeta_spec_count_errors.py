@@ -26,7 +26,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
     StageTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import SEARCH_EXECUTOR_ERROR
+from documentdb_tests.framework.error_codes import UNKNOWN_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
@@ -54,7 +54,7 @@ SEARCHMETA_COUNT_TYPE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"count_not_document_{tid}",
         pipeline=[{"$searchMeta": {"text": {"query": "quick", "path": "title"}, "count": val}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {tid} count value as not a document",
     )
     for tid, val in [
@@ -89,7 +89,7 @@ SEARCHMETA_COUNT_TYPE_NOT_STRING_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {tid} count.type value as not a string",
     )
     for tid, val in [
@@ -125,7 +125,7 @@ SEARCHMETA_COUNT_TYPE_VALUE_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {suffix} count.type string as an unknown count type",
     )
     for value, suffix in [
@@ -149,7 +149,7 @@ SEARCHMETA_COUNT_THRESHOLD_TYPE_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {tid} count.threshold value as not an integer",
     )
     for tid, val in [
@@ -182,7 +182,7 @@ SEARCHMETA_COUNT_THRESHOLD_FRACTIONAL_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {suffix} count.threshold double as non-integral",
     )
     for val, suffix in [
@@ -203,7 +203,7 @@ SEARCHMETA_COUNT_THRESHOLD_NEGATIVE_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {suffix} count.threshold as negative",
     )
     for val, suffix in [
@@ -225,7 +225,7 @@ SEARCHMETA_COUNT_THRESHOLD_OVERFLOW_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {suffix} count.threshold above int32 max",
     )
     for val, suffix in [
@@ -247,7 +247,7 @@ SEARCHMETA_COUNT_THRESHOLD_UNDERFLOW_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {suffix} count.threshold below int32 min",
     )
     for val, suffix in [
@@ -270,7 +270,7 @@ SEARCHMETA_COUNT_THRESHOLD_TOTAL_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should validate count.threshold integrality even when count.type is "
         "total",
     ),
@@ -284,7 +284,7 @@ SEARCHMETA_COUNT_THRESHOLD_TOTAL_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should validate count.threshold sign even when count.type is total",
     ),
     StageTestCase(
@@ -297,7 +297,7 @@ SEARCHMETA_COUNT_THRESHOLD_TOTAL_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should validate count.threshold range even when count.type is total",
     ),
 ]
@@ -315,7 +315,7 @@ SEARCHMETA_COUNT_UNKNOWN_FIELD_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject an unrecognized count sub-field {name!r}",
     )
     for count_value, name, suffix in [

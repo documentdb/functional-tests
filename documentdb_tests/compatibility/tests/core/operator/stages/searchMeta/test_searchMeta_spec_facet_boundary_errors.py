@@ -14,7 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
     StageTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import SEARCH_EXECUTOR_ERROR
+from documentdb_tests.framework.error_codes import UNKNOWN_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -41,7 +41,7 @@ SEARCHMETA_FACET_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a number facet with fewer than two boundaries",
     ),
     StageTestCase(
@@ -55,7 +55,7 @@ SEARCHMETA_FACET_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject non-ascending number facet boundaries",
     ),
     StageTestCase(
@@ -69,7 +69,7 @@ SEARCHMETA_FACET_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject non-numeric number facet boundaries",
     ),
 ]
@@ -88,7 +88,7 @@ SEARCHMETA_FACET_DATE_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject numeric boundaries for a date facet",
     ),
 ]
@@ -105,7 +105,7 @@ SEARCHMETA_FACET_NUMBUCKETS_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a numBuckets below the lower bound",
     ),
     StageTestCase(
@@ -119,7 +119,7 @@ SEARCHMETA_FACET_NUMBUCKETS_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a numBuckets above the upper bound",
     ),
 ]
@@ -138,7 +138,7 @@ SEARCHMETA_FACET_STRING_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject boundaries on a string facet as an unrecognized field",
     ),
 ]
@@ -164,7 +164,7 @@ SEARCHMETA_FACET_NUMBER_NUMBUCKETS_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject numBuckets on a number facet as an unrecognized field",
     ),
 ]
@@ -177,7 +177,7 @@ SEARCHMETA_FACET_TOKEN_MAPPING_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$searchMeta": {"facet": {"facets": {"nf": {"type": "string", "path": "cat"}}}}}
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject string faceting on a dynamically-indexed string field",
     ),
 ]

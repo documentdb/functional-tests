@@ -345,3 +345,26 @@ class NonEmptyStr(Check):
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}()"
+
+
+class ByteLen(Check):
+    """Assert that the field is a bytes-like value with the expected byte length.
+
+    Applies to ``bytes`` and ``Binary`` (which subclasses ``bytes``), for fields
+    whose contract pins an exact payload size.
+    """
+
+    def __init__(self, expected: int) -> None:
+        self.expected = expected
+
+    def check(self, value: Any, path: str) -> str | None:
+        if value is _FIELD_ABSENT:
+            return f"expected '{path}' to be {self.expected} bytes, but field is missing"
+        if not isinstance(value, (bytes, bytearray)):
+            return f"expected '{path}' to be bytes, got {type(value).__name__}"
+        if len(value) != self.expected:
+            return f"expected '{path}' length {self.expected} bytes, got {len(value)}"
+        return None
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.expected!r})"

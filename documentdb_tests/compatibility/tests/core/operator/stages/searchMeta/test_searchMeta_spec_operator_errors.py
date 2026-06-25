@@ -25,7 +25,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
     StageTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import SEARCH_EXECUTOR_ERROR
+from documentdb_tests.framework.error_codes import UNKNOWN_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ZERO
@@ -46,7 +46,7 @@ SEARCHMETA_OPERATOR_VALUE_TYPE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"operator_value_{tid}",
         pipeline=[{"$searchMeta": {"text": val}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {tid} operator value as not a document",
     )
     for tid, val in [
@@ -74,43 +74,43 @@ SEARCHMETA_NO_OPERATOR_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "no_operator_unknown_name",
         pipeline=[{"$searchMeta": {"unknownop": {"query": "quick", "path": "title"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject an unrecognized operator name as no operator present",
     ),
     StageTestCase(
         "no_operator_empty_spec",
         pipeline=[{"$searchMeta": {}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject an empty spec as no operator present",
     ),
     StageTestCase(
         "no_operator_modifier_only",
         pipeline=[{"$searchMeta": {"count": {"type": "total"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a spec with only modifiers as no operator present",
     ),
     StageTestCase(
         "no_operator_capitalized_key",
         pipeline=[{"$searchMeta": {"Text": {"query": "quick", "path": "title"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should treat a capitalized operator key as unrecognized, not present",
     ),
     StageTestCase(
         "no_operator_untrimmed_key",
         pipeline=[{"$searchMeta": {"text ": {"query": "quick", "path": "title"}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should treat an untrimmed operator key as unrecognized, not present",
     ),
     StageTestCase(
         "no_operator_value_null",
         pipeline=[{"$searchMeta": {"text": None}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should treat a null operator value as field-absent, not present",
     ),
     StageTestCase(
         "no_operator_facet_null",
         pipeline=[{"$searchMeta": {"facet": None}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should treat a null facet value as field-absent, not present",
     ),
 ]
@@ -131,7 +131,7 @@ SEARCHMETA_OPERATOR_CONFLICT_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a spec carrying both an operator and a facet collector",
     ),
     StageTestCase(
@@ -144,7 +144,7 @@ SEARCHMETA_OPERATOR_CONFLICT_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a spec carrying two top-level operators",
     ),
 ]
@@ -155,7 +155,7 @@ SEARCHMETA_INDEX_TYPE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"index_not_string_{tid}",
         pipeline=[{"$searchMeta": {"text": {"query": "quick", "path": "title"}, "index": val}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {tid} index value as not a string",
     )
     for tid, val in [
@@ -182,7 +182,7 @@ SEARCHMETA_INDEX_EMPTY_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "index_empty_string",
         pipeline=[{"$searchMeta": {"text": {"query": "quick", "path": "title"}, "index": ""}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject an empty-string index value",
     ),
 ]
@@ -195,7 +195,7 @@ SEARCHMETA_UNKNOWN_OPTION_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"unknown_option_{suffix}",
         pipeline=[{"$searchMeta": {"text": {"query": "quick", "path": "title"}, name: value}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {suffix} top-level option as an unrecognized field",
     )
     for name, value, suffix in [

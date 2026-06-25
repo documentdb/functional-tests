@@ -57,6 +57,7 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
     "reindex": "reIndex is permitted",
     "local_rename": "renaming into the unreplicated local database is permitted",
     "search": "search and vector search surfaces are available",
+    "replication": "replication commands are available (applyOps, oplog access)",
 }
 
 # The capabilities each (engine, topology) target has. To add an engine or
@@ -76,6 +77,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "cluster_read_concern",
             "quorum_write_concern",
             "search",
+            "replication",
         }
     ),
     ("mongodb", "standalone"): frozenset(
@@ -96,6 +98,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "quorum_write_concern",
             "unforced_compact",
             "reindex",
+            "replication",
         }
     ),
 }

@@ -25,7 +25,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
     StageTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import SEARCH_EXECUTOR_ERROR
+from documentdb_tests.framework.error_codes import UNKNOWN_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ZERO
@@ -46,7 +46,7 @@ SEARCHMETA_FACET_VALUE_TYPE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"facet_not_document_{tid}",
         pipeline=[{"$searchMeta": {"facet": val}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {tid} facet value as not a document",
     )
     for tid, val in [
@@ -74,13 +74,13 @@ SEARCHMETA_FACETS_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "facets_omitted",
         pipeline=[{"$searchMeta": {"facet": {}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a facet collector with facets omitted",
     ),
     StageTestCase(
         "facets_null",
         pipeline=[{"$searchMeta": {"facet": {"facets": None}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should treat a null facets value as field-absent and require facets",
     ),
 ]
@@ -91,7 +91,7 @@ SEARCHMETA_FACETS_TYPE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"facets_not_document_{tid}",
         pipeline=[{"$searchMeta": {"facet": {"facets": val}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {tid} facet.facets value as not a document",
     )
     for tid, val in [
@@ -118,7 +118,7 @@ SEARCHMETA_FACETS_EMPTY_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "facets_empty",
         pipeline=[{"$searchMeta": {"facet": {"facets": {}}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject an empty facet.facets document",
     ),
 ]
@@ -137,7 +137,7 @@ SEARCHMETA_FACET_OPERATOR_EMPTY_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject an empty facet operator by listing the valid operators",
     ),
 ]
@@ -150,7 +150,7 @@ SEARCHMETA_FACET_DEF_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$searchMeta": {"facet": {"facets": {"nf": {"path": "n", "boundaries": [0, 25]}}}}}
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a facet definition missing its type",
     ),
     StageTestCase(
@@ -162,7 +162,7 @@ SEARCHMETA_FACET_DEF_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a facet definition missing its path",
     ),
 ]
@@ -179,7 +179,7 @@ SEARCHMETA_FACET_DEF_TYPE_VALUE_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a facet definition type outside the allowed set",
     ),
 ]
@@ -190,7 +190,7 @@ SEARCHMETA_FACET_DEF_TYPE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         f"facet_def_not_document_{tid}",
         pipeline=[{"$searchMeta": {"facet": {"facets": {"nf": val}}}}],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg=f"$searchMeta should reject a {tid} facet definition value as not a document",
     )
     for tid, val in [
@@ -234,7 +234,7 @@ SEARCHMETA_FACET_UNKNOWN_FIELD_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject an unrecognized field in a facet definition",
     ),
     StageTestCase(
@@ -249,7 +249,7 @@ SEARCHMETA_FACET_UNKNOWN_FIELD_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject an unrecognized field at the facet collector level",
     ),
     StageTestCase(
@@ -264,7 +264,7 @@ SEARCHMETA_FACET_UNKNOWN_FIELD_ERROR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=SEARCH_EXECUTOR_ERROR,
+        error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a count modifier placed inside the facet collector",
     ),
 ]
