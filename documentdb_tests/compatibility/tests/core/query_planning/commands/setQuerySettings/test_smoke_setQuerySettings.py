@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_admin_command
 pytestmark = [pytest.mark.smoke, pytest.mark.no_parallel]
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(cluster_admin=True)
 def test_smoke_setQuerySettings(collection):
     """Test basic setQuerySettings command behavior."""
     collection.insert_one({"_id": 1, "name": "Alice"})
