@@ -11,7 +11,7 @@ from bson import Int64
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
 )
-from documentdb_tests.framework.assertions import assertProperties, assertSuccess
+from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Gt, IsType
@@ -107,9 +107,9 @@ def test_dbStats_total_size_relationship(collection):
     collection.insert_many([{"_id": i, "a": i} for i in range(20)])
     collection.create_index("a")
     result = execute_command(collection, {"dbStats": 1})
-    assertSuccess(
-        result.get("totalSize"),
-        expected=result.get("storageSize") + result.get("indexSize"),
+    assertProperties(
+        result,
+        {"totalSize": Eq(result.get("storageSize") + result.get("indexSize"))},
         raw_res=True,
         msg="totalSize should equal storageSize + indexSize",
     )
@@ -119,9 +119,9 @@ def test_dbStats_avg_obj_size_equals_data_size_over_objects(collection):
     """Test avgObjSize equals dataSize divided by objects."""
     collection.insert_many([{"_id": i, "data": "x" * (i + 1)} for i in range(10)])
     result = execute_command(collection, {"dbStats": 1})
-    assertSuccess(
-        result.get("avgObjSize"),
-        expected=result.get("dataSize") / result.get("objects"),
+    assertProperties(
+        result,
+        {"avgObjSize": Eq(result.get("dataSize") / result.get("objects"))},
         raw_res=True,
         msg="avgObjSize should equal dataSize / objects",
     )

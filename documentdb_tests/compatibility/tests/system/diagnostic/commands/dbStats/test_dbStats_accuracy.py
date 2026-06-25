@@ -10,7 +10,7 @@ from bson import Int64
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
 )
-from documentdb_tests.framework.assertions import assertProperties
+from documentdb_tests.framework.assertions import assertProperties, assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
@@ -67,3 +67,43 @@ def test_dbStats_count_accuracy(collection, test):
             raise setup_result
     result = execute_command(collection, test.command)
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
+
+
+def test_dbStats_scale_divides_data_size(collection):
+    """Test scale divides reported dataSize by the scale factor (approximately).
+
+    Compares dataSize at scale 1 (bytes) against scale 1024 (KiB). The scaled
+    value should approximate the unscaled value divided by 1024; a tolerance
+    absorbs the server's integer truncation, avoiding flakiness.
+    """
+    collection.insert_many([{"_id": i, "data": "x" * 1024} for i in range(50)])
+    unscaled = execute_command(collection, {"dbStats": 1, "scale": 1})
+    scaled = execute_command(collection, {"dbStats": 1, "scale": 1024})
+    expected_scaled = unscaled.get("dataSize") / 1024
+    actual_scaled = scaled.get("dataSize")
+    assertSuccess(
+        actual_scaled == pytest.approx(expected_scaled, abs=1.0),
+        expected=True,
+        raw_res=True,
+        msg=(
+            f"scale=1024 dataSize ({actual_scaled}) should approximate "
+            f"unscaled dataSize / 1024 ({expected_scaled})"
+        ),
+    )
+
+
+def test_dbStats_avg_obj_size_unaffected_by_scale(collection):
+    """Test avgObjSize is identical regardless of the scale value.
+
+    avgObjSize is always reported in bytes and should not be divided
+    by the scale factor.
+    """
+    collection.insert_many([{"_id": i, "data": "x" * 100} for i in range(10)])
+    unscaled = execute_command(collection, {"dbStats": 1, "scale": 1})
+    scaled = execute_command(collection, {"dbStats": 1, "scale": 1024})
+    assertSuccess(
+        scaled.get("avgObjSize"),
+        expected=unscaled.get("avgObjSize"),
+        raw_res=True,
+        msg="avgObjSize should be identical regardless of scale",
+    )
