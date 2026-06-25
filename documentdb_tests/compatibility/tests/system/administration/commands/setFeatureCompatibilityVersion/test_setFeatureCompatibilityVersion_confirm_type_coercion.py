@@ -32,18 +32,6 @@ def _get_fcv(collection):
     return str(fcv_data)
 
 
-def _set_fcv(collection, version):
-    """Set FCV with confirm:true."""
-    return execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": version, "confirm": True}
-    )
-
-
-def _get_other_fcv(current):
-    """Get a different supported FCV than the current one."""
-    return "8.0" if current != "8.0" else "8.2"
-
-
 # Property [Truthy Coercion]: confirm field accepts truthy numeric values.
 CONFIRM_TRUTHY_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -177,27 +165,15 @@ CONFIRM_TYPE_REJECTED_TESTS: list[CommandTestCase] = [
 ]
 
 
-def _resolve_fcv_placeholders(command_dict, current_fcv, other_fcv):
-    """Replace FCV placeholders in a command dict."""
-    resolved = {}
-    for k, v in command_dict.items():
-        if v == "CURRENT_FCV":
-            resolved[k] = current_fcv
-        elif v == "OTHER_FCV":
-            resolved[k] = other_fcv
-        else:
-            resolved[k] = v
-    return resolved
-
-
 @pytest.mark.parametrize("test", pytest_params(CONFIRM_TRUTHY_TESTS))
 def test_setFeatureCompatibilityVersion_confirm_truthy(database_client, collection, test):
     """Test setFeatureCompatibilityVersion accepts truthy confirm values."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     current = _get_fcv(collection)
-    other = _get_other_fcv(current)
-    cmd = _resolve_fcv_placeholders(test.build_command(ctx), current, other)
+    other = "8.0" if current != "8.0" else "8.2"
+    cmd = test.build_command(ctx)
+    cmd["setFeatureCompatibilityVersion"] = other
     result = execute_admin_command(collection, cmd)
     assertResult(
         result,
@@ -206,7 +182,7 @@ def test_setFeatureCompatibilityVersion_confirm_truthy(database_client, collecti
         msg=test.msg,
         raw_res=True,
     )
-    _set_fcv(collection, current)
+    execute_admin_command(collection, {"setFeatureCompatibilityVersion": current, "confirm": True})
 
 
 @pytest.mark.parametrize("test", pytest_params(CONFIRM_FALSY_TESTS))
@@ -215,8 +191,9 @@ def test_setFeatureCompatibilityVersion_confirm_falsy(database_client, collectio
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     current = _get_fcv(collection)
-    other = _get_other_fcv(current)
-    cmd = _resolve_fcv_placeholders(test.build_command(ctx), current, other)
+    other = "8.0" if current != "8.0" else "8.2"
+    cmd = test.build_command(ctx)
+    cmd["setFeatureCompatibilityVersion"] = other
     result = execute_admin_command(collection, cmd)
     assertResult(
         result,
@@ -233,8 +210,9 @@ def test_setFeatureCompatibilityVersion_confirm_type_rejected(database_client, c
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     current = _get_fcv(collection)
-    other = _get_other_fcv(current)
-    cmd = _resolve_fcv_placeholders(test.build_command(ctx), current, other)
+    other = "8.0" if current != "8.0" else "8.2"
+    cmd = test.build_command(ctx)
+    cmd["setFeatureCompatibilityVersion"] = other
     result = execute_admin_command(collection, cmd)
     assertResult(
         result,

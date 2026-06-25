@@ -30,18 +30,6 @@ def _get_fcv(collection):
     return str(fcv_data)
 
 
-def _set_fcv(collection, version):
-    """Set FCV to the given version with confirm:true."""
-    return execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": version, "confirm": True}
-    )
-
-
-def _get_other_fcv(current):
-    """Get a different supported FCV than the current one."""
-    return "8.0" if current != "8.0" else "8.2"
-
-
 # Property [Set Current]: setting the current version succeeds idempotently.
 SET_CURRENT_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -109,26 +97,16 @@ GET_PARAMETER_AFTER_CHANGE_TESTS: list[CommandTestCase] = [
 ]
 
 
-def _resolve_fcv_placeholders(command_dict, **replacements):
-    """Replace FCV placeholders in a command dict."""
-    resolved = {}
-    for k, v in command_dict.items():
-        if isinstance(v, str) and v in replacements:
-            resolved[k] = replacements[v]
-        else:
-            resolved[k] = v
-    return resolved
-
-
 @pytest.mark.parametrize("test", pytest_params(SET_CURRENT_TESTS))
 def test_setFeatureCompatibilityVersion_set_current(database_client, collection, test):
     """Test setFeatureCompatibilityVersion succeeds when setting the current version."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    current_fcv = _get_fcv(collection)
-    cmd = _resolve_fcv_placeholders(test.build_command(ctx), CURRENT_FCV=current_fcv)
-    _set_fcv(collection, current_fcv)
-    result = execute_admin_command(collection, cmd)
+    fcv = _get_fcv(collection)
+    execute_admin_command(collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True})
+    result = execute_admin_command(
+        collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
+    )
     assertResult(
         result,
         expected=test.build_expected(ctx),
@@ -143,8 +121,8 @@ def test_setFeatureCompatibilityVersion_getParameter(database_client, collection
     """Test getParameter reads back the current FCV."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    current_fcv = _get_fcv(collection)
-    _set_fcv(collection, current_fcv)
+    fcv = _get_fcv(collection)
+    execute_admin_command(collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True})
     result = execute_admin_command(collection, test.build_command(ctx))
     assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
 
@@ -155,8 +133,9 @@ def test_setFeatureCompatibilityVersion_downgrade(database_client, collection, t
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     original = _get_fcv(collection)
-    other = _get_other_fcv(original)
-    cmd = _resolve_fcv_placeholders(test.build_command(ctx), OTHER_FCV=other)
+    other = "8.0" if original != "8.0" else "8.2"
+    cmd = test.build_command(ctx)
+    cmd["setFeatureCompatibilityVersion"] = other
     result = execute_admin_command(collection, cmd)
     assertResult(
         result,
@@ -165,7 +144,7 @@ def test_setFeatureCompatibilityVersion_downgrade(database_client, collection, t
         msg=test.msg,
         raw_res=True,
     )
-    _set_fcv(collection, original)
+    execute_admin_command(collection, {"setFeatureCompatibilityVersion": original, "confirm": True})
 
 
 @pytest.mark.parametrize("test", pytest_params(UPGRADE_TESTS))
@@ -174,9 +153,10 @@ def test_setFeatureCompatibilityVersion_upgrade(database_client, collection, tes
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     original = _get_fcv(collection)
-    other = _get_other_fcv(original)
-    _set_fcv(collection, other)
-    cmd = _resolve_fcv_placeholders(test.build_command(ctx), ORIGINAL_FCV=original)
+    other = "8.0" if original != "8.0" else "8.2"
+    execute_admin_command(collection, {"setFeatureCompatibilityVersion": other, "confirm": True})
+    cmd = test.build_command(ctx)
+    cmd["setFeatureCompatibilityVersion"] = original
     result = execute_admin_command(collection, cmd)
     assertResult(
         result,
@@ -195,9 +175,9 @@ def test_setFeatureCompatibilityVersion_getParameter_reflects_change(
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     original = _get_fcv(collection)
-    other = _get_other_fcv(original)
-    _set_fcv(collection, other)
+    other = "8.0" if original != "8.0" else "8.2"
+    execute_admin_command(collection, {"setFeatureCompatibilityVersion": other, "confirm": True})
     result = execute_admin_command(collection, test.build_command(ctx))
     expected = {"ok": 1.0, "featureCompatibilityVersion": {"version": other}}
     assertSuccessPartial(result, expected, msg=test.msg)
-    _set_fcv(collection, original)
+    execute_admin_command(collection, {"setFeatureCompatibilityVersion": original, "confirm": True})

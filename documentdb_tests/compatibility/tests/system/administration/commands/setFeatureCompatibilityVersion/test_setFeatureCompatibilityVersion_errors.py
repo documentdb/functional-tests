@@ -40,7 +40,6 @@ def _get_fcv(collection):
 ADMIN_DB_ACCEPTED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "admin_db_accepted",
-        command=lambda ctx: {"setFeatureCompatibilityVersion": "CURRENT_FCV", "confirm": True},
         expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should succeed on the admin database",
     ),
@@ -51,7 +50,6 @@ ADMIN_DB_ACCEPTED_TESTS: list[CommandTestCase] = [
 USER_DB_REJECTED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "user_db_rejected",
-        command=lambda ctx: {"setFeatureCompatibilityVersion": "CURRENT_FCV", "confirm": True},
         error_code=UNAUTHORIZED_ERROR,
         msg="setFeatureCompatibilityVersion should reject execution on a user database",
     ),
@@ -107,18 +105,15 @@ ERROR_CODE_TESTS: list[CommandTestCase] = [
 ]
 
 
-def _resolve_fcv(command_dict, current_fcv):
-    """Replace the CURRENT_FCV placeholder in a command dict."""
-    return {k: current_fcv if v == "CURRENT_FCV" else v for k, v in command_dict.items()}
-
-
 @pytest.mark.parametrize("test", pytest_params(ADMIN_DB_ACCEPTED_TESTS))
 def test_setFeatureCompatibilityVersion_admin_db_accepted(database_client, collection, test):
     """Test setFeatureCompatibilityVersion succeeds on the admin database."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    cmd = _resolve_fcv(test.build_command(ctx), _get_fcv(collection))
-    result = execute_admin_command(collection, cmd)
+    fcv = _get_fcv(collection)
+    result = execute_admin_command(
+        collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
+    )
     assertResult(
         result,
         expected=test.build_expected(ctx),
@@ -133,8 +128,8 @@ def test_setFeatureCompatibilityVersion_user_db_rejected(database_client, collec
     """Test setFeatureCompatibilityVersion fails on a user database."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    cmd = _resolve_fcv(test.build_command(ctx), _get_fcv(collection))
-    result = execute_command(collection, cmd)
+    fcv = _get_fcv(collection)
+    result = execute_command(collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True})
     assertResult(
         result,
         expected=test.build_expected(ctx),
@@ -149,7 +144,8 @@ def test_setFeatureCompatibilityVersion_unrecognized_field(database_client, coll
     """Test setFeatureCompatibilityVersion rejects unrecognized fields."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    cmd = _resolve_fcv(test.build_command(ctx), _get_fcv(collection))
+    cmd = test.build_command(ctx)
+    cmd["setFeatureCompatibilityVersion"] = _get_fcv(collection)
     result = execute_admin_command(collection, cmd)
     assertResult(
         result,
