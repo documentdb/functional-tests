@@ -6,7 +6,11 @@ response structure, and setParameter rejection.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    CommandContext,
+    CommandTestCase,
+)
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     FCV_INVALID_VERSION_ERROR,
     ILLEGAL_OPERATION_ERROR,
@@ -14,6 +18,7 @@ from documentdb_tests.framework.error_codes import (
     UNRECOGNIZED_COMMAND_FIELD_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
@@ -31,88 +36,155 @@ def _get_fcv(collection):
     return str(fcv_data)
 
 
-def test_setFeatureCompatibilityVersion_on_admin_db_accepted(collection):
-    """Test setFeatureCompatibilityVersion succeeds on the admin database."""
-    current_fcv = _get_fcv(collection)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": current_fcv, "confirm": True}
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
+# Property [Admin DB Accepted]: setFeatureCompatibilityVersion succeeds on the admin database.
+ADMIN_DB_ACCEPTED_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "admin_db_accepted",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "CURRENT_FCV", "confirm": True},
+        expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should succeed on the admin database",
-    )
+    ),
+]
 
 
-def test_setFeatureCompatibilityVersion_on_user_db_fails(collection):
-    """Test setFeatureCompatibilityVersion fails on a user database."""
-    current_fcv = _get_fcv(collection)
-    result = execute_command(
-        collection, {"setFeatureCompatibilityVersion": current_fcv, "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        UNAUTHORIZED_ERROR,
+# Property [User DB Rejected]: setFeatureCompatibilityVersion fails on a user database.
+USER_DB_REJECTED_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "user_db_rejected",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "CURRENT_FCV", "confirm": True},
+        error_code=UNAUTHORIZED_ERROR,
         msg="setFeatureCompatibilityVersion should reject execution on a user database",
-    )
+    ),
+]
 
 
-def test_setFeatureCompatibilityVersion_unrecognized_field_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects an unrecognized top-level field."""
-    current_fcv = _get_fcv(collection)
-    result = execute_admin_command(
-        collection,
-        {
-            "setFeatureCompatibilityVersion": current_fcv,
+# Property [Unrecognized Fields]: setFeatureCompatibilityVersion rejects unrecognized fields.
+UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "unrecognized_field",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "CURRENT_FCV",
             "confirm": True,
             "unknownField": 1,
         },
-    )
-    assertFailureCode(
-        result,
-        UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="setFeatureCompatibilityVersion should reject unrecognized fields",
-    )
-
-
-def test_setFeatureCompatibilityVersion_misspelled_confirm_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects a misspelled confirm field."""
-    current_fcv = _get_fcv(collection)
-    result = execute_admin_command(
-        collection,
-        {
-            "setFeatureCompatibilityVersion": current_fcv,
+    ),
+    CommandTestCase(
+        "misspelled_confirm",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "CURRENT_FCV",
             "confrim": True,
         },
-    )
-    assertFailureCode(
-        result,
-        UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="setFeatureCompatibilityVersion should reject misspelled 'confrim' as unknown field",
-    )
+    ),
+]
 
 
-def test_setFeatureCompatibilityVersion_via_setParameter_rejected(collection):
-    """Test setFeatureCompatibilityVersion cannot be set through setParameter."""
-    result = execute_admin_command(
-        collection,
-        {"setParameter": 1, "featureCompatibilityVersion": "8.0"},
-    )
-    assertFailureCode(
-        result,
-        ILLEGAL_OPERATION_ERROR,
+# Property [setParameter Rejected]: FCV cannot be set through setParameter.
+SET_PARAMETER_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "via_setParameter",
+        command=lambda ctx: {"setParameter": 1, "featureCompatibilityVersion": "8.0"},
+        error_code=ILLEGAL_OPERATION_ERROR,
         msg="setFeatureCompatibilityVersion should not be settable via setParameter",
-    )
+    ),
+]
 
 
-def test_setFeatureCompatibilityVersion_error_contains_code(collection):
-    """Test setFeatureCompatibilityVersion error response contains a numeric code."""
-    result = execute_admin_command(
-        collection,
-        {"setFeatureCompatibilityVersion": "invalid_version", "confirm": True},
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+# Property [Error Contains Code]: error response contains a numeric code.
+ERROR_CODE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "invalid_version_error_code",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "invalid_version",
+            "confirm": True,
+        },
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should return a numeric error code for invalid version",
+    ),
+]
+
+
+def _resolve_fcv(command_dict, current_fcv):
+    """Replace the CURRENT_FCV placeholder in a command dict."""
+    return {k: current_fcv if v == "CURRENT_FCV" else v for k, v in command_dict.items()}
+
+
+@pytest.mark.parametrize("test", pytest_params(ADMIN_DB_ACCEPTED_TESTS))
+def test_setFeatureCompatibilityVersion_admin_db_accepted(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion succeeds on the admin database."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    cmd = _resolve_fcv(test.build_command(ctx), _get_fcv(collection))
+    result = execute_admin_command(collection, cmd)
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
+    )
+
+
+@pytest.mark.parametrize("test", pytest_params(USER_DB_REJECTED_TESTS))
+def test_setFeatureCompatibilityVersion_user_db_rejected(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion fails on a user database."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    cmd = _resolve_fcv(test.build_command(ctx), _get_fcv(collection))
+    result = execute_command(collection, cmd)
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
+    )
+
+
+@pytest.mark.parametrize("test", pytest_params(UNRECOGNIZED_FIELD_TESTS))
+def test_setFeatureCompatibilityVersion_unrecognized_field(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion rejects unrecognized fields."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    cmd = _resolve_fcv(test.build_command(ctx), _get_fcv(collection))
+    result = execute_admin_command(collection, cmd)
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
+    )
+
+
+@pytest.mark.parametrize("test", pytest_params(SET_PARAMETER_TESTS))
+def test_setFeatureCompatibilityVersion_set_parameter_rejected(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion cannot be set through setParameter."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_admin_command(collection, test.build_command(ctx))
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
+    )
+
+
+@pytest.mark.parametrize("test", pytest_params(ERROR_CODE_TESTS))
+def test_setFeatureCompatibilityVersion_error_code(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion error response contains a numeric code."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_admin_command(collection, test.build_command(ctx))
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
     )

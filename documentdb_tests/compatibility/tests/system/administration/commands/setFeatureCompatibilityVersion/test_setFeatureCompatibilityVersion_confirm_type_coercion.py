@@ -7,9 +7,14 @@ recording coercion behavior (accepted-as-true vs rejected/treated-as-false).
 import pytest
 from bson import Decimal128, Int64
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    CommandContext,
+    CommandTestCase,
+)
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import FCV_CONFIRM_REQUIRED_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
@@ -39,223 +44,202 @@ def _get_other_fcv(current):
     return "8.0" if current != "8.0" else "8.2"
 
 
-def test_setFeatureCompatibilityVersion_confirm_int_1_coercion(collection):
-    """Test setFeatureCompatibilityVersion accepts confirm=1 (int32) as true."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": target, "confirm": 1}
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
+# Property [Truthy Coercion]: confirm field accepts truthy numeric values.
+CONFIRM_TRUTHY_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "int_1",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": 1},
+        expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should accept confirm=1 (int) as true",
-    )
-    _set_fcv(collection, current)
-
-
-def test_setFeatureCompatibilityVersion_confirm_int_0_coercion(collection):
-    """Test setFeatureCompatibilityVersion treats confirm=0 (int32) as false."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": target, "confirm": 0}
-    )
-    assertFailureCode(
-        result,
-        FCV_CONFIRM_REQUIRED_ERROR,
-        msg="setFeatureCompatibilityVersion should treat confirm=0 as false",
-    )
-
-
-def test_setFeatureCompatibilityVersion_confirm_double_1_coercion(collection):
-    """Test setFeatureCompatibilityVersion accepts confirm=1.0 (double) as true."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": target, "confirm": 1.0}
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
+    ),
+    CommandTestCase(
+        "double_1",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": 1.0},
+        expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should accept confirm=1.0 (double) as true",
-    )
-    _set_fcv(collection, current)
-
-
-def test_setFeatureCompatibilityVersion_confirm_double_0_coercion(collection):
-    """Test setFeatureCompatibilityVersion treats confirm=0.0 (double) as false."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": target, "confirm": 0.0}
-    )
-    assertFailureCode(
-        result,
-        FCV_CONFIRM_REQUIRED_ERROR,
-        msg="setFeatureCompatibilityVersion should treat confirm=0.0 as false",
-    )
-
-
-def test_setFeatureCompatibilityVersion_confirm_long_1_coercion(collection):
-    """Test setFeatureCompatibilityVersion accepts confirm=Int64(1) as true."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": target, "confirm": Int64(1)}
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
+    ),
+    CommandTestCase(
+        "long_1",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": Int64(1),
+        },
+        expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should accept confirm=Int64(1) as true",
-    )
-    _set_fcv(collection, current)
-
-
-def test_setFeatureCompatibilityVersion_confirm_long_0_coercion(collection):
-    """Test setFeatureCompatibilityVersion treats confirm=Int64(0) as false."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": target, "confirm": Int64(0)}
-    )
-    assertFailureCode(
-        result,
-        FCV_CONFIRM_REQUIRED_ERROR,
-        msg="setFeatureCompatibilityVersion should treat confirm=Int64(0) as false",
-    )
-
-
-def test_setFeatureCompatibilityVersion_confirm_decimal_1_coercion(collection):
-    """Test setFeatureCompatibilityVersion accepts confirm=Decimal128('1') as true."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection,
-        {"setFeatureCompatibilityVersion": target, "confirm": Decimal128("1")},
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
+    ),
+    CommandTestCase(
+        "decimal_1",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": Decimal128("1"),
+        },
+        expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should accept confirm=Decimal128('1') as true",
-    )
-    _set_fcv(collection, current)
-
-
-def test_setFeatureCompatibilityVersion_confirm_decimal_0_coercion(collection):
-    """Test setFeatureCompatibilityVersion treats confirm=Decimal128('0') as false."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection,
-        {"setFeatureCompatibilityVersion": target, "confirm": Decimal128("0")},
-    )
-    assertFailureCode(
-        result,
-        FCV_CONFIRM_REQUIRED_ERROR,
-        msg="setFeatureCompatibilityVersion should treat confirm=Decimal128('0') as false",
-    )
-
-
-def test_setFeatureCompatibilityVersion_confirm_null_coercion(collection):
-    """Test setFeatureCompatibilityVersion treats confirm=null as not-true."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": target, "confirm": None}
-    )
-    assertFailureCode(
-        result,
-        FCV_CONFIRM_REQUIRED_ERROR,
-        msg="setFeatureCompatibilityVersion should treat confirm=null as not-true",
-    )
-
-
-def test_setFeatureCompatibilityVersion_confirm_negative_zero_coercion(collection):
-    """Test setFeatureCompatibilityVersion treats confirm=-0.0 as false."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": target, "confirm": -0.0}
-    )
-    assertFailureCode(
-        result,
-        FCV_CONFIRM_REQUIRED_ERROR,
-        msg="setFeatureCompatibilityVersion should treat confirm=-0.0 as false",
-    )
-
-
-def test_setFeatureCompatibilityVersion_confirm_nan_coercion(collection):
-    """Test setFeatureCompatibilityVersion accepts confirm=NaN as true."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection,
-        {"setFeatureCompatibilityVersion": target, "confirm": float("nan")},
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
+    ),
+    CommandTestCase(
+        "nan",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": float("nan"),
+        },
+        expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should accept confirm=NaN as true",
-    )
-    _set_fcv(collection, current)
-
-
-def test_setFeatureCompatibilityVersion_confirm_infinity_coercion(collection):
-    """Test setFeatureCompatibilityVersion accepts confirm=Infinity as true."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection,
-        {"setFeatureCompatibilityVersion": target, "confirm": float("inf")},
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
+    ),
+    CommandTestCase(
+        "infinity",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": float("inf"),
+        },
+        expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should accept confirm=Infinity as true",
+    ),
+]
+
+
+# Property [Falsy Coercion]: confirm field treats falsy values as false,
+# requiring confirm to be truthy.
+CONFIRM_FALSY_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "int_0",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": 0},
+        error_code=FCV_CONFIRM_REQUIRED_ERROR,
+        msg="setFeatureCompatibilityVersion should treat confirm=0 as false",
+    ),
+    CommandTestCase(
+        "double_0",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": 0.0},
+        error_code=FCV_CONFIRM_REQUIRED_ERROR,
+        msg="setFeatureCompatibilityVersion should treat confirm=0.0 as false",
+    ),
+    CommandTestCase(
+        "long_0",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": Int64(0),
+        },
+        error_code=FCV_CONFIRM_REQUIRED_ERROR,
+        msg="setFeatureCompatibilityVersion should treat confirm=Int64(0) as false",
+    ),
+    CommandTestCase(
+        "decimal_0",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": Decimal128("0"),
+        },
+        error_code=FCV_CONFIRM_REQUIRED_ERROR,
+        msg="setFeatureCompatibilityVersion should treat confirm=Decimal128('0') as false",
+    ),
+    CommandTestCase(
+        "null",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": None},
+        error_code=FCV_CONFIRM_REQUIRED_ERROR,
+        msg="setFeatureCompatibilityVersion should treat confirm=null as not-true",
+    ),
+    CommandTestCase(
+        "negative_zero",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": -0.0},
+        error_code=FCV_CONFIRM_REQUIRED_ERROR,
+        msg="setFeatureCompatibilityVersion should treat confirm=-0.0 as false",
+    ),
+]
+
+
+# Property [Type Rejected]: confirm field rejects non-numeric, non-bool types.
+CONFIRM_TYPE_REJECTED_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "string",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": "true",
+        },
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="setFeatureCompatibilityVersion should reject confirm as string type",
+    ),
+    CommandTestCase(
+        "object",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": {"a": 1},
+        },
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="setFeatureCompatibilityVersion should reject confirm as object type",
+    ),
+    CommandTestCase(
+        "array",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": [True],
+        },
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="setFeatureCompatibilityVersion should reject confirm as array type",
+    ),
+]
+
+
+def _resolve_fcv_placeholders(command_dict, current_fcv, other_fcv):
+    """Replace FCV placeholders in a command dict."""
+    resolved = {}
+    for k, v in command_dict.items():
+        if v == "CURRENT_FCV":
+            resolved[k] = current_fcv
+        elif v == "OTHER_FCV":
+            resolved[k] = other_fcv
+        else:
+            resolved[k] = v
+    return resolved
+
+
+@pytest.mark.parametrize("test", pytest_params(CONFIRM_TRUTHY_TESTS))
+def test_setFeatureCompatibilityVersion_confirm_truthy(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion accepts truthy confirm values."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    current = _get_fcv(collection)
+    other = _get_other_fcv(current)
+    cmd = _resolve_fcv_placeholders(test.build_command(ctx), current, other)
+    result = execute_admin_command(collection, cmd)
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
     )
     _set_fcv(collection, current)
 
 
-def test_setFeatureCompatibilityVersion_confirm_string_coercion(collection):
-    """Test setFeatureCompatibilityVersion rejects confirm='true' (string)."""
+@pytest.mark.parametrize("test", pytest_params(CONFIRM_FALSY_TESTS))
+def test_setFeatureCompatibilityVersion_confirm_falsy(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion treats falsy confirm values as false."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
     current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": target, "confirm": "true"}
-    )
-    assertFailureCode(
+    other = _get_other_fcv(current)
+    cmd = _resolve_fcv_placeholders(test.build_command(ctx), current, other)
+    result = execute_admin_command(collection, cmd)
+    assertResult(
         result,
-        TYPE_MISMATCH_ERROR,
-        msg="setFeatureCompatibilityVersion should reject confirm as string type",
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
     )
 
 
-def test_setFeatureCompatibilityVersion_confirm_object_coercion(collection):
-    """Test setFeatureCompatibilityVersion rejects confirm as object."""
+@pytest.mark.parametrize("test", pytest_params(CONFIRM_TYPE_REJECTED_TESTS))
+def test_setFeatureCompatibilityVersion_confirm_type_rejected(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion rejects non-numeric, non-bool confirm types."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
     current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection,
-        {"setFeatureCompatibilityVersion": target, "confirm": {"a": 1}},
-    )
-    assertFailureCode(
+    other = _get_other_fcv(current)
+    cmd = _resolve_fcv_placeholders(test.build_command(ctx), current, other)
+    result = execute_admin_command(collection, cmd)
+    assertResult(
         result,
-        TYPE_MISMATCH_ERROR,
-        msg="setFeatureCompatibilityVersion should reject confirm as object type",
-    )
-
-
-def test_setFeatureCompatibilityVersion_confirm_array_coercion(collection):
-    """Test setFeatureCompatibilityVersion rejects confirm as array."""
-    current = _get_fcv(collection)
-    target = _get_other_fcv(current)
-    result = execute_admin_command(
-        collection,
-        {"setFeatureCompatibilityVersion": target, "confirm": [True]},
-    )
-    assertFailureCode(
-        result,
-        TYPE_MISMATCH_ERROR,
-        msg="setFeatureCompatibilityVersion should reject confirm as array type",
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
     )

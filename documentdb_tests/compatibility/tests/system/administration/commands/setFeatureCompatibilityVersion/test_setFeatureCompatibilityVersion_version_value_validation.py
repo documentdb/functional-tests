@@ -6,9 +6,14 @@ edge-case string values.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    CommandContext,
+    CommandTestCase,
+)
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import FCV_INVALID_VERSION_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
@@ -26,161 +31,130 @@ def _get_fcv(collection):
     return str(fcv_data)
 
 
-def test_setFeatureCompatibilityVersion_value_below_floor_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects a version below the supported floor."""
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": "3.0", "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+# Property [Invalid Version Rejected]: setFeatureCompatibilityVersion rejects
+# unsupported, malformed, and edge-case version strings.
+VERSION_VALUE_REJECTION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "below_floor",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "3.0", "confirm": True},
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject version below supported floor",
-    )
-
-
-def test_setFeatureCompatibilityVersion_value_above_max_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects a version above the supported max."""
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": "99.0", "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "above_max",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "99.0", "confirm": True},
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject version above supported max",
-    )
-
-
-def test_setFeatureCompatibilityVersion_major_only_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects a major-only version string."""
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": "8", "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "major_only",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "8", "confirm": True},
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject major-only version string",
-    )
-
-
-def test_setFeatureCompatibilityVersion_full_semver_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects a full semver string."""
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": "8.0.0", "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "full_semver",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "8.0.0", "confirm": True},
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject full semver version string",
-    )
-
-
-def test_setFeatureCompatibilityVersion_leading_whitespace_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects a version with leading whitespace."""
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": " 7.0", "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "leading_whitespace",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": " 7.0", "confirm": True},
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject version with leading whitespace",
-    )
-
-
-def test_setFeatureCompatibilityVersion_trailing_whitespace_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects a version with trailing whitespace."""
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": "7.0 ", "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "trailing_whitespace",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "7.0 ", "confirm": True},
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject version with trailing whitespace",
-    )
-
-
-def test_setFeatureCompatibilityVersion_empty_string_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects an empty string."""
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": "", "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "empty_string",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "", "confirm": True},
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject empty string version",
-    )
-
-
-def test_setFeatureCompatibilityVersion_zero_version_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects '0.0' as unsupported."""
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": "0.0", "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "zero_version",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "0.0", "confirm": True},
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject '0.0' as unsupported",
-    )
-
-
-def test_setFeatureCompatibilityVersion_future_version_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects a future unsupported version."""
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": "10.0", "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "future_version",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "10.0", "confirm": True},
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject future unsupported version",
-    )
-
-
-def test_setFeatureCompatibilityVersion_non_ascii_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects non-ASCII digit characters."""
-    result = execute_admin_command(
-        collection,
-        {"setFeatureCompatibilityVersion": "\uff18.\uff10", "confirm": True},
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "non_ascii",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "\uff18.\uff10",
+            "confirm": True,
+        },
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject non-ASCII version string",
-    )
-
-
-def test_setFeatureCompatibilityVersion_very_long_string_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects a very long string."""
-    result = execute_admin_command(
-        collection,
-        {"setFeatureCompatibilityVersion": "8" * 10_000, "confirm": True},
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "very_long_string",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "8" * 10_000,
+            "confirm": True,
+        },
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject a very long version string",
-    )
-
-
-def test_setFeatureCompatibilityVersion_intermediate_value_rejected(collection):
-    """Test setFeatureCompatibilityVersion rejects an intermediate version value."""
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": "7.5", "confirm": True}
-    )
-    assertFailureCode(
-        result,
-        FCV_INVALID_VERSION_ERROR,
+    ),
+    CommandTestCase(
+        "intermediate_value",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "7.5", "confirm": True},
+        error_code=FCV_INVALID_VERSION_ERROR,
         msg="setFeatureCompatibilityVersion should reject intermediate version value",
-    )
+    ),
+]
 
 
-def test_setFeatureCompatibilityVersion_current_version_accepted(collection):
-    """Test setFeatureCompatibilityVersion accepts the current binary version."""
-    current_fcv = _get_fcv(collection)
-    result = execute_admin_command(
-        collection,
-        {"setFeatureCompatibilityVersion": current_fcv, "confirm": True},
-    )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
+# Property [Current Version Accepted]: setFeatureCompatibilityVersion accepts
+# the current binary version.
+CURRENT_VERSION_ACCEPTED_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "current_version",
+        command=lambda ctx: {"setFeatureCompatibilityVersion": "CURRENT_FCV", "confirm": True},
+        expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should accept the current binary version",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(VERSION_VALUE_REJECTION_TESTS))
+def test_setFeatureCompatibilityVersion_version_value_rejected(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion rejects invalid version values."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_admin_command(collection, test.build_command(ctx))
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
+    )
+
+
+@pytest.mark.parametrize("test", pytest_params(CURRENT_VERSION_ACCEPTED_TESTS))
+def test_setFeatureCompatibilityVersion_current_version_accepted(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion accepts the current binary version."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    current_fcv = _get_fcv(collection)
+    cmd = test.build_command(ctx)
+    cmd = {k: current_fcv if v == "CURRENT_FCV" else v for k, v in cmd.items()}
+    result = execute_admin_command(collection, cmd)
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
     )
