@@ -13,7 +13,7 @@ import pytest
 
 from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
-from documentdb_tests.framework.property_checks import Exists, Gte, IsType
+from documentdb_tests.framework.property_checks import Gte, IsType
 
 pytestmark = pytest.mark.admin
 
@@ -34,9 +34,14 @@ def test_top_counters_non_decreasing_count(collection):
     collection.insert_one({"_id": 1})
     ns = f"{collection.database.name}.{collection.name}"
     result1 = execute_admin_command(collection, {"top": 1})
-    count1 = result1["totals"][ns]["total"]["count"]
+    ns_data1 = result1["totals"].get(ns)
+    if ns_data1 is None:
+        raise AssertionError(f"Namespace {ns} not found in first top call")
+    count1 = ns_data1["total"]["count"]
     result2 = execute_admin_command(collection, {"top": 1})
-    ns_data2 = result2["totals"][ns]
+    ns_data2 = result2["totals"].get(ns)
+    if ns_data2 is None:
+        raise AssertionError(f"Namespace {ns} not found in second top call")
     assertProperties(
         ns_data2,
         {"total.count": Gte(count1)},
@@ -50,9 +55,14 @@ def test_top_counters_non_decreasing_time(collection):
     collection.insert_one({"_id": 1})
     ns = f"{collection.database.name}.{collection.name}"
     result1 = execute_admin_command(collection, {"top": 1})
-    time1 = result1["totals"][ns]["total"]["time"]
+    ns_data1 = result1["totals"].get(ns)
+    if ns_data1 is None:
+        raise AssertionError(f"Namespace {ns} not found in first top call")
+    time1 = ns_data1["total"]["time"]
     result2 = execute_admin_command(collection, {"top": 1})
-    ns_data2 = result2["totals"][ns]
+    ns_data2 = result2["totals"].get(ns)
+    if ns_data2 is None:
+        raise AssertionError(f"Namespace {ns} not found in second top call")
     assertProperties(
         ns_data2,
         {"total.time": Gte(time1)},
@@ -70,9 +80,11 @@ def test_top_newly_created_collection_appears(collection):
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
     ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     assertProperties(
-        {"ns_entry": ns_data},
-        {"ns_entry": Exists()},
+        ns_data,
+        {"total": IsType("object")},
         msg=f"Namespace {ns} should appear in top totals",
         raw_res=True,
     )
@@ -88,9 +100,15 @@ def test_top_multiple_collections_appear(collection):
     result = execute_admin_command(coll1, {"top": 1})
     ns1 = f"{db.name}.{coll1.name}"
     ns2 = f"{db.name}.{coll2.name}"
+    ns1_data = result["totals"].get(ns1)
+    ns2_data = result["totals"].get(ns2)
+    if ns1_data is None:
+        raise AssertionError(f"Namespace {ns1} not found in top totals")
+    if ns2_data is None:
+        raise AssertionError(f"Namespace {ns2} not found in top totals")
     assertProperties(
-        {"ns1": result["totals"].get(ns1), "ns2": result["totals"].get(ns2)},
-        {"ns1": Exists(), "ns2": Exists()},
+        {"ns1": ns1_data, "ns2": ns2_data},
+        {"ns1": IsType("object"), "ns2": IsType("object")},
         msg="Both namespaces should appear in top totals",
         raw_res=True,
     )
@@ -129,7 +147,9 @@ def test_top_tracks_capped_collection(collection):
     coll.insert_one({"_id": 1})
     result = execute_admin_command(coll, {"top": 1})
     ns = f"{db.name}.{coll.name}"
-    ns_data = result["totals"][ns]
+    ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     assertProperties(
         ns_data,
         {"total": IsType("object"), "total.time": Gte(0), "total.count": Gte(0)},
@@ -148,9 +168,11 @@ def test_top_tracks_view(collection):
     result = execute_admin_command(source_coll, {"top": 1})
     view_ns = f"{db.name}.{view_name}"
     view_data = result["totals"].get(view_ns)
+    if view_data is None:
+        raise AssertionError(f"Namespace {view_ns} not found in top totals")
     assertProperties(
-        {"ns_entry": view_data},
-        {"ns_entry": Exists()},
+        view_data,
+        {"total": IsType("object")},
         msg=f"View namespace {view_ns} should appear in top totals",
         raw_res=True,
     )

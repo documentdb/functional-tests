@@ -110,5 +110,7 @@ def test_top_event_field_structure(collection, test):
     collection.insert_one({"_id": "event_structure_probe"})
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
+    ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     assertProperties(ns_data, test.checks, msg=test.msg, raw_res=True)

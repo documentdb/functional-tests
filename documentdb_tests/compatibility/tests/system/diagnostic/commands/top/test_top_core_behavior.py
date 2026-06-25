@@ -45,7 +45,9 @@ def test_top_after_inserts(collection, test):
     collection.insert_many([{"_id": i} for i in range(10)])
     result = execute_admin_command(collection, test.command)
     ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
+    ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     assertProperties(ns_data, test.checks, msg=test.msg, raw_res=True)
 
 
@@ -79,7 +81,9 @@ def test_top_after_query(collection, test):
     list(collection.find())
     result = execute_admin_command(collection, test.command)
     ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
+    ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     assertProperties(ns_data, test.checks, msg=test.msg, raw_res=True)
 
 
@@ -101,7 +105,9 @@ def test_top_after_update(collection, test):
     collection.update_one({"_id": 1}, {"$set": {"a": 2}})
     result = execute_admin_command(collection, test.command)
     ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
+    ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     assertProperties(ns_data, test.checks, msg=test.msg, raw_res=True)
 
 
@@ -123,7 +129,9 @@ def test_top_after_remove(collection, test):
     collection.delete_one({"_id": 1})
     result = execute_admin_command(collection, test.command)
     ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
+    ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     assertProperties(ns_data, test.checks, msg=test.msg, raw_res=True)
 
 
@@ -138,7 +146,9 @@ def test_top_readLock_count_gte_queries_count(collection):
     collection.delete_one({"_id": 4})
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
+    ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     assertProperties(
         ns_data,
         {"readLock.count": Gte(ns_data["queries"]["count"])},
@@ -155,7 +165,9 @@ def test_top_readLock_time_gte_queries_time(collection):
     collection.delete_one({"_id": 4})
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
+    ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     assertProperties(
         ns_data,
         {"readLock.time": Gte(ns_data["queries"]["time"])},
@@ -172,7 +184,9 @@ def test_top_writeLock_count_gte_insert_update_remove(collection):
     collection.delete_one({"_id": 4})
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
+    ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     write_sum = ns_data["insert"]["count"] + ns_data["update"]["count"] + ns_data["remove"]["count"]
     assertProperties(
         ns_data,
@@ -190,7 +204,9 @@ def test_top_writeLock_time_gte_insert_update_remove(collection):
     collection.delete_one({"_id": 4})
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"][ns]
+    ns_data = result["totals"].get(ns)
+    if ns_data is None:
+        raise AssertionError(f"Namespace {ns} not found in top totals")
     write_sum = ns_data["insert"]["time"] + ns_data["update"]["time"] + ns_data["remove"]["time"]
     assertProperties(
         ns_data,
