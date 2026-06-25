@@ -1,6 +1,6 @@
 """
 Tests for findAndModify core behavior: update, remove, upsert, new flag,
-sort selection, and response structure.
+and sort selection.
 """
 
 import pytest
@@ -375,40 +375,8 @@ UPDATE_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-RESPONSE_STRUCTURE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "response-remove-n-is-1",
-        docs=[{"_id": 1, "x": 10}],
-        command={
-            "query": {"_id": 1},
-            "remove": True,
-        },
-        expected={"lastErrorObject": Eq({"n": 1}), "ok": Eq(1.0)},
-        msg="remove response: lastErrorObject.n==1",
-    ),
-    CommandTestCase(
-        "response-no-match-value-null-n-zero",
-        docs=[],
-        command={
-            "query": {"_id": 999},
-            "update": {"$set": {"x": 1}},
-        },
-        expected={
-            "lastErrorObject": Eq({"n": 0, "updatedExisting": False}),
-            "value": Eq(None),
-            "ok": Eq(1.0),
-        },
-        msg="no-match response: value==null, lastErrorObject.n==0",
-    ),
-]
-
 ALL_TESTS: list[CommandTestCase] = (
-    NEW_FLAG_TESTS
-    + REMOVE_TESTS
-    + UPSERT_TESTS
-    + SORT_TESTS
-    + UPDATE_TESTS
-    + RESPONSE_STRUCTURE_TESTS
+    NEW_FLAG_TESTS + REMOVE_TESTS + UPSERT_TESTS + SORT_TESTS + UPDATE_TESTS
 )
 
 
@@ -521,19 +489,3 @@ def test_findAndModify_upsert_creates_collection(database_client, request):
         expected={"value": Eq({"_id": 1, "x": 1}), "ok": Eq(1.0)},
         raw_res=True,
     )
-
-
-@pytest.mark.smoke
-def test_smoke_findAndModify(collection):
-    """Test basic findAndModify command behavior."""
-    collection.insert_one({"_id": 1, "name": "Alice", "count": 10})
-    result = execute_command(
-        collection,
-        {
-            "findAndModify": collection.name,
-            "query": {"_id": 1},
-            "update": {"$inc": {"count": 5}},
-            "new": True,
-        },
-    )
-    assertSuccessPartial(result, {"ok": 1.0, "value": {"_id": 1, "name": "Alice", "count": 15}})

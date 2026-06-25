@@ -6,6 +6,8 @@ parameters and accepts valid types.
 """
 
 import pytest
+from bson import Int64
+from bson.decimal128 import Decimal128
 
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
 from documentdb_tests.framework.bson_type_validator import (
@@ -131,9 +133,9 @@ BSON_PARAMS = [
         ],
         valid_inputs={
             BsonType.INT: 100,
-            BsonType.LONG: 100,
+            BsonType.LONG: Int64(100),
             BsonType.DOUBLE: 100.0,
-            BsonType.DECIMAL: 100,
+            BsonType.DECIMAL: Decimal128("100"),
             BsonType.NULL: None,
         },
         default_error_code=TYPE_MISMATCH_ERROR,
