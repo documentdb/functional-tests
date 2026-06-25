@@ -109,6 +109,11 @@ KNOWN_COMMANDS_TESTS: list[DiagnosticTestCase] = [
         checks={"commands.ping": Exists()},
         msg="'ping' should be listed",
     ),
+    DiagnosticTestCase(
+        id="listCommands_present",
+        checks={"commands.listCommands": Exists()},
+        msg="'listCommands' should be listed in its own output",
+    ),
 ]
 
 
