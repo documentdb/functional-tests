@@ -11,6 +11,7 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
+    COMMAND_NOT_FOUND_ERROR,
     UNAUTHORIZED_ERROR,
     UNRECOGNIZED_COMMAND_FIELD_ERROR,
 )
@@ -34,6 +35,13 @@ ERROR_TESTS: list[DiagnosticTestCase] = [
         use_admin=True,
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="Unrecognized field should error",
+    ),
+    DiagnosticTestCase(
+        id="wrong_case",
+        command={"LockInfo": 1},
+        use_admin=True,
+        error_code=COMMAND_NOT_FOUND_ERROR,
+        msg="Command name is case-sensitive; 'LockInfo' should not be found",
     ),
 ]
 
