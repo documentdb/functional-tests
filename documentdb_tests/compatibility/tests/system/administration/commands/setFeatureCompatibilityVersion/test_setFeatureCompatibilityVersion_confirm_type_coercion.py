@@ -16,20 +16,9 @@ from documentdb_tests.framework.error_codes import FCV_CONFIRM_REQUIRED_ERROR, T
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+from .utils.setFeatureCompatibilityVersion_common import get_fcv
+
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
-
-
-def _get_fcv(collection):
-    """Read the current FCV via getParameter."""
-    result = execute_admin_command(
-        collection, {"getParameter": 1, "featureCompatibilityVersion": 1}
-    )
-    if isinstance(result, Exception):
-        return "8.2"
-    fcv_data = result.get("featureCompatibilityVersion", {})
-    if isinstance(fcv_data, dict):
-        return fcv_data.get("version", "8.2")
-    return str(fcv_data)
 
 
 # Property [Truthy Coercion]: confirm field accepts truthy numeric values.
@@ -170,7 +159,7 @@ def test_setFeatureCompatibilityVersion_confirm_truthy(database_client, collecti
     """Test setFeatureCompatibilityVersion accepts truthy confirm values."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    current = _get_fcv(collection)
+    current = get_fcv(collection)
     other = "8.0" if current != "8.0" else "8.2"
     cmd = test.build_command(ctx)
     cmd["setFeatureCompatibilityVersion"] = other
@@ -190,7 +179,7 @@ def test_setFeatureCompatibilityVersion_confirm_falsy(database_client, collectio
     """Test setFeatureCompatibilityVersion treats falsy confirm values as false."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    current = _get_fcv(collection)
+    current = get_fcv(collection)
     other = "8.0" if current != "8.0" else "8.2"
     cmd = test.build_command(ctx)
     cmd["setFeatureCompatibilityVersion"] = other
@@ -209,7 +198,7 @@ def test_setFeatureCompatibilityVersion_confirm_type_rejected(database_client, c
     """Test setFeatureCompatibilityVersion rejects non-numeric, non-bool confirm types."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    current = _get_fcv(collection)
+    current = get_fcv(collection)
     other = "8.0" if current != "8.0" else "8.2"
     cmd = test.build_command(ctx)
     cmd["setFeatureCompatibilityVersion"] = other

@@ -20,20 +20,9 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+from .utils.setFeatureCompatibilityVersion_common import get_fcv
+
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
-
-
-def _get_fcv(collection):
-    """Read the current FCV via getParameter."""
-    result = execute_admin_command(
-        collection, {"getParameter": 1, "featureCompatibilityVersion": 1}
-    )
-    if isinstance(result, Exception):
-        return "8.2"
-    fcv_data = result.get("featureCompatibilityVersion", {})
-    if isinstance(fcv_data, dict):
-        return fcv_data.get("version", "8.2")
-    return str(fcv_data)
 
 
 # Property [Admin DB Accepted]: setFeatureCompatibilityVersion succeeds on the admin database.
@@ -110,7 +99,7 @@ def test_setFeatureCompatibilityVersion_admin_db_accepted(database_client, colle
     """Test setFeatureCompatibilityVersion succeeds on the admin database."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    fcv = _get_fcv(collection)
+    fcv = get_fcv(collection)
     result = execute_admin_command(
         collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
     )
@@ -128,7 +117,7 @@ def test_setFeatureCompatibilityVersion_user_db_rejected(database_client, collec
     """Test setFeatureCompatibilityVersion fails on a user database."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    fcv = _get_fcv(collection)
+    fcv = get_fcv(collection)
     result = execute_command(collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True})
     assertResult(
         result,
@@ -145,7 +134,7 @@ def test_setFeatureCompatibilityVersion_unrecognized_field(database_client, coll
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     cmd = test.build_command(ctx)
-    cmd["setFeatureCompatibilityVersion"] = _get_fcv(collection)
+    cmd["setFeatureCompatibilityVersion"] = get_fcv(collection)
     result = execute_admin_command(collection, cmd)
     assertResult(
         result,
