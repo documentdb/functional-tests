@@ -151,6 +151,31 @@ RESPONSE_FIELD_TESTS: list[CommandTestCase] = [
         expected={"queryPlanner.rejectedPlans": IsType("array")},
         msg="allPlansExecution should contain queryPlanner.rejectedPlans",
     ),
+    # Documentation states explain cannot be run with $out at
+    # executionStats verbosity, but observed behaviour is that the aggregate
+    # explain succeeds: planner/execution stats are nested under the $cursor
+    # stage and the $out stage is reported in the plan, while its write is
+    # silently dropped (not executed), so the output collection is never created.
+    CommandTestCase(
+        id="aggregate_out_execution_stats_silently_drops_out",
+        command=lambda ctx: {
+            "explain": {
+                "aggregate": ctx.collection,
+                "pipeline": [{"$out": f"{ctx.collection}_out"}],
+                "cursor": {},
+            },
+            "verbosity": "executionStats",
+        },
+        expected={
+            "stages.0.$cursor.queryPlanner": Exists(),
+            "stages.0.$cursor.executionStats": Exists(),
+            "stages.1.$out": Exists(),
+        },
+        msg=(
+            "explain with $out at executionStats verbosity should succeed;"
+            " $out is silently dropped"
+        ),
+    ),
 ]
 
 
