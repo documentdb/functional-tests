@@ -237,6 +237,7 @@ COMPACT_READCONCERN_TESTS: list[CommandTestCase] = (
 )
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_READCONCERN_TESTS))
 def test_compact_readconcern(database_client, collection, test):
