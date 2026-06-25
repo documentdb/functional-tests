@@ -20,20 +20,9 @@ from documentdb_tests.framework.error_codes import MISSING_FIELD_ERROR, TYPE_MIS
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+from .utils.setFeatureCompatibilityVersion_common import get_fcv
+
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
-
-
-def _get_fcv(collection):
-    """Read the current FCV via getParameter."""
-    result = execute_admin_command(
-        collection, {"getParameter": 1, "featureCompatibilityVersion": 1}
-    )
-    if isinstance(result, Exception):
-        return "8.2"
-    fcv_data = result.get("featureCompatibilityVersion", {})
-    if isinstance(fcv_data, dict):
-        return fcv_data.get("version", "8.2")
-    return str(fcv_data)
 
 
 VERSION_TYPE_PARAM = [
@@ -93,7 +82,7 @@ def test_setFeatureCompatibilityVersion_version_string_accepted(database_client,
     """Test setFeatureCompatibilityVersion accepts string type for version."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    fcv = _get_fcv(collection)
+    fcv = get_fcv(collection)
     result = execute_admin_command(
         collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
     )

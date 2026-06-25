@@ -9,25 +9,14 @@ import pytest
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 
+from .utils.setFeatureCompatibilityVersion_common import get_fcv
+
 pytestmark = [pytest.mark.smoke, pytest.mark.no_parallel]
-
-
-def _get_fcv(collection):
-    """Read the current FCV via getParameter."""
-    result = execute_admin_command(
-        collection, {"getParameter": 1, "featureCompatibilityVersion": 1}
-    )
-    if isinstance(result, Exception):
-        return "8.2"
-    fcv_data = result.get("featureCompatibilityVersion", {})
-    if isinstance(fcv_data, dict):
-        return fcv_data.get("version", "8.2")
-    return str(fcv_data)
 
 
 def test_smoke_setFeatureCompatibilityVersion(collection):
     """Test basic setFeatureCompatibilityVersion behavior."""
-    original_fcv = _get_fcv(collection)
+    original_fcv = get_fcv(collection)
     new_fcv = "8.0" if original_fcv != "8.0" else "8.2"
     result = execute_admin_command(
         collection, {"setFeatureCompatibilityVersion": new_fcv, "confirm": True}

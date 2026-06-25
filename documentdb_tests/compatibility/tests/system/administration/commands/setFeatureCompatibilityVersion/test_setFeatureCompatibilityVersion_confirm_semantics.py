@@ -15,20 +15,9 @@ from documentdb_tests.framework.error_codes import FCV_CONFIRM_REQUIRED_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+from .utils.setFeatureCompatibilityVersion_common import get_fcv
+
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
-
-
-def _get_fcv(collection):
-    """Read the current FCV via getParameter."""
-    result = execute_admin_command(
-        collection, {"getParameter": 1, "featureCompatibilityVersion": 1}
-    )
-    if isinstance(result, Exception):
-        return "8.2"
-    fcv_data = result.get("featureCompatibilityVersion", {})
-    if isinstance(fcv_data, dict):
-        return fcv_data.get("version", "8.2")
-    return str(fcv_data)
 
 
 # Property [Confirm Required]: confirm:true is required for version changes.
@@ -89,7 +78,7 @@ def test_setFeatureCompatibilityVersion_confirm_true_allows_change(
     """Test setFeatureCompatibilityVersion succeeds with confirm:true."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    original = _get_fcv(collection)
+    original = get_fcv(collection)
     other = "8.0" if original != "8.0" else "8.2"
     cmd = test.build_command(ctx)
     cmd["setFeatureCompatibilityVersion"] = other
@@ -109,7 +98,7 @@ def test_setFeatureCompatibilityVersion_confirm_omitted_fails(database_client, c
     """Test setFeatureCompatibilityVersion fails when confirm is omitted."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    original = _get_fcv(collection)
+    original = get_fcv(collection)
     other = "8.0" if original != "8.0" else "8.2"
     cmd = test.build_command(ctx)
     cmd["setFeatureCompatibilityVersion"] = other
@@ -128,7 +117,7 @@ def test_setFeatureCompatibilityVersion_confirm_false_fails(database_client, col
     """Test setFeatureCompatibilityVersion fails with confirm:false."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    original = _get_fcv(collection)
+    original = get_fcv(collection)
     other = "8.0" if original != "8.0" else "8.2"
     cmd = test.build_command(ctx)
     cmd["setFeatureCompatibilityVersion"] = other
@@ -149,7 +138,7 @@ def test_setFeatureCompatibilityVersion_upgrade_without_confirm_fails(
     """Test setFeatureCompatibilityVersion rejects upgrade without confirm."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    original = _get_fcv(collection)
+    original = get_fcv(collection)
     other = "8.0" if original != "8.0" else "8.2"
     execute_admin_command(collection, {"setFeatureCompatibilityVersion": other, "confirm": True})
     cmd = test.build_command(ctx)
@@ -172,7 +161,7 @@ def test_setFeatureCompatibilityVersion_upgrade_with_confirm_succeeds(
     """Test setFeatureCompatibilityVersion succeeds on upgrade with confirm:true."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
-    original = _get_fcv(collection)
+    original = get_fcv(collection)
     other = "8.0" if original != "8.0" else "8.2"
     execute_admin_command(collection, {"setFeatureCompatibilityVersion": other, "confirm": True})
     cmd = test.build_command(ctx)
