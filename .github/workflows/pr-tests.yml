@@ -5,20 +5,38 @@ on:
     branches: [main]
 
 jobs:
-  test-mongodb:
-    name: Tests (MongoDB)
+  # Derive the test matrix from dev/compose.yaml so targets are declared in one
+  # place. Each entry has the target name, its compose profile, connection
+  # string, and engine name.
+  discover-targets:
+    name: Discover test targets
     runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.matrix.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v6
 
-    services:
-      mongodb:
-        image: mongo:8.2.4
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build target matrix from compose
+        id: matrix
+        run: |
+          TARGETS=$(python -m documentdb_tests.framework.ci_matrix)
+          echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: "Tests (${{ matrix.target.name }})"
+    needs: discover-targets
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.discover-targets.outputs.targets) }}
 
     steps:
       - uses: actions/checkout@v6
@@ -30,21 +48,24 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run compatibility tests against MongoDB
+      - name: Start ${{ matrix.target.name }} target
+        run: docker compose -f dev/compose.yaml --profile ${{ matrix.target.profile }} up -d --wait
+
+      - name: Run compatibility tests against ${{ matrix.target.name }}
         run: |
           pytest documentdb_tests/compatibility/tests \
-            --connection-string "mongodb://localhost:27017" \
-            --engine-name mongodb \
+            --connection-string "${{ matrix.target.connection_string }}" \
+            --engine-name "${{ matrix.target.engine }}" \
             -n auto \
             -v \
-            --json-report --json-report-file=${{ github.workspace }}/.test-results/mongodb-report.json \
-            --junitxml=${{ github.workspace }}/.test-results/mongodb-results.xml
+            --json-report --json-report-file=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-report.json \
+            --junitxml=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-results.xml
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-mongodb
+          name: test-results-${{ matrix.target.name }}
           include-hidden-files: true
           path: ${{ github.workspace }}/.test-results/
           if-no-files-found: warn
@@ -52,19 +73,28 @@ jobs:
       - name: Generate test summary
         if: always()
         run: |
-          if [ -f ${{ github.workspace }}/.test-results/mongodb-report.json ]; then
-            python -m documentdb_tests.compatibility.result_analyzer -i ${{ github.workspace }}/.test-results/mongodb-report.json -o ${{ github.workspace }}/.test-results/mongodb-analysis.txt -f text || true
-            echo "## MongoDB Test Results" >> $GITHUB_STEP_SUMMARY
+          REPORT=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-report.json
+          ANALYSIS=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-analysis.txt
+          if [ -f "$REPORT" ]; then
+            python -m documentdb_tests.compatibility.result_analyzer -i "$REPORT" -o "$ANALYSIS" -f text || true
+            echo "## ${{ matrix.target.name }} Test Results" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            cat ${{ github.workspace }}/.test-results/mongodb-analysis.txt >> $GITHUB_STEP_SUMMARY
+            cat "$ANALYSIS" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
-  collect-xcrash:
+  # Crash tests kill the server, so each runs in isolation in its own job (one
+  # job per intended target/test pair, each starting its own server). A pair is
+  # "intended" when the test is not deselected against that target by its
+  # requires(...) markers, so a test that does not apply to a target's topology
+  # produces no job at all. Discovery brings each target up and collects against
+  # it, so the intended set (and the test ids) match what the run will see.
+  discover-xcrash:
     name: Collect crash tests
+    needs: discover-targets
     runs-on: ubuntu-latest
     outputs:
-      tests: ${{ steps.collect.outputs.tests }}
+      pairs: ${{ steps.collect.outputs.pairs }}
     steps:
       - uses: actions/checkout@v6
 
@@ -75,38 +105,60 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Collect engine_xcrash test IDs
+      - name: Enumerate intended target/test pairs
         id: collect
+        env:
+          TARGETS: ${{ needs.discover-targets.outputs.targets }}
         run: |
-          TESTS=$(pytest documentdb_tests/compatibility/tests \
-            --connection-string mongodb://localhost:27017 \
-            --engine-name mongodb \
-            --collect-only -m engine_xcrash 2>/dev/null \
-            | grep '<Function' \
-            | sed 's/.*<Function \(.*\)>/\1/' \
-            | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          echo "tests=$TESTS" >> "$GITHUB_OUTPUT"
+          # For each target, bring its server up and collect the crash tests
+          # that are not deselected by their requires(...) markers against that
+          # target (zero-config discovery resolves the live topology, exactly as
+          # the run will). Collection runs as its own command so a failure fails
+          # the job. The result is one matrix entry per (target, test) pair,
+          # carrying the full target. Each target is torn down before the next
+          # so only one topology is live at a time.
+          PAIRS='[]'
+          for row in $(echo "$TARGETS" | jq -c '.[]'); do
+            PROFILE=$(echo "$row" | jq -r .profile)
+            docker compose -f dev/compose.yaml --profile "$PROFILE" up -d --wait
+            # Bring a replica-set target up to a writable primary so topology
+            # detection classifies it correctly (collection does not initiate).
+            python -m documentdb_tests.framework.engine_registry
+            # Collect the crash tests not deselected against this target. No
+            # crash test applying to a target is a valid outcome: pytest then
+            # exits 5 (no tests collected), which is not an error here. Any
+            # other non-zero exit is a real collection failure and fails the job.
+            set +e
+            pytest documentdb_tests/compatibility/tests \
+              --collect-only -m engine_xcrash --run-crash-tests -q > collect.out
+            STATUS=$?
+            set -e
+            docker compose -f dev/compose.yaml --profile "$PROFILE" down
+            if [ "$STATUS" -ne 0 ] && [ "$STATUS" -ne 5 ]; then
+              cat collect.out
+              echo "::error::Collecting crash tests for $PROFILE failed (exit $STATUS)"
+              exit 1
+            fi
+            TESTS=$(grep '<Function' collect.out \
+              | sed 's/.*<Function \(.*\)>/\1/' \
+              | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            PAIRS=$(jq -c \
+              --argjson target "$row" \
+              --argjson tests "$TESTS" \
+              '. + [$tests[] | { target: $target, test: . }]' \
+              <<< "$PAIRS")
+          done
+          echo "pairs=$PAIRS" >> "$GITHUB_OUTPUT"
 
-  test-mongodb-xcrash:
-    name: "Crash Test: ${{ matrix.test }}"
-    needs: collect-xcrash
-    if: needs.collect-xcrash.outputs.tests != '[]'
+  test-xcrash:
+    name: "Crash Test: ${{ matrix.pair.target.name }} / ${{ matrix.pair.test }}"
+    needs: discover-xcrash
+    if: needs.discover-xcrash.outputs.pairs != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        test: ${{ fromJson(needs.collect-xcrash.outputs.tests) }}
-
-    services:
-      mongodb:
-        image: mongo:8.2.4
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        pair: ${{ fromJson(needs.discover-xcrash.outputs.pairs) }}
 
     steps:
       - uses: actions/checkout@v6
@@ -118,16 +170,35 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: "Run: ${{ matrix.test }}"
+      - name: Start ${{ matrix.pair.target.name }} target
+        run: docker compose -f dev/compose.yaml --profile ${{ matrix.pair.target.profile }} up -d --wait
+
+      - name: "Run: ${{ matrix.pair.test }} against ${{ matrix.pair.target.name }}"
         run: |
-          # Run the test expecting it to crash the server (non-zero exit).
-          # If pytest exits 0, the test passed - meaning the bug is fixed
-          # and the engine_xcrash marker should be removed.
-          if pytest documentdb_tests/compatibility/tests \
-            -m engine_xcrash -k "${{ matrix.test }}" \
-            --connection-string "mongodb://localhost:27017" \
-            --engine-name mongodb-xcrash-probe \
-            --timeout=10 -v; then
-            echo "::error::Test passed unexpectedly - server bug may be fixed, remove engine_xcrash marker"
+          # The pair survived discovery, so the test is intended to run against
+          # this target. --run-crash-tests lets it execute (it is skipped by
+          # default); zero-config discovery resolves the same live target as in
+          # the discovery step, so the test id is stable and always selected.
+          #
+          # Outcomes:
+          #   - exit 5 (no tests selected): discovery and run disagree, a
+          #     harness bug, not a crash -> fail the job.
+          #   - exit 0 (the test ran and passed): the server no longer crashes,
+          #     the bug is fixed and the engine_xcrash marker should be removed
+          #     -> fail the job.
+          #   - any other non-zero exit: the server crashed (expected)
+          #     -> success.
+          set +e
+          pytest documentdb_tests/compatibility/tests \
+            -m engine_xcrash -k "${{ matrix.pair.test }}" \
+            --run-crash-tests \
+            --timeout=10 -v
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -eq 5 ]; then
+            echo "::error::No tests selected for ${{ matrix.pair.test }} on ${{ matrix.pair.target.name }} - discovery and run disagree"
+            exit 1
+          elif [ "$STATUS" -eq 0 ]; then
+            echo "::error::Test passed unexpectedly on ${{ matrix.pair.target.name }} - server bug may be fixed, remove engine_xcrash marker"
             exit 1
           fi

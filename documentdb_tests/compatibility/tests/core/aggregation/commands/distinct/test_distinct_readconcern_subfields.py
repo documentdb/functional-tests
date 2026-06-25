@@ -82,6 +82,7 @@ DISTINCT_READCONCERN_LEVEL_TESTS: list[CommandTestCase] = [
         },
         error_code=NOT_A_REPLICA_SET_ERROR,
         msg="distinct with linearizable readConcern should fail on non-replica-set",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
     CommandTestCase(
         "readconcern_snapshot",
@@ -93,6 +94,7 @@ DISTINCT_READCONCERN_LEVEL_TESTS: list[CommandTestCase] = [
         },
         error_code=NOT_A_REPLICA_SET_ERROR,
         msg="distinct with snapshot readConcern should fail on non-replica-set",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
     *[
         CommandTestCase(
@@ -156,6 +158,7 @@ DISTINCT_READCONCERN_AFTER_CLUSTER_TIME_TESTS: list[CommandTestCase] = [
         },
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="distinct afterClusterTime should be rejected on standalone",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
     *[
         CommandTestCase(

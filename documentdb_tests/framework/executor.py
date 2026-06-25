@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 from bson.codec_options import CodecOptions
 
-TZ_AWARE_CODEC = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
+TZ_AWARE_CODEC: CodecOptions = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
 
 
 def execute_command(collection, command: Dict, codec_options=TZ_AWARE_CODEC, session=None) -> Any:
