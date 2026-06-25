@@ -71,6 +71,15 @@ CONFIRM_TRUTHY_TESTS: list[CommandTestCase] = [
         expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should accept confirm=Infinity as true",
     ),
+    CommandTestCase(
+        "negative_infinity",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": float("-inf"),
+        },
+        expected={"ok": 1.0},
+        msg="setFeatureCompatibilityVersion should accept confirm=-Infinity as true",
+    ),
 ]
 
 
