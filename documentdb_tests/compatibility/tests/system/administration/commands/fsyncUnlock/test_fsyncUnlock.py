@@ -381,7 +381,7 @@ def test_fsyncUnlock_non_admin_consumes_no_lock(collection):
 
 # Property [Error: Multi-Document Transaction]: inside a multi-document
 # transaction fsyncUnlock errors with OperationNotSupportedInTransaction.
-@pytest.mark.replica_set
+@pytest.mark.requires(transactions=True)
 def test_fsyncUnlock_rejects_multi_document_transaction(collection):
     """Test fsyncUnlock errors when issued inside a multi-document transaction."""
     client = collection.database.client
