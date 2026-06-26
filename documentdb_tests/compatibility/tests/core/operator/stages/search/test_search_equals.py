@@ -277,11 +277,24 @@ SEARCH_EQUALS_NON_FINITE_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [Equals doesNotAffect Option]: equals recognizes a string doesNotAffect
+# option (unlike text or near, which reject the field), accepting it and still
+# returning its match.
+SEARCH_EQUALS_DOES_NOT_AFFECT_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "equals_does_not_affect_string",
+        pipeline=[{"$search": {"equals": {"path": "b", "value": True, "doesNotAffect": "score"}}}],
+        expected={"cursor.firstBatch": [Len(1), Contains("_id", 1)]},
+        msg="$search equals should accept a string doesNotAffect option and still return its match",
+    ),
+]
+
 SEARCH_EQUALS_TESTS = (
     SEARCH_EQUALS_VALUE_TYPE_TESTS
     + SEARCH_EQUALS_NUMERIC_TESTS
     + SEARCH_EQUALS_NEGATIVE_ZERO_TESTS
     + SEARCH_EQUALS_NON_FINITE_TESTS
+    + SEARCH_EQUALS_DOES_NOT_AFFECT_TESTS
 )
 
 

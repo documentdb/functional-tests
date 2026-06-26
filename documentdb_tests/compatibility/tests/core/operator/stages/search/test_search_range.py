@@ -499,6 +499,19 @@ SEARCH_RANGE_OBJECTID_BOUND_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [Range doesNotAffect Option]: range recognizes a string doesNotAffect
+# option (unlike text or near, which reject the field), accepting it and still
+# returning its matches.
+SEARCH_RANGE_DOES_NOT_AFFECT_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "range_does_not_affect_string",
+        pipeline=[{"$search": {"range": {"path": "num", "gte": 10, "doesNotAffect": "score"}}}],
+        expected={"cursor.firstBatch": [Len(2), Contains("_id", 4), Contains("_id", 5)]},
+        msg="$search range should accept a string doesNotAffect option and still return its "
+        "matches",
+    ),
+]
+
 SEARCH_RANGE_TESTS = (
     SEARCH_RANGE_NUMERIC_BOUND_TESTS
     + SEARCH_RANGE_DATE_BOUND_TESTS
@@ -509,6 +522,7 @@ SEARCH_RANGE_TESTS = (
     + SEARCH_RANGE_STRING_INCLUSIVE_EXCLUSIVE_TESTS
     + SEARCH_RANGE_EMPTY_STRING_BOUND_TESTS
     + SEARCH_RANGE_OBJECTID_BOUND_TESTS
+    + SEARCH_RANGE_DOES_NOT_AFFECT_TESTS
 )
 
 

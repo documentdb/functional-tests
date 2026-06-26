@@ -312,12 +312,25 @@ SEARCH_IN_NON_FINITE_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [In doesNotAffect Option]: in recognizes a string doesNotAffect option
+# (unlike text or near, which reject the field), accepting it and still returning
+# its matches.
+SEARCH_IN_DOES_NOT_AFFECT_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "in_does_not_affect_string",
+        pipeline=[{"$search": {"in": {"path": "b", "value": [True], "doesNotAffect": "score"}}}],
+        expected={"cursor.firstBatch": [Len(1), Contains("_id", 12)]},
+        msg="$search in should accept a string doesNotAffect option and still return its matches",
+    ),
+]
+
 SEARCH_IN_TESTS = (
     SEARCH_IN_VALUE_OR_ARRAY_TESTS
     + SEARCH_IN_VALUE_TYPE_ACCEPTANCE_TESTS
     + SEARCH_IN_MIXED_NUMERIC_TESTS
     + SEARCH_IN_CLAUSE_CAP_TESTS
     + SEARCH_IN_NON_FINITE_TESTS
+    + SEARCH_IN_DOES_NOT_AFFECT_TESTS
 )
 
 
@@ -351,6 +364,17 @@ SEARCH_IN_REQUIRED_FIELD_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[{"$search": {"in": {"path": "num"}}}],
         error_code=UNKNOWN_ERROR,
         msg="$search in should reject a spec that omits the required value",
+    ),
+]
+
+# Property [In doesNotAffect Type]: the doesNotAffect option must be a string, so
+# a non-string is rejected.
+SEARCH_IN_DOES_NOT_AFFECT_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "in_does_not_affect_non_string",
+        pipeline=[{"$search": {"in": {"path": "num", "value": [20], "doesNotAffect": 1}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$search in should reject a non-string doesNotAffect option",
     ),
 ]
 
@@ -427,6 +451,7 @@ SEARCH_IN_VALUE_TYPE_ERROR_TESTS: list[StageTestCase] = [
 
 SEARCH_IN_ERROR_TESTS = (
     SEARCH_IN_REQUIRED_FIELD_ERROR_TESTS
+    + SEARCH_IN_DOES_NOT_AFFECT_ERROR_TESTS
     + SEARCH_IN_EMPTY_VALUE_ERROR_TESTS
     + SEARCH_IN_NULL_ELEMENT_ERROR_TESTS
     + SEARCH_IN_MIXED_TYPE_ERROR_TESTS
