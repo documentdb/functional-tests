@@ -250,6 +250,55 @@ SEARCHMETA_FACET_NUMBER_NUMBUCKETS_ERROR_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [Facet String Default Unrecognized]: a string facet rejects the
+# default field as unrecognized, since only number and date facets carry a
+# default overflow bucket.
+SEARCHMETA_FACET_STRING_DEFAULT_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "string_facet_with_default",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "string", "path": "cat", "default": "other"}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject default on a string facet as an unrecognized field",
+    ),
+]
+
+# Property [Facet Date NumBuckets Unrecognized]: a date facet rejects the
+# numBuckets field as unrecognized, since only string facets carry numBuckets.
+SEARCHMETA_FACET_DATE_NUMBUCKETS_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "date_facet_with_numbuckets",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "date",
+                                "path": "d",
+                                "boundaries": [
+                                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 6, 1, tzinfo=timezone.utc),
+                                ],
+                                "numBuckets": 2,
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject numBuckets on a date facet as an unrecognized field",
+    ),
+]
+
 # Property [Facet Token Mapping]: a string facet on a dynamically-indexed field
 # is rejected because dynamic mapping does not token-index string fields.
 SEARCHMETA_FACET_TOKEN_MAPPING_ERROR_TESTS: list[StageTestCase] = [
@@ -270,6 +319,8 @@ SEARCHMETA_SPEC_FACET_BOUNDARY_ERROR_TESTS: list[StageTestCase] = (
     + SEARCHMETA_FACET_NUMBUCKETS_TYPE_ERROR_TESTS
     + SEARCHMETA_FACET_STRING_BOUNDARIES_ERROR_TESTS
     + SEARCHMETA_FACET_NUMBER_NUMBUCKETS_ERROR_TESTS
+    + SEARCHMETA_FACET_STRING_DEFAULT_ERROR_TESTS
+    + SEARCHMETA_FACET_DATE_NUMBUCKETS_ERROR_TESTS
     + SEARCHMETA_FACET_TOKEN_MAPPING_ERROR_TESTS
 )
 
