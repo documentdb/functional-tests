@@ -1,8 +1,7 @@
 """Tests for setFeatureCompatibilityVersion core behavior (success cases).
 
-Validates FCV set/get round-trip, idempotency, default value read-back,
-basic upgrade/downgrade with confirm, admin-database acceptance,
-and success response structure.
+Validates idempotent set, downgrade/upgrade with confirm, and
+getParameter readback after change.
 """
 
 import pytest
@@ -20,36 +19,14 @@ from .utils.setFeatureCompatibilityVersion_common import get_fcv
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
-# Property [Set Current]: setting the current version succeeds idempotently.
-SET_CURRENT_TESTS: list[CommandTestCase] = [
+# Property [Idempotent Set]: setting the current version succeeds and returns ok:1.
+IDEMPOTENT_SET_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "set_current_version",
+        "idempotent_set_current_version",
         command=lambda ctx: {"setFeatureCompatibilityVersion": "CURRENT_FCV", "confirm": True},
         expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should succeed when setting the current version",
-    ),
-    CommandTestCase(
-        "idempotent_same_value",
-        command=lambda ctx: {"setFeatureCompatibilityVersion": "CURRENT_FCV", "confirm": True},
-        expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should be idempotent when re-setting the same value",
-    ),
-]
-
-
-# Property [GetParameter Readback]: getParameter reads back the current FCV.
-GET_PARAMETER_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "getParameter_reads_back",
-        command=lambda ctx: {"getParameter": 1, "featureCompatibilityVersion": 1},
-        expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should persist and be readable via getParameter",
-    ),
-    CommandTestCase(
-        "fresh_deployment_default",
-        command=lambda ctx: {"getParameter": 1, "featureCompatibilityVersion": 1},
-        expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should have a readable default on a fresh deployment",
+        msg="setFeatureCompatibilityVersion should succeed idempotently when re-setting"
+        " current version",
     ),
 ]
 
@@ -60,7 +37,7 @@ DOWNGRADE_TESTS: list[CommandTestCase] = [
         "downgrade_with_confirm",
         command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": True},
         expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should succeed when changing version with confirm",
+        msg="setFeatureCompatibilityVersion should succeed when downgrading version with confirm",
     ),
 ]
 
@@ -71,45 +48,25 @@ UPGRADE_TESTS: list[CommandTestCase] = [
         "upgrade_with_confirm",
         command=lambda ctx: {"setFeatureCompatibilityVersion": "ORIGINAL_FCV", "confirm": True},
         expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should succeed when upgrading back",
+        msg="setFeatureCompatibilityVersion should succeed when upgrading version with confirm",
     ),
 ]
 
 
-# Property [GetParameter Reflects Change]: getParameter reflects FCV after change.
+# Property [GetParameter Reflects Change]: getParameter returns the new version after change.
 GET_PARAMETER_AFTER_CHANGE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "getParameter_reflects_change",
         command=lambda ctx: {"getParameter": 1, "featureCompatibilityVersion": 1},
         expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should be reflected in getParameter after a change",
+        msg="getParameter should return the new version after setFeatureCompatibilityVersion",
     ),
 ]
 
 
-# Property [Admin DB Accepted]: setFeatureCompatibilityVersion succeeds on the admin database.
-ADMIN_DB_ACCEPTED_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "admin_db_accepted",
-        expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should succeed on the admin database",
-    ),
-]
-
-
-# Property [Success Response Structure]: success response contains ok:1.
-SUCCESS_RESPONSE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "success_contains_ok",
-        expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion success response should contain ok:1",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(SET_CURRENT_TESTS))
-def test_setFeatureCompatibilityVersion_set_current(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion succeeds when setting the current version."""
+@pytest.mark.parametrize("test", pytest_params(IDEMPOTENT_SET_TESTS))
+def test_setFeatureCompatibilityVersion_idempotent_set(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion succeeds when re-setting the current version."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     fcv = get_fcv(collection)
@@ -124,17 +81,6 @@ def test_setFeatureCompatibilityVersion_set_current(database_client, collection,
         msg=test.msg,
         raw_res=True,
     )
-
-
-@pytest.mark.parametrize("test", pytest_params(GET_PARAMETER_TESTS))
-def test_setFeatureCompatibilityVersion_getParameter(database_client, collection, test):
-    """Test getParameter reads back the current FCV."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    fcv = get_fcv(collection)
-    execute_admin_command(collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True})
-    result = execute_admin_command(collection, test.build_command(ctx))
-    assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
 
 
 @pytest.mark.parametrize("test", pytest_params(DOWNGRADE_TESTS))
@@ -181,7 +127,7 @@ def test_setFeatureCompatibilityVersion_upgrade(database_client, collection, tes
 def test_setFeatureCompatibilityVersion_getParameter_reflects_change(
     database_client, collection, test
 ):
-    """Test getParameter reflects the FCV after a change."""
+    """Test getParameter returns the new version after setFeatureCompatibilityVersion."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     original = get_fcv(collection)
@@ -191,39 +137,3 @@ def test_setFeatureCompatibilityVersion_getParameter_reflects_change(
     expected = {"ok": 1.0, "featureCompatibilityVersion": {"version": other}}
     assertSuccessPartial(result, expected, msg=test.msg)
     execute_admin_command(collection, {"setFeatureCompatibilityVersion": original, "confirm": True})
-
-
-@pytest.mark.parametrize("test", pytest_params(ADMIN_DB_ACCEPTED_TESTS))
-def test_setFeatureCompatibilityVersion_admin_db_accepted(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion succeeds on the admin database."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    fcv = get_fcv(collection)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
-    )
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(SUCCESS_RESPONSE_TESTS))
-def test_setFeatureCompatibilityVersion_success_response(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion success response contains ok:1."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    fcv = get_fcv(collection)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
-    )
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
