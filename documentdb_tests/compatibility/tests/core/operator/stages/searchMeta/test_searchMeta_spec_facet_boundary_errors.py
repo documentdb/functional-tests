@@ -119,8 +119,10 @@ SEARCHMETA_FACET_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
     ),
 ]
 
-# Property [Facet Date Boundaries Type]: a date facet with numeric (non-datetime)
-# boundaries is rejected.
+# Property [Facet Date Boundaries Validation]: date-facet boundaries must be two
+# to a thousand distinct datetimes in ascending order, and numeric (non-datetime)
+# boundaries are rejected. Too few, non-ascending, and duplicate adjacent
+# boundaries are rejected as they are for number facets.
 SEARCHMETA_FACET_DATE_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "date_boundaries_numeric",
@@ -135,6 +137,74 @@ SEARCHMETA_FACET_DATE_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
         ],
         error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject numeric boundaries for a date facet",
+    ),
+    StageTestCase(
+        "date_boundaries_single_element",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "date",
+                                "path": "n",
+                                "boundaries": [datetime(2024, 1, 1, tzinfo=timezone.utc)],
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject a date facet with fewer than two boundaries",
+    ),
+    StageTestCase(
+        "date_boundaries_unsorted",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "date",
+                                "path": "n",
+                                "boundaries": [
+                                    datetime(2024, 12, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 6, 1, tzinfo=timezone.utc),
+                                ],
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject non-ascending date facet boundaries",
+    ),
+    StageTestCase(
+        "date_boundaries_duplicate_adjacent",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "date",
+                                "path": "n",
+                                "boundaries": [
+                                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 6, 1, tzinfo=timezone.utc),
+                                ],
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject duplicate adjacent date facet boundaries as not distinct",
     ),
 ]
 
