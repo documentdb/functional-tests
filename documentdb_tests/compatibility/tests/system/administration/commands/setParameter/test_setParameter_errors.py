@@ -6,84 +6,116 @@ that multi-parameter commands behave atomically on failure.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    CommandContext,
+    CommandTestCase,
+)
+from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     INVALID_OPTIONS_ERROR,
     UNAUTHORIZED_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
-def test_setParameter_nonexistent_param_error_code(collection):
-    """Test setting a non-existent parameter returns InvalidOptions."""
-    result = execute_admin_command(collection, {"setParameter": 1, "nonExistentXYZ": 1})
-    assertFailureCode(
-        result, INVALID_OPTIONS_ERROR, msg="setParameter should reject non-existent param"
+# Property [Error Codes]: setParameter returns correct error codes for invalid inputs.
+ERROR_CODE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "nonexistent_param",
+        command=lambda ctx: {"setParameter": 1, "nonExistentXYZ": 1},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject non-existent param",
+    ),
+    CommandTestCase(
+        "startup_only_param",
+        command=lambda ctx: {"setParameter": 1, "port": 27018},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject startup-only param",
+    ),
+    CommandTestCase(
+        "out_of_range_value",
+        command=lambda ctx: {"setParameter": 1, "logLevel": -1},
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject out-of-range value",
+    ),
+    CommandTestCase(
+        "wrong_type_value",
+        command=lambda ctx: {"setParameter": 1, "logLevel": "abc"},
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject wrong type value",
+    ),
+    CommandTestCase(
+        "empty_param_name",
+        command=lambda ctx: {"setParameter": 1, "": 1},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject empty param name",
+    ),
+    CommandTestCase(
+        "no_param_pair",
+        command=lambda ctx: {"setParameter": 1},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject missing param pair",
+    ),
+    CommandTestCase(
+        "multi_param_with_invalid",
+        command=lambda ctx: {"setParameter": 1, "logLevel": 0, "nonExistentXYZ": 1},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject multi-param command when one is invalid",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(ERROR_CODE_TESTS))
+def test_setParameter_errors(database_client, collection, test):
+    """Test setParameter error cases."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_admin_command(collection, test.build_command(ctx))
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
     )
 
 
-def test_setParameter_startup_only_param_error_code(collection):
-    """Test setting a startup-only parameter at runtime returns InvalidOptions."""
-    result = execute_admin_command(collection, {"setParameter": 1, "port": 27018})
-    assertFailureCode(
-        result, INVALID_OPTIONS_ERROR, msg="setParameter should reject startup-only param"
+# Property [Non-Admin Rejection]: setParameter fails on non-admin database.
+NON_ADMIN_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "non_admin_db",
+        command=lambda ctx: {"setParameter": 1, "logLevel": 0},
+        error_code=UNAUTHORIZED_ERROR,
+        msg="setParameter should reject non-admin database",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(NON_ADMIN_TESTS))
+def test_setParameter_non_admin_db(database_client, collection, test):
+    """Test setParameter fails on non-admin database."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
     )
 
 
-def test_setParameter_out_of_range_error_code(collection):
-    """Test setting a parameter to an out-of-range value returns BadValue."""
-    result = execute_admin_command(collection, {"setParameter": 1, "logLevel": -1})
-    assertFailureCode(result, BAD_VALUE_ERROR, msg="setParameter should reject out-of-range value")
-
-
-def test_setParameter_wrong_type_error_code(collection):
-    """Test setting a parameter to a wrong-type value returns BadValue."""
-    result = execute_admin_command(collection, {"setParameter": 1, "logLevel": "abc"})
-    assertFailureCode(result, BAD_VALUE_ERROR, msg="setParameter should reject wrong type value")
-
-
-def test_setParameter_non_admin_db_error_code(collection):
-    """Test running setParameter on a non-admin database returns Unauthorized."""
-    result = execute_command(collection, {"setParameter": 1, "logLevel": 0})
-    assertFailureCode(
-        result, UNAUTHORIZED_ERROR, msg="setParameter should reject non-admin database"
-    )
-
-
-def test_setParameter_empty_name_error_code(collection):
-    """Test empty-string parameter name returns InvalidOptions."""
-    result = execute_admin_command(collection, {"setParameter": 1, "": 1})
-    assertFailureCode(
-        result, INVALID_OPTIONS_ERROR, msg="setParameter should reject empty param name"
-    )
-
-
-def test_setParameter_no_param_pair_fails(collection):
-    """Test setParameter with control field but no parameter:value pair fails."""
-    result = execute_admin_command(collection, {"setParameter": 1})
-    assertFailureCode(
-        result, INVALID_OPTIONS_ERROR, msg="setParameter should reject missing param pair"
-    )
-
-
-def test_setParameter_multi_param_second_invalid_is_atomic(collection):
+# Property [Atomicity]: multi-parameter set is atomic on failure.
+def test_setParameter_multi_param_atomic_on_failure(collection):
     """Test multi-parameter command with invalid second param does not apply first."""
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 3, "nonExistentXYZ": 1})
     result = execute_admin_command(collection, {"getParameter": 1, "logLevel": 1})
     assertSuccessPartial(
         result, {"logLevel": 0}, msg="First param should not be applied when second fails"
-    )
-
-
-def test_setParameter_multi_param_invalid_returns_error(collection):
-    """Test multi-parameter command with invalid param returns error code."""
-    result = execute_admin_command(
-        collection, {"setParameter": 1, "logLevel": 0, "nonExistentXYZ": 1}
-    )
-    assertFailureCode(
-        result, INVALID_OPTIONS_ERROR, msg="Multi-param with invalid should return 72"
     )
