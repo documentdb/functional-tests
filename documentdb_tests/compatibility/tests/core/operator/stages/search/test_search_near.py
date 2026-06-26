@@ -379,7 +379,34 @@ SEARCH_NEAR_ORIGIN_TYPE_ERROR_TESTS: list[StageTestCase] = [
     ]
 ]
 
-SEARCH_NEAR_ERROR_TESTS = SEARCH_NEAR_PIVOT_ERROR_TESTS + SEARCH_NEAR_ORIGIN_TYPE_ERROR_TESTS
+# Property [Near Required Fields]: near.path, near.origin, and near.pivot are all
+# required, so a spec omitting any one of them is rejected.
+SEARCH_NEAR_REQUIRED_FIELD_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "near_path_missing",
+        pipeline=[{"$search": {"near": {"origin": 10, "pivot": 10}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$search near should reject a spec that omits the required path",
+    ),
+    StageTestCase(
+        "near_origin_missing",
+        pipeline=[{"$search": {"near": {"path": "num", "pivot": 10}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$search near should reject a spec that omits the required origin",
+    ),
+    StageTestCase(
+        "near_pivot_missing",
+        pipeline=[{"$search": {"near": {"path": "num", "origin": 10}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$search near should reject a spec that omits the required pivot",
+    ),
+]
+
+SEARCH_NEAR_ERROR_TESTS = (
+    SEARCH_NEAR_PIVOT_ERROR_TESTS
+    + SEARCH_NEAR_ORIGIN_TYPE_ERROR_TESTS
+    + SEARCH_NEAR_REQUIRED_FIELD_ERROR_TESTS
+)
 
 
 @pytest.mark.aggregate

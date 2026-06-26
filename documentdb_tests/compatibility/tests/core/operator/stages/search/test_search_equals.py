@@ -301,6 +301,23 @@ def test_search_equals_cases(equals_collection, test_case: StageTestCase):
     )
 
 
+# Property [Equals Required Fields]: equals.path and equals.value are both
+# required, so a spec omitting either is rejected.
+SEARCH_EQUALS_REQUIRED_FIELD_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "equals_path_missing",
+        pipeline=[{"$search": {"equals": {"value": True}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$search equals should reject a spec that omits the required path",
+    ),
+    StageTestCase(
+        "equals_value_missing",
+        pipeline=[{"$search": {"equals": {"path": "b"}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$search equals should reject a spec that omits the required value",
+    ),
+]
+
 # Property [Equals Value Type Rejection]: equals.value rejects any type outside
 # the supported set (bool, objectId, number, string, date, uuid, null).
 SEARCH_EQUALS_VALUE_TYPE_ERROR_TESTS: list[StageTestCase] = [
@@ -349,7 +366,8 @@ SEARCH_EQUALS_ANALYZED_PATH_ERROR_TESTS: list[StageTestCase] = [
 ]
 
 SEARCH_EQUALS_ERROR_TESTS = (
-    SEARCH_EQUALS_VALUE_TYPE_ERROR_TESTS
+    SEARCH_EQUALS_REQUIRED_FIELD_ERROR_TESTS
+    + SEARCH_EQUALS_VALUE_TYPE_ERROR_TESTS
     + SEARCH_EQUALS_BINARY_SUBTYPE_ERROR_TESTS
     + SEARCH_EQUALS_ANALYZED_PATH_ERROR_TESTS
 )

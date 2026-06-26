@@ -569,6 +569,17 @@ SEARCH_RANGE_STRING_BOUND_DATE_ERROR_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [Range Required Path]: range.path is required, so a spec omitting it
+# (even with a valid bound) is rejected.
+SEARCH_RANGE_REQUIRED_PATH_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "range_path_missing",
+        pipeline=[{"$search": {"range": {"gte": 5}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$search range should reject a spec that omits the required path",
+    ),
+]
+
 # Property [Range Requires A Bound]: a range specifying none of lt/lte/gt/gte is
 # rejected.
 SEARCH_RANGE_NO_BOUND_ERROR_TESTS: list[StageTestCase] = [
@@ -625,6 +636,7 @@ SEARCH_RANGE_INTERVAL_ERROR_TESTS: list[StageTestCase] = [
 SEARCH_RANGE_ERROR_TESTS = (
     SEARCH_RANGE_BOUND_TYPE_ERROR_TESTS
     + SEARCH_RANGE_STRING_BOUND_DATE_ERROR_TESTS
+    + SEARCH_RANGE_REQUIRED_PATH_ERROR_TESTS
     + SEARCH_RANGE_NO_BOUND_ERROR_TESTS
     + SEARCH_RANGE_DUPLICATE_BOUND_ERROR_TESTS
     + SEARCH_RANGE_INTERVAL_ERROR_TESTS

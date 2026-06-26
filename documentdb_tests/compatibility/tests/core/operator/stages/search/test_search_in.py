@@ -337,6 +337,23 @@ def test_search_in_cases(in_collection, test_case: StageTestCase):
     )
 
 
+# Property [In Required Fields]: in.path and in.value are both required, so a
+# spec omitting either is rejected.
+SEARCH_IN_REQUIRED_FIELD_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "in_path_missing",
+        pipeline=[{"$search": {"in": {"value": [20]}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$search in should reject a spec that omits the required path",
+    ),
+    StageTestCase(
+        "in_value_missing",
+        pipeline=[{"$search": {"in": {"path": "num"}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$search in should reject a spec that omits the required value",
+    ),
+]
+
 # Property [In Empty Value Array]: an empty in.value array is rejected as it lists
 # no value to match.
 SEARCH_IN_EMPTY_VALUE_ERROR_TESTS: list[StageTestCase] = [
@@ -409,7 +426,8 @@ SEARCH_IN_VALUE_TYPE_ERROR_TESTS: list[StageTestCase] = [
 ]
 
 SEARCH_IN_ERROR_TESTS = (
-    SEARCH_IN_EMPTY_VALUE_ERROR_TESTS
+    SEARCH_IN_REQUIRED_FIELD_ERROR_TESTS
+    + SEARCH_IN_EMPTY_VALUE_ERROR_TESTS
     + SEARCH_IN_NULL_ELEMENT_ERROR_TESTS
     + SEARCH_IN_MIXED_TYPE_ERROR_TESTS
     + SEARCH_IN_VALUE_TYPE_ERROR_TESTS
