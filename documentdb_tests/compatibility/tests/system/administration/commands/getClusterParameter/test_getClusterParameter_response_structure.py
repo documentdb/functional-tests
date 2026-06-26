@@ -24,11 +24,6 @@ _VALID_PARAM = "changeStreamOptions"
 _NUMERIC_TYPES = (int, float, Int64, Decimal128)
 
 
-# ---------------------------------------------------------------------------
-# §4  Response shape
-# ---------------------------------------------------------------------------
-
-
 def test_getClusterParameter_response_has_ok_1(collection):
     """Test success response includes ok:1."""
     result = execute_admin_command(collection, {"getClusterParameter": "*"})
@@ -99,11 +94,6 @@ def test_getClusterParameter_element_is_object_type(collection):
         msg="clusterParameters element should be an object",
         raw_res=True,
     )
-
-
-# ---------------------------------------------------------------------------
-# §17  Value type fidelity
-# ---------------------------------------------------------------------------
 
 
 def test_getClusterParameter_clusterParameterTime_is_timestamp_when_present(collection):

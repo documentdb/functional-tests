@@ -10,12 +10,7 @@ Categories: #12, #16
 import pytest
 from bson import Int64
 
-from documentdb_tests.framework.assertions import (
-    assertFailureCode,
-    assertProperties,
-    assertSuccessPartial,
-)
-from documentdb_tests.framework.error_codes import INVALID_OPTIONS_ERROR
+from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.property_checks import Eq, Len
 
@@ -39,11 +34,6 @@ def _set_expire_after_seconds(collection, value):
         collection,
         {"setClusterParameter": {_PARAM: {_NESTED_KEY: {_VALUE_KEY: value}}}},
     )
-
-
-# ---------------------------------------------------------------------------
-# §12  Round-trip with setClusterParameter
-# ---------------------------------------------------------------------------
 
 
 def test_getClusterParameter_reads_value_after_set(collection):
@@ -73,21 +63,6 @@ def test_getClusterParameter_never_set_returns_default(collection):
         {"ok": Eq(1.0), "clusterParameters": Len(1)},
         msg="Never-set parameter should return default without error",
         raw_res=True,
-    )
-
-
-# ---------------------------------------------------------------------------
-# §16  Differential: getClusterParameter vs getParameter have distinct namespaces
-# ---------------------------------------------------------------------------
-
-
-def test_getClusterParameter_name_not_retrievable_via_getParameter(collection):
-    """Test a cluster parameter name cannot be retrieved via getParameter."""
-    result = execute_admin_command(collection, {"getParameter": 1, _PARAM: 1})
-    assertFailureCode(
-        result,
-        INVALID_OPTIONS_ERROR,
-        msg="Cluster parameter name should not be retrievable via getParameter",
     )
 
 

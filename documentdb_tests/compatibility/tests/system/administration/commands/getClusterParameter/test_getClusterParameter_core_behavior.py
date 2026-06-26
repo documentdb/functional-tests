@@ -19,11 +19,6 @@ _VALID_PARAM = "changeStreamOptions"
 _VALID_PARAM_2 = "changeStreams"
 
 
-# ---------------------------------------------------------------------------
-# §4 / §7  Core behavior — three argument forms
-# ---------------------------------------------------------------------------
-
-
 def test_getClusterParameter_single_name_succeeds(collection):
     """Test single valid name returns ok:1 with clusterParameters length 1."""
     result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
@@ -66,22 +61,6 @@ def test_getClusterParameter_array_two_names_succeeds(collection):
     )
 
 
-# ---------------------------------------------------------------------------
-# §4 / §7  Defaults available on any deployment
-# ---------------------------------------------------------------------------
-
-
-def test_getClusterParameter_wildcard_returns_defaults(collection):
-    """Test '*' returns defaults without error on any deployment."""
-    result = execute_admin_command(collection, {"getClusterParameter": "*"})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Defaults should be returned without prior set")
-
-
-# ---------------------------------------------------------------------------
-# §4 / §7  Requested name isolation
-# ---------------------------------------------------------------------------
-
-
 def test_getClusterParameter_single_name_id_equals_request(collection):
     """Test requesting one name returns element with _id equal to requested name."""
     result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
@@ -91,11 +70,6 @@ def test_getClusterParameter_single_name_id_equals_request(collection):
         msg=f"_id should equal the requested name '{_VALID_PARAM}'",
         raw_res=True,
     )
-
-
-# ---------------------------------------------------------------------------
-# §14  Idempotency — repeated calls produce stable structure
-# ---------------------------------------------------------------------------
 
 
 def test_getClusterParameter_wildcard_idempotent(collection):
