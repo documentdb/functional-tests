@@ -111,6 +111,40 @@ SEARCHMETA_STRING_NUMBUCKETS_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [Facet String NumBuckets Type Coercion]: numBuckets accepts any
+# whole-number integer type, so an Int64 and a whole-number double behave like
+# the equivalent int32.
+SEARCHMETA_STRING_NUMBUCKETS_COERCION_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        f"string_numbuckets_{tid}",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"sf": {"type": "string", "path": "cat", "numBuckets": val}}
+                    }
+                }
+            }
+        ],
+        expected=[
+            {
+                "count": {"lowerBound": Int64(6)},
+                "facet": {
+                    "sf": {
+                        "buckets": [
+                            {"_id": "a", "count": Int64(3)},
+                            {"_id": "b", "count": Int64(2)},
+                        ]
+                    }
+                },
+            }
+        ],
+        msg=f"$searchMeta string facet should accept a {tid} numBuckets and truncate to the "
+        "top-N values by count",
+    )
+    for tid, val in [("int64", Int64(2)), ("whole_double", 2.0)]
+]
+
 # Property [Facet Empty Buckets]: a no-match query yields an empty buckets array
 # for a string facet, which emits only buckets backed by matching values.
 SEARCHMETA_STRING_EMPTY_TESTS: list[StageTestCase] = [
@@ -138,7 +172,9 @@ SEARCHMETA_STRING_EMPTY_TESTS: list[StageTestCase] = [
 ]
 
 SEARCHMETA_STRING_FACET_TESTS: list[StageTestCase] = (
-    SEARCHMETA_STRING_NUMBUCKETS_TESTS + SEARCHMETA_STRING_EMPTY_TESTS
+    SEARCHMETA_STRING_NUMBUCKETS_TESTS
+    + SEARCHMETA_STRING_NUMBUCKETS_COERCION_TESTS
+    + SEARCHMETA_STRING_EMPTY_TESTS
 )
 
 

@@ -3,8 +3,19 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import datetime, timezone
 
 import pytest
+from bson import (
+    Binary,
+    Code,
+    Decimal128,
+    MaxKey,
+    MinKey,
+    ObjectId,
+    Regex,
+    Timestamp,
+)
 from pymongo.collection import Collection
 
 from documentdb_tests.compatibility.tests.core.operator.stages.searchMeta.utils.searchMeta_common import (  # noqa: E501
@@ -158,6 +169,42 @@ SEARCHMETA_FACET_NUMBUCKETS_ERROR_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [Facet NumBuckets Type]: numBuckets must be a whole-number integer, so
+# non-integer-typed values, including fractional doubles and decimals, are
+# rejected. A null numBuckets is treated as the default, so it is excluded.
+SEARCHMETA_FACET_NUMBUCKETS_TYPE_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        f"numbuckets_type_{tid}",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "string", "path": "cat", "numBuckets": val}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg=f"$searchMeta should reject a {tid} numBuckets as not a whole-number integer",
+    )
+    for tid, val in [
+        ("string", "2"),
+        ("double_fractional", 2.5),
+        ("decimal128", Decimal128("2")),
+        ("bool", True),
+        ("object", {"a": 1}),
+        ("array", [2]),
+        ("objectid", ObjectId("0123456789abcdef01234567")),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(1, 1)),
+        ("binary", Binary(b"\x01\x02\x03")),
+        ("regex", Regex(".*", "i")),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
+]
+
 # Property [Facet String Boundaries Unrecognized]: a string facet rejects the
 # boundaries field as unrecognized.
 SEARCHMETA_FACET_STRING_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
@@ -220,6 +267,7 @@ SEARCHMETA_SPEC_FACET_BOUNDARY_ERROR_TESTS: list[StageTestCase] = (
     SEARCHMETA_FACET_BOUNDARIES_ERROR_TESTS
     + SEARCHMETA_FACET_DATE_BOUNDARIES_ERROR_TESTS
     + SEARCHMETA_FACET_NUMBUCKETS_ERROR_TESTS
+    + SEARCHMETA_FACET_NUMBUCKETS_TYPE_ERROR_TESTS
     + SEARCHMETA_FACET_STRING_BOUNDARIES_ERROR_TESTS
     + SEARCHMETA_FACET_NUMBER_NUMBUCKETS_ERROR_TESTS
     + SEARCHMETA_FACET_TOKEN_MAPPING_ERROR_TESTS
