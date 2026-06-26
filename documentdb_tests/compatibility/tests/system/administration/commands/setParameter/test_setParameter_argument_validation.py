@@ -1,7 +1,7 @@
-"""Tests for setParameter argument validation.
+"""Tests for setParameter argument validation (success cases).
 
-Validates control field types, parameter name validation, parameter value
-type/range validation, and bounded integer parameter behavior.
+Validates control field type acceptance, parameter name acceptance,
+and parameter value type coercion behavior.
 """
 
 import pytest
@@ -11,16 +11,7 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.framework.assertions import (
-    assertFailureCode,
-    assertResult,
-    assertSuccessPartial,
-)
-from documentdb_tests.framework.error_codes import (
-    INVALID_OPTIONS_ERROR,
-    OVERFLOW_ERROR,
-    TYPE_MISMATCH_ERROR,
-)
+from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -68,66 +59,6 @@ NAME_ACCEPTANCE_TESTS: list[CommandTestCase] = [
 ]
 
 
-# Property [Name Rejection]: setParameter rejects invalid parameter names.
-NAME_REJECTION_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "case_sensitive",
-        command=lambda ctx: {"setParameter": 1, "LogLevel": 0},
-        error_code=INVALID_OPTIONS_ERROR,
-        msg="setParameter should reject wrong-case param name",
-    ),
-    CommandTestCase(
-        "long_name",
-        command=lambda ctx: {"setParameter": 1, "a" * 1000: 1},
-        error_code=INVALID_OPTIONS_ERROR,
-        msg="setParameter should reject very long param name",
-    ),
-    CommandTestCase(
-        "dotted_name",
-        command=lambda ctx: {"setParameter": 1, "log.level": 1},
-        error_code=INVALID_OPTIONS_ERROR,
-        msg="setParameter should reject dotted param name",
-    ),
-    CommandTestCase(
-        "dollar_name",
-        command=lambda ctx: {"setParameter": 1, "$logLevel": 1},
-        error_code=INVALID_OPTIONS_ERROR,
-        msg="setParameter should reject dollar-prefixed param name",
-    ),
-    CommandTestCase(
-        "whitespace_name",
-        command=lambda ctx: {"setParameter": 1, " logLevel ": 0},
-        error_code=INVALID_OPTIONS_ERROR,
-        msg="setParameter should reject whitespace in param name",
-    ),
-    CommandTestCase(
-        "numeric_string_name",
-        command=lambda ctx: {"setParameter": 1, "12345": 0},
-        error_code=INVALID_OPTIONS_ERROR,
-        msg="setParameter should reject numeric string param name",
-    ),
-]
-
-
-# Property [Value Type Rejection]: setParameter rejects invalid value types for typed params.
-VALUE_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "string_param_with_numeric",
-        command=lambda ctx: {"setParameter": 1, "automationServiceDescriptor": 12345},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="setParameter should reject numeric value for string param",
-    ),
-    CommandTestCase(
-        "string_param_overlength",
-        command=lambda ctx: {"setParameter": 1, "automationServiceDescriptor": "x" * 65},
-        error_code=OVERFLOW_ERROR,
-        msg="setParameter should reject over-length string value",
-    ),
-]
-
-ARGUMENT_REJECTION_TESTS = NAME_REJECTION_TESTS + VALUE_TYPE_REJECTION_TESTS
-
-
 @pytest.mark.parametrize("test", pytest_params(NAME_ACCEPTANCE_TESTS))
 def test_setParameter_name_accepted(database_client, collection, test):
     """Test setParameter accepts valid parameter names."""
@@ -135,21 +66,6 @@ def test_setParameter_name_accepted(database_client, collection, test):
     ctx = CommandContext.from_collection(collection)
     result = execute_admin_command(collection, test.build_command(ctx))
     assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
-
-
-@pytest.mark.parametrize("test", pytest_params(ARGUMENT_REJECTION_TESTS))
-def test_setParameter_argument_rejected(database_client, collection, test):
-    """Test setParameter rejects invalid arguments."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    result = execute_admin_command(collection, test.build_command(ctx))
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
 
 
 # Standalone tests below require save/restore of server state after each set.
@@ -219,12 +135,3 @@ def test_setParameter_string_param_valid_succeeds(collection):
     )
     assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter should accept valid string value")
     execute_admin_command(collection, {"setParameter": 1, "automationServiceDescriptor": ""})
-
-
-# Property [Name Collision]: parameter name matching control field name fails.
-def test_setParameter_name_collides_with_control_field(collection):
-    """Test setParameter rejects param name that collides with control field."""
-    result = execute_admin_command(collection, {"setParameter": 1, "setParameter": 2})  # noqa: F601
-    assertFailureCode(
-        result, INVALID_OPTIONS_ERROR, msg="setParameter should reject name collision"
-    )
