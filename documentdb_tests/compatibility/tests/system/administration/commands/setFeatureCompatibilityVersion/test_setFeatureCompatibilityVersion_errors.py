@@ -71,6 +71,16 @@ UNRECOGNIZED_FIELD_TESTS: list[CommandTestCase] = [
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="setFeatureCompatibilityVersion should reject misspelled 'confrim' as unknown field",
     ),
+    CommandTestCase(
+        "writeConcern_unknown_subfield",
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "CURRENT_FCV",
+            "confirm": True,
+            "writeConcern": {"unknownField": 1},
+        },
+        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        msg="setFeatureCompatibilityVersion should reject unknown sub-fields in writeConcern",
+    ),
 ]
 
 
@@ -81,21 +91,6 @@ SET_PARAMETER_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"setParameter": 1, "featureCompatibilityVersion": "8.0"},
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="setFeatureCompatibilityVersion should not be settable via setParameter",
-    ),
-]
-
-
-# Property [writeConcern Unknown Sub-field]: unknown fields inside writeConcern are rejected.
-WRITE_CONCERN_UNKNOWN_SUBFIELD_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "writeConcern_unknown_subfield",
-        command=lambda ctx: {
-            "setFeatureCompatibilityVersion": "CURRENT_FCV",
-            "confirm": True,
-            "writeConcern": {"unknownField": 1},
-        },
-        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
-        msg="setFeatureCompatibilityVersion should reject unknown sub-fields inside writeConcern",
     ),
 ]
 
@@ -174,25 +169,6 @@ def test_setFeatureCompatibilityVersion_set_parameter_rejected(database_client, 
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_admin_command(collection, test.build_command(ctx))
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(WRITE_CONCERN_UNKNOWN_SUBFIELD_TESTS))
-def test_setFeatureCompatibilityVersion_writeConcern_unknown_subfield(
-    database_client, collection, test
-):
-    """Test setFeatureCompatibilityVersion rejects unknown sub-fields inside writeConcern."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    cmd = test.build_command(ctx)
-    cmd["setFeatureCompatibilityVersion"] = get_fcv(collection)
-    result = execute_admin_command(collection, cmd)
     assertResult(
         result,
         expected=test.build_expected(ctx),

@@ -19,21 +19,20 @@ from .utils.setFeatureCompatibilityVersion_common import get_fcv
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
-# Property [Confirm Omitted]: omitting confirm prevents version changes.
-CONFIRM_OMITTED_TESTS: list[CommandTestCase] = [
+# Property [Confirm Required]: version change without confirm (omitted or false) is rejected.
+CONFIRM_REQUIRED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "downgrade_without_confirm",
         command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV"},
         error_code=FCV_CONFIRM_REQUIRED_ERROR,
         msg="setFeatureCompatibilityVersion should reject downgrade without confirm field",
     ),
-]
-
-# Property [Confirm False]: confirm:false prevents version changes.
-CONFIRM_FALSE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "confirm_false_rejects_change",
-        command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": False},
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": False,
+        },
         error_code=FCV_CONFIRM_REQUIRED_ERROR,
         msg="setFeatureCompatibilityVersion should reject version change with confirm:false",
     ),
@@ -50,32 +49,9 @@ UPGRADE_NO_CONFIRM_TESTS: list[CommandTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(CONFIRM_OMITTED_TESTS))
-def test_setFeatureCompatibilityVersion_downgrade_without_confirm(
-    database_client, collection, test
-):
-    """Test setFeatureCompatibilityVersion rejects downgrade when confirm is omitted."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    original = get_fcv(collection)
-    other = "8.0" if original != "8.0" else "8.2"
-    cmd = test.build_command(ctx)
-    cmd["setFeatureCompatibilityVersion"] = other
-    result = execute_admin_command(collection, cmd)
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(CONFIRM_FALSE_TESTS))
-def test_setFeatureCompatibilityVersion_confirm_false_rejects_change(
-    database_client, collection, test
-):
-    """Test setFeatureCompatibilityVersion rejects version change with confirm:false."""
+@pytest.mark.parametrize("test", pytest_params(CONFIRM_REQUIRED_TESTS))
+def test_setFeatureCompatibilityVersion_confirm_required(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion rejects change without valid confirm."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     original = get_fcv(collection)

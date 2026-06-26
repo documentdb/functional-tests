@@ -12,7 +12,10 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import FCV_CONFIRM_REQUIRED_ERROR, TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.error_codes import (
+    FCV_CONFIRM_REQUIRED_ERROR,
+    TYPE_MISMATCH_ERROR,
+)
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -21,9 +24,9 @@ from .utils.setFeatureCompatibilityVersion_common import get_fcv
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
-# Property [Falsy Coercion]: confirm field treats falsy values as false,
-# requiring confirm to be truthy.
-CONFIRM_FALSY_TESTS: list[CommandTestCase] = [
+# Property [Confirm Rejected]: confirm field treats falsy values as false
+# and rejects non-numeric, non-bool types.
+CONFIRM_REJECTED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "int_0",
         command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": 0},
@@ -32,7 +35,10 @@ CONFIRM_FALSY_TESTS: list[CommandTestCase] = [
     ),
     CommandTestCase(
         "double_0",
-        command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": 0.0},
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": 0.0,
+        },
         error_code=FCV_CONFIRM_REQUIRED_ERROR,
         msg="setFeatureCompatibilityVersion should treat confirm=0.0 as false",
     ),
@@ -56,23 +62,24 @@ CONFIRM_FALSY_TESTS: list[CommandTestCase] = [
     ),
     CommandTestCase(
         "null",
-        command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": None},
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": None,
+        },
         error_code=FCV_CONFIRM_REQUIRED_ERROR,
         msg="setFeatureCompatibilityVersion should treat confirm=null as not-true",
     ),
     CommandTestCase(
         "negative_zero",
-        command=lambda ctx: {"setFeatureCompatibilityVersion": "OTHER_FCV", "confirm": -0.0},
+        command=lambda ctx: {
+            "setFeatureCompatibilityVersion": "OTHER_FCV",
+            "confirm": -0.0,
+        },
         error_code=FCV_CONFIRM_REQUIRED_ERROR,
         msg="setFeatureCompatibilityVersion should treat confirm=-0.0 as false",
     ),
-]
-
-
-# Property [Type Rejected]: confirm field rejects non-numeric, non-bool types.
-CONFIRM_TYPE_REJECTED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "string",
+        "string_type",
         command=lambda ctx: {
             "setFeatureCompatibilityVersion": "OTHER_FCV",
             "confirm": "true",
@@ -81,7 +88,7 @@ CONFIRM_TYPE_REJECTED_TESTS: list[CommandTestCase] = [
         msg="setFeatureCompatibilityVersion should reject confirm as string type",
     ),
     CommandTestCase(
-        "object",
+        "object_type",
         command=lambda ctx: {
             "setFeatureCompatibilityVersion": "OTHER_FCV",
             "confirm": {"a": 1},
@@ -90,7 +97,7 @@ CONFIRM_TYPE_REJECTED_TESTS: list[CommandTestCase] = [
         msg="setFeatureCompatibilityVersion should reject confirm as object type",
     ),
     CommandTestCase(
-        "array",
+        "array_type",
         command=lambda ctx: {
             "setFeatureCompatibilityVersion": "OTHER_FCV",
             "confirm": [True],
@@ -101,28 +108,9 @@ CONFIRM_TYPE_REJECTED_TESTS: list[CommandTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(CONFIRM_FALSY_TESTS))
-def test_setFeatureCompatibilityVersion_confirm_falsy(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion treats falsy confirm values as false."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    current = get_fcv(collection)
-    other = "8.0" if current != "8.0" else "8.2"
-    cmd = test.build_command(ctx)
-    cmd["setFeatureCompatibilityVersion"] = other
-    result = execute_admin_command(collection, cmd)
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(CONFIRM_TYPE_REJECTED_TESTS))
-def test_setFeatureCompatibilityVersion_confirm_type_rejected(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion rejects non-numeric, non-bool confirm types."""
+@pytest.mark.parametrize("test", pytest_params(CONFIRM_REJECTED_TESTS))
+def test_setFeatureCompatibilityVersion_confirm_rejected(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion rejects invalid confirm values."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     current = get_fcv(collection)

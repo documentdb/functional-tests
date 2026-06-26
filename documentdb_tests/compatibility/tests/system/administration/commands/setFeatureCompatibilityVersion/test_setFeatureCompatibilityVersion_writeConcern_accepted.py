@@ -21,7 +21,7 @@ pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
 # Property [writeConcern Accepted]: setFeatureCompatibilityVersion accepts
-# valid writeConcern values.
+# valid writeConcern values and various numeric types for wtimeout.
 WRITE_CONCERN_ACCEPTED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "object",
@@ -62,12 +62,6 @@ WRITE_CONCERN_ACCEPTED_TESTS: list[CommandTestCase] = [
         expected={"ok": 1.0},
         msg="setFeatureCompatibilityVersion should succeed when writeConcern is omitted",
     ),
-]
-
-
-# Property [wtimeout Coercion]: setFeatureCompatibilityVersion accepts
-# various numeric types for wtimeout.
-WTIMEOUT_COERCION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "wtimeout_double",
         command=lambda ctx: {
@@ -76,7 +70,7 @@ WTIMEOUT_COERCION_TESTS: list[CommandTestCase] = [
             "writeConcern": {"wtimeout": 5000.0},
         },
         expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should accept wtimeout as whole-number double",
+        msg="setFeatureCompatibilityVersion should accept wtimeout as double",
     ),
     CommandTestCase(
         "wtimeout_long",
@@ -96,7 +90,7 @@ WTIMEOUT_COERCION_TESTS: list[CommandTestCase] = [
             "writeConcern": {"wtimeout": Decimal128("5000")},
         },
         expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should accept wtimeout as whole-number Decimal128",
+        msg="setFeatureCompatibilityVersion should accept wtimeout as Decimal128",
     ),
     CommandTestCase(
         "wtimeout_fractional_double",
@@ -124,23 +118,6 @@ WTIMEOUT_COERCION_TESTS: list[CommandTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(WRITE_CONCERN_ACCEPTED_TESTS))
 def test_setFeatureCompatibilityVersion_writeConcern_accepted(database_client, collection, test):
     """Test setFeatureCompatibilityVersion accepts valid writeConcern values."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    cmd = test.build_command(ctx)
-    cmd["setFeatureCompatibilityVersion"] = get_fcv(collection)
-    result = execute_admin_command(collection, cmd)
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(WTIMEOUT_COERCION_TESTS))
-def test_setFeatureCompatibilityVersion_wtimeout_coercion(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion accepts various numeric types for wtimeout."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     cmd = test.build_command(ctx)
