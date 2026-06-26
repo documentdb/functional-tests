@@ -111,6 +111,7 @@ def test_setParameter_non_admin_db(database_client, collection, test):
 
 
 # Property [Atomicity]: multi-parameter set is atomic on failure.
+# Standalone because it requires multi-step state verification.
 def test_setParameter_multi_param_atomic_on_failure(collection):
     """Test multi-parameter command with invalid second param does not apply first."""
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})

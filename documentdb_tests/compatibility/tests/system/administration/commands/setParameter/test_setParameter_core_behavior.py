@@ -3,6 +3,9 @@
 Validates single/multiple parameter modification, admin database requirement,
 runtime vs startup-only parameters, command shape, response structure, and
 getParameter interaction.
+
+Tests are standalone functions because each modifies server state and must
+save/restore original values.
 """
 
 import pytest

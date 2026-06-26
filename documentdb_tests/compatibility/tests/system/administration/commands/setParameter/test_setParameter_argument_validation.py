@@ -152,6 +152,9 @@ def test_setParameter_argument_rejected(database_client, collection, test):
     )
 
 
+# Standalone tests below require save/restore of server state after each set.
+
+
 # Property [Boolean Coercion]: boolean-typed parameters accept bool and numeric coercion.
 def test_setParameter_boolean_param_with_bool_succeeds(collection):
     """Test setParameter accepts boolean value for boolean-typed param."""
