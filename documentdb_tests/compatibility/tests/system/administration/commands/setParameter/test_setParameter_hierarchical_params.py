@@ -1,93 +1,18 @@
-"""Tests for setParameter hierarchical/object parameter handling.
+"""Tests for setParameter hierarchical/object parameter handling (success cases).
 
 Validates logComponentVerbosity nested parameter behavior including
-read defaults, type/member validation, multi-member set, atomic rejection,
-and bare numeric form.
+read defaults, multi-member set, atomic rejection, and bare numeric form.
+
+Tests are standalone functions because each modifies server state and must
+save/restore original values.
 """
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
-    CommandContext,
-    CommandTestCase,
-)
-from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
-from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
-
-
-# Property [Type Rejection]: logComponentVerbosity rejects invalid types and values.
-HIERARCHICAL_ERROR_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "string_value",
-        command=lambda ctx: {"setParameter": 1, "logComponentVerbosity": "abc"},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="setParameter should reject string for logComponentVerbosity",
-    ),
-    CommandTestCase(
-        "nested_string_verbosity",
-        command=lambda ctx: {
-            "setParameter": 1,
-            "logComponentVerbosity": {"command": {"verbosity": "abc"}},
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="setParameter should reject string for nested verbosity",
-    ),
-    CommandTestCase(
-        "nested_overflow",
-        command=lambda ctx: {
-            "setParameter": 1,
-            "logComponentVerbosity": {"command": {"verbosity": 2_147_483_648}},
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="setParameter should reject overflow for nested verbosity",
-    ),
-    CommandTestCase(
-        "nested_underflow",
-        command=lambda ctx: {
-            "setParameter": 1,
-            "logComponentVerbosity": {"command": {"verbosity": -2_147_483_649}},
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="setParameter should reject underflow for nested verbosity",
-    ),
-    CommandTestCase(
-        "unknown_component",
-        command=lambda ctx: {
-            "setParameter": 1,
-            "logComponentVerbosity": {"unknownComponent": {"verbosity": 1}},
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="setParameter should reject unknown component name",
-    ),
-    CommandTestCase(
-        "nested_nan_verbosity",
-        command=lambda ctx: {
-            "setParameter": 1,
-            "logComponentVerbosity": {"command": {"verbosity": float("nan")}},
-        },
-        error_code=BAD_VALUE_ERROR,
-        msg="setParameter should reject NaN for nested verbosity",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(HIERARCHICAL_ERROR_TESTS))
-def test_setParameter_hierarchical_errors(database_client, collection, test):
-    """Test setParameter hierarchical parameter error cases."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    result = execute_admin_command(collection, test.build_command(ctx))
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
 
 
 # Property [Readability]: logComponentVerbosity is readable with defined defaults.
@@ -107,9 +32,6 @@ def test_setParameter_hierarchical_nested_field_defined(collection):
         {"logComponentVerbosity": {"network": {"asio": {"verbosity": -1}}}},
         msg="setParameter nested component should have defined verbosity",
     )
-
-
-# Standalone tests below require save/restore of server state after each set.
 
 
 # Property [Top-Level Verbosity]: top-level verbosity matches scalar logLevel.

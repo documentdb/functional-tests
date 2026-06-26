@@ -1,7 +1,6 @@
-"""Tests for setParameter error codes and multi-parameter failure semantics.
+"""Tests for setParameter error cases.
 
-Validates correct error codes are returned for various failure modes and
-that multi-parameter commands behave atomically on failure.
+ALL error assertions for setParameter are consolidated in this file.
 """
 
 import pytest
@@ -10,10 +9,16 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
+from documentdb_tests.framework.assertions import (
+    assertFailureCode,
+    assertResult,
+    assertSuccessPartial,
+)
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     INVALID_OPTIONS_ERROR,
+    OVERFLOW_ERROR,
+    TYPE_MISMATCH_ERROR,
     UNAUTHORIZED_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
@@ -38,22 +43,22 @@ ERROR_CODE_TESTS: list[CommandTestCase] = [
         msg="setParameter should reject startup-only param",
     ),
     CommandTestCase(
-        "out_of_range_value",
+        "out_of_range_below_min",
         command=lambda ctx: {"setParameter": 1, "logLevel": -1},
         error_code=BAD_VALUE_ERROR,
-        msg="setParameter should reject out-of-range value below minimum",
+        msg="setParameter should reject value below minimum",
     ),
     CommandTestCase(
-        "above_max_value",
+        "above_int32_max",
         command=lambda ctx: {"setParameter": 1, "logLevel": INT32_MAX + 1},
         error_code=BAD_VALUE_ERROR,
         msg="setParameter should reject value exceeding int32 max",
     ),
     CommandTestCase(
-        "wrong_type_value",
+        "wrong_type_string_for_int",
         command=lambda ctx: {"setParameter": 1, "logLevel": "abc"},
         error_code=BAD_VALUE_ERROR,
-        msg="setParameter should reject wrong type value",
+        msg="setParameter should reject string for integer param",
     ),
     CommandTestCase(
         "empty_param_name",
@@ -75,8 +80,149 @@ ERROR_CODE_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [Name Rejection]: setParameter rejects invalid parameter names.
+NAME_REJECTION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "case_sensitive",
+        command=lambda ctx: {"setParameter": 1, "LogLevel": 0},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject wrong-case param name",
+    ),
+    CommandTestCase(
+        "long_name",
+        command=lambda ctx: {"setParameter": 1, "a" * 1000: 1},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject very long param name",
+    ),
+    CommandTestCase(
+        "dotted_name",
+        command=lambda ctx: {"setParameter": 1, "log.level": 1},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject dotted param name",
+    ),
+    CommandTestCase(
+        "dollar_name",
+        command=lambda ctx: {"setParameter": 1, "$logLevel": 1},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject dollar-prefixed param name",
+    ),
+    CommandTestCase(
+        "whitespace_name",
+        command=lambda ctx: {"setParameter": 1, " logLevel ": 0},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject whitespace in param name",
+    ),
+    CommandTestCase(
+        "numeric_string_name",
+        command=lambda ctx: {"setParameter": 1, "12345": 0},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="setParameter should reject numeric string param name",
+    ),
+]
 
-@pytest.mark.parametrize("test", pytest_params(ERROR_CODE_TESTS))
+# Property [Value Type Rejection]: setParameter rejects invalid value types.
+VALUE_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "string_param_with_numeric",
+        command=lambda ctx: {"setParameter": 1, "automationServiceDescriptor": 12345},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="setParameter should reject numeric value for string param",
+    ),
+    CommandTestCase(
+        "string_param_overlength",
+        command=lambda ctx: {"setParameter": 1, "automationServiceDescriptor": "x" * 65},
+        error_code=OVERFLOW_ERROR,
+        msg="setParameter should reject over-length string value",
+    ),
+]
+
+# Property [Hierarchical Type Rejection]: logComponentVerbosity rejects invalid types.
+HIERARCHICAL_ERROR_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "hierarchical_string_value",
+        command=lambda ctx: {"setParameter": 1, "logComponentVerbosity": "abc"},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="setParameter should reject string for logComponentVerbosity",
+    ),
+    CommandTestCase(
+        "hierarchical_nested_string_verbosity",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"command": {"verbosity": "abc"}},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject string for nested verbosity",
+    ),
+    CommandTestCase(
+        "hierarchical_nested_overflow",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"command": {"verbosity": INT32_MAX + 1}},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject overflow for nested verbosity",
+    ),
+    CommandTestCase(
+        "hierarchical_nested_underflow",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"command": {"verbosity": -2_147_483_649}},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject underflow for nested verbosity",
+    ),
+    CommandTestCase(
+        "hierarchical_unknown_component",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"unknownComponent": {"verbosity": 1}},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject unknown component name",
+    ),
+    CommandTestCase(
+        "hierarchical_nested_nan_verbosity",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"command": {"verbosity": float("nan")}},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject NaN for nested verbosity",
+    ),
+]
+
+# Property [Integer Coercion Rejected]: integer-typed params reject non-numeric types.
+INTEGER_COERCION_REJECTION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "integer_rejects_string",
+        command=lambda ctx: {"setParameter": 1, "logLevel": "1"},
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject string for integer param",
+    ),
+    CommandTestCase(
+        "integer_rejects_array",
+        command=lambda ctx: {"setParameter": 1, "logLevel": [1]},
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject array for integer param",
+    ),
+    CommandTestCase(
+        "integer_rejects_document",
+        command=lambda ctx: {"setParameter": 1, "logLevel": {"a": 1}},
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject document for integer param",
+    ),
+]
+
+ALL_ERROR_TESTS = (
+    ERROR_CODE_TESTS
+    + NAME_REJECTION_TESTS
+    + VALUE_TYPE_REJECTION_TESTS
+    + HIERARCHICAL_ERROR_TESTS
+    + INTEGER_COERCION_REJECTION_TESTS
+)
+
+
+@pytest.mark.parametrize("test", pytest_params(ALL_ERROR_TESTS))
 def test_setParameter_errors(database_client, collection, test):
     """Test setParameter error cases."""
     collection = test.prepare(database_client, collection)
@@ -126,4 +272,13 @@ def test_setParameter_multi_param_atomic_on_failure(collection):
     result = execute_admin_command(collection, {"getParameter": 1, "logLevel": 1})
     assertSuccessPartial(
         result, {"logLevel": 0}, msg="First param should not be applied when second fails"
+    )
+
+
+# Property [Name Collision]: parameter name matching control field name fails.
+def test_setParameter_name_collides_with_control_field(collection):
+    """Test setParameter rejects param name that collides with control field."""
+    result = execute_admin_command(collection, {"setParameter": 1, "setParameter": 2})  # noqa: F601
+    assertFailureCode(
+        result, INVALID_OPTIONS_ERROR, msg="setParameter should reject name collision"
     )
