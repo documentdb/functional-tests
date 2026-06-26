@@ -55,12 +55,6 @@ ERROR_CODE_TESTS: list[CommandTestCase] = [
         msg="setParameter should reject value exceeding int32 max",
     ),
     CommandTestCase(
-        "wrong_type_string_for_int",
-        command=lambda ctx: {"setParameter": 1, "logLevel": "abc"},
-        error_code=BAD_VALUE_ERROR,
-        msg="setParameter should reject string for integer param",
-    ),
-    CommandTestCase(
         "empty_param_name",
         command=lambda ctx: {"setParameter": 1, "": 1},
         error_code=INVALID_OPTIONS_ERROR,

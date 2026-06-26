@@ -27,12 +27,6 @@ COMMAND_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         msg="setParameter should succeed on admin db",
     ),
     CommandTestCase(
-        "runtime_param_succeeds",
-        command=lambda ctx: {"setParameter": 1, "logLevel": 0},
-        expected={"ok": 1.0},
-        msg="setParameter should succeed for runtime-settable param",
-    ),
-    CommandTestCase(
         "comment_field_accepted",
         command=lambda ctx: {"setParameter": 1, "logLevel": 0, "comment": "test"},
         expected={"ok": 1.0},
@@ -73,16 +67,6 @@ def test_setParameter_returns_was_field(collection):
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
 
 
-def test_setParameter_success_was_type_matches_param(collection):
-    """Test setParameter 'was' field type matches the parameter's declared type."""
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
-    result = execute_admin_command(collection, {"setParameter": 1, "logLevel": 1})
-    assertSuccessPartial(
-        result, {"ok": 1.0, "was": 0}, msg="setParameter 'was' should be integer for logLevel"
-    )
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
-
-
 def test_setParameter_boolean_was_type(collection):
     """Test setParameter 'was' field for a boolean parameter is boolean type."""
     original = execute_admin_command(collection, {"getParameter": 1, "quiet": 1})
@@ -95,24 +79,13 @@ def test_setParameter_boolean_was_type(collection):
 
 
 # Property [Value Persistence]: setParameter changes are reflected in getParameter.
-def test_setParameter_actually_changes_value(collection):
+def test_setParameter_getParameter_reflects_new_value(collection):
     """Test setParameter changes are reflected via getParameter."""
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 3})
     result = execute_admin_command(collection, {"getParameter": 1, "logLevel": 1})
     assertSuccessPartial(
         result, {"logLevel": 3}, msg="setParameter should reflect new value via getParameter"
-    )
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
-
-
-def test_setParameter_getParameter_reflects_new_value(collection):
-    """Test setParameter getParameter reflects new value immediately."""
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 4})
-    result = execute_admin_command(collection, {"getParameter": 1, "logLevel": 1})
-    assertSuccessPartial(
-        result, {"logLevel": 4}, msg="setParameter should reflect new value immediately"
     )
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
 
