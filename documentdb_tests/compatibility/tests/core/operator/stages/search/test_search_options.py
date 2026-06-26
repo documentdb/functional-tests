@@ -236,11 +236,38 @@ SEARCH_CONCURRENT_OPTION_TESTS: list[StageTestCase] = [
     for label, val in [("true", True), ("false", False)]
 ]
 
+# Property [searchNodePreference Option]: searchNodePreference is a recognized
+# stage option taking a document with a string key, so a valid preference is
+# accepted and the search still returns its matches.
+SEARCH_NODE_PREFERENCE_OPTION_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "search_node_preference_recognized",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {"query": "quick", "path": "title"},
+                    "searchNodePreference": {"key": "primary"},
+                }
+            },
+        ],
+        expected={
+            "cursor.firstBatch": [
+                Len(3),
+                Contains("_id", 1),
+                Contains("_id", 3),
+                Contains("_id", 4),
+            ]
+        },
+        msg="$search should accept a searchNodePreference document and still return its matches",
+    ),
+]
+
 SEARCH_OPTION_TESTS = (
     SEARCH_INDEX_OPTION_TESTS
     + SEARCH_SORT_OPTION_TESTS
     + SEARCH_TRACKING_OPTION_TESTS
     + SEARCH_CONCURRENT_OPTION_TESTS
+    + SEARCH_NODE_PREFERENCE_OPTION_TESTS
 )
 
 

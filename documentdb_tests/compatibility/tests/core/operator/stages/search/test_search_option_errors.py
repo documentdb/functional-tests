@@ -173,11 +173,89 @@ SEARCH_UNKNOWN_OPTION_ERROR_TESTS: list[StageTestCase] = [
     ],
 ]
 
+# Property [searchNodePreference Validation]: searchNodePreference must be a
+# document carrying a required string key, so a non-document, a missing key, and
+# a non-string key are each rejected.
+SEARCH_NODE_PREFERENCE_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "search_node_preference_non_document",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {"query": "quick", "path": "title"},
+                    "searchNodePreference": "primary",
+                }
+            },
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject a non-document searchNodePreference option",
+    ),
+    StageTestCase(
+        "search_node_preference_key_missing",
+        pipeline=[
+            {"$search": {"text": {"query": "quick", "path": "title"}, "searchNodePreference": {}}},
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject a searchNodePreference that omits the required key",
+    ),
+    StageTestCase(
+        "search_node_preference_key_non_string",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {"query": "quick", "path": "title"},
+                    "searchNodePreference": {"key": 1},
+                }
+            },
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject a non-string searchNodePreference.key",
+    ),
+]
+
+# Property [returnScope Validation]: returnScope must be a document carrying a
+# required path, and a non-empty returnScope additionally requires
+# returnStoredSource to be enabled.
+SEARCH_RETURN_SCOPE_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "return_scope_non_document",
+        pipeline=[
+            {"$search": {"text": {"query": "quick", "path": "title"}, "returnScope": True}},
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject a non-document returnScope option",
+    ),
+    StageTestCase(
+        "return_scope_path_missing",
+        pipeline=[
+            {"$search": {"text": {"query": "quick", "path": "title"}, "returnScope": {}}},
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject a returnScope that omits the required path",
+    ),
+    StageTestCase(
+        "return_scope_requires_stored_source",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {"query": "quick", "path": "title"},
+                    "returnScope": {"path": "title"},
+                }
+            },
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject a non-empty returnScope when returnStoredSource is not "
+        "enabled",
+    ),
+]
+
 SEARCH_OPTION_GENERAL_ERROR_TESTS = (
     SEARCH_DOCUMENT_OPTION_TYPE_ERROR_TESTS
     + SEARCH_INTEGER_COERCION_ERROR_TESTS
     + SEARCH_INTEGER_TYPE_ERROR_TESTS
     + SEARCH_UNKNOWN_OPTION_ERROR_TESTS
+    + SEARCH_NODE_PREFERENCE_ERROR_TESTS
+    + SEARCH_RETURN_SCOPE_ERROR_TESTS
 )
 
 
