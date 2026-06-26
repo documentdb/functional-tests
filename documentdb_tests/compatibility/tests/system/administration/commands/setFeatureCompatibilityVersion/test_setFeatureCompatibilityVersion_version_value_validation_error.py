@@ -1,4 +1,4 @@
-"""Tests for setFeatureCompatibilityVersion version value validation.
+"""Tests for setFeatureCompatibilityVersion version value validation (error cases).
 
 Validates that the version field rejects unsupported, malformed, and
 edge-case string values.
@@ -14,8 +14,6 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import FCV_INVALID_VERSION_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-from .utils.setFeatureCompatibilityVersion_common import get_fcv
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
@@ -104,41 +102,12 @@ VERSION_VALUE_REJECTION_TESTS: list[CommandTestCase] = [
 ]
 
 
-# Property [Current Version Accepted]: setFeatureCompatibilityVersion accepts
-# the current binary version.
-CURRENT_VERSION_ACCEPTED_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "current_version",
-        expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should accept the current binary version",
-    ),
-]
-
-
 @pytest.mark.parametrize("test", pytest_params(VERSION_VALUE_REJECTION_TESTS))
 def test_setFeatureCompatibilityVersion_version_value_rejected(database_client, collection, test):
     """Test setFeatureCompatibilityVersion rejects invalid version values."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_admin_command(collection, test.build_command(ctx))
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(CURRENT_VERSION_ACCEPTED_TESTS))
-def test_setFeatureCompatibilityVersion_current_version_accepted(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion accepts the current binary version."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    fcv = get_fcv(collection)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
-    )
     assertResult(
         result,
         expected=test.build_expected(ctx),

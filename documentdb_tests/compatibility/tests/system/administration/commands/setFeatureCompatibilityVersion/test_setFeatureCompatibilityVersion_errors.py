@@ -1,7 +1,7 @@
 """Tests for setFeatureCompatibilityVersion error cases.
 
-Covers admin-database-only enforcement, unknown/extra fields,
-response structure, and setParameter rejection.
+Covers database enforcement (user/local/config DB rejection), unknown/extra fields,
+error response structure, and setParameter rejection.
 """
 
 import pytest
@@ -23,16 +23,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 from .utils.setFeatureCompatibilityVersion_common import get_fcv
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
-
-
-# Property [Admin DB Accepted]: setFeatureCompatibilityVersion succeeds on the admin database.
-ADMIN_DB_ACCEPTED_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "admin_db_accepted",
-        expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should succeed on the admin database",
-    ),
-]
 
 
 # Property [User DB Rejected]: setFeatureCompatibilityVersion fails on a user database.
@@ -124,16 +114,6 @@ ERROR_CODE_TESTS: list[CommandTestCase] = [
 ]
 
 
-# Property [Success Response Structure]: success response contains ok:1.
-SUCCESS_RESPONSE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "success_contains_ok",
-        expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion success response should contain ok:1",
-    ),
-]
-
-
 # Property [Error Response Structure]: error response contains code and codeName.
 ERROR_RESPONSE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -146,24 +126,6 @@ ERROR_RESPONSE_TESTS: list[CommandTestCase] = [
         msg="setFeatureCompatibilityVersion error response should contain code and codeName",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(ADMIN_DB_ACCEPTED_TESTS))
-def test_setFeatureCompatibilityVersion_admin_db_accepted(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion succeeds on the admin database."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    fcv = get_fcv(collection)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
-    )
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
 
 
 @pytest.mark.parametrize("test", pytest_params(USER_DB_REJECTED_TESTS))
@@ -259,24 +221,6 @@ def test_setFeatureCompatibilityVersion_error_code(database_client, collection, 
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_admin_command(collection, test.build_command(ctx))
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(SUCCESS_RESPONSE_TESTS))
-def test_setFeatureCompatibilityVersion_success_response(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion success response contains ok:1."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    fcv = get_fcv(collection)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
-    )
     assertResult(
         result,
         expected=test.build_expected(ctx),

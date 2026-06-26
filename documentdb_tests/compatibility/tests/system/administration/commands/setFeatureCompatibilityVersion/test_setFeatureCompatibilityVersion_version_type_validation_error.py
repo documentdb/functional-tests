@@ -1,7 +1,7 @@
-"""Tests for setFeatureCompatibilityVersion version field BSON type validation.
+"""Tests for setFeatureCompatibilityVersion version field BSON type validation (error cases).
 
-Validates that the version field only accepts string type and rejects
-all other BSON types with TYPE_MISMATCH_ERROR.
+Validates that the version field rejects all non-string BSON types
+with TYPE_MISMATCH_ERROR, and rejects null with MISSING_FIELD_ERROR.
 """
 
 import pytest
@@ -19,8 +19,6 @@ from documentdb_tests.framework.bson_type_validator import (
 from documentdb_tests.framework.error_codes import MISSING_FIELD_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-from .utils.setFeatureCompatibilityVersion_common import get_fcv
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
@@ -57,15 +55,6 @@ def test_setFeatureCompatibilityVersion_version_type_rejected(
     )
 
 
-# Property [String Accepted]: setFeatureCompatibilityVersion accepts string type.
-VERSION_STRING_ACCEPTED_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "version_string_accepted",
-        expected={"ok": 1.0},
-        msg="setFeatureCompatibilityVersion should accept string for version",
-    ),
-]
-
 # Property [Null Rejected]: setFeatureCompatibilityVersion rejects null for version.
 VERSION_NULL_REJECTED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -75,24 +64,6 @@ VERSION_NULL_REJECTED_TESTS: list[CommandTestCase] = [
         msg="setFeatureCompatibilityVersion should reject null for version",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(VERSION_STRING_ACCEPTED_TESTS))
-def test_setFeatureCompatibilityVersion_version_string_accepted(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion accepts string type for version."""
-    collection = test.prepare(database_client, collection)
-    ctx = CommandContext.from_collection(collection)
-    fcv = get_fcv(collection)
-    result = execute_admin_command(
-        collection, {"setFeatureCompatibilityVersion": fcv, "confirm": True}
-    )
-    assertResult(
-        result,
-        expected=test.build_expected(ctx),
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
 
 
 @pytest.mark.parametrize("test", pytest_params(VERSION_NULL_REJECTED_TESTS))
