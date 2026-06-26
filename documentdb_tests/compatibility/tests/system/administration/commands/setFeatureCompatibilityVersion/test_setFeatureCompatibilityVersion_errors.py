@@ -10,7 +10,7 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
-from documentdb_tests.framework.assertions import assertFailureCode, assertResult
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     FCV_INVALID_VERSION_ERROR,
     ILLEGAL_OPERATION_ERROR,
@@ -100,30 +100,17 @@ WRITE_CONCERN_UNKNOWN_SUBFIELD_TESTS: list[CommandTestCase] = [
 ]
 
 
-# Property [Error Contains Code]: error response contains a numeric code.
+# Property [Error Contains Code]: invalid version returns FCV_INVALID_VERSION_ERROR.
 ERROR_CODE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "invalid_version_error_code",
+        "invalid_version_returns_error",
         command=lambda ctx: {
             "setFeatureCompatibilityVersion": "invalid_version",
             "confirm": True,
         },
         error_code=FCV_INVALID_VERSION_ERROR,
-        msg="setFeatureCompatibilityVersion should return a numeric error code for invalid version",
-    ),
-]
-
-
-# Property [Error Response Structure]: error response contains code and codeName.
-ERROR_RESPONSE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "error_contains_code_and_codeName",
-        command=lambda ctx: {
-            "setFeatureCompatibilityVersion": "invalid_version",
-            "confirm": True,
-        },
-        error_code=FCV_INVALID_VERSION_ERROR,
-        msg="setFeatureCompatibilityVersion error response should contain code and codeName",
+        msg="setFeatureCompatibilityVersion should return FCV_INVALID_VERSION_ERROR"
+        " for non-existent version string",
     ),
 ]
 
@@ -216,8 +203,8 @@ def test_setFeatureCompatibilityVersion_writeConcern_unknown_subfield(
 
 
 @pytest.mark.parametrize("test", pytest_params(ERROR_CODE_TESTS))
-def test_setFeatureCompatibilityVersion_error_code(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion error response contains a numeric code."""
+def test_setFeatureCompatibilityVersion_invalid_version_error(database_client, collection, test):
+    """Test setFeatureCompatibilityVersion returns FCV_INVALID_VERSION_ERROR."""
     collection = test.prepare(database_client, collection)
     ctx = CommandContext.from_collection(collection)
     result = execute_admin_command(collection, test.build_command(ctx))
@@ -228,13 +215,3 @@ def test_setFeatureCompatibilityVersion_error_code(database_client, collection, 
         msg=test.msg,
         raw_res=True,
     )
-
-
-@pytest.mark.parametrize("test", pytest_params(ERROR_RESPONSE_TESTS))
-def test_setFeatureCompatibilityVersion_error_response(database_client, collection, test):
-    """Test setFeatureCompatibilityVersion error response contains code and codeName."""
-    collection = test.prepare(database_client, collection)
-    result = execute_admin_command(
-        collection, test.build_command(CommandContext.from_collection(collection))
-    )
-    assertFailureCode(result, test.error_code, msg=test.msg)
