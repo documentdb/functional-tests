@@ -14,13 +14,16 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     BSON_FIELD_NOT_BOOL_ERROR,
     QUERY_METADATA_NOT_AVAILABLE_ERROR,
+    UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import (
+    Contains,
     Eq,
     Exists,
     Gt,
+    Len,
     NonEmptyStr,
     PerDoc,
 )
@@ -160,6 +163,142 @@ SEARCH_SCORE_DETAILS_BOOL_TYPE_ERROR_TESTS: list[StageTestCase] = [
 @pytest.mark.parametrize("test_case", pytest_params(SEARCH_SCORE_DETAILS_BOOL_TYPE_ERROR_TESTS))
 def test_search_score_details_bool_error(indexed_collection, test_case: StageTestCase):
     """Test $search rejects a non-bool scoreDetails option value."""
+    result = execute_command(
+        indexed_collection,
+        {"aggregate": indexed_collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+    assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
+
+
+# Property [Operator Score Modifier]: an operator score modifier accepts exactly
+# one of boost, constant, or function. Each alters scoring without changing the
+# matched set, so the search still returns its matches. This is a shared operator
+# option (every operator accepts it), so it is covered once here rather than per
+# operator.
+SEARCH_SCORE_MODIFIER_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "score_modifier_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {
+                        "query": "quick",
+                        "path": "title",
+                        "score": {"boost": {"value": 2.0}},
+                    }
+                }
+            },
+        ],
+        expected={
+            "cursor.firstBatch": [
+                Len(3),
+                Contains("_id", 1),
+                Contains("_id", 3),
+                Contains("_id", 4),
+            ]
+        },
+        msg="$search should accept a boost score modifier and still return its matches",
+    ),
+    StageTestCase(
+        "score_modifier_constant",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {
+                        "query": "quick",
+                        "path": "title",
+                        "score": {"constant": {"value": 5.0}},
+                    }
+                }
+            },
+        ],
+        expected={
+            "cursor.firstBatch": [
+                Len(3),
+                Contains("_id", 1),
+                Contains("_id", 3),
+                Contains("_id", 4),
+            ]
+        },
+        msg="$search should accept a constant score modifier and still return its matches",
+    ),
+    StageTestCase(
+        "score_modifier_function",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {
+                        "query": "quick",
+                        "path": "title",
+                        "score": {"function": {"score": "relevance"}},
+                    }
+                }
+            },
+        ],
+        expected={
+            "cursor.firstBatch": [
+                Len(3),
+                Contains("_id", 1),
+                Contains("_id", 3),
+                Contains("_id", 4),
+            ]
+        },
+        msg="$search should accept a function score modifier and still return its matches",
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(SEARCH_SCORE_MODIFIER_TESTS))
+def test_search_score_modifier(indexed_collection, test_case: StageTestCase):
+    """Test $search accepts each operator score modifier variant."""
+    result = execute_command(
+        indexed_collection,
+        {"aggregate": indexed_collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+    assertResult(
+        result,
+        expected=test_case.expected,
+        msg=test_case.msg,
+        raw_res=True,
+    )
+
+
+# Property [Operator Score Modifier Validity]: a score modifier must name exactly
+# one of boost/constant/function, so an empty modifier and one naming more than
+# one variant are each rejected.
+SEARCH_SCORE_MODIFIER_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "score_modifier_empty",
+        pipeline=[
+            {"$search": {"text": {"query": "quick", "path": "title", "score": {}}}},
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject an empty score modifier naming no variant",
+    ),
+    StageTestCase(
+        "score_modifier_multiple_variants",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {
+                        "query": "quick",
+                        "path": "title",
+                        "score": {"boost": {"value": 2.0}, "constant": {"value": 5.0}},
+                    }
+                }
+            },
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject a score modifier naming more than one variant",
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(SEARCH_SCORE_MODIFIER_ERROR_TESTS))
+def test_search_score_modifier_errors(indexed_collection, test_case: StageTestCase):
+    """Test $search rejects an empty or multi-variant score modifier."""
     result = execute_command(
         indexed_collection,
         {"aggregate": indexed_collection.name, "pipeline": test_case.pipeline, "cursor": {}},
