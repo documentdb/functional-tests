@@ -165,6 +165,12 @@ SEARCHMETA_FACET_DEF_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
         error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject a facet definition missing its path",
     ),
+    StageTestCase(
+        "facet_def_missing_boundaries",
+        pipeline=[{"$searchMeta": {"facet": {"facets": {"nf": {"type": "number", "path": "n"}}}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject a number facet definition missing its boundaries",
+    ),
 ]
 
 # Property [Facet Definition Type Value]: a facet definition type outside
@@ -201,6 +207,122 @@ SEARCHMETA_FACET_DEF_TYPE_ERROR_TESTS: list[StageTestCase] = [
         ("decimal128", DECIMAL128_ZERO),
         ("bool", True),
         ("array", [1, 2]),
+        ("objectid", ObjectId("507f1f77bcf86cd799439011")),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(1, 1)),
+        ("binary", Binary(b"\x01\x02\x03")),
+        ("regex", Regex(".*", "i")),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
+]
+
+# Property [Facet Path Type]: a facet definition path must be a string, so a
+# non-string path is rejected. A null path is treated as missing, so it is
+# excluded.
+SEARCHMETA_FACET_PATH_TYPE_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        f"facet_path_type_{tid}",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "number", "path": val, "boundaries": [0, 25]}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg=f"$searchMeta should reject a {tid} facet path as not a string",
+    )
+    for tid, val in [
+        ("int32", 42),
+        ("int64", Int64(1)),
+        ("double", 3.14),
+        ("decimal128", DECIMAL128_ZERO),
+        ("bool", True),
+        ("object", {"a": 1}),
+        ("array", ["n"]),
+        ("objectid", ObjectId("507f1f77bcf86cd799439011")),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(1, 1)),
+        ("binary", Binary(b"\x01\x02\x03")),
+        ("regex", Regex(".*", "i")),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
+]
+
+# Property [Facet Boundaries Type]: a number-facet boundaries value must be an
+# array, so a non-array boundaries value is rejected. A null boundaries is
+# treated as missing, so it is excluded.
+SEARCHMETA_FACET_BOUNDARIES_TYPE_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        f"facet_boundaries_type_{tid}",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {"facets": {"nf": {"type": "number", "path": "n", "boundaries": val}}}
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg=f"$searchMeta should reject a {tid} boundaries value as not an array",
+    )
+    for tid, val in [
+        ("string", "x"),
+        ("int32", 42),
+        ("int64", Int64(1)),
+        ("double", 3.14),
+        ("decimal128", DECIMAL128_ZERO),
+        ("bool", True),
+        ("object", {"a": 1}),
+        ("objectid", ObjectId("507f1f77bcf86cd799439011")),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(1, 1)),
+        ("binary", Binary(b"\x01\x02\x03")),
+        ("regex", Regex(".*", "i")),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
+]
+
+# Property [Facet Default Type]: a number-facet default overflow bucket name
+# must be a string, so a non-string default is rejected. A null default is
+# treated as no default, so it is excluded.
+SEARCHMETA_FACET_DEFAULT_TYPE_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        f"facet_default_type_{tid}",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "number",
+                                "path": "n",
+                                "boundaries": [0, 5],
+                                "default": val,
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg=f"$searchMeta should reject a {tid} facet default as not a string",
+    )
+    for tid, val in [
+        ("int32", 42),
+        ("int64", Int64(1)),
+        ("double", 3.14),
+        ("decimal128", DECIMAL128_ZERO),
+        ("bool", True),
+        ("object", {"a": 1}),
+        ("array", ["over"]),
         ("objectid", ObjectId("507f1f77bcf86cd799439011")),
         ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
         ("timestamp", Timestamp(1, 1)),
@@ -278,6 +400,9 @@ SEARCHMETA_SPEC_FACET_ERROR_TESTS: list[StageTestCase] = (
     + SEARCHMETA_FACET_DEF_REQUIRED_ERROR_TESTS
     + SEARCHMETA_FACET_DEF_TYPE_VALUE_ERROR_TESTS
     + SEARCHMETA_FACET_DEF_TYPE_ERROR_TESTS
+    + SEARCHMETA_FACET_PATH_TYPE_ERROR_TESTS
+    + SEARCHMETA_FACET_BOUNDARIES_TYPE_ERROR_TESTS
+    + SEARCHMETA_FACET_DEFAULT_TYPE_ERROR_TESTS
     + SEARCHMETA_FACET_UNKNOWN_FIELD_ERROR_TESTS
 )
 
