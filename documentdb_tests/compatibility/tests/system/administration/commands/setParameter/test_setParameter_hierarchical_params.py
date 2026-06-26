@@ -3,6 +3,9 @@
 Validates logComponentVerbosity nested parameter behavior including
 read defaults, type/member validation, multi-member set, atomic rejection,
 and bare numeric form.
+
+Tests are standalone functions because each modifies server state and must
+save/restore original values.
 """
 
 import pytest
