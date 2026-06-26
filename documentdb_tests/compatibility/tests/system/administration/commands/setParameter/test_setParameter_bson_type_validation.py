@@ -19,6 +19,7 @@ from documentdb_tests.framework.executor import execute_admin_command
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
+# Property [Control Field Acceptance]: setParameter control field accepts all BSON types.
 CONTROL_FIELD_PARAM = [
     BsonTypeTestCase(
         id="setParameter_control",
@@ -39,6 +40,7 @@ def test_setParameter_control_field_bson_type_accepted(collection, bson_type, sa
     assertSuccessPartial(result, {"ok": 1.0}, msg=f"{spec.msg} (bson_type={bson_type.value})")
 
 
+# Property [Boolean Coercion]: boolean-typed params accept many BSON types via coercion.
 @pytest.mark.parametrize(
     "value,desc",
     [
@@ -76,6 +78,7 @@ def test_setParameter_boolean_coercion_accepted(collection, value, desc):
     execute_admin_command(collection, {"setParameter": 1, "quiet": original["quiet"]})
 
 
+# Property [Integer Coercion Accepted]: integer-typed params accept whole-number numerics.
 @pytest.mark.parametrize(
     "value,desc",
     [
@@ -94,6 +97,7 @@ def test_setParameter_integer_coercion_accepted(collection, value, desc):
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
 
 
+# Property [Integer Coercion Rejected]: integer-typed params reject non-numeric types.
 @pytest.mark.parametrize(
     "value,error_code,desc",
     [

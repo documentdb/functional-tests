@@ -3,93 +3,131 @@
 Validates logComponentVerbosity nested parameter behavior including
 read defaults, type/member validation, multi-member set, atomic rejection,
 and bare numeric form.
-
-Tests are standalone functions because each modifies server state and must
-save/restore original values.
 """
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    CommandContext,
+    CommandTestCase,
+)
+from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
+# Property [Type Rejection]: logComponentVerbosity rejects invalid types and values.
+HIERARCHICAL_ERROR_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "string_value",
+        command=lambda ctx: {"setParameter": 1, "logComponentVerbosity": "abc"},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="setParameter should reject string for logComponentVerbosity",
+    ),
+    CommandTestCase(
+        "nested_string_verbosity",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"command": {"verbosity": "abc"}},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject string for nested verbosity",
+    ),
+    CommandTestCase(
+        "nested_overflow",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"command": {"verbosity": 2_147_483_648}},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject overflow for nested verbosity",
+    ),
+    CommandTestCase(
+        "nested_underflow",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"command": {"verbosity": -2_147_483_649}},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject underflow for nested verbosity",
+    ),
+    CommandTestCase(
+        "unknown_component",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"unknownComponent": {"verbosity": 1}},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject unknown component name",
+    ),
+    CommandTestCase(
+        "nested_nan_verbosity",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"command": {"verbosity": float("nan")}},
+        },
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject NaN for nested verbosity",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(HIERARCHICAL_ERROR_TESTS))
+def test_setParameter_hierarchical_errors(database_client, collection, test):
+    """Test setParameter hierarchical parameter error cases."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_admin_command(collection, test.build_command(ctx))
+    assertResult(
+        result,
+        expected=test.build_expected(ctx),
+        error_code=test.error_code,
+        msg=test.msg,
+        raw_res=True,
+    )
+
+
+# Property [Readability]: logComponentVerbosity is readable with defined defaults.
 def test_setParameter_hierarchical_param_readable(collection):
-    """Test reading logComponentVerbosity returns a defined value."""
+    """Test setParameter reading logComponentVerbosity returns a defined value."""
     result = execute_admin_command(collection, {"getParameter": 1, "logComponentVerbosity": 1})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Should be able to read hierarchical param")
+    assertSuccessPartial(
+        result, {"ok": 1.0}, msg="setParameter should be able to read hierarchical param"
+    )
 
 
+def test_setParameter_hierarchical_nested_field_defined(collection):
+    """Test setParameter deeply nested verbosity field is defined."""
+    result = execute_admin_command(collection, {"getParameter": 1, "logComponentVerbosity": 1})
+    assertSuccessPartial(
+        result,
+        {"logComponentVerbosity": {"network": {"asio": {"verbosity": -1}}}},
+        msg="setParameter nested component should have defined verbosity",
+    )
+
+
+# Standalone tests below require save/restore of server state after each set.
+
+
+# Property [Top-Level Verbosity]: top-level verbosity matches scalar logLevel.
 def test_setParameter_hierarchical_top_level_verbosity(collection):
-    """Test top-level verbosity of hierarchical parameter matches scalar logLevel default."""
+    """Test setParameter top-level verbosity matches scalar logLevel default."""
     execute_admin_command(collection, {"getParameter": 1, "logComponentVerbosity": 1})
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
     result2 = execute_admin_command(collection, {"getParameter": 1, "logComponentVerbosity": 1})
     assertSuccessPartial(
         result2,
         {"logComponentVerbosity": {"verbosity": 0}},
-        msg="Top-level verbosity should match logLevel",
+        msg="setParameter top-level verbosity should match logLevel",
     )
 
 
-def test_setParameter_hierarchical_nested_field_defined(collection):
-    """Test a deeply nested verbosity field is defined."""
-    result = execute_admin_command(collection, {"getParameter": 1, "logComponentVerbosity": 1})
-    # network.asio is a deeply nested component
-    assertSuccessPartial(
-        result,
-        {"logComponentVerbosity": {"network": {"asio": {"verbosity": -1}}}},
-        msg="Nested component should have defined verbosity",
-    )
-
-
-def test_setParameter_hierarchical_string_value_fails(collection):
-    """Test setting logComponentVerbosity to a plain string fails with TypeMismatch."""
-    result = execute_admin_command(collection, {"setParameter": 1, "logComponentVerbosity": "abc"})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="String should fail for object param")
-
-
-def test_setParameter_hierarchical_nested_string_verbosity_fails(collection):
-    """Test setting a nested verbosity member to a non-numeric string fails."""
-    result = execute_admin_command(
-        collection,
-        {"setParameter": 1, "logComponentVerbosity": {"command": {"verbosity": "abc"}}},
-    )
-    assertFailureCode(result, BAD_VALUE_ERROR, msg="String verbosity should fail")
-
-
-def test_setParameter_hierarchical_nested_overflow_fails(collection):
-    """Test setting a nested verbosity member above max safe integer fails."""
-    result = execute_admin_command(
-        collection,
-        {"setParameter": 1, "logComponentVerbosity": {"command": {"verbosity": 2147483648}}},
-    )
-    assertFailureCode(result, BAD_VALUE_ERROR, msg="Overflow verbosity should fail")
-
-
-def test_setParameter_hierarchical_nested_underflow_fails(collection):
-    """Test setting a nested verbosity member below min safe integer fails."""
-    result = execute_admin_command(
-        collection,
-        {"setParameter": 1, "logComponentVerbosity": {"command": {"verbosity": -2147483649}}},
-    )
-    assertFailureCode(result, BAD_VALUE_ERROR, msg="Underflow verbosity should fail")
-
-
-def test_setParameter_hierarchical_unknown_component_fails(collection):
-    """Test setting an unrecognized nested component name fails."""
-    result = execute_admin_command(
-        collection,
-        {"setParameter": 1, "logComponentVerbosity": {"unknownComponent": {"verbosity": 1}}},
-    )
-    assertFailureCode(result, BAD_VALUE_ERROR, msg="Unknown component should fail")
-
-
+# Property [Multi-Member Set]: setting several nested members in one command succeeds.
 def test_setParameter_hierarchical_multi_member_set(collection):
-    """Test setting several nested members in one command succeeds."""
+    """Test setParameter setting several nested members in one command succeeds."""
     execute_admin_command(
         collection,
         {
@@ -104,8 +142,7 @@ def test_setParameter_hierarchical_multi_member_set(collection):
             "logComponentVerbosity": {"command": {"verbosity": 2}, "network": {"verbosity": 3}},
         },
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Multi-member set should succeed")
-    # Cleanup
+    assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter multi-member set should succeed")
     execute_admin_command(
         collection,
         {
@@ -115,8 +152,9 @@ def test_setParameter_hierarchical_multi_member_set(collection):
     )
 
 
+# Property [Multi-Member Readback]: reading back reflects each member set.
 def test_setParameter_hierarchical_multi_member_readback(collection):
-    """Test reading back reflects each member set in a multi-member command."""
+    """Test setParameter reading back reflects each member set in a multi-member command."""
     execute_admin_command(
         collection,
         {
@@ -128,9 +166,8 @@ def test_setParameter_hierarchical_multi_member_readback(collection):
     assertSuccessPartial(
         read_result,
         {"logComponentVerbosity": {"command": {"verbosity": 2}, "network": {"verbosity": 3}}},
-        msg="Both members should be set",
+        msg="setParameter should reflect both members after set",
     )
-    # Cleanup
     execute_admin_command(
         collection,
         {
@@ -140,8 +177,9 @@ def test_setParameter_hierarchical_multi_member_readback(collection):
     )
 
 
+# Property [Atomic Rejection]: no members change when a multi-member set is rejected.
 def test_setParameter_hierarchical_atomic_rejection(collection):
-    """Test no members are changed when a multi-member set is rejected."""
+    """Test setParameter no members are changed when a multi-member set is rejected."""
     execute_admin_command(
         collection,
         {"setParameter": 1, "logComponentVerbosity": {"command": {"verbosity": -1}}},
@@ -157,12 +195,13 @@ def test_setParameter_hierarchical_atomic_rejection(collection):
     assertSuccessPartial(
         result,
         {"logComponentVerbosity": {"command": {"verbosity": -1}}},
-        msg="Command verbosity should remain unchanged after atomic rejection",
+        msg="setParameter should not change any member on atomic rejection",
     )
 
 
+# Property [Clear With Negative]: setting -1 resets to inherited default.
 def test_setParameter_hierarchical_clear_with_negative(collection):
-    """Test clearing nested members with -1 resets them to inherited default."""
+    """Test setParameter clearing nested members with -1 resets to inherited default."""
     execute_admin_command(
         collection,
         {"setParameter": 1, "logComponentVerbosity": {"command": {"verbosity": 3}}},
@@ -175,16 +214,17 @@ def test_setParameter_hierarchical_clear_with_negative(collection):
     assertSuccessPartial(
         result,
         {"logComponentVerbosity": {"command": {"verbosity": -1}}},
-        msg="Cleared member should fall back to -1 (inherited)",
+        msg="setParameter should reset member to -1 (inherited) after clear",
     )
 
 
+# Property [Bare Numeric Form]: setting component with bare numeric level succeeds.
 def test_setParameter_hierarchical_bare_numeric_form(collection):
-    """Test setting a nested component verbosity using bare numeric level succeeds."""
+    """Test setParameter setting nested component with bare numeric level succeeds."""
     result = execute_admin_command(
         collection, {"setParameter": 1, "logComponentVerbosity": {"command": 4}}
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Bare numeric form should succeed")
+    assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter should accept bare numeric form")
     execute_admin_command(
         collection,
         {"setParameter": 1, "logComponentVerbosity": {"command": {"verbosity": -1}}},
@@ -192,24 +232,15 @@ def test_setParameter_hierarchical_bare_numeric_form(collection):
 
 
 def test_setParameter_hierarchical_bare_numeric_readback(collection):
-    """Test bare numeric component set takes effect when read back."""
+    """Test setParameter bare numeric component set takes effect when read back."""
     execute_admin_command(collection, {"setParameter": 1, "logComponentVerbosity": {"command": 4}})
     read_result = execute_admin_command(collection, {"getParameter": 1, "logComponentVerbosity": 1})
     assertSuccessPartial(
         read_result,
         {"logComponentVerbosity": {"command": {"verbosity": 4}}},
-        msg="Bare numeric should set verbosity",
+        msg="setParameter bare numeric should set verbosity",
     )
     execute_admin_command(
         collection,
         {"setParameter": 1, "logComponentVerbosity": {"command": {"verbosity": -1}}},
     )
-
-
-def test_setParameter_hierarchical_nested_nan_verbosity_fails(collection):
-    """Test setting a nested verbosity member to NaN fails with BadValue."""
-    result = execute_admin_command(
-        collection,
-        {"setParameter": 1, "logComponentVerbosity": {"command": {"verbosity": float("nan")}}},
-    )
-    assertFailureCode(result, BAD_VALUE_ERROR, msg="NaN verbosity should fail")
