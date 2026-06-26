@@ -377,6 +377,50 @@ SEARCHMETA_DATE_FACET_TESTS: list[CollectionFixtureTestCase] = [
     ),
 ]
 
+# Property [Facet Date Default Overflow Bucket]: a date facet collects datetimes
+# outside its boundary ranges into the default overflow bucket when default is
+# set, mirroring the number-facet default behavior.
+SEARCHMETA_DATE_FACET_DEFAULT_TESTS: list[CollectionFixtureTestCase] = [
+    CollectionFixtureTestCase(
+        "date_facet_default_overflow",
+        collection_fixture="date_facet_collection",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "df": {
+                                "type": "date",
+                                "path": "d",
+                                "boundaries": [
+                                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 4, 1, tzinfo=timezone.utc),
+                                ],
+                                "default": "over",
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        expected=[
+            {
+                "count": {"lowerBound": Int64(5)},
+                "facet": {
+                    "df": {
+                        "buckets": [
+                            {"_id": datetime(2024, 1, 1, tzinfo=timezone.utc), "count": Int64(3)},
+                            {"_id": "over", "count": Int64(2)},
+                        ]
+                    }
+                },
+            }
+        ],
+        msg="$searchMeta date facet should collect out-of-range datetimes into the default "
+        "overflow bucket when default is set",
+    ),
+]
+
 # Number facets run against the standard search collection; date faceting needs
 # an index with an explicit date mapping, so its case names a different fixture.
 # Both share one execution path, with the collection carried as data.
@@ -386,6 +430,7 @@ SEARCHMETA_FACET_RESULT_TESTS: list[CollectionFixtureTestCase] = (
     + SEARCHMETA_FACET_DEFAULT_TESTS
     + SEARCHMETA_FACET_ZERO_MATCH_TESTS
     + SEARCHMETA_DATE_FACET_TESTS
+    + SEARCHMETA_DATE_FACET_DEFAULT_TESTS
 )
 
 
