@@ -23,6 +23,8 @@ from documentdb_tests.framework.property_checks import (
 )
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_ONE_AND_HALF,
+    FLOAT_INFINITY,
+    FLOAT_NEGATIVE_INFINITY,
 )
 
 pytestmark = pytest.mark.requires(search=True)
@@ -126,6 +128,33 @@ SEARCH_COUNT_TESTS: list[StageTestCase] = [
         msg="$search should accept count.threshold for a lowerBound count and still expose "
         "the exact count",
     ),
+    StageTestCase(
+        "count_type_null_default",
+        pipeline=[
+            {"$search": {"text": {"query": "quick", "path": "title"}, "count": {"type": None}}},
+            {"$limit": 1},
+            {"$project": {"_id": 0, "count": "$$SEARCH_META.count"}},
+        ],
+        expected={"count": {"lowerBound": Eq(Int64(3))}},
+        msg="$search should treat a null count.type as the unset default, exposing a "
+        "lowerBound count",
+    ),
+    StageTestCase(
+        "count_threshold_null_default",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {"query": "quick", "path": "title"},
+                    "count": {"type": "total", "threshold": None},
+                }
+            },
+            {"$limit": 1},
+            {"$project": {"_id": 0, "count": "$$SEARCH_META.count"}},
+        ],
+        expected={"count": {"total": Eq(Int64(3))}},
+        msg="$search should treat a null count.threshold as the unset default and still "
+        "expose the exact count",
+    ),
 ]
 
 
@@ -191,6 +220,34 @@ SEARCH_COUNT_THRESHOLD_ERROR_TESTS: list[StageTestCase] = [
         ],
         error_code=UNKNOWN_ERROR,
         msg="$search should reject a negative count.threshold",
+    ),
+    StageTestCase(
+        "count_threshold_positive_infinity",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {"query": "quick", "path": "title"},
+                    "count": {"threshold": FLOAT_INFINITY},
+                }
+            },
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject an infinite count.threshold as not fitting in a 32-bit "
+        "integer",
+    ),
+    StageTestCase(
+        "count_threshold_negative_infinity",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {"query": "quick", "path": "title"},
+                    "count": {"threshold": FLOAT_NEGATIVE_INFINITY},
+                }
+            },
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject a negative-infinite count.threshold as not fitting in a "
+        "32-bit integer",
     ),
     *[
         StageTestCase(
