@@ -49,6 +49,30 @@ SEARCH_REGEX_MATCHING_TESTS: list[StageTestCase] = [
         "allowAnalyzedField is true",
     ),
     StageTestCase(
+        "regex_score_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "regex": {
+                        "query": "qu.*",
+                        "path": "title",
+                        "allowAnalyzedField": True,
+                        "score": {"boost": {"value": 2.0}},
+                    }
+                }
+            },
+        ],
+        expected={
+            "cursor.firstBatch": [
+                Len(3),
+                Contains("_id", 1),
+                Contains("_id", 3),
+                Contains("_id", 4),
+            ]
+        },
+        msg="$search regex should accept a score modifier and still return its matches",
+    ),
+    StageTestCase(
         "regex_analyzed_distinct_token",
         pipeline=[
             {"$search": {"regex": {"query": "tur.*", "path": "title", "allowAnalyzedField": True}}},

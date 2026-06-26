@@ -103,6 +103,29 @@ SEARCH_NEAR_PROXIMITY_TESTS: list[StageTestCase] = [
         "pivot/(pivot+distance)",
     ),
     StageTestCase(
+        "near_score_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "near": {
+                        "path": "num",
+                        "origin": 10,
+                        "pivot": 10,
+                        "score": {"boost": {"value": 2.0}},
+                    }
+                }
+            },
+            {"$project": {"_id": 1, "score": {"$meta": "searchScore"}}},
+        ],
+        expected=PerDoc(
+            {"_id": Eq(2), "score": Gt(0)},
+            {"_id": Eq(1), "score": Gt(0)},
+            {"_id": Eq(3), "score": Gt(0)},
+        ),
+        msg="$search near should accept a score modifier and still order its matches by "
+        "proximity",
+    ),
+    StageTestCase(
         "near_date_proximity",
         # The pivot is 10 days expressed in milliseconds, the distance unit for a
         # date origin, so the docs 10 and 30 days away score 0.5 and 0.25.

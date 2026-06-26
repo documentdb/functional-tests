@@ -117,6 +117,21 @@ SEARCH_IN_VALUE_OR_ARRAY_TESTS: list[StageTestCase] = [
         msg="$search in should accept a single scalar value and match the documents storing it",
     ),
     StageTestCase(
+        "in_score_boost",
+        pipeline=[
+            {"$search": {"in": {"path": "num", "value": 20, "score": {"boost": {"value": 2.0}}}}},
+        ],
+        expected={
+            "cursor.firstBatch": [
+                Len(3),
+                Contains("_id", 1),
+                Contains("_id", 2),
+                Contains("_id", 3),
+            ]
+        },
+        msg="$search in should accept a score modifier and still return its matches",
+    ),
+    StageTestCase(
         "in_array_single_element",
         pipeline=[{"$search": {"in": {"path": "num", "value": [20]}}}],
         expected={

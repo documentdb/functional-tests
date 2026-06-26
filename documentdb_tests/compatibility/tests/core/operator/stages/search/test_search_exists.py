@@ -38,6 +38,14 @@ SEARCH_EXISTS_PRESENCE_TESTS: list[StageTestCase] = [
         msg="$search exists should select only the documents where the named field is present",
     ),
     StageTestCase(
+        "exists_score_boost",
+        pipeline=[
+            {"$search": {"exists": {"path": "body", "score": {"boost": {"value": 2.0}}}}},
+        ],
+        expected={"cursor.firstBatch": [Len(2), Contains("_id", 1), Contains("_id", 2)]},
+        msg="$search exists should accept a score modifier and still return its matches",
+    ),
+    StageTestCase(
         "exists_nonexistent_field",
         pipeline=[{"$search": {"exists": {"path": "nope"}}}],
         expected={"cursor.firstBatch": Len(0)},

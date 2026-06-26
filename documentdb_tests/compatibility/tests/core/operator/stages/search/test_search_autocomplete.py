@@ -75,6 +75,22 @@ SEARCH_AUTOCOMPLETE_PREFIX_TESTS: list[StageTestCase] = [
         msg="$search autocomplete should match every stored token sharing the query prefix",
     ),
     StageTestCase(
+        "autocomplete_score_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "autocomplete": {
+                        "path": "ac",
+                        "query": "sep",
+                        "score": {"boost": {"value": 2.0}},
+                    }
+                }
+            },
+        ],
+        expected={"cursor.firstBatch": [Len(2), Contains("_id", 1), Contains("_id", 3)]},
+        msg="$search autocomplete should accept a score modifier and still return its matches",
+    ),
+    StageTestCase(
         "autocomplete_prefix_longer",
         pipeline=[
             {"$search": {"autocomplete": {"path": "ac", "query": "sept"}}},

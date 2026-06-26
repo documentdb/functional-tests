@@ -39,6 +39,22 @@ SEARCH_QUERY_STRING_TESTS: list[StageTestCase] = [
         msg="$search queryString should require every term of a boolean AND query to be present",
     ),
     StageTestCase(
+        "query_string_score_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "queryString": {
+                        "query": "quick AND brown",
+                        "defaultPath": "title",
+                        "score": {"boost": {"value": 2.0}},
+                    }
+                }
+            },
+        ],
+        expected={"cursor.firstBatch": [Len(1), Contains("_id", 1)]},
+        msg="$search queryString should accept a score modifier and still return its matches",
+    ),
+    StageTestCase(
         "query_string_field_scoped",
         pipeline=[
             {"$search": {"queryString": {"query": "body:quick", "defaultPath": "title"}}},
@@ -89,6 +105,28 @@ SEARCH_MORE_LIKE_THIS_TESTS: list[StageTestCase] = [
         },
         msg="$search moreLikeThis should return the documents whose covered field shares the "
         "example text's significant terms",
+    ),
+    StageTestCase(
+        "more_like_this_score_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "moreLikeThis": {
+                        "like": {"title": "the quick brown fox"},
+                        "score": {"boost": {"value": 2.0}},
+                    }
+                }
+            },
+        ],
+        expected={
+            "cursor.firstBatch": [
+                Len(3),
+                Contains("_id", 1),
+                Contains("_id", 3),
+                Contains("_id", 4),
+            ]
+        },
+        msg="$search moreLikeThis should accept a score modifier and still return its matches",
     ),
     StageTestCase(
         "more_like_this_array_of_docs",

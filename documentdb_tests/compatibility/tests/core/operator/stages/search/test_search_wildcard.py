@@ -83,6 +83,18 @@ SEARCH_WILDCARD_FIELD_TYPE_TESTS: list[StageTestCase] = [
         msg="$search wildcard should match a keyword-analyzed path with no allowAnalyzedField flag",
     ),
     StageTestCase(
+        "wildcard_score_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "wildcard": {"query": "qu*", "path": "kw", "score": {"boost": {"value": 2.0}}}
+                }
+            },
+        ],
+        expected={"cursor.firstBatch": [Len(2), Contains("_id", 1), Contains("_id", 2)]},
+        msg="$search wildcard should accept a score modifier and still return its matches",
+    ),
+    StageTestCase(
         "wildcard_standard_with_flag",
         pipeline=[
             {"$search": {"wildcard": {"query": "qu*", "path": "std", "allowAnalyzedField": True}}},

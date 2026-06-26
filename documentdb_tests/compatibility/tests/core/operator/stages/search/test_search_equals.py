@@ -116,6 +116,18 @@ SEARCH_EQUALS_VALUE_TYPE_TESTS: list[StageTestCase] = [
         msg="$search equals should match the document storing the queried boolean true",
     ),
     StageTestCase(
+        "equals_score_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "equals": {"path": "b", "value": True, "score": {"boost": {"value": 2.0}}}
+                }
+            },
+        ],
+        expected={"cursor.firstBatch": [Len(1), Contains("_id", 1)]},
+        msg="$search equals should accept a score modifier and still return its match",
+    ),
+    StageTestCase(
         "equals_bool_false",
         pipeline=[{"$search": {"equals": {"path": "b", "value": False}}}],
         expected={"cursor.firstBatch": [Len(1), Contains("_id", 2)]},

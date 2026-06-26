@@ -40,6 +40,23 @@ SEARCH_PHRASE_SLOP_TESTS: list[StageTestCase] = [
         msg="$search phrase with slop 0 should match adjacent query terms",
     ),
     StageTestCase(
+        "phrase_score_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "phrase": {
+                        "query": "quick brown",
+                        "path": "title",
+                        "slop": 0,
+                        "score": {"boost": {"value": 2.0}},
+                    }
+                }
+            },
+        ],
+        expected={"cursor.firstBatch": [Len(1), Contains("_id", 1)]},
+        msg="$search phrase should accept a score modifier and still return its matches",
+    ),
+    StageTestCase(
         "phrase_slop_0_excludes_gap",
         pipeline=[
             {"$search": {"phrase": {"query": "quick fox", "path": "title", "slop": 0}}},

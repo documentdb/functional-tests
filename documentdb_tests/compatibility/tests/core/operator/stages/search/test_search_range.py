@@ -103,6 +103,21 @@ SEARCH_RANGE_NUMERIC_BOUND_TESTS: list[StageTestCase] = [
         msg="$search range should apply an int32 numeric bound",
     ),
     StageTestCase(
+        "range_score_boost",
+        pipeline=[
+            {"$search": {"range": {"path": "num", "lte": 5, "score": {"boost": {"value": 2.0}}}}},
+        ],
+        expected={
+            "cursor.firstBatch": [
+                Len(3),
+                Contains("_id", 1),
+                Contains("_id", 2),
+                Contains("_id", 3),
+            ]
+        },
+        msg="$search range should accept a score modifier and still return its matches",
+    ),
+    StageTestCase(
         "numeric_bound_int64",
         pipeline=[
             {"$search": {"range": {"path": "num", "lte": Int64(5)}}},

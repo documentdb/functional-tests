@@ -111,6 +111,32 @@ SEARCH_GEO_WITHIN_TESTS: list[StageTestCase] = [
         msg="$search geoWithin should match the documents whose point lies inside the box region",
     ),
     StageTestCase(
+        "geo_within_score_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "geoWithin": {
+                        "path": "loc",
+                        "box": {
+                            "bottomLeft": {"type": "Point", "coordinates": [-1.0, -1.0]},
+                            "topRight": {"type": "Point", "coordinates": [6.0, 6.0]},
+                        },
+                        "score": {"boost": {"value": 2.0}},
+                    }
+                }
+            },
+        ],
+        expected={
+            "cursor.firstBatch": [
+                Len(3),
+                Contains("_id", 1),
+                Contains("_id", 2),
+                Contains("_id", 3),
+            ]
+        },
+        msg="$search geoWithin should accept a score modifier and still return its matches",
+    ),
+    StageTestCase(
         "geo_within_circle",
         pipeline=[
             {
@@ -209,6 +235,34 @@ SEARCH_GEO_SHAPE_MATCH_TESTS: list[StageTestCase] = [
         expected={"cursor.firstBatch": [Len(2), Contains("_id", 1), Contains("_id", 2)]},
         msg="$search geoShape within should match the points inside the polygon and exclude "
         "those outside it",
+    ),
+    StageTestCase(
+        "geo_shape_score_boost",
+        pipeline=[
+            {
+                "$search": {
+                    "geoShape": {
+                        "path": "shaped",
+                        "relation": "within",
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [
+                                [
+                                    [-1.0, -1.0],
+                                    [-1.0, 3.0],
+                                    [3.0, 3.0],
+                                    [3.0, -1.0],
+                                    [-1.0, -1.0],
+                                ]
+                            ],
+                        },
+                        "score": {"boost": {"value": 2.0}},
+                    }
+                }
+            },
+        ],
+        expected={"cursor.firstBatch": [Len(2), Contains("_id", 1), Contains("_id", 2)]},
+        msg="$search geoShape should accept a score modifier and still return its matches",
     ),
     StageTestCase(
         "geo_shape_intersects_polygon",
