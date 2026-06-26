@@ -18,6 +18,7 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import INT32_MAX
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
@@ -40,7 +41,13 @@ ERROR_CODE_TESTS: list[CommandTestCase] = [
         "out_of_range_value",
         command=lambda ctx: {"setParameter": 1, "logLevel": -1},
         error_code=BAD_VALUE_ERROR,
-        msg="setParameter should reject out-of-range value",
+        msg="setParameter should reject out-of-range value below minimum",
+    ),
+    CommandTestCase(
+        "above_max_value",
+        command=lambda ctx: {"setParameter": 1, "logLevel": INT32_MAX + 1},
+        error_code=BAD_VALUE_ERROR,
+        msg="setParameter should reject value exceeding int32 max",
     ),
     CommandTestCase(
         "wrong_type_value",
