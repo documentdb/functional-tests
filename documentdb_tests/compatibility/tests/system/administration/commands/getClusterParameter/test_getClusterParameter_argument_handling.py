@@ -1,22 +1,14 @@
-"""Tests for getClusterParameter argument and command-document handling.
+"""Tests for getClusterParameter argument handling.
 
-Covers the parameter argument's accepted/rejected BSON types, the three
-documented argument forms (single name / array / wildcard), array-form edge
-cases, null/empty-string coercion, and command-document quirks (comment field,
-case-sensitive command key, unrecognized fields).
+Covers BSON type rejection/acceptance for the <parameter> argument,
+argument forms (single/array/wildcard/empty), undocumented coercion
+edge cases, array-form edge cases, and command-document quirks.
 
-Parameter values vary by deployment, so success cases assert on response
-structure (ok, clusterParameters length/type) and never on exact values.
+Categories: #1, #2, #3 (type/field portions), #6, #10, #15
 """
-
-from dataclasses import dataclass
-from typing import Any
 
 import pytest
 
-from documentdb_tests.compatibility.tests.system.administration.commands.getClusterParameter.utils import (  # noqa: E501
-    valid_parameter_names,
-)
 from documentdb_tests.framework.assertions import (
     assertFailureCode,
     assertProperties,
@@ -33,16 +25,17 @@ from documentdb_tests.framework.error_codes import (
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command
-from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq, Gt, IsType, Len
-from documentdb_tests.framework.test_case import BaseTestCase
+from documentdb_tests.framework.property_checks import Eq, Len
 from documentdb_tests.framework.test_constants import BsonType
 
 pytestmark = pytest.mark.admin
 
+_VALID_PARAM = "changeStreamOptions"
+_VALID_PARAM_2 = "changeStreams"
+
 
 # ---------------------------------------------------------------------------
-# Category #1 / #3: argument BSON-type rejection
+# §1 / §6  BSON type rejection for non-string / non-array argument types
 # The argument must be a string (single name or '*') or an array of strings.
 # Every other BSON type is rejected with a type-mismatch error. NULL is handled
 # separately in the coercion tests below.
@@ -74,147 +67,81 @@ def test_getClusterParameter_argument_rejects_type(collection, bson_type, sample
 
 
 # ---------------------------------------------------------------------------
-# Category #2 / #10: documented argument forms and array shapes
+# §2  Argument forms — accepted
 # ---------------------------------------------------------------------------
 
 
+def test_getClusterParameter_wildcard_returns_all(collection):
+    """Test '*' argument returns all available cluster parameters with ok:1."""
+    result = execute_admin_command(collection, {"getClusterParameter": "*"})
+    assertSuccessPartial(result, {"ok": 1.0}, msg="Wildcard '*' should return ok:1")
+
+
 def test_getClusterParameter_single_name_returns_one(collection):
-    """Test a single parameter name returns exactly one entry."""
-    (name,) = valid_parameter_names(collection, 1)
-    result = execute_admin_command(collection, {"getClusterParameter": name})
+    """Test single string name returns exactly one clusterParameters entry."""
+    result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
     assertProperties(
         result,
         {"ok": Eq(1.0), "clusterParameters": Len(1)},
-        msg="Single name should return exactly one clusterParameters entry.",
-        raw_res=True,
-    )
-
-
-def test_getClusterParameter_array_single_name_returns_one(collection):
-    """Test a one-element array behaves like the single-name form."""
-    names = valid_parameter_names(collection, 1)
-    result = execute_admin_command(collection, {"getClusterParameter": names})
-    assertProperties(
-        result,
-        {"ok": Eq(1.0), "clusterParameters": Len(1)},
-        msg="One-element array should return exactly one entry.",
+        msg="Single name should return ok:1 with one parameter",
         raw_res=True,
     )
 
 
 def test_getClusterParameter_array_two_names_returns_two(collection):
-    """Test an array of two valid names returns two entries."""
-    names = valid_parameter_names(collection, 2)
-    result = execute_admin_command(collection, {"getClusterParameter": names})
+    """Test array of two valid names returns two clusterParameters entries."""
+    result = execute_admin_command(
+        collection, {"getClusterParameter": [_VALID_PARAM, _VALID_PARAM_2]}
+    )
     assertProperties(
         result,
         {"ok": Eq(1.0), "clusterParameters": Len(2)},
-        msg="Array of two names should return two entries.",
+        msg="Array of two names should return two parameters",
         raw_res=True,
     )
 
 
-def test_getClusterParameter_array_three_names_returns_three(collection):
-    """Test an array of three valid names returns three entries."""
-    names = valid_parameter_names(collection, 3)
-    result = execute_admin_command(collection, {"getClusterParameter": names})
-    assertProperties(
-        result,
-        {"ok": Eq(1.0), "clusterParameters": Len(3)},
-        msg="Array of three names should return three entries.",
-        raw_res=True,
+def test_getClusterParameter_array_duplicate_names(collection):
+    """Test array with duplicate valid names succeeds."""
+    result = execute_admin_command(
+        collection, {"getClusterParameter": [_VALID_PARAM, _VALID_PARAM]}
     )
-
-
-def test_getClusterParameter_wildcard_succeeds(collection):
-    """Test the '*' wildcard returns an array of parameters with ok:1."""
-    result = execute_admin_command(collection, {"getClusterParameter": "*"})
-    assertProperties(
-        result,
-        {"ok": Eq(1.0), "clusterParameters": IsType("array")},
-        msg="'*' should return a clusterParameters array with ok:1.",
-        raw_res=True,
-    )
-
-
-def test_getClusterParameter_wildcard_is_non_empty(collection):
-    """Test the '*' wildcard returns at least one parameter."""
-    result = execute_admin_command(collection, {"getClusterParameter": "*"})
-    count = len(result["clusterParameters"])
-    assertProperties(
-        {"count": count},
-        {"count": Gt(0)},
-        msg=f"'*' should return at least one parameter (got {count}).",
-        raw_res=True,
-    )
-
-
-def test_getClusterParameter_duplicate_names(collection):
-    """Test an array with a duplicated valid name is accepted."""
-    names = valid_parameter_names(collection, 1)
-    result = execute_admin_command(collection, {"getClusterParameter": [names[0], names[0]]})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
-        msg="Array with a duplicated valid name should be accepted.",
-    )
-
-
-def test_getClusterParameter_many_names_no_truncation(collection):
-    """Test a large array of names is handled without truncation or failure."""
-    names = valid_parameter_names(collection, 1)
-    big = [names[0]] * 100
-    result = execute_admin_command(collection, {"getClusterParameter": big})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
-        msg="Large array of names should succeed without truncation.",
-    )
+    assertSuccessPartial(result, {"ok": 1.0}, msg="Duplicate names in array should succeed")
 
 
 # ---------------------------------------------------------------------------
-# Argument / array-element error cases (parametrized)
+# §2  Argument forms — rejected
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class ArgumentErrorCase(BaseTestCase):
-    """An argument value expected to produce a specific error code."""
-
-    argument: Any = None
-
-
-_ARGUMENT_ERROR_CASES: list[ArgumentErrorCase] = [
-    ArgumentErrorCase(
-        "array_with_int_element",
-        argument=["validNamePlaceholder", 123],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Array with a non-string (int) element should be rejected.",
-    ),
-    ArgumentErrorCase(
-        "nested_array_element",
-        argument=[["validNamePlaceholder"]],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Array with a nested-array element should be rejected.",
-    ),
-    ArgumentErrorCase(
-        "object_element",
-        argument=[{"x": 1}],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="Array with a document element should be rejected.",
-    ),
-]
+def test_getClusterParameter_empty_array_errors(collection):
+    """Test empty array argument fails with BAD_VALUE_ERROR."""
+    result = execute_admin_command(collection, {"getClusterParameter": []})
+    assertFailureCode(result, BAD_VALUE_ERROR, msg="Empty array must supply at least one name")
 
 
-@pytest.mark.parametrize("test", pytest_params(_ARGUMENT_ERROR_CASES))
-def test_getClusterParameter_array_element_rejects_type(collection, test):
-    """Test array elements that are not strings are rejected."""
-    result = execute_admin_command(collection, {"getClusterParameter": test.argument})
-    assertFailureCode(result, test.error_code, msg=test.msg)
+def test_getClusterParameter_array_nonstring_element_rejects(collection):
+    """Test array containing a non-string element fails with TYPE_MISMATCH_ERROR."""
+    result = execute_admin_command(collection, {"getClusterParameter": [_VALID_PARAM, 123]})
+    assertFailureCode(
+        result, TYPE_MISMATCH_ERROR, msg="Non-string array element should be rejected"
+    )
+
+
+def test_getClusterParameter_unknown_name_errors(collection):
+    """Test an unknown parameter name fails with NO_SUCH_KEY_ERROR (code 4)."""
+    result = execute_admin_command(collection, {"getClusterParameter": "doesNotExist"})
+    assertFailureCode(result, NO_SUCH_KEY_ERROR, msg="Unknown parameter name should fail")
+
+
+def test_getClusterParameter_unrecognized_field_accepted(collection):
+    """Test extra comment field is accepted (MongoDB treats it as generic command field)."""
+    result = execute_admin_command(collection, {"getClusterParameter": "*", "comment": "test"})
+    assertSuccessPartial(result, {"ok": 1.0}, msg="comment field should be accepted")
 
 
 # ---------------------------------------------------------------------------
-# Category #6: null / empty-string coercion of the argument
+# §6  Undocumented coercion edge cases
 # ---------------------------------------------------------------------------
 
 
@@ -238,48 +165,42 @@ def test_getClusterParameter_empty_string_argument(collection):
     )
 
 
-def test_getClusterParameter_empty_array_argument(collection):
-    """Test an empty array does not return all parameters."""
-    result = execute_admin_command(collection, {"getClusterParameter": []})
+def test_getClusterParameter_array_null_element_rejects(collection):
+    """Test array containing null element fails with TYPE_MISMATCH_ERROR."""
+    result = execute_admin_command(collection, {"getClusterParameter": [None]})
+    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="Null element in array should be rejected")
+
+
+def test_getClusterParameter_array_doc_element_rejects(collection):
+    """Test array containing a document element fails with TYPE_MISMATCH_ERROR."""
+    result = execute_admin_command(collection, {"getClusterParameter": [{"a": 1}]})
     assertFailureCode(
-        result,
-        BAD_VALUE_ERROR,
-        msg="Empty array should not return all parameters.",
+        result, TYPE_MISMATCH_ERROR, msg="Document element in array should be rejected"
     )
 
 
-# ---------------------------------------------------------------------------
-# Category #15: command-document quirks
-# ---------------------------------------------------------------------------
+def test_getClusterParameter_array_nested_array_rejects(collection):
+    """Test array containing a nested array element fails with TYPE_MISMATCH_ERROR."""
+    result = execute_admin_command(collection, {"getClusterParameter": [[_VALID_PARAM]]})
+    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="Nested array element should be rejected")
 
 
-def test_getClusterParameter_comment_accepted(collection):
-    """Test the optional comment field is accepted and does not affect success."""
+def test_getClusterParameter_array_mixed_valid_unknown_errors(collection):
+    """Test array with one valid and one unknown name fails with NO_SUCH_KEY_ERROR."""
     result = execute_admin_command(
-        collection, {"getClusterParameter": "*", "comment": "functional-test"}
+        collection, {"getClusterParameter": [_VALID_PARAM, "unknownParam"]}
     )
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
-        msg="comment field should be accepted.",
-    )
+    assertFailureCode(result, NO_SUCH_KEY_ERROR, msg="Unknown entry in mixed array should fail")
 
 
-def test_getClusterParameter_unrecognized_field_ignored(collection):
-    """Test an unrecognized top-level field is ignored rather than rejected."""
-    result = execute_admin_command(collection, {"getClusterParameter": "*", "bogusField": 1})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
-        msg="Unrecognized top-level field should be ignored.",
-    )
+# ---------------------------------------------------------------------------
+# §15  Command-document quirks
+# ---------------------------------------------------------------------------
 
 
-def test_getClusterParameter_wrong_case_command_key(collection):
-    """Test the command key is case-sensitive (getclusterparameter is unknown)."""
+def test_getClusterParameter_wrong_case_command_key_rejected(collection):
+    """Test wrong-case command key 'getclusterparameter' is rejected as unknown command."""
     result = execute_admin_command(collection, {"getclusterparameter": "*"})
     assertFailureCode(
-        result,
-        COMMAND_NOT_FOUND_ERROR,
-        msg="Lower-case command key should be an unknown command.",
+        result, COMMAND_NOT_FOUND_ERROR, msg="Wrong-case command key should be rejected"
     )

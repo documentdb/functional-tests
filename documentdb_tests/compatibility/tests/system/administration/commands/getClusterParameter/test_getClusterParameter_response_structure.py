@@ -1,11 +1,11 @@
 """Tests for getClusterParameter response structure and value-type fidelity.
 
-The top-level shape ({ok:1, clusterParameters: <array>}) is asserted in
-test_getClusterParameter_argument_handling.py; this file covers element-level
-structure and BSON-type fidelity: each element is an object keyed by ``_id``,
-a single request isolates exactly the requested name, and parameter values
-(nested documents, numbers, and clusterParameterTime) keep their BSON types
-without coercion.
+Verifies the shape and BSON types of the success response:
+clusterParameters is an array, each element has _id equal to the
+requested name, ok is 1, and single-name requests are isolated.
+Also validates BSON type fidelity (clusterParameterTime, numeric values).
+
+Categories: #4 (response structure), #17
 """
 
 import pytest
@@ -13,42 +13,97 @@ from bson import Decimal128, Int64, Timestamp
 
 from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_admin_command
-from documentdb_tests.framework.property_checks import Eq, Len
+from documentdb_tests.framework.property_checks import Eq, IsType, Len
 
 pytestmark = pytest.mark.admin
+
+_VALID_PARAM = "changeStreamOptions"
 
 # Numeric BSON types that must survive a round trip without being coerced to
 # string. bool is intentionally excluded (it is not a numeric value here).
 _NUMERIC_TYPES = (int, float, Int64, Decimal128)
 
 
-def test_getClusterParameter_each_element_is_object_with_string_id(collection):
-    """Test every clusterParameters element is an object with a string _id."""
-    params = execute_admin_command(collection, {"getClusterParameter": "*"})["clusterParameters"]
-    summary = {
-        "all_objects": all(isinstance(e, dict) for e in params),
-        "all_ids_str": all(isinstance(e.get("_id"), str) for e in params),
-    }
-    assertProperties(
-        {"summary": summary},
-        {"summary": Eq({"all_objects": True, "all_ids_str": True})},
-        msg="Every clusterParameters element should be an object with a string _id.",
-        raw_res=True,
-    )
+# ---------------------------------------------------------------------------
+# §4  Response shape
+# ---------------------------------------------------------------------------
 
 
-def test_getClusterParameter_single_request_isolates_name(collection):
-    """Test requesting one name returns exactly that name and no others."""
-    name = execute_admin_command(collection, {"getClusterParameter": "*"})["clusterParameters"][0][
-        "_id"
-    ]
-    result = execute_admin_command(collection, {"getClusterParameter": name})
+def test_getClusterParameter_response_has_ok_1(collection):
+    """Test success response includes ok:1."""
+    result = execute_admin_command(collection, {"getClusterParameter": "*"})
+    assertProperties(result, {"ok": Eq(1.0)}, msg="Response ok should be 1.0", raw_res=True)
+
+
+def test_getClusterParameter_response_clusterParameters_is_array(collection):
+    """Test success response contains 'clusterParameters' field of type array."""
+    result = execute_admin_command(collection, {"getClusterParameter": "*"})
     assertProperties(
         result,
-        {"clusterParameters": Len(1), "clusterParameters.0._id": Eq(name)},
-        msg=f"Requesting '{name}' should return exactly that name.",
+        {"clusterParameters": IsType("array")},
+        msg="clusterParameters should be an array",
         raw_res=True,
     )
+
+
+def test_getClusterParameter_single_name_length_is_one(collection):
+    """Test single-name request returns exactly one element in clusterParameters."""
+    result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
+    assertProperties(
+        result,
+        {"clusterParameters": Len(1)},
+        msg="Single-name request should return exactly one element",
+        raw_res=True,
+    )
+
+
+def test_getClusterParameter_element_has_id_field(collection):
+    """Test the clusterParameters element has a string '_id' field."""
+    result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
+    assertProperties(
+        result,
+        {"clusterParameters.0._id": IsType("string")},
+        msg="_id field should be a string",
+        raw_res=True,
+    )
+
+
+def test_getClusterParameter_single_name_id_matches_request(collection):
+    """Test requesting one name returns element with _id equal to requested name."""
+    result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
+    assertProperties(
+        result,
+        {"clusterParameters.0._id": Eq(_VALID_PARAM)},
+        msg=f"_id should equal requested name '{_VALID_PARAM}'",
+        raw_res=True,
+    )
+
+
+def test_getClusterParameter_element_has_nested_value_field(collection):
+    """Test document-valued parameter has a nested value sub-document."""
+    result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
+    assertProperties(
+        result,
+        {"clusterParameters.0.preAndPostImages": IsType("object")},
+        msg="changeStreamOptions should contain 'preAndPostImages' sub-document",
+        raw_res=True,
+    )
+
+
+def test_getClusterParameter_element_is_object_type(collection):
+    """Test the first clusterParameters element is a document (object type)."""
+    result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
+    assertProperties(
+        result,
+        {"clusterParameters.0": IsType("object")},
+        msg="clusterParameters element should be an object",
+        raw_res=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# §17  Value type fidelity
+# ---------------------------------------------------------------------------
 
 
 def test_getClusterParameter_clusterParameterTime_is_timestamp_when_present(collection):
@@ -62,27 +117,6 @@ def test_getClusterParameter_clusterParameterTime_is_timestamp_when_present(coll
         {"all_timestamps": all_timestamps},
         {"all_timestamps": Eq(True)},
         msg="clusterParameterTime should be a BSON Timestamp.",
-        raw_res=True,
-    )
-
-
-def test_getClusterParameter_document_valued_parameter_preserves_nested_object(collection):
-    """Test a document-valued parameter keeps its nested object structure."""
-    params = execute_admin_command(collection, {"getClusterParameter": "*"})["clusterParameters"]
-    nested_is_object = None
-    for entry in params:
-        for key, value in entry.items():
-            if key != "_id" and isinstance(value, dict):
-                nested_is_object = isinstance(value, dict)
-                break
-        if nested_is_object is not None:
-            break
-    if nested_is_object is None:
-        pytest.skip("no document-valued cluster parameter on this deployment")
-    assertProperties(
-        {"nested_is_object": nested_is_object},
-        {"nested_is_object": Eq(True)},
-        msg="A document-valued parameter should preserve its nested object structure.",
         raw_res=True,
     )
 

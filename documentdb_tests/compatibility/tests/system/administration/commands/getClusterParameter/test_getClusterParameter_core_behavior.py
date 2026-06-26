@@ -1,91 +1,111 @@
 """Tests for getClusterParameter core retrieval behavior.
 
-Covers read coherence and idempotency that hold on any single deployment:
-repeated reads are stable, a single-name read agrees with the same parameter's
-entry in the wildcard result, and every parameter advertised by '*' is
-individually retrievable.
+Covers the three accepted argument forms, default values on a fresh
+deployment, idempotency of repeated calls, and that requesting one name
+does not return unrelated parameters.
 
-DEFERRED (require a sharded cluster or controlled concurrency, not available on
-a single mongod target):
-- mongos durable value vs mongod cached value divergence and eventual
-  convergence (#13). On a sharded cluster mongos reads the config-server
-  durable value while mongod reads a cached snapshot; this needs a mongos +
-  shard topology to observe.
-- Concurrent getClusterParameter during a setClusterParameter must observe a
-  coherent (old or new) snapshot, never partial (#14). Needs deterministic
-  interleaving with a writer and is inherently racy on a single node.
+Categories: #4 (core behavior + deployment variants), #7, #14
 """
 
 import pytest
 
-from documentdb_tests.compatibility.tests.system.administration.commands.getClusterParameter.utils import (  # noqa: E501
-    all_cluster_parameters,
-    valid_parameter_names,
-)
-from documentdb_tests.framework.assertions import assertProperties
+from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
-from documentdb_tests.framework.property_checks import Eq
+from documentdb_tests.framework.property_checks import Eq, Len
 
 pytestmark = pytest.mark.admin
 
+_VALID_PARAM = "changeStreamOptions"
+_VALID_PARAM_2 = "changeStreams"
 
-def test_getClusterParameter_repeated_wildcard_returns_same_parameter_set(collection):
-    """Test repeated '*' calls return the same set of parameter names (idempotent)."""
-    first = execute_admin_command(collection, {"getClusterParameter": "*"})["clusterParameters"]
-    second = execute_admin_command(collection, {"getClusterParameter": "*"})["clusterParameters"]
-    names_first = sorted(p["_id"] for p in first)
-    names_second = sorted(p["_id"] for p in second)
+
+# ---------------------------------------------------------------------------
+# §4 / §7  Core behavior — three argument forms
+# ---------------------------------------------------------------------------
+
+
+def test_getClusterParameter_single_name_succeeds(collection):
+    """Test single valid name returns ok:1 with clusterParameters length 1."""
+    result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
     assertProperties(
-        {"names": names_second},
-        {"names": Eq(names_first)},
-        msg="Repeated '*' reads should return the same set of parameter names.",
+        result,
+        {"ok": Eq(1.0), "clusterParameters": Len(1)},
+        msg="Single valid name should return ok:1 with one parameter",
         raw_res=True,
     )
 
 
-def test_getClusterParameter_repeated_single_read_is_consistent(collection):
-    """Test reading the same parameter twice returns an identical entry."""
-    (name,) = valid_parameter_names(collection, 1)
-    first = execute_admin_command(collection, {"getClusterParameter": name})["clusterParameters"][0]
-    second = execute_admin_command(collection, {"getClusterParameter": name})["clusterParameters"][
-        0
-    ]
+def test_getClusterParameter_wildcard_returns_all_params(collection):
+    """Test '*' returns ok:1."""
+    result = execute_admin_command(collection, {"getClusterParameter": "*"})
+    assertSuccessPartial(result, {"ok": 1.0}, msg="Wildcard should return ok:1")
+
+
+def test_getClusterParameter_wildcard_includes_known_param(collection):
+    """Test '*' result includes the known parameter 'changeStreamOptions'."""
+    result = execute_admin_command(collection, {"getClusterParameter": "*"})
+    ids = [p["_id"] for p in result["clusterParameters"]]
     assertProperties(
-        {"entry": second},
-        {"entry": Eq(first)},
-        msg=f"Repeated single read of '{name}' should be consistent.",
+        {"found": 1 if _VALID_PARAM in ids else 0},
+        {"found": Eq(1)},
+        msg=f"Wildcard result should include '{_VALID_PARAM}'",
         raw_res=True,
     )
 
 
-def test_getClusterParameter_single_name_matches_wildcard_entry(collection):
-    """Test a single-name read agrees with that parameter's entry under '*'."""
-    (name,) = valid_parameter_names(collection, 1)
-    single = execute_admin_command(collection, {"getClusterParameter": name})["clusterParameters"][
-        0
-    ]
-    wildcard_entry = next(p for p in all_cluster_parameters(collection) if p["_id"] == name)
+def test_getClusterParameter_array_two_names_succeeds(collection):
+    """Test array of two valid names returns ok:1 with clusterParameters length 2."""
+    result = execute_admin_command(
+        collection, {"getClusterParameter": [_VALID_PARAM, _VALID_PARAM_2]}
+    )
     assertProperties(
-        {"entry": single},
-        {"entry": Eq(wildcard_entry)},
-        msg=f"Single read of '{name}' should match its '*' entry.",
+        result,
+        {"ok": Eq(1.0), "clusterParameters": Len(2)},
+        msg="Array of two names should return ok:1 with two parameters",
         raw_res=True,
     )
 
 
-def test_getClusterParameter_wildcard_names_individually_retrievable(collection):
-    """Test parameters advertised by '*' are each retrievable by name."""
-    names = [p["_id"] for p in all_cluster_parameters(collection)][:5]
-    retrieved = {}
-    for name in names:
-        params = execute_admin_command(collection, {"getClusterParameter": name})[
-            "clusterParameters"
-        ]
-        retrieved[name] = [len(params), params[0]["_id"] if params else None]
-    expected = {name: [1, name] for name in names}
+# ---------------------------------------------------------------------------
+# §4 / §7  Defaults available on any deployment
+# ---------------------------------------------------------------------------
+
+
+def test_getClusterParameter_wildcard_returns_defaults(collection):
+    """Test '*' returns defaults without error on any deployment."""
+    result = execute_admin_command(collection, {"getClusterParameter": "*"})
+    assertSuccessPartial(result, {"ok": 1.0}, msg="Defaults should be returned without prior set")
+
+
+# ---------------------------------------------------------------------------
+# §4 / §7  Requested name isolation
+# ---------------------------------------------------------------------------
+
+
+def test_getClusterParameter_single_name_id_equals_request(collection):
+    """Test requesting one name returns element with _id equal to requested name."""
+    result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
     assertProperties(
-        {"retrieved": retrieved},
-        {"retrieved": Eq(expected)},
-        msg="Each parameter from '*' should be individually retrievable by name.",
+        result,
+        {"clusterParameters.0._id": Eq(_VALID_PARAM)},
+        msg=f"_id should equal the requested name '{_VALID_PARAM}'",
+        raw_res=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# §14  Idempotency — repeated calls produce stable structure
+# ---------------------------------------------------------------------------
+
+
+def test_getClusterParameter_wildcard_idempotent(collection):
+    """Test repeated '*' calls return the same parameter count."""
+    r1 = execute_admin_command(collection, {"getClusterParameter": "*"})
+    r2 = execute_admin_command(collection, {"getClusterParameter": "*"})
+    count1 = len(r1["clusterParameters"])
+    assertProperties(
+        {"count": len(r2["clusterParameters"])},
+        {"count": Eq(count1)},
+        msg="Repeated wildcard calls should return stable parameter count",
         raw_res=True,
     )

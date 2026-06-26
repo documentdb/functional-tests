@@ -1,80 +1,93 @@
-"""Tests for getClusterParameter cross-command interactions.
+"""Tests for getClusterParameter round-trip and differential behavior.
 
-Round-trip (#12): a value written with setClusterParameter is read back by
-getClusterParameter, and a never-set parameter returns its default without
-error.
+Verifies read-after-write consistency with setClusterParameter, that
+never-set parameters return their defaults, and that getClusterParameter
+and getParameter operate on distinct namespaces.
 
-Differential (#16): getClusterParameter and getParameter occupy distinct
-namespaces (a cluster parameter is not retrievable via getParameter and a
-server parameter is not a cluster parameter), and getDefaultRWConcern is a
-separate facility (defaultRWConcern is not a cluster parameter).
-
-Marked no_parallel because the round-trip tests mutate a cluster parameter;
-each restores the original value in a finally block.
-
-DEFERRED (require a sharded cluster, not this single target):
-- After a set, mongos durable value and mongod cached value converge
-  eventually (#12).
-- A settable-but-internal parameter's presence under '*' vs setClusterParameter
-  acceptance (#12) — needs an internal parameter inventory.
+Categories: #12, #16
 """
 
 import pytest
+from bson import Int64
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertProperties
+from documentdb_tests.framework.assertions import (
+    assertFailureCode,
+    assertProperties,
+    assertSuccessPartial,
+)
 from documentdb_tests.framework.error_codes import INVALID_OPTIONS_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
-from documentdb_tests.framework.property_checks import Eq, IsType
+from documentdb_tests.framework.property_checks import Eq, Len
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
+_PARAM = "changeStreamOptions"
+_NESTED_KEY = "preAndPostImages"
+_VALUE_KEY = "expireAfterSeconds"
 
-def test_getClusterParameter_set_then_get_reflects_value(collection):
-    """Test a value written by setClusterParameter is read back (read-after-write)."""
-    get0 = execute_admin_command(collection, {"getClusterParameter": "defaultMaxTimeMS"})
-    original = int(get0["clusterParameters"][0]["readOperations"])
-    new_value = 4242 if original != 4242 else 1234
+
+def _get_expire_after_seconds(collection):
+    """Read the current expireAfterSeconds value from changeStreamOptions."""
+    r = execute_admin_command(collection, {"getClusterParameter": _PARAM})
+    assertSuccessPartial(r, {"ok": 1.0}, msg="getClusterParameter should succeed in setup")
+    return r["clusterParameters"][0][_NESTED_KEY][_VALUE_KEY]
+
+
+def _set_expire_after_seconds(collection, value):
+    """Set expireAfterSeconds on changeStreamOptions."""
+    execute_admin_command(
+        collection,
+        {"setClusterParameter": {_PARAM: {_NESTED_KEY: {_VALUE_KEY: value}}}},
+    )
+
+
+# ---------------------------------------------------------------------------
+# §12  Round-trip with setClusterParameter
+# ---------------------------------------------------------------------------
+
+
+def test_getClusterParameter_reads_value_after_set(collection):
+    """Test getClusterParameter returns the value set by setClusterParameter."""
+    original = _get_expire_after_seconds(collection)
+    new_value = Int64(7200) if int(original) != 7200 else Int64(3600)
     try:
-        execute_admin_command(
-            collection,
-            {"setClusterParameter": {"defaultMaxTimeMS": {"readOperations": new_value}}},
-        )
-        got = execute_admin_command(collection, {"getClusterParameter": "defaultMaxTimeMS"})
-        read_back = int(got["clusterParameters"][0]["readOperations"])
+        _set_expire_after_seconds(collection, int(new_value))
+        result = execute_admin_command(collection, {"getClusterParameter": _PARAM})
         assertProperties(
-            {"read_back": read_back},
-            {"read_back": Eq(new_value)},
-            msg="getClusterParameter should read back the value set by setClusterParameter.",
+            result,
+            {"clusterParameters.0.preAndPostImages.expireAfterSeconds": Eq(new_value)},
+            msg=f"expireAfterSeconds should equal {new_value} after set",
             raw_res=True,
         )
     finally:
-        execute_admin_command(
-            collection,
-            {"setClusterParameter": {"defaultMaxTimeMS": {"readOperations": original}}},
-        )
+        _set_expire_after_seconds(collection, int(original))
 
 
 def test_getClusterParameter_never_set_returns_default(collection):
-    """Test a parameter that was not explicitly set still returns a default value."""
-    result = execute_admin_command(collection, {"getClusterParameter": "defaultMaxTimeMS"})
+    """Test a parameter that was never explicitly set returns a default without error."""
+    result = execute_admin_command(
+        collection, {"getClusterParameter": "internalQueryCutoffForSampleFromRandomCursor"}
+    )
     assertProperties(
         result,
-        {"ok": Eq(1.0), "clusterParameters.0.readOperations": IsType("long")},
-        msg="A never-set parameter should return its default without error.",
+        {"ok": Eq(1.0), "clusterParameters": Len(1)},
+        msg="Never-set parameter should return default without error",
         raw_res=True,
     )
 
 
-def test_getClusterParameter_cluster_param_not_retrievable_via_getParameter(collection):
-    """Test a cluster parameter name is not retrievable through getParameter."""
-    name = execute_admin_command(collection, {"getClusterParameter": "*"})["clusterParameters"][0][
-        "_id"
-    ]
-    result = execute_admin_command(collection, {"getParameter": 1, name: 1})
+# ---------------------------------------------------------------------------
+# §16  Differential: getClusterParameter vs getParameter have distinct namespaces
+# ---------------------------------------------------------------------------
+
+
+def test_getClusterParameter_name_not_retrievable_via_getParameter(collection):
+    """Test a cluster parameter name cannot be retrieved via getParameter."""
+    result = execute_admin_command(collection, {"getParameter": 1, _PARAM: 1})
     assertFailureCode(
         result,
         INVALID_OPTIONS_ERROR,
-        msg=f"Cluster parameter '{name}' should not be retrievable via getParameter.",
+        msg="Cluster parameter name should not be retrievable via getParameter",
     )
 
 
