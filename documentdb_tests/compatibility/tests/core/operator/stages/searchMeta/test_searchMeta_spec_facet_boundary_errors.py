@@ -29,8 +29,8 @@ def search_collection(engine_client, worker_id) -> Iterator[Collection]:
 
 
 # Property [Facet Number Boundaries Validation]: number-facet boundaries must be
-# distinct ascending numeric values; too few, non-ascending, or non-numeric are
-# rejected.
+# two to a thousand distinct numbers in ascending order, so too few, too many,
+# non-ascending, duplicate adjacent, or non-numeric boundaries are rejected.
 SEARCHMETA_FACET_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "boundaries_single_element",
@@ -45,6 +45,26 @@ SEARCHMETA_FACET_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
         msg="$searchMeta should reject a number facet with fewer than two boundaries",
     ),
     StageTestCase(
+        "boundaries_above_max",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "number",
+                                "path": "n",
+                                "boundaries": list(range(1_001)),
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject a number facet with more than the maximum boundary count",
+    ),
+    StageTestCase(
         "boundaries_unsorted",
         pipeline=[
             {
@@ -57,6 +77,20 @@ SEARCHMETA_FACET_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
         ],
         error_code=UNKNOWN_ERROR,
         msg="$searchMeta should reject non-ascending number facet boundaries",
+    ),
+    StageTestCase(
+        "boundaries_duplicate_adjacent",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "number", "path": "n", "boundaries": [0, 0, 25]}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject duplicate adjacent number facet boundaries as not distinct",
     ),
     StageTestCase(
         "boundaries_non_numeric",
