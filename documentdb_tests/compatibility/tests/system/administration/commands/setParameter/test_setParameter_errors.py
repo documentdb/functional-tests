@@ -23,7 +23,7 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import INT32_MAX
+from documentdb_tests.framework.test_constants import INT32_MAX, INT32_MIN
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
@@ -160,7 +160,7 @@ HIERARCHICAL_ERROR_TESTS: list[CommandTestCase] = [
         "hierarchical_nested_underflow",
         command=lambda ctx: {
             "setParameter": 1,
-            "logComponentVerbosity": {"command": {"verbosity": -2_147_483_649}},
+            "logComponentVerbosity": {"command": {"verbosity": INT32_MIN - 1}},
         },
         error_code=BAD_VALUE_ERROR,
         msg="setParameter should reject underflow for nested verbosity",

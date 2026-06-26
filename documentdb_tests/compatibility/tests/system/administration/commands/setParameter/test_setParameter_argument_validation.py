@@ -5,7 +5,6 @@ Type coercion matrices are in test_setParameter_bson_type_validation.py.
 """
 
 import pytest
-from bson import Int64
 
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
@@ -14,6 +13,7 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import INT64_MAX
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
@@ -22,7 +22,7 @@ pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 NAME_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "control_field_int64_max",
-        command=lambda ctx: {"setParameter": Int64(9_223_372_036_854_775_807), "logLevel": 0},
+        command=lambda ctx: {"setParameter": INT64_MAX, "logLevel": 0},
         expected={"ok": 1.0},
         msg="setParameter should accept Int64 max as control field value",
     ),
