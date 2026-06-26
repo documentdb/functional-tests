@@ -20,7 +20,7 @@ from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Gt
 
-pytestmark = [pytest.mark.admin, pytest.mark.no_parallel, pytest.mark.requires(cluster_admin=True)]
+pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 PARAM_NAME = "changeStreamOptions"
 DEFAULT_VALUE = {"preAndPostImages": {"expireAfterSeconds": "off"}}

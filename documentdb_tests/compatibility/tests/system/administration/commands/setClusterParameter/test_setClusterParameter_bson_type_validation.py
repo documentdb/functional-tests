@@ -18,7 +18,7 @@ from documentdb_tests.framework.bson_type_validator import (
 from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
 
-pytestmark = [pytest.mark.admin, pytest.mark.no_parallel, pytest.mark.requires(cluster_admin=True)]
+pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 # NULL is skipped from the rejection matrices below: its behavior is field-dependent and does not
 # cleanly map to success or failure, so it is covered by dedicated tests in the other files.
