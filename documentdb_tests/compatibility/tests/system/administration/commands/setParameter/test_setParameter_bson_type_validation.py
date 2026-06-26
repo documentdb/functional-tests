@@ -19,8 +19,6 @@ from documentdb_tests.framework.executor import execute_admin_command
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
-# --- Control Field — accepts all BSON types ---
-
 CONTROL_FIELD_PARAM = [
     BsonTypeTestCase(
         id="setParameter_control",
@@ -39,9 +37,6 @@ def test_setParameter_control_field_bson_type_accepted(collection, bson_type, sa
     """Test setParameter control field accepts all BSON types."""
     result = execute_admin_command(collection, {"setParameter": sample_value, "logLevel": 0})
     assertSuccessPartial(result, {"ok": 1.0}, msg=f"{spec.msg} (bson_type={bson_type.value})")
-
-
-# --- Boolean Parameter Coercion Matrix ---
 
 
 @pytest.mark.parametrize(
@@ -79,9 +74,6 @@ def test_setParameter_boolean_coercion_accepted(collection, value, desc):
     result = execute_admin_command(collection, {"setParameter": 1, "quiet": value})
     assertSuccessPartial(result, {"ok": 1.0}, msg=f"Boolean param should accept {desc}")
     execute_admin_command(collection, {"setParameter": 1, "quiet": original["quiet"]})
-
-
-# --- Integer Parameter Coercion Matrix ---
 
 
 @pytest.mark.parametrize(
