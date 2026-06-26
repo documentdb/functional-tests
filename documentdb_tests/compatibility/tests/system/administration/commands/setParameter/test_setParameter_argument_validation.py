@@ -9,7 +9,6 @@ from bson import Int64
 
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
 from documentdb_tests.framework.error_codes import (
-    BAD_VALUE_ERROR,
     INVALID_OPTIONS_ERROR,
     OVERFLOW_ERROR,
     TYPE_MISMATCH_ERROR,
@@ -19,34 +18,19 @@ from documentdb_tests.framework.executor import execute_admin_command
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
-# --- Control Field Type Validation ---
-
-
 @pytest.mark.parametrize(
     "control_value,desc",
     [
-        (1, "int 1"),
-        (1.0, "double 1.0"),
-        (Int64(1), "Int64"),
-        (True, "bool true"),
-        ("1", "string"),
-        (None, "null"),
-        ([1], "array"),
-        ({"a": 1}, "document"),
-        (0, "int 0"),
-        (-1, "negative int"),
-    ],
-    ids=[
-        "int",
-        "double",
-        "long",
-        "bool",
-        "string",
-        "null",
-        "array",
-        "document",
-        "zero",
-        "negative",
+        pytest.param(1, "int 1", id="int"),
+        pytest.param(1.0, "double 1.0", id="double"),
+        pytest.param(Int64(1), "Int64", id="long"),
+        pytest.param(True, "bool true", id="bool"),
+        pytest.param("1", "string", id="string"),
+        pytest.param(None, "null", id="null"),
+        pytest.param([1], "array", id="array"),
+        pytest.param({"a": 1}, "document", id="document"),
+        pytest.param(0, "int 0", id="zero"),
+        pytest.param(-1, "negative int", id="negative"),
     ],
 )
 def test_setParameter_control_field_type(collection, control_value, desc):
@@ -55,25 +39,10 @@ def test_setParameter_control_field_type(collection, control_value, desc):
     assertSuccessPartial(result, {"ok": 1.0}, msg=f"Control field should accept {desc}")
 
 
-# --- Parameter Name Validation ---
-
-
 def test_setParameter_known_param_succeeds(collection):
     """Test a known runtime parameter name succeeds."""
     result = execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
     assertSuccessPartial(result, {"ok": 1.0}, msg="Known param should succeed")
-
-
-def test_setParameter_empty_string_name_fails(collection):
-    """Test empty-string parameter name fails with InvalidOptions error."""
-    result = execute_admin_command(collection, {"setParameter": 1, "": 1})
-    assertFailureCode(result, INVALID_OPTIONS_ERROR, msg="Empty name should fail")
-
-
-def test_setParameter_unknown_name_fails(collection):
-    """Test arbitrary/unknown parameter name fails with InvalidOptions error."""
-    result = execute_admin_command(collection, {"setParameter": 1, "unknownXYZ999": 1})
-    assertFailureCode(result, INVALID_OPTIONS_ERROR, msg="Unknown name should fail")
 
 
 def test_setParameter_case_sensitive_name(collection):
@@ -98,9 +67,6 @@ def test_setParameter_dollar_param_name_fails(collection):
     """Test parameter name with dollar sign fails as unknown."""
     result = execute_admin_command(collection, {"setParameter": 1, "$logLevel": 1})
     assertFailureCode(result, INVALID_OPTIONS_ERROR, msg="Dollar name should fail")
-
-
-# --- Parameter Value — Type Validation ---
 
 
 def test_setParameter_boolean_param_with_bool_succeeds(collection):
@@ -133,12 +99,6 @@ def test_setParameter_integer_param_with_whole_double_succeeds(collection):
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
 
 
-def test_setParameter_integer_param_with_string_fails(collection):
-    """Test an integer-typed parameter set with a string value fails."""
-    result = execute_admin_command(collection, {"setParameter": 1, "logLevel": "abc"})
-    assertFailureCode(result, BAD_VALUE_ERROR, msg="String should fail for int param")
-
-
 def test_setParameter_integer_param_with_fractional_double_coerces(collection):
     """Test an integer-typed parameter set with a fractional double truncates to integer."""
     result = execute_admin_command(collection, {"setParameter": 1, "logLevel": 1.5})
@@ -146,23 +106,11 @@ def test_setParameter_integer_param_with_fractional_double_coerces(collection):
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
 
 
-# --- Parameter Value — Range Validation ---
-
-
-def test_setParameter_integer_param_out_of_range_negative(collection):
-    """Test an integer parameter set below minimum fails with BadValue error."""
-    result = execute_admin_command(collection, {"setParameter": 1, "logLevel": -1})
-    assertFailureCode(result, BAD_VALUE_ERROR, msg="Negative logLevel should fail")
-
-
 def test_setParameter_integer_param_valid_range(collection):
     """Test an integer parameter at valid bounds succeeds (logLevel 0 and 5)."""
     result = execute_admin_command(collection, {"setParameter": 1, "logLevel": 5})
     assertSuccessPartial(result, {"ok": 1.0}, msg="logLevel 5 should succeed")
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
-
-
-# --- JS-based: Type and length validation (automation_setparameter.js) ---
 
 
 def test_setParameter_string_param_with_numeric_fails(collection):

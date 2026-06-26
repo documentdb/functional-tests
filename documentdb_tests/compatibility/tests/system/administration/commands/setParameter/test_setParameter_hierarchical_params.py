@@ -14,9 +14,6 @@ from documentdb_tests.framework.executor import execute_admin_command
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
 
-# --- Read Defaults ---
-
-
 def test_setParameter_hierarchical_param_readable(collection):
     """Test reading logComponentVerbosity returns a defined value."""
     result = execute_admin_command(collection, {"getParameter": 1, "logComponentVerbosity": 1})
@@ -44,9 +41,6 @@ def test_setParameter_hierarchical_nested_field_defined(collection):
         {"logComponentVerbosity": {"network": {"asio": {"verbosity": -1}}}},
         msg="Nested component should have defined verbosity",
     )
-
-
-# --- Type and Member Validation ---
 
 
 def test_setParameter_hierarchical_string_value_fails(collection):
@@ -89,9 +83,6 @@ def test_setParameter_hierarchical_unknown_component_fails(collection):
         {"setParameter": 1, "logComponentVerbosity": {"unknownComponent": {"verbosity": 1}}},
     )
     assertFailureCode(result, BAD_VALUE_ERROR, msg="Unknown component should fail")
-
-
-# --- Multi-Member Set and Atomic Rejection ---
 
 
 def test_setParameter_hierarchical_multi_member_set(collection):

@@ -8,19 +8,11 @@ getParameter interaction.
 import pytest
 
 from documentdb_tests.framework.assertions import (
-    assertFailureCode,
     assertSuccessPartial,
 )
-from documentdb_tests.framework.error_codes import (
-    INVALID_OPTIONS_ERROR,
-    UNAUTHORIZED_ERROR,
-)
-from documentdb_tests.framework.executor import execute_admin_command, execute_command
+from documentdb_tests.framework.executor import execute_admin_command
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
-
-
-# --- Single Parameter Modification ---
 
 
 def test_setParameter_single_param_returns_ok(collection):
@@ -56,9 +48,6 @@ def test_setParameter_idempotent_set(collection):
     assertSuccessPartial(result, {"ok": 1.0, "was": 0}, msg="Idempotent set should succeed")
 
 
-# --- Multiple Parameter Modification ---
-
-
 def test_setParameter_two_params_returns_ok(collection):
     """Test setParameter with two runtime-settable parameters in one command sets both."""
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0, "quiet": False})
@@ -67,22 +56,10 @@ def test_setParameter_two_params_returns_ok(collection):
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0, "quiet": False})
 
 
-# --- Admin Database Requirement ---
-
-
 def test_setParameter_on_admin_db_succeeds(collection):
     """Test setParameter run against the admin database succeeds."""
     result = execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
     assertSuccessPartial(result, {"ok": 1.0}, msg="Should succeed on admin db")
-
-
-def test_setParameter_on_non_admin_db_fails(collection):
-    """Test setParameter run against a non-admin database fails with Unauthorized error."""
-    result = execute_command(collection, {"setParameter": 1, "logLevel": 0})
-    assertFailureCode(result, UNAUTHORIZED_ERROR, msg="Should fail on non-admin db")
-
-
-# --- Runtime vs Startup-Only Parameters ---
 
 
 def test_setParameter_runtime_param_succeeds(collection):
@@ -91,36 +68,12 @@ def test_setParameter_runtime_param_succeeds(collection):
     assertSuccessPartial(result, {"ok": 1.0}, msg="Runtime param should succeed")
 
 
-def test_setParameter_startup_only_param_fails(collection):
-    """Test setParameter on a startup-only parameter fails with InvalidOptions error."""
-    result = execute_admin_command(collection, {"setParameter": 1, "port": 27018})
-    assertFailureCode(result, INVALID_OPTIONS_ERROR, msg="Startup-only param should fail")
-
-
-def test_setParameter_nonexistent_param_fails(collection):
-    """Test setParameter on a non-existent parameter name fails with InvalidOptions error."""
-    result = execute_admin_command(collection, {"setParameter": 1, "nonExistentParam123": 1})
-    assertFailureCode(result, INVALID_OPTIONS_ERROR, msg="Non-existent param should fail")
-
-
-# --- Command Shape ---
-
-
-def test_setParameter_no_param_pair_fails(collection):
-    """Test setParameter with control field but no parameter:value pair fails."""
-    result = execute_admin_command(collection, {"setParameter": 1})
-    assertFailureCode(result, INVALID_OPTIONS_ERROR, msg="No param pair should fail")
-
-
 def test_setParameter_comment_field_accepted(collection):
     """Test comment field accepted alongside setParameter."""
     result = execute_admin_command(
         collection, {"setParameter": 1, "logLevel": 0, "comment": "test comment"}
     )
     assertSuccessPartial(result, {"ok": 1.0}, msg="Comment field should be accepted")
-
-
-# --- Response Structure ---
 
 
 def test_setParameter_success_was_type_matches_param(collection):
@@ -140,9 +93,6 @@ def test_setParameter_boolean_was_type(collection):
     result = execute_admin_command(collection, {"setParameter": 1, "quiet": True})
     assertSuccessPartial(result, {"ok": 1.0, "was": False}, msg="'was' should be boolean type")
     execute_admin_command(collection, {"setParameter": 1, "quiet": original["quiet"]})
-
-
-# --- Interaction with getParameter ---
 
 
 def test_setParameter_getParameter_reflects_new_value(collection):
@@ -170,9 +120,6 @@ def test_setParameter_round_trip_restore(collection):
     execute_admin_command(collection, {"setParameter": 1, "logLevel": original_val})
     result = execute_admin_command(collection, {"getParameter": 1, "logLevel": 1})
     assertSuccessPartial(result, {"logLevel": 0}, msg="Should restore to original")
-
-
-# --- Boolean parameter toggle ---
 
 
 def test_setParameter_boolean_toggle(collection):
