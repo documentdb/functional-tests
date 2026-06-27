@@ -40,39 +40,6 @@ from documentdb_tests.framework.test_constants import (
 pytestmark = pytest.mark.no_parallel
 
 
-def _drain_locks(collection) -> None:
-    """Release any outstanding fsync locks so the count returns to 0.
-
-    fsyncUnlock decrements a server-global lock count and reports the remaining
-    count, so this loops until that count reaches 0 (or the not-locked error
-    confirms it is already 0).
-    """
-    # The loop is bounded by the lock count, and the configured pytest timeout.
-    while True:
-        result = execute_admin_command(collection, {"fsyncUnlock": 1})
-        if isinstance(result, Exception):
-            # Verify the error is the not-locked error, meaning the count is
-            # already 0.
-            if getattr(result, "code", None) == ILLEGAL_OPERATION_ERROR:
-                return
-            raise result
-        if result.get("lockCount", 0) == 0:
-            return
-
-
-@pytest.fixture(autouse=True)
-def _unlocked_baseline(collection):
-    """Drain the server-global fsync lock before and after every test.
-
-    The lock is global state the collection fixture does not manage, so draining
-    before gives each test a known unlocked baseline. Additionally, draining
-    after releases whatever the test took, even if the test fails.
-    """
-    _drain_locks(collection)
-    yield
-    _drain_locks(collection)
-
-
 # Sentinel marking an FsyncUnlockCase field that the caller must set. Every
 # field inherited from CommandTestCase has a default, so the dataclass cannot
 # make these positionally required; instead they default to this sentinel and
