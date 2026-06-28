@@ -1,4 +1,4 @@
-"""Shared test case for collection command tests."""
+"""Shared test case for collection and admin command tests."""
 
 from __future__ import annotations
 
@@ -26,12 +26,16 @@ class CommandContext:
         database: The resolved database name.
         namespace: The full namespace string (``database.collection``).
         uuids: Mapping of collection names to their server-assigned UUIDs.
+        setup_results: Results from setup commands, populated by the runner.
+            Mutable even in a frozen dataclass so runners can append after
+            construction.
     """
 
     collection: str
     database: str
     namespace: str
     uuids: dict[str, Any] = field(default_factory=dict)
+    setup_results: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def from_collection(cls, collection: Collection) -> CommandContext:

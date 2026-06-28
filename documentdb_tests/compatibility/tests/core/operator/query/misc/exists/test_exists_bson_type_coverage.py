@@ -173,7 +173,7 @@ EXISTS_TRUE_BSON_TESTS: list[QueryTestCase] = [
 ALL_TESTS = EXISTS_TRUE_BSON_TESTS
 
 
-TZ_AWARE_CODEC = CodecOptions(tz_aware=True)
+TZ_AWARE_CODEC: CodecOptions = CodecOptions(tz_aware=True)
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
