@@ -2,8 +2,10 @@
 Shared test case for projection tests.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from documentdb_tests.framework.test_case import BaseTestCase
 
@@ -12,6 +14,6 @@ from documentdb_tests.framework.test_case import BaseTestCase
 class ProjectionTestCase(BaseTestCase):
     """Test case for projection operator tests."""
 
-    projection: Optional[dict] = None
-    doc: Optional[list[dict]] = None
-    filter: Optional[Any] = None
+    doc: list[dict] | None = None
+    projection: dict | None = None
+    filter: Any | None = None

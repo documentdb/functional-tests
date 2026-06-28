@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -310,6 +310,7 @@ COMPACT_FREESPACE_TESTS: list[CommandTestCase] = (
 )
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_FREESPACE_TESTS))
 def test_compact_freespace(database_client, collection, test):

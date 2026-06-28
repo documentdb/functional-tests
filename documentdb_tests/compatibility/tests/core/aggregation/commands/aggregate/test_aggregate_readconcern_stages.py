@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -253,6 +253,7 @@ AGGREGATE_READCONCERN_STAGE_RESTRICTIONS_REJECTION_TESTS: list[CommandTestCase] 
         },
         error_code=NOT_A_REPLICA_SET_ERROR,
         msg="aggregate should reject readConcern 'linearizable' on standalone",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
     CommandTestCase(
         "rc_standalone_snapshot",
@@ -265,6 +266,7 @@ AGGREGATE_READCONCERN_STAGE_RESTRICTIONS_REJECTION_TESTS: list[CommandTestCase] 
         },
         error_code=NOT_A_REPLICA_SET_ERROR,
         msg="aggregate should reject readConcern 'snapshot' on standalone",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
 ]
 

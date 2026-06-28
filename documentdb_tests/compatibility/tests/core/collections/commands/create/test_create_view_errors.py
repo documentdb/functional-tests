@@ -17,7 +17,7 @@ from bson import (
     Timestamp,
 )
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -282,6 +282,7 @@ CREATE_VIEW_DISALLOWED_STAGE_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=CHANGE_STREAM_NOT_ALLOWED_ERROR,
         msg="$changeStream in view pipeline should fail",
+        marks=(pytest.mark.requires(change_streams=False),),
     ),
     CommandTestCase(
         id="current_op_stage",

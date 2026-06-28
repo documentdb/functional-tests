@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from bson import Binary, Decimal128, Int64
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -473,7 +473,7 @@ CREATE_CLUSTERED_COMPATIBILITY_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="Clustered with encryptedFields should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
 ]
 

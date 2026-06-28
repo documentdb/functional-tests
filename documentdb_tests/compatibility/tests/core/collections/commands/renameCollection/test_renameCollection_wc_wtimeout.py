@@ -6,7 +6,7 @@ from bson import Decimal128, Int64
 from documentdb_tests.compatibility.tests.core.collections.commands.renameCollection.utils.renameCollection_common import (  # noqa: E501
     cross_db_cleanup_ns,
 )
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -128,6 +128,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="wtimeout=-1 (negative) should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_wtimeout_neg_infinity",
@@ -139,6 +140,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="wtimeout=-Infinity should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_wtimeout_nan",
@@ -271,6 +273,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="wtimeout=Decimal128('-Infinity') should be accepted",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_wtimeout_neg_zero",

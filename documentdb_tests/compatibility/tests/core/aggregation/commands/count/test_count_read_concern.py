@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -413,6 +413,7 @@ COUNT_TYPE_STRICTNESS_READ_CONCERN_TESTS: list[CommandTestCase] = [
         },
         error_code=NOT_A_REPLICA_SET_ERROR,
         msg="count with linearizable readConcern should fail on non-replica-set",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
     CommandTestCase(
         "type_readconcern_snapshot",
@@ -448,6 +449,7 @@ COUNT_READ_CONCERN_AFTER_CLUSTER_TIME_TESTS: list[CommandTestCase] = [
         },
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="count afterClusterTime should be rejected on standalone",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
     *[
         CommandTestCase(

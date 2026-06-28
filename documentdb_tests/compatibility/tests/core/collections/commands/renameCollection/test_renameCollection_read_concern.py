@@ -9,7 +9,7 @@ from bson.binary import Binary
 from documentdb_tests.compatibility.tests.core.collections.commands.renameCollection.utils.renameCollection_common import (  # noqa: E501
     cross_db_cleanup_ns,
 )
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -316,6 +316,7 @@ RENAME_RC_AFTER_CLUSTER_TIME_TESTS: list[CommandTestCase] = [
         },
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="afterClusterTime should be rejected on standalone",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
     CommandTestCase(
         "rc_after_cluster_time_null",

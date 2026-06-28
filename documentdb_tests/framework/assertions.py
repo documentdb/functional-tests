@@ -11,9 +11,35 @@ from typing import Any, Callable, Dict, Optional, Union
 from bson import Decimal128, Int64
 
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
-from documentdb_tests.framework.property_checks import _FIELD_ABSENT, Check
+from documentdb_tests.framework.property_checks import _FIELD_ABSENT, Check, PerDoc
 
 _MAX_REPR_LEN = 1000
+
+# Top-level fields that a replica set / sharded topology appends to command
+# responses as cluster and replication gossip. They appear on the connected
+# server's responses regardless of the command and are never the subject of a
+# compatibility test, so they are stripped from a raw command result before
+# comparison. This keeps assertions exact across topologies: on a standalone
+# server these fields are absent (stripping is a no-op), and on a replica set
+# they no longer cause spurious mismatches.
+#
+# Stripping is TOP-LEVEL ONLY and limited to this fixed, audited set. Behavioral
+# fields that only appear on a replica set (e.g. createIndexes' commitQuorum) are
+# NOT included and remain asserted, as does any nested occurrence of these names
+# (e.g. the opTime nested in a hello response), so topology-specific behavior
+# stays testable.
+_REPLICATION_GOSSIP_FIELDS = frozenset({"$clusterTime", "operationTime", "electionId", "opTime"})
+
+
+def _strip_replication_gossip(result: Any) -> Any:
+    """Remove top-level replication/cluster gossip fields from a raw result.
+
+    Only the fixed ``_REPLICATION_GOSSIP_FIELDS`` are removed, and only at the
+    top level of a dict result. Non-dict results are returned unchanged.
+    """
+    if not isinstance(result, dict):
+        return result
+    return {k: v for k, v in result.items() if k not in _REPLICATION_GOSSIP_FIELDS}
 
 
 def _truncate_repr(obj: Any) -> str:
@@ -146,6 +172,14 @@ def assertSuccess(
 
     if not raw_res:
         result = result["cursor"]["firstBatch"]
+    else:
+        # Raw command result: drop replica-set/cluster gossip fields so the
+        # comparison stays exact across topologies. Strip the expected side too,
+        # since some tests pass another raw command result as the expected value
+        # (e.g. consistency checks comparing two responses).
+        result = _strip_replication_gossip(result)
+        if isinstance(expected, dict):
+            expected = _strip_replication_gossip(expected)
 
     if transform:
         result = transform(result)
@@ -261,6 +295,19 @@ def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Op
     assertFailure(result, expected, msg, transform=partial_match(expected))
 
 
+def _is_property_spec(value: Any) -> bool:
+    """Return True if a value in an ``expected`` dict denotes property checks.
+
+    A property spec is a ``Check``, a nested dict of checks, or a non-empty
+    list of ``Check`` instances (multiple checks applied to one path).
+    """
+    if isinstance(value, (Check, dict)):
+        return True
+    if isinstance(value, list) and value:
+        return all(isinstance(c, Check) for c in value)
+    return False
+
+
 def assertResult(
     result: Union[Any, Exception],
     expected: Any = None,
@@ -293,8 +340,8 @@ def assertResult(
     """
     if error_code is not None:
         assertFailureCode(result, error_code, msg)
-    elif isinstance(expected, dict) and any(
-        isinstance(v, (Check, dict)) for v in expected.values()
+    elif isinstance(expected, PerDoc) or (
+        isinstance(expected, dict) and any(_is_property_spec(v) for v in expected.values())
     ):
         assertProperties(result, expected, msg=msg, raw_res=raw_res)
     else:
@@ -361,7 +408,10 @@ def _walk_path(doc: dict, path: str) -> Any:
     """Walk doc along a dotted path, returning _FIELD_ABSENT if absent.
 
     Supports dict keys and numeric list indices (e.g. ``cursor.firstBatch.0.name``).
+    An empty path returns the document itself (for root-level checks).
     """
+    if not path:
+        return doc
     current: Any = doc
     for part in path.split("."):
         if isinstance(current, list):
@@ -377,7 +427,7 @@ def _walk_path(doc: dict, path: str) -> Any:
 
 def assertProperties(
     result: Union[Any, Exception],
-    checks: dict[str, Any],
+    checks: Union[Dict[str, Any], PerDoc],
     msg: Optional[str] = None,
     raw_res: bool = False,
 ) -> None:
@@ -393,9 +443,14 @@ def assertProperties(
     plain dict, it is treated as a nested group: each sub-key is
     prefixed with the parent path.
 
+    ``checks`` may instead be a ``PerDoc``, holding one checks dict per
+    result document; entries are matched positionally and the document
+    count must match exactly. A plain dict is broadcast to every document.
+
     Args:
         result: Result to check.
-        checks: Mapping of dotted paths to Check objects or nested dicts.
+        checks: Mapping of dotted paths to Check objects or nested dicts,
+            or a ``PerDoc`` of one such mapping per document.
         msg: Optional message prefix for failures.
         raw_res: If True, check paths against the raw result dict
             instead of extracting ``cursor.firstBatch[0]``.
@@ -412,9 +467,21 @@ def assertProperties(
         if not docs:
             prefix = f" {msg}" if msg else ""
             raise AssertionError(f"[NO_DOCUMENTS]{prefix} Expected at least one document")
+
+    if isinstance(checks, PerDoc):
+        if len(checks.doc_checks) != len(docs):
+            prefix = f" {msg}" if msg else ""
+            raise AssertionError(
+                f"[DOC_COUNT_MISMATCH]{prefix} Expected {len(checks.doc_checks)} "
+                f"document(s), got {len(docs)}"
+            )
+        per_doc_checks = checks.doc_checks
+    else:
+        per_doc_checks = [checks] * len(docs)
+
     failures: list[str] = []
 
-    for i, doc in enumerate(docs):
+    for i, (doc, doc_checks) in enumerate(zip(docs, per_doc_checks)):
         doc_prefix = f"doc[{i}]: " if len(docs) > 1 else ""
 
         def _run_checks(checks: dict[str, Any], prefix: str = "") -> None:
@@ -424,11 +491,12 @@ def assertProperties(
                     _run_checks(check, full_path)
                 else:
                     actual = _walk_path(doc, full_path)
-                    err = check.check(actual, full_path)
-                    if err:
-                        failures.append(f"{doc_prefix}{err}")
+                    for one in check if isinstance(check, list) else [check]:
+                        err = one.check(actual, full_path)
+                        if err:
+                            failures.append(f"{doc_prefix}{err}")
 
-        _run_checks(checks)
+        _run_checks(doc_checks)
 
     if failures:
         prefix = f" {msg}" if msg else ""

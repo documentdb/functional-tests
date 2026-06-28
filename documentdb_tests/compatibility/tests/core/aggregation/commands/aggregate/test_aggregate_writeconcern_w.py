@@ -17,7 +17,7 @@ from bson import (
     Timestamp,
 )
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -74,6 +74,7 @@ AGGREGATE_WRITECONCERN_W_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="aggregate should accept w=50 as in-range; standalone rejects w>1 not as out-of-range",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_int64_zero",
@@ -194,6 +195,7 @@ AGGREGATE_WRITECONCERN_W_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="aggregate should truncate w=50.99 to 50; standalone rejects w>1 not as out-of-range",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_decimal128_bankers_0_5",
@@ -218,6 +220,7 @@ AGGREGATE_WRITECONCERN_W_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="aggregate should round Decimal128 w=1.5 to 2; standalone rejects w>1 not out-of-range",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_decimal128_bankers_50_5",
@@ -230,6 +233,7 @@ AGGREGATE_WRITECONCERN_W_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="aggregate should round Decimal128 w=50.5 to 50; standalone rejects not out-of-range",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_string_majority",
@@ -295,6 +299,7 @@ AGGREGATE_WRITECONCERN_W_REJECTION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="aggregate should reject null w coerced to empty string",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "wc_w_reject_negative",
@@ -331,6 +336,7 @@ AGGREGATE_WRITECONCERN_W_REJECTION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="aggregate should reject w>1 on standalone",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     *[
         CommandTestCase(

@@ -321,6 +321,13 @@ SINGLE_COMMAND_ERROR_TESTS: list[IndexTestCase] = [
         msg="Name conflicting with auto-generated should fail",
     ),
     IndexTestCase(
+        id="same_key_same_name_different_options",
+        setup_indexes=[{"key": {"a": 1}, "name": "a_1"}],
+        indexes=({"key": {"a": 1}, "name": "a_1", "unique": True},),
+        error_code=INDEX_KEY_SPECS_CONFLICT_ERROR,
+        msg="Same key+name with different options should fail",
+    ),
+    IndexTestCase(
         id="unique_with_existing_duplicates",
         doc=({"_id": 1, "a": 1}, {"_id": 2, "a": 1}),
         indexes=({"key": {"a": 1}, "name": "a_unique", "unique": True},),
