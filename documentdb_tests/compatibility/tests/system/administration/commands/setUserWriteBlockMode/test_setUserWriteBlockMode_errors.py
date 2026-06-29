@@ -10,6 +10,9 @@ import pytest
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
 )
+from documentdb_tests.compatibility.tests.system.administration.commands.setUserWriteBlockMode.utils.write_block_helpers import (  # noqa: E501
+    force_disable_write_block,
+)
 from documentdb_tests.compatibility.tests.system.administration.commands.utils.admin_test_case import (  # noqa: E501
     AdminTestCase,
 )
@@ -21,32 +24,12 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel, pytest.mark.requires(cluster_admin=True)]
 
 
-def _force_disable_write_block(collection):
-    """Force-disable write block regardless of current reason."""
-    admin = collection.database.client.admin
-    try:
-        admin.command({"setUserWriteBlockMode": 1, "global": False})
-        return
-    except Exception:
-        pass
-    for reason in [
-        "Unspecified",
-        "ClusterToClusterMigrationInProgress",
-        "DiskUseThresholdExceeded",
-    ]:
-        try:
-            admin.command({"setUserWriteBlockMode": 1, "global": False, "reason": reason})
-            return
-        except Exception:
-            continue
-
-
 @pytest.fixture(autouse=True)
 def _manage_write_block(collection):
     """Ensure write block is disabled before and after each test."""
-    _force_disable_write_block(collection)
+    force_disable_write_block(collection)
     yield
-    _force_disable_write_block(collection)
+    force_disable_write_block(collection)
 
 
 # Property [Mismatched Reason on Enable]: re-enabling with a different reason fails.

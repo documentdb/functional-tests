@@ -5,38 +5,21 @@ Validates enable/disable semantics, idempotent behavior, and state restoration.
 
 import pytest
 
+from documentdb_tests.compatibility.tests.system.administration.commands.setUserWriteBlockMode.utils.write_block_helpers import (  # noqa: E501
+    force_disable_write_block,
+)
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel, pytest.mark.requires(cluster_admin=True)]
 
 
-def _force_disable_write_block(collection):
-    """Force-disable write block regardless of current reason."""
-    admin = collection.database.client.admin
-    try:
-        admin.command({"setUserWriteBlockMode": 1, "global": False})
-        return
-    except Exception:
-        pass
-    for reason in [
-        "Unspecified",
-        "ClusterToClusterMigrationInProgress",
-        "DiskUseThresholdExceeded",
-    ]:
-        try:
-            admin.command({"setUserWriteBlockMode": 1, "global": False, "reason": reason})
-            return
-        except Exception:
-            continue
-
-
 @pytest.fixture(autouse=True)
 def _manage_write_block(collection):
     """Ensure write block is disabled before and after each test."""
-    _force_disable_write_block(collection)
+    force_disable_write_block(collection)
     yield
-    _force_disable_write_block(collection)
+    force_disable_write_block(collection)
 
 
 # Property [Idempotent Disable]: disabling write block when no block is active succeeds.
