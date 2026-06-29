@@ -63,17 +63,23 @@ GLOBAL_TYPE_REJECTION_TESTS: list[AdminTestCase] = [
         ("string", "true", TYPE_MISMATCH_ERROR),
         ("array", [], TYPE_MISMATCH_ERROR),
         ("object", {}, TYPE_MISMATCH_ERROR),
-        ("null", None, MISSING_FIELD_ERROR),
     ]
 ]
 
 # Property [Missing Global Field]: setUserWriteBlockMode requires the global field.
+# Null is treated as missing.
 MISSING_GLOBAL_TESTS: list[AdminTestCase] = [
     AdminTestCase(
         "missing_global",
         command=lambda ctx: {"setUserWriteBlockMode": 1},
         error_code=MISSING_FIELD_ERROR,
         msg="setUserWriteBlockMode should require the global field",
+    ),
+    AdminTestCase(
+        "global_null_treated_as_missing",
+        command=lambda ctx: {"setUserWriteBlockMode": 1, "global": None},
+        error_code=MISSING_FIELD_ERROR,
+        msg="setUserWriteBlockMode should treat null global as missing",
     ),
 ]
 

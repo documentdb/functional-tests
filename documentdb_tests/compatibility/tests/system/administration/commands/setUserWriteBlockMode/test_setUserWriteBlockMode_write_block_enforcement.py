@@ -168,7 +168,7 @@ WRITE_BLOCKED_TESTS: list[AdminTestCase] = [
         msg="setUserWriteBlockMode should block dropDatabase while active",
     ),
     AdminTestCase(
-        "blocked_bulkWrite",
+        "blocked_batch_insert",
         use_admin=False,
         docs=[{"_id": "seed"}],
         pre_command=lambda c: execute_admin_command(
@@ -179,7 +179,7 @@ WRITE_BLOCKED_TESTS: list[AdminTestCase] = [
             "documents": [{"_id": "bulk1"}, {"_id": "bulk2"}],
         },
         error_code=USER_WRITES_BLOCKED_ERROR,
-        msg="setUserWriteBlockMode should block batch insert while active",
+        msg="setUserWriteBlockMode should block multi-document insert while active",
     ),
 ]
 

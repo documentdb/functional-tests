@@ -88,48 +88,48 @@ READ_NOT_BLOCKED_TESTS: list[AdminTestCase] = [
         pre_command=lambda c: execute_admin_command(
             c, {"setUserWriteBlockMode": 1, "global": True}
         ),
-        command=lambda ctx: {"find": ctx.collection, "filter": {}},
-        expected={"ok": 1.0},
+        command=lambda ctx: {"find": ctx.collection, "filter": {"_id": "read_doc"}},
+        expected={"ok": 1.0, "cursor": {"firstBatch": [{"_id": "read_doc", "x": 1}]}},
         msg="setUserWriteBlockMode should not block find while active",
     ),
     AdminTestCase(
         "read_aggregate",
         use_admin=False,
         partial_success=True,
-        docs=[{"_id": "read_doc", "x": 1}],
+        docs=[{"_id": "agg_doc", "x": 5}],
         pre_command=lambda c: execute_admin_command(
             c, {"setUserWriteBlockMode": 1, "global": True}
         ),
         command=lambda ctx: {
             "aggregate": ctx.collection,
-            "pipeline": [{"$match": {}}],
+            "pipeline": [{"$match": {"_id": "agg_doc"}}],
             "cursor": {},
         },
-        expected={"ok": 1.0},
+        expected={"ok": 1.0, "cursor": {"firstBatch": [{"_id": "agg_doc", "x": 5}]}},
         msg="setUserWriteBlockMode should not block aggregate while active",
     ),
     AdminTestCase(
         "read_count",
         use_admin=False,
         partial_success=True,
-        docs=[{"_id": "read_doc", "x": 1}],
+        docs=[{"_id": "c1"}, {"_id": "c2"}, {"_id": "c3"}],
         pre_command=lambda c: execute_admin_command(
             c, {"setUserWriteBlockMode": 1, "global": True}
         ),
         command=lambda ctx: {"count": ctx.collection},
-        expected={"ok": 1.0},
+        expected={"ok": 1.0, "n": 3},
         msg="setUserWriteBlockMode should not block count while active",
     ),
     AdminTestCase(
         "read_distinct",
         use_admin=False,
         partial_success=True,
-        docs=[{"_id": "read_doc", "x": 1}],
+        docs=[{"_id": "d1", "x": 1}, {"_id": "d2", "x": 2}, {"_id": "d3", "x": 1}],
         pre_command=lambda c: execute_admin_command(
             c, {"setUserWriteBlockMode": 1, "global": True}
         ),
         command=lambda ctx: {"distinct": ctx.collection, "key": "x"},
-        expected={"ok": 1.0},
+        expected={"ok": 1.0, "values": [1, 2]},
         msg="setUserWriteBlockMode should not block distinct while active",
     ),
 ]
@@ -137,36 +137,36 @@ READ_NOT_BLOCKED_TESTS: list[AdminTestCase] = [
 # Property [Writes Succeed When Disabled]: write operations succeed when no block is active.
 WRITE_SUCCEEDS_TESTS: list[AdminTestCase] = [
     AdminTestCase(
-        "succeeds_insert",
+        "write_insert_no_block",
         use_admin=False,
         partial_success=True,
-        docs=[{"_id": "upd", "x": 1}, {"_id": "del"}],
-        command=lambda ctx: {"insert": ctx.collection, "documents": [{"_id": "ok"}]},
-        expected={"ok": 1.0},
+        docs=[],
+        command=lambda ctx: {"insert": ctx.collection, "documents": [{"_id": "new_doc", "v": 42}]},
+        expected={"ok": 1.0, "n": 1},
         msg="setUserWriteBlockMode should allow insert when block is not active",
     ),
     AdminTestCase(
-        "succeeds_update",
+        "write_update_no_block",
         use_admin=False,
         partial_success=True,
-        docs=[{"_id": "upd", "x": 1}, {"_id": "del"}],
+        docs=[{"_id": "target", "x": 1}],
         command=lambda ctx: {
             "update": ctx.collection,
-            "updates": [{"q": {"_id": "upd"}, "u": {"$set": {"x": 2}}}],
+            "updates": [{"q": {"_id": "target"}, "u": {"$set": {"x": 99}}}],
         },
-        expected={"ok": 1.0},
+        expected={"ok": 1.0, "n": 1, "nModified": 1},
         msg="setUserWriteBlockMode should allow update when block is not active",
     ),
     AdminTestCase(
-        "succeeds_delete",
+        "write_delete_no_block",
         use_admin=False,
         partial_success=True,
-        docs=[{"_id": "upd", "x": 1}, {"_id": "del"}],
+        docs=[{"_id": "target"}],
         command=lambda ctx: {
             "delete": ctx.collection,
-            "deletes": [{"q": {"_id": "del"}, "limit": 1}],
+            "deletes": [{"q": {"_id": "target"}, "limit": 1}],
         },
-        expected={"ok": 1.0},
+        expected={"ok": 1.0, "n": 1},
         msg="setUserWriteBlockMode should allow delete when block is not active",
     ),
 ]
