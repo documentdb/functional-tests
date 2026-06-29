@@ -46,187 +46,131 @@ def _enable_write_block(collection):
     execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
 
 
-# --- Writes blocked while block is active ---
-
-
-def test_setUserWriteBlockMode_insert_blocked(collection):
-    """Test insert is rejected with UserWritesBlocked while write block is active."""
-    _enable_write_block(collection)
-    result = execute_command(
-        collection, {"insert": collection.name, "documents": [{"_id": "blocked"}]}
-    )
-    assertFailureCode(result, USER_WRITES_BLOCKED_ERROR, msg="Insert should be blocked")
-
-
-def test_setUserWriteBlockMode_update_blocked(collection):
-    """Test update is rejected with UserWritesBlocked while write block is active."""
-    collection.insert_one({"_id": "upd_target", "x": 1})
-    _enable_write_block(collection)
-    result = execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"_id": "upd_target"}, "u": {"$set": {"x": 2}}}],
+# Property [Write Operations Blocked]: all write operations are rejected while the block is
+# active.
+_WRITE_BLOCKED_PARAMS = [
+    pytest.param(
+        lambda name: {"insert": name, "documents": [{"_id": "blocked"}]},
+        id="insert",
+    ),
+    pytest.param(
+        lambda name: {"update": name, "updates": [{"q": {}, "u": {"$set": {"x": 2}}}]},
+        id="update",
+    ),
+    pytest.param(
+        lambda name: {"delete": name, "deletes": [{"q": {}, "limit": 1}]},
+        id="delete",
+    ),
+    pytest.param(
+        lambda name: {"findAndModify": name, "query": {}, "update": {"$set": {"x": 2}}},
+        id="findAndModify_update",
+    ),
+    pytest.param(
+        lambda name: {"findAndModify": name, "query": {}, "remove": True},
+        id="findAndModify_remove",
+    ),
+    pytest.param(
+        lambda name: {
+            "createIndexes": name,
+            "indexes": [{"key": {"blocked_field": 1}, "name": "blocked_field_1"}],
         },
-    )
-    assertFailureCode(result, USER_WRITES_BLOCKED_ERROR, msg="Update should be blocked")
+        id="createIndexes",
+    ),
+    pytest.param(
+        lambda name: {"dropIndexes": name, "index": "a_1"},
+        id="dropIndexes",
+    ),
+    pytest.param(
+        lambda name: {"drop": name},
+        id="drop_collection",
+    ),
+    pytest.param(
+        lambda name: {"create": f"{name}_blocked_new"},
+        id="create_collection",
+    ),
+    pytest.param(
+        lambda name: {"dropDatabase": 1},
+        id="dropDatabase",
+    ),
+]
 
 
-def test_setUserWriteBlockMode_delete_blocked(collection):
-    """Test delete is rejected with UserWritesBlocked while write block is active."""
-    collection.insert_one({"_id": "del_target"})
+@pytest.mark.parametrize("build_command", _WRITE_BLOCKED_PARAMS)
+def test_setUserWriteBlockMode_write_operation_blocked(collection, build_command):
+    """Test write operation is rejected while write block is active."""
+    collection.insert_one({"_id": "seed", "a": 1})
+    collection.create_index([("a", 1)], name="a_1")
     _enable_write_block(collection)
-    result = execute_command(
-        collection,
-        {"delete": collection.name, "deletes": [{"q": {"_id": "del_target"}, "limit": 1}]},
-    )
-    assertFailureCode(result, USER_WRITES_BLOCKED_ERROR, msg="Delete should be blocked")
-
-
-def test_setUserWriteBlockMode_findAndModify_update_blocked(collection):
-    """Test findAndModify with update is blocked while write block is active."""
-    collection.insert_one({"_id": "fam_target", "x": 1})
-    _enable_write_block(collection)
-    result = execute_command(
-        collection,
-        {
-            "findAndModify": collection.name,
-            "query": {"_id": "fam_target"},
-            "update": {"$set": {"x": 2}},
-        },
-    )
+    command = build_command(collection.name)
+    result = execute_command(collection, command)
     assertFailureCode(
-        result, USER_WRITES_BLOCKED_ERROR, msg="findAndModify update should be blocked"
+        result,
+        USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block write operations while active",
     )
 
 
-def test_setUserWriteBlockMode_findAndModify_delete_blocked(collection):
-    """Test findAndModify with remove is blocked while write block is active."""
-    collection.insert_one({"_id": "fam_del"})
+# Property [Read Operations Not Blocked]: read operations succeed while the block is active.
+_READ_NOT_BLOCKED_PARAMS = [
+    pytest.param(
+        lambda name: {"find": name, "filter": {}},
+        id="find",
+    ),
+    pytest.param(
+        lambda name: {"aggregate": name, "pipeline": [{"$match": {}}], "cursor": {}},
+        id="aggregate",
+    ),
+    pytest.param(
+        lambda name: {"count": name},
+        id="count",
+    ),
+    pytest.param(
+        lambda name: {"distinct": name, "key": "x"},
+        id="distinct",
+    ),
+]
+
+
+@pytest.mark.parametrize("build_command", _READ_NOT_BLOCKED_PARAMS)
+def test_setUserWriteBlockMode_read_operation_not_blocked(collection, build_command):
+    """Test read operation succeeds while write block is active."""
+    collection.insert_one({"_id": "read_doc", "x": 1})
     _enable_write_block(collection)
-    result = execute_command(
-        collection,
-        {"findAndModify": collection.name, "query": {"_id": "fam_del"}, "remove": True},
-    )
-    assertFailureCode(
-        result, USER_WRITES_BLOCKED_ERROR, msg="findAndModify remove should be blocked"
-    )
-
-
-def test_setUserWriteBlockMode_createIndexes_blocked(collection):
-    """Test createIndexes is blocked while write block is active."""
-    collection.insert_one({"_id": "idx_doc", "a": 1})
-    _enable_write_block(collection)
-    result = execute_command(
-        collection,
-        {
-            "createIndexes": collection.name,
-            "indexes": [{"key": {"a": 1}, "name": "a_1"}],
-        },
-    )
-    assertFailureCode(result, USER_WRITES_BLOCKED_ERROR, msg="createIndexes should be blocked")
-
-
-def test_setUserWriteBlockMode_dropIndexes_blocked(collection):
-    """Test dropIndexes is blocked while write block is active."""
-    collection.insert_one({"_id": "didx", "a": 1})
-    collection.create_index([("a", 1)], name="a_1_to_drop")
-    _enable_write_block(collection)
-    result = execute_command(collection, {"dropIndexes": collection.name, "index": "a_1_to_drop"})
-    assertFailureCode(result, USER_WRITES_BLOCKED_ERROR, msg="dropIndexes should be blocked")
-
-
-def test_setUserWriteBlockMode_drop_collection_blocked(collection):
-    """Test drop collection is blocked while write block is active."""
-    collection.insert_one({"_id": "drop_coll"})
-    _enable_write_block(collection)
-    result = execute_command(collection, {"drop": collection.name})
-    assertFailureCode(result, USER_WRITES_BLOCKED_ERROR, msg="Drop collection should be blocked")
-
-
-def test_setUserWriteBlockMode_create_collection_blocked(collection):
-    """Test creating a collection is blocked while write block is active."""
-    _enable_write_block(collection)
-    result = execute_command(collection, {"create": "blocked_new_coll"})
-    assertFailureCode(result, USER_WRITES_BLOCKED_ERROR, msg="Create collection should be blocked")
-
-
-def test_setUserWriteBlockMode_dropDatabase_blocked(database_client):
-    """Test dropDatabase is blocked while write block is active."""
-    coll = database_client.create_collection("db_to_drop")
-    coll.insert_one({"_id": "seed"})
-    execute_admin_command(coll, {"setUserWriteBlockMode": 1, "global": True})
-    result = execute_command(coll, {"dropDatabase": 1})
-    assertFailureCode(result, USER_WRITES_BLOCKED_ERROR, msg="dropDatabase should be blocked")
-    execute_admin_command(coll, {"setUserWriteBlockMode": 1, "global": False})
-
-
-# --- Reads not blocked while block is active ---
-
-
-def test_setUserWriteBlockMode_find_not_blocked(collection):
-    """Test find succeeds while write block is active."""
-    collection.insert_one({"_id": "read_doc", "val": 42})
-    _enable_write_block(collection)
-    result = execute_command(collection, {"find": collection.name, "filter": {"_id": "read_doc"}})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Find should succeed while block active")
-
-
-def test_setUserWriteBlockMode_aggregate_read_not_blocked(collection):
-    """Test aggregate with no write stages succeeds while write block is active."""
-    collection.insert_one({"_id": "agg_doc", "val": 1})
-    _enable_write_block(collection)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": [{"$match": {"val": 1}}], "cursor": {}},
-    )
+    command = build_command(collection.name)
+    result = execute_command(collection, command)
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="Aggregate read should succeed while block active"
+        result,
+        {"ok": 1.0},
+        msg="setUserWriteBlockMode should not block read operations",
     )
 
 
-def test_setUserWriteBlockMode_count_not_blocked(collection):
-    """Test count succeeds while write block is active."""
-    collection.insert_one({"_id": "count_doc"})
-    _enable_write_block(collection)
-    result = execute_command(collection, {"count": collection.name})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Count should succeed while block active")
+# Property [Writes Succeed When Disabled]: write operations succeed when no block is active.
+_WRITE_SUCCEEDS_PARAMS = [
+    pytest.param(
+        lambda name: {"insert": name, "documents": [{"_id": "ok"}]},
+        id="insert",
+    ),
+    pytest.param(
+        lambda name: {"update": name, "updates": [{"q": {"_id": "upd"}, "u": {"$set": {"x": 2}}}]},
+        id="update",
+    ),
+    pytest.param(
+        lambda name: {"delete": name, "deletes": [{"q": {"_id": "del"}, "limit": 1}]},
+        id="delete",
+    ),
+]
 
 
-def test_setUserWriteBlockMode_distinct_not_blocked(collection):
-    """Test distinct succeeds while write block is active."""
-    collection.insert_one({"_id": "dist_doc", "x": 1})
-    _enable_write_block(collection)
-    result = execute_command(collection, {"distinct": collection.name, "key": "x"})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Distinct should succeed while block active")
-
-
-# --- Writes succeed when block is disabled ---
-
-
-def test_setUserWriteBlockMode_insert_succeeds_when_disabled(collection):
-    """Test insert succeeds when write block is not active."""
-    result = execute_command(
-        collection, {"insert": collection.name, "documents": [{"_id": "not_blocked"}]}
+@pytest.mark.parametrize("build_command", _WRITE_SUCCEEDS_PARAMS)
+def test_setUserWriteBlockMode_write_succeeds_when_disabled(collection, build_command):
+    """Test write operation succeeds when write block is not active."""
+    collection.insert_one({"_id": "upd", "x": 1})
+    collection.insert_one({"_id": "del"})
+    command = build_command(collection.name)
+    result = execute_command(collection, command)
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setUserWriteBlockMode should allow writes when block is not active",
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Insert should succeed with no block")
-
-
-def test_setUserWriteBlockMode_update_succeeds_when_disabled(collection):
-    """Test update succeeds when write block is not active."""
-    collection.insert_one({"_id": "upd_ok", "x": 1})
-    result = execute_command(
-        collection,
-        {"update": collection.name, "updates": [{"q": {"_id": "upd_ok"}, "u": {"$set": {"x": 2}}}]},
-    )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Update should succeed with no block")
-
-
-def test_setUserWriteBlockMode_delete_succeeds_when_disabled(collection):
-    """Test delete succeeds when write block is not active."""
-    collection.insert_one({"_id": "del_ok"})
-    result = execute_command(
-        collection,
-        {"delete": collection.name, "deletes": [{"q": {"_id": "del_ok"}, "limit": 1}]},
-    )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Delete should succeed with no block")
