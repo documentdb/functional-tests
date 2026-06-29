@@ -4,11 +4,24 @@ Validates that write operations are blocked while the block is active,
 read operations are not affected, and operations succeed when block is disabled.
 """
 
-import pytest
+from __future__ import annotations
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
+import pytest
+from pymongo import IndexModel
+
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    CommandContext,
+)
+from documentdb_tests.compatibility.tests.system.administration.commands.utils.admin_test_case import (  # noqa: E501
+    AdminTestCase,
+)
+from documentdb_tests.framework.assertions import (
+    assertFailureCode,
+    assertSuccessPartial,
+)
 from documentdb_tests.framework.error_codes import USER_WRITES_BLOCKED_ERROR
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel, pytest.mark.requires(cluster_admin=True)]
 
@@ -48,129 +61,228 @@ def _enable_write_block(collection):
 
 # Property [Write Operations Blocked]: all write operations are rejected while the block is
 # active.
-_WRITE_BLOCKED_PARAMS = [
-    pytest.param(
-        lambda name: {"insert": name, "documents": [{"_id": "blocked"}]},
-        id="insert",
+WRITE_BLOCKED_TESTS: list[AdminTestCase] = [
+    AdminTestCase(
+        "blocked_insert",
+        use_admin=False,
+        docs=[{"_id": "seed", "a": 1}],
+        indexes=[IndexModel([("a", 1)], name="a_1")],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {"insert": ctx.collection, "documents": [{"_id": "blocked"}]},
+        error_code=USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block insert while active",
     ),
-    pytest.param(
-        lambda name: {"update": name, "updates": [{"q": {}, "u": {"$set": {"x": 2}}}]},
-        id="update",
+    AdminTestCase(
+        "blocked_update",
+        use_admin=False,
+        docs=[{"_id": "seed", "a": 1}],
+        indexes=[IndexModel([("a", 1)], name="a_1")],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {
+            "update": ctx.collection,
+            "updates": [{"q": {}, "u": {"$set": {"x": 2}}}],
+        },
+        error_code=USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block update while active",
     ),
-    pytest.param(
-        lambda name: {"delete": name, "deletes": [{"q": {}, "limit": 1}]},
-        id="delete",
+    AdminTestCase(
+        "blocked_delete",
+        use_admin=False,
+        docs=[{"_id": "seed", "a": 1}],
+        indexes=[IndexModel([("a", 1)], name="a_1")],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {
+            "delete": ctx.collection,
+            "deletes": [{"q": {}, "limit": 1}],
+        },
+        error_code=USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block delete while active",
     ),
-    pytest.param(
-        lambda name: {"findAndModify": name, "query": {}, "update": {"$set": {"x": 2}}},
-        id="findAndModify_update",
+    AdminTestCase(
+        "blocked_findAndModify_update",
+        use_admin=False,
+        docs=[{"_id": "seed", "a": 1}],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {
+            "findAndModify": ctx.collection,
+            "query": {},
+            "update": {"$set": {"x": 2}},
+        },
+        error_code=USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block findAndModify update while active",
     ),
-    pytest.param(
-        lambda name: {"findAndModify": name, "query": {}, "remove": True},
-        id="findAndModify_remove",
+    AdminTestCase(
+        "blocked_findAndModify_remove",
+        use_admin=False,
+        docs=[{"_id": "seed", "a": 1}],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {
+            "findAndModify": ctx.collection,
+            "query": {},
+            "remove": True,
+        },
+        error_code=USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block findAndModify remove while active",
     ),
-    pytest.param(
-        lambda name: {
-            "createIndexes": name,
+    AdminTestCase(
+        "blocked_createIndexes",
+        use_admin=False,
+        docs=[{"_id": "seed", "a": 1}],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {
+            "createIndexes": ctx.collection,
             "indexes": [{"key": {"blocked_field": 1}, "name": "blocked_field_1"}],
         },
-        id="createIndexes",
+        error_code=USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block createIndexes while active",
     ),
-    pytest.param(
-        lambda name: {"dropIndexes": name, "index": "a_1"},
-        id="dropIndexes",
+    AdminTestCase(
+        "blocked_dropIndexes",
+        use_admin=False,
+        docs=[{"_id": "seed", "a": 1}],
+        indexes=[IndexModel([("a", 1)], name="a_1")],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {"dropIndexes": ctx.collection, "index": "a_1"},
+        error_code=USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block dropIndexes while active",
     ),
-    pytest.param(
-        lambda name: {"drop": name},
-        id="drop_collection",
+    AdminTestCase(
+        "blocked_drop_collection",
+        use_admin=False,
+        docs=[{"_id": "seed"}],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {"drop": ctx.collection},
+        error_code=USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block drop collection while active",
     ),
-    pytest.param(
-        lambda name: {"create": f"{name}_blocked_new"},
-        id="create_collection",
+    AdminTestCase(
+        "blocked_create_collection",
+        use_admin=False,
+        docs=[{"_id": "seed"}],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {"create": f"{ctx.collection}_blocked_new"},
+        error_code=USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block create collection while active",
     ),
-    pytest.param(
-        lambda name: {"dropDatabase": 1},
-        id="dropDatabase",
+    AdminTestCase(
+        "blocked_dropDatabase",
+        use_admin=False,
+        docs=[{"_id": "seed"}],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {"dropDatabase": 1},
+        error_code=USER_WRITES_BLOCKED_ERROR,
+        msg="setUserWriteBlockMode should block dropDatabase while active",
     ),
 ]
-
-
-@pytest.mark.parametrize("build_command", _WRITE_BLOCKED_PARAMS)
-def test_setUserWriteBlockMode_write_operation_blocked(collection, build_command):
-    """Test write operation is rejected while write block is active."""
-    collection.insert_one({"_id": "seed", "a": 1})
-    collection.create_index([("a", 1)], name="a_1")
-    _enable_write_block(collection)
-    command = build_command(collection.name)
-    result = execute_command(collection, command)
-    assertFailureCode(
-        result,
-        USER_WRITES_BLOCKED_ERROR,
-        msg="setUserWriteBlockMode should block write operations while active",
-    )
-
 
 # Property [Read Operations Not Blocked]: read operations succeed while the block is active.
-_READ_NOT_BLOCKED_PARAMS = [
-    pytest.param(
-        lambda name: {"find": name, "filter": {}},
-        id="find",
+READ_NOT_BLOCKED_TESTS: list[AdminTestCase] = [
+    AdminTestCase(
+        "read_find",
+        use_admin=False,
+        partial_success=True,
+        docs=[{"_id": "read_doc", "x": 1}],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {"find": ctx.collection, "filter": {}},
+        expected={"ok": 1.0},
+        msg="setUserWriteBlockMode should not block find while active",
     ),
-    pytest.param(
-        lambda name: {"aggregate": name, "pipeline": [{"$match": {}}], "cursor": {}},
-        id="aggregate",
+    AdminTestCase(
+        "read_aggregate",
+        use_admin=False,
+        partial_success=True,
+        docs=[{"_id": "read_doc", "x": 1}],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [{"$match": {}}],
+            "cursor": {},
+        },
+        expected={"ok": 1.0},
+        msg="setUserWriteBlockMode should not block aggregate while active",
     ),
-    pytest.param(
-        lambda name: {"count": name},
-        id="count",
+    AdminTestCase(
+        "read_count",
+        use_admin=False,
+        partial_success=True,
+        docs=[{"_id": "read_doc", "x": 1}],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {"count": ctx.collection},
+        expected={"ok": 1.0},
+        msg="setUserWriteBlockMode should not block count while active",
     ),
-    pytest.param(
-        lambda name: {"distinct": name, "key": "x"},
-        id="distinct",
+    AdminTestCase(
+        "read_distinct",
+        use_admin=False,
+        partial_success=True,
+        docs=[{"_id": "read_doc", "x": 1}],
+        pre_command=_enable_write_block,
+        command=lambda ctx: {"distinct": ctx.collection, "key": "x"},
+        expected={"ok": 1.0},
+        msg="setUserWriteBlockMode should not block distinct while active",
     ),
 ]
-
-
-@pytest.mark.parametrize("build_command", _READ_NOT_BLOCKED_PARAMS)
-def test_setUserWriteBlockMode_read_operation_not_blocked(collection, build_command):
-    """Test read operation succeeds while write block is active."""
-    collection.insert_one({"_id": "read_doc", "x": 1})
-    _enable_write_block(collection)
-    command = build_command(collection.name)
-    result = execute_command(collection, command)
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
-        msg="setUserWriteBlockMode should not block read operations",
-    )
-
 
 # Property [Writes Succeed When Disabled]: write operations succeed when no block is active.
-_WRITE_SUCCEEDS_PARAMS = [
-    pytest.param(
-        lambda name: {"insert": name, "documents": [{"_id": "ok"}]},
-        id="insert",
+WRITE_SUCCEEDS_TESTS: list[AdminTestCase] = [
+    AdminTestCase(
+        "succeeds_insert",
+        use_admin=False,
+        partial_success=True,
+        docs=[{"_id": "upd", "x": 1}, {"_id": "del"}],
+        command=lambda ctx: {"insert": ctx.collection, "documents": [{"_id": "ok"}]},
+        expected={"ok": 1.0},
+        msg="setUserWriteBlockMode should allow insert when block is not active",
     ),
-    pytest.param(
-        lambda name: {"update": name, "updates": [{"q": {"_id": "upd"}, "u": {"$set": {"x": 2}}}]},
-        id="update",
+    AdminTestCase(
+        "succeeds_update",
+        use_admin=False,
+        partial_success=True,
+        docs=[{"_id": "upd", "x": 1}, {"_id": "del"}],
+        command=lambda ctx: {
+            "update": ctx.collection,
+            "updates": [{"q": {"_id": "upd"}, "u": {"$set": {"x": 2}}}],
+        },
+        expected={"ok": 1.0},
+        msg="setUserWriteBlockMode should allow update when block is not active",
     ),
-    pytest.param(
-        lambda name: {"delete": name, "deletes": [{"q": {"_id": "del"}, "limit": 1}]},
-        id="delete",
+    AdminTestCase(
+        "succeeds_delete",
+        use_admin=False,
+        partial_success=True,
+        docs=[{"_id": "upd", "x": 1}, {"_id": "del"}],
+        command=lambda ctx: {
+            "delete": ctx.collection,
+            "deletes": [{"q": {"_id": "del"}, "limit": 1}],
+        },
+        expected={"ok": 1.0},
+        msg="setUserWriteBlockMode should allow delete when block is not active",
     ),
 ]
 
+ENFORCEMENT_TESTS: list[AdminTestCase] = (
+    WRITE_BLOCKED_TESTS + READ_NOT_BLOCKED_TESTS + WRITE_SUCCEEDS_TESTS
+)
 
-@pytest.mark.parametrize("build_command", _WRITE_SUCCEEDS_PARAMS)
-def test_setUserWriteBlockMode_write_succeeds_when_disabled(collection, build_command):
-    """Test write operation succeeds when write block is not active."""
-    collection.insert_one({"_id": "upd", "x": 1})
-    collection.insert_one({"_id": "del"})
-    command = build_command(collection.name)
-    result = execute_command(collection, command)
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
-        msg="setUserWriteBlockMode should allow writes when block is not active",
-    )
+ENFORCEMENT_ERROR_TESTS: list[AdminTestCase] = WRITE_BLOCKED_TESTS
+ENFORCEMENT_SUCCESS_TESTS: list[AdminTestCase] = READ_NOT_BLOCKED_TESTS + WRITE_SUCCEEDS_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(ENFORCEMENT_ERROR_TESTS))
+def test_setUserWriteBlockMode_blocked(database_client, collection, test):
+    """Test setUserWriteBlockMode blocks write operations while active."""
+    collection = test.prepare(database_client, collection)
+    test.run_pre_command(collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
+    assertFailureCode(result, test.error_code, msg=test.msg)
+
+
+@pytest.mark.parametrize("test", pytest_params(ENFORCEMENT_SUCCESS_TESTS))
+def test_setUserWriteBlockMode_allowed(database_client, collection, test):
+    """Test setUserWriteBlockMode allows reads and writes when appropriate."""
+    collection = test.prepare(database_client, collection)
+    test.run_pre_command(collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_command(collection, test.build_command(ctx))
+    assertSuccessPartial(result, test.expected, msg=test.msg)
