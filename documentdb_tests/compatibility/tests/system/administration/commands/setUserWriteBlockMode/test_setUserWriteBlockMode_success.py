@@ -171,27 +171,23 @@ WRITE_SUCCEEDS_TESTS: list[AdminTestCase] = [
     ),
 ]
 
-ACCEPTANCE_TESTS: list[AdminTestCase] = (
-    GLOBAL_VALID_TESTS + REASON_VALID_TESTS + REASON_OPTIONAL_TESTS
+SUCCESS_TESTS: list[AdminTestCase] = (
+    GLOBAL_VALID_TESTS
+    + REASON_VALID_TESTS
+    + REASON_OPTIONAL_TESTS
+    + READ_NOT_BLOCKED_TESTS
+    + WRITE_SUCCEEDS_TESTS
 )
 
-ADMIN_SUCCESS_TESTS: list[AdminTestCase] = ACCEPTANCE_TESTS
-COLLECTION_SUCCESS_TESTS: list[AdminTestCase] = READ_NOT_BLOCKED_TESTS + WRITE_SUCCEEDS_TESTS
 
-
-@pytest.mark.parametrize("test", pytest_params(ADMIN_SUCCESS_TESTS))
-def test_setUserWriteBlockMode_acceptance(collection, test):
-    """Test setUserWriteBlockMode accepts valid arguments."""
-    ctx = CommandContext.from_collection(collection)
-    result = execute_admin_command(collection, test.build_command(ctx))
-    assertSuccessPartial(result, test.expected, msg=test.msg)
-
-
-@pytest.mark.parametrize("test", pytest_params(COLLECTION_SUCCESS_TESTS))
-def test_setUserWriteBlockMode_allowed(database_client, collection, test):
-    """Test setUserWriteBlockMode allows reads and writes when appropriate."""
+@pytest.mark.parametrize("test", pytest_params(SUCCESS_TESTS))
+def test_setUserWriteBlockMode_success(database_client, collection, test):
+    """Test setUserWriteBlockMode success cases."""
     collection = test.prepare(database_client, collection)
     test.run_pre_command(collection)
     ctx = CommandContext.from_collection(collection)
-    result = execute_command(collection, test.build_command(ctx))
+    if test.use_admin:
+        result = execute_admin_command(collection, test.build_command(ctx))
+    else:
+        result = execute_command(collection, test.build_command(ctx))
     assertSuccessPartial(result, test.expected, msg=test.msg)
