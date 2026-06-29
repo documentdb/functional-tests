@@ -1,7 +1,6 @@
 """Tests for setUserWriteBlockMode core behavior.
 
-Validates enable/disable semantics, response structure, idempotent behavior,
-and state restoration.
+Validates enable/disable semantics, idempotent behavior, and state restoration.
 """
 
 import pytest
@@ -40,56 +39,54 @@ def _manage_write_block(collection):
     _force_disable_write_block(collection)
 
 
-def test_setUserWriteBlockMode_enable_returns_ok(collection):
-    """Test setUserWriteBlockMode with global:true returns ok:1."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Should return ok:1 on enable")
-
-
-def test_setUserWriteBlockMode_disable_returns_ok(collection):
-    """Test setUserWriteBlockMode with global:false returns ok:1."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Should return ok:1 on disable")
-
-
-def test_setUserWriteBlockMode_disable_when_no_block_active_idempotent(collection):
-    """Test global:false when no block is active succeeds (idempotent)."""
+# Property [Idempotent Disable]: disabling write block when no block is active succeeds.
+def test_setUserWriteBlockMode_disable_when_no_block_active(collection):
+    """Test setUserWriteBlockMode global:false when no block is active succeeds."""
     result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="Should succeed when disabling with no active block"
+        result,
+        {"ok": 1.0},
+        msg="setUserWriteBlockMode should succeed when disabling with no active block",
     )
 
 
-def test_setUserWriteBlockMode_enable_disable_cycle_restores_writes(collection):
-    """Test enable block then disable, verify writes succeed again."""
+# Property [Write Restoration]: writes succeed after disabling a previously active block.
+def test_setUserWriteBlockMode_enable_disable_restores_writes(collection):
+    """Test setUserWriteBlockMode enable then disable allows writes again."""
     execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
     execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
     result = execute_command(
         collection, {"insert": collection.name, "documents": [{"_id": "restore_test"}]}
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Write should succeed after block disabled")
-
-
-def test_setUserWriteBlockMode_toggle_multiple_times_no_error(collection):
-    """Test toggling write block off and on multiple times without errors."""
-    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
-    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
-    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
-    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Should succeed after repeated toggling")
-
-
-def test_setUserWriteBlockMode_enable_idempotent_same_reason(collection):
-    """Test enabling write block again with same default reason is idempotent."""
-    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="Should succeed when re-enabling with same reason"
+        result,
+        {"ok": 1.0},
+        msg="setUserWriteBlockMode should allow writes after block is disabled",
     )
 
 
-def test_setUserWriteBlockMode_response_contains_ok_field(collection):
-    """Test successful command returns document with ok:1."""
+# Property [Repeated Toggle]: toggling write block multiple times does not produce errors.
+def test_setUserWriteBlockMode_toggle_multiple_times(collection):
+    """Test setUserWriteBlockMode toggling on and off multiple times succeeds."""
+    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
+    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
+    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
+    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
     result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Response should contain ok:1")
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setUserWriteBlockMode should succeed after repeated toggling",
+    )
+
+
+# Property [Idempotent Enable]: re-enabling with same default reason is idempotent.
+def test_setUserWriteBlockMode_enable_idempotent_same_reason(collection):
+    """Test setUserWriteBlockMode re-enable with same reason is idempotent."""
+    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
+    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setUserWriteBlockMode should be idempotent when re-enabling with same reason",
+    )

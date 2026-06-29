@@ -48,242 +48,148 @@ def _manage_write_block(collection):
     _force_disable_write_block(collection)
 
 
-# --- global field: valid boolean values ---
-
-
-def test_setUserWriteBlockMode_global_true_succeeds(collection):
-    """Test global:true (boolean) succeeds."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="global:true should succeed")
-
-
-def test_setUserWriteBlockMode_global_false_succeeds(collection):
-    """Test global:false (boolean) succeeds."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="global:false should succeed")
-
-
-# --- global field: numeric types rejected (no coercion) ---
-
-
-def test_setUserWriteBlockMode_global_int_1_rejected(collection):
-    """Test global:1 (int32) is rejected — no coercion to bool."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": 1})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:int should be rejected")
-
-
-def test_setUserWriteBlockMode_global_int_0_rejected(collection):
-    """Test global:0 (int32) is rejected — no coercion to bool."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": 0})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:int(0) should be rejected")
-
-
-def test_setUserWriteBlockMode_global_double_1_rejected(collection):
-    """Test global:1.0 (double) is rejected — no coercion to bool."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": 1.0})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:double should be rejected")
-
-
-def test_setUserWriteBlockMode_global_double_0_rejected(collection):
-    """Test global:0.0 (double) is rejected — no coercion to bool."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": 0.0})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:double(0.0) should be rejected")
-
-
-def test_setUserWriteBlockMode_global_int64_rejected(collection):
-    """Test global:NumberLong(1) (int64) is rejected — no coercion to bool."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": Int64(1)})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:int64 should be rejected")
-
-
-def test_setUserWriteBlockMode_global_decimal128_rejected(collection):
-    """Test global:NumberDecimal('1') (decimal128) is rejected — no coercion to bool."""
-    result = execute_admin_command(
-        collection, {"setUserWriteBlockMode": 1, "global": Decimal128("1")}
+# Property [Global Field Boolean Acceptance]: setUserWriteBlockMode accepts only boolean values
+# for the global field.
+@pytest.mark.parametrize(
+    "value",
+    [pytest.param(True, id="global_true"), pytest.param(False, id="global_false")],
+)
+def test_setUserWriteBlockMode_global_valid(collection, value):
+    """Test setUserWriteBlockMode accepts boolean global field."""
+    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": value})
+    assertSuccessPartial(
+        result, {"ok": 1.0}, msg="setUserWriteBlockMode should accept boolean global field"
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:decimal128 should be rejected")
 
 
-def test_setUserWriteBlockMode_global_nan_rejected(collection):
-    """Test global:NaN (double) is rejected — no coercion to bool."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": FLOAT_NAN})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:NaN should be rejected")
-
-
-def test_setUserWriteBlockMode_global_infinity_rejected(collection):
-    """Test global:Infinity (double) is rejected — no coercion to bool."""
-    result = execute_admin_command(
-        collection, {"setUserWriteBlockMode": 1, "global": FLOAT_INFINITY}
+# Property [Global Field Type Rejection]: setUserWriteBlockMode rejects all non-boolean types
+# for the global field with no coercion.
+@pytest.mark.parametrize(
+    "value,error_code",
+    [
+        pytest.param(1, TYPE_MISMATCH_ERROR, id="int32_1"),
+        pytest.param(0, TYPE_MISMATCH_ERROR, id="int32_0"),
+        pytest.param(1.0, TYPE_MISMATCH_ERROR, id="double_1"),
+        pytest.param(0.0, TYPE_MISMATCH_ERROR, id="double_0"),
+        pytest.param(Int64(1), TYPE_MISMATCH_ERROR, id="int64"),
+        pytest.param(Decimal128("1"), TYPE_MISMATCH_ERROR, id="decimal128"),
+        pytest.param(FLOAT_NAN, TYPE_MISMATCH_ERROR, id="nan"),
+        pytest.param(FLOAT_INFINITY, TYPE_MISMATCH_ERROR, id="infinity"),
+        pytest.param(float("-inf"), TYPE_MISMATCH_ERROR, id="negative_infinity"),
+        pytest.param(-0.0, TYPE_MISMATCH_ERROR, id="negative_zero"),
+        pytest.param("true", TYPE_MISMATCH_ERROR, id="string"),
+        pytest.param([], TYPE_MISMATCH_ERROR, id="array"),
+        pytest.param({}, TYPE_MISMATCH_ERROR, id="object"),
+        pytest.param(None, MISSING_FIELD_ERROR, id="null"),
+    ],
+)
+def test_setUserWriteBlockMode_global_type_rejected(collection, value, error_code):
+    """Test setUserWriteBlockMode rejects non-boolean global field."""
+    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": value})
+    assertFailureCode(
+        result, error_code, msg="setUserWriteBlockMode should reject non-boolean global field"
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:Infinity should be rejected")
 
 
-def test_setUserWriteBlockMode_global_negative_infinity_rejected(collection):
-    """Test global:-Infinity (double) is rejected — no coercion to bool."""
-    result = execute_admin_command(
-        collection, {"setUserWriteBlockMode": 1, "global": float("-inf")}
-    )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:-Infinity should be rejected")
-
-
-def test_setUserWriteBlockMode_global_negative_zero_rejected(collection):
-    """Test global:-0.0 (negative zero double) is rejected — no coercion to bool."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": -0.0})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:-0.0 should be rejected")
-
-
-# --- global field: non-numeric invalid types ---
-
-
-def test_setUserWriteBlockMode_global_null_fails(collection):
-    """Test global:null is treated as missing required field."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": None})
-    assertFailureCode(result, MISSING_FIELD_ERROR, msg="global:null should fail as missing")
-
-
-def test_setUserWriteBlockMode_global_string_fails(collection):
-    """Test global:'true' (string) fails with type error."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": "true"})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:string should fail")
-
-
-def test_setUserWriteBlockMode_global_array_fails(collection):
-    """Test global:[] (array) fails with type error."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": []})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:array should fail")
-
-
-def test_setUserWriteBlockMode_global_object_fails(collection):
-    """Test global:{} (object) fails with type error."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": {}})
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="global:object should fail")
-
-
-# --- missing global field ---
-
-
+# Property [Missing Global Field]: setUserWriteBlockMode requires the global field.
 def test_setUserWriteBlockMode_missing_global_fails(collection):
-    """Test setUserWriteBlockMode without global field fails with missing field error."""
+    """Test setUserWriteBlockMode without global field fails."""
     result = execute_admin_command(collection, {"setUserWriteBlockMode": 1})
-    assertFailureCode(result, MISSING_FIELD_ERROR, msg="Missing global should fail")
-
-
-# --- reason field: valid values ---
-
-
-def test_setUserWriteBlockMode_reason_unspecified_succeeds(collection):
-    """Test reason:'Unspecified' succeeds."""
-    result = execute_admin_command(
-        collection,
-        {"setUserWriteBlockMode": 1, "global": True, "reason": "Unspecified"},
+    assertFailureCode(
+        result,
+        MISSING_FIELD_ERROR,
+        msg="setUserWriteBlockMode should require the global field",
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="reason:Unspecified should succeed")
 
 
-def test_setUserWriteBlockMode_reason_cluster_migration_succeeds(collection):
-    """Test reason:'ClusterToClusterMigrationInProgress' succeeds."""
+# Property [Reason Field Valid Values]: setUserWriteBlockMode accepts valid reason enum strings.
+@pytest.mark.parametrize(
+    "reason",
+    [
+        pytest.param("Unspecified", id="unspecified"),
+        pytest.param("ClusterToClusterMigrationInProgress", id="cluster_migration"),
+        pytest.param("DiskUseThresholdExceeded", id="disk_threshold"),
+    ],
+)
+def test_setUserWriteBlockMode_reason_valid(collection, reason):
+    """Test setUserWriteBlockMode accepts valid reason values."""
     result = execute_admin_command(
         collection,
-        {
-            "setUserWriteBlockMode": 1,
-            "global": True,
-            "reason": "ClusterToClusterMigrationInProgress",
-        },
+        {"setUserWriteBlockMode": 1, "global": True, "reason": reason},
     )
     assertSuccessPartial(
-        result, {"ok": 1.0}, msg="reason:ClusterToClusterMigrationInProgress should succeed"
+        result, {"ok": 1.0}, msg="setUserWriteBlockMode should accept valid reason string"
     )
 
 
-def test_setUserWriteBlockMode_reason_disk_threshold_succeeds(collection):
-    """Test reason:'DiskUseThresholdExceeded' succeeds."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setUserWriteBlockMode": 1,
-            "global": True,
-            "reason": "DiskUseThresholdExceeded",
-        },
-    )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="reason:DiskUseThresholdExceeded should succeed")
-
-
-def test_setUserWriteBlockMode_no_reason_field_succeeds(collection):
-    """Test omitting reason field succeeds (defaults to Unspecified)."""
+# Property [Reason Field Optional]: the reason field can be omitted or null.
+def test_setUserWriteBlockMode_reason_omitted_succeeds(collection):
+    """Test setUserWriteBlockMode succeeds when reason field is omitted."""
     result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Omitting reason should succeed")
+    assertSuccessPartial(
+        result, {"ok": 1.0}, msg="setUserWriteBlockMode should succeed without reason field"
+    )
 
 
 def test_setUserWriteBlockMode_reason_null_succeeds(collection):
-    """Test reason:null is treated as omitted and succeeds."""
+    """Test setUserWriteBlockMode succeeds when reason is null."""
     result = execute_admin_command(
         collection, {"setUserWriteBlockMode": 1, "global": True, "reason": None}
     )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="reason:null should succeed as omitted")
-
-
-# --- reason field: invalid types ---
-
-
-def test_setUserWriteBlockMode_reason_int_fails(collection):
-    """Test reason:1 (int) fails with type error."""
-    result = execute_admin_command(
-        collection, {"setUserWriteBlockMode": 1, "global": True, "reason": 1}
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setUserWriteBlockMode should treat null reason as omitted",
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="reason:int should fail")
 
 
-def test_setUserWriteBlockMode_reason_bool_fails(collection):
-    """Test reason:true (bool) fails with type error."""
+# Property [Reason Field Type Rejection]: setUserWriteBlockMode rejects non-string types for
+# the reason field.
+@pytest.mark.parametrize(
+    "value,error_code",
+    [
+        pytest.param(1, TYPE_MISMATCH_ERROR, id="int"),
+        pytest.param(True, TYPE_MISMATCH_ERROR, id="bool"),
+        pytest.param([], TYPE_MISMATCH_ERROR, id="array"),
+        pytest.param({}, TYPE_MISMATCH_ERROR, id="object"),
+    ],
+)
+def test_setUserWriteBlockMode_reason_type_rejected(collection, value, error_code):
+    """Test setUserWriteBlockMode rejects non-string reason field."""
     result = execute_admin_command(
-        collection, {"setUserWriteBlockMode": 1, "global": True, "reason": True}
+        collection, {"setUserWriteBlockMode": 1, "global": True, "reason": value}
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="reason:bool should fail")
-
-
-def test_setUserWriteBlockMode_reason_array_fails(collection):
-    """Test reason:[] (array) fails with type error."""
-    result = execute_admin_command(
-        collection, {"setUserWriteBlockMode": 1, "global": True, "reason": []}
+    assertFailureCode(
+        result,
+        error_code,
+        msg="setUserWriteBlockMode should reject non-string reason field",
     )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="reason:array should fail")
 
 
-def test_setUserWriteBlockMode_reason_object_fails(collection):
-    """Test reason:{} (object) fails with type error."""
-    result = execute_admin_command(
-        collection, {"setUserWriteBlockMode": 1, "global": True, "reason": {}}
-    )
-    assertFailureCode(result, TYPE_MISMATCH_ERROR, msg="reason:object should fail")
-
-
+# Property [Reason Field Invalid Enum]: setUserWriteBlockMode rejects unrecognized reason
+# strings.
 def test_setUserWriteBlockMode_reason_invalid_enum_fails(collection):
-    """Test reason with unrecognized string value fails with BadValue."""
+    """Test setUserWriteBlockMode rejects unrecognized reason string."""
     result = execute_admin_command(
         collection,
         {"setUserWriteBlockMode": 1, "global": True, "reason": "InvalidReason"},
     )
-    assertFailureCode(result, BAD_VALUE_ERROR, msg="Invalid reason enum should fail")
+    assertFailureCode(
+        result,
+        BAD_VALUE_ERROR,
+        msg="setUserWriteBlockMode should reject unrecognized reason enum value",
+    )
 
 
-# --- unrecognized fields ---
-
-
+# Property [Unrecognized Fields]: setUserWriteBlockMode rejects unknown fields.
 def test_setUserWriteBlockMode_unrecognized_field_fails(collection):
-    """Test setUserWriteBlockMode with extra unrecognized field fails."""
+    """Test setUserWriteBlockMode rejects extra unrecognized fields."""
     result = execute_admin_command(
         collection,
         {"setUserWriteBlockMode": 1, "global": False, "unknownField": 1},
     )
     assertFailureCode(
-        result, UNRECOGNIZED_COMMAND_FIELD_ERROR, msg="Unrecognized field should fail"
+        result,
+        UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        msg="setUserWriteBlockMode should reject unrecognized fields",
     )
-
-
-# --- command field value ---
-
-
-def test_setUserWriteBlockMode_command_value_1_succeeds(collection):
-    """Test setUserWriteBlockMode:1 is the correct command value."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Command value 1 should succeed")

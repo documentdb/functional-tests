@@ -1,6 +1,6 @@
 """Tests for setUserWriteBlockMode error cases.
 
-Validates mismatched reason errors and idempotent behavior with same reason.
+Validates mismatched reason errors when changing the reason on an active block.
 """
 
 import pytest
@@ -40,11 +40,9 @@ def _manage_write_block(collection):
     _force_disable_write_block(collection)
 
 
-# --- Mismatched reason errors ---
-
-
+# Property [Mismatched Reason on Enable]: re-enabling with a different reason fails.
 def test_setUserWriteBlockMode_enable_mismatched_reason_fails(collection):
-    """Test re-enabling with different reason fails with IllegalOperation."""
+    """Test setUserWriteBlockMode re-enable with different reason fails."""
     execute_admin_command(
         collection,
         {"setUserWriteBlockMode": 1, "global": True, "reason": "Unspecified"},
@@ -60,12 +58,14 @@ def test_setUserWriteBlockMode_enable_mismatched_reason_fails(collection):
     assertFailureCode(
         result,
         ILLEGAL_OPERATION_ERROR,
-        msg="Mismatched reason on enable should fail with IllegalOperation",
+        msg="setUserWriteBlockMode should reject mismatched reason on re-enable",
     )
 
 
+# Property [Mismatched Reason on Disable]: disabling with a different reason than the active
+# block fails.
 def test_setUserWriteBlockMode_disable_mismatched_reason_fails(collection):
-    """Test disabling with different reason than enabled fails with IllegalOperation."""
+    """Test setUserWriteBlockMode disable with different reason fails."""
     execute_admin_command(
         collection,
         {"setUserWriteBlockMode": 1, "global": True, "reason": "Unspecified"},
@@ -81,48 +81,30 @@ def test_setUserWriteBlockMode_disable_mismatched_reason_fails(collection):
     assertFailureCode(
         result,
         ILLEGAL_OPERATION_ERROR,
-        msg="Mismatched reason on disable should fail with IllegalOperation",
+        msg="setUserWriteBlockMode should reject mismatched reason on disable",
     )
 
 
-# --- Idempotent with same reason ---
-
-
-def test_setUserWriteBlockMode_same_reason_unspecified_idempotent(collection):
-    """Test re-enabling with same reason 'Unspecified' succeeds (idempotent)."""
+# Property [Same Reason Idempotent]: re-enabling with same explicit reason succeeds.
+@pytest.mark.parametrize(
+    "reason",
+    [
+        pytest.param("Unspecified", id="unspecified"),
+        pytest.param("ClusterToClusterMigrationInProgress", id="cluster_migration"),
+    ],
+)
+def test_setUserWriteBlockMode_same_reason_idempotent(collection, reason):
+    """Test setUserWriteBlockMode re-enable with same reason is idempotent."""
     execute_admin_command(
         collection,
-        {"setUserWriteBlockMode": 1, "global": True, "reason": "Unspecified"},
+        {"setUserWriteBlockMode": 1, "global": True, "reason": reason},
     )
     result = execute_admin_command(
         collection,
-        {"setUserWriteBlockMode": 1, "global": True, "reason": "Unspecified"},
-    )
-    assertSuccessPartial(
-        result, {"ok": 1.0}, msg="Same reason Unspecified re-enable should be idempotent"
-    )
-
-
-def test_setUserWriteBlockMode_same_reason_migration_idempotent(collection):
-    """Test re-enabling with same reason 'ClusterToClusterMigrationInProgress' succeeds."""
-    execute_admin_command(
-        collection,
-        {
-            "setUserWriteBlockMode": 1,
-            "global": True,
-            "reason": "ClusterToClusterMigrationInProgress",
-        },
-    )
-    result = execute_admin_command(
-        collection,
-        {
-            "setUserWriteBlockMode": 1,
-            "global": True,
-            "reason": "ClusterToClusterMigrationInProgress",
-        },
+        {"setUserWriteBlockMode": 1, "global": True, "reason": reason},
     )
     assertSuccessPartial(
         result,
         {"ok": 1.0},
-        msg="Same reason ClusterToClusterMigrationInProgress re-enable should be idempotent",
+        msg="setUserWriteBlockMode should be idempotent with same explicit reason",
     )
