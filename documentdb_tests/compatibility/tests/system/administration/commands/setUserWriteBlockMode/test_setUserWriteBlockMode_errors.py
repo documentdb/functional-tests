@@ -7,19 +7,12 @@ from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
-    CommandContext,
-)
 from documentdb_tests.compatibility.tests.system.administration.commands.setUserWriteBlockMode.utils.write_block_helpers import (  # noqa: E501
     force_disable_write_block,
 )
-from documentdb_tests.compatibility.tests.system.administration.commands.utils.admin_test_case import (  # noqa: E501
-    AdminTestCase,
-)
-from documentdb_tests.framework.assertions import assertFailureCode, assertResult
+from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import ILLEGAL_OPERATION_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
-from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel, pytest.mark.requires(cluster_admin=True)]
 
@@ -74,40 +67,4 @@ def test_setUserWriteBlockMode_disable_mismatched_reason_fails(collection):
         result,
         ILLEGAL_OPERATION_ERROR,
         msg="setUserWriteBlockMode should reject mismatched reason on disable",
-    )
-
-
-# Property [Same Reason Idempotent]: re-enabling with same explicit reason succeeds.
-SAME_REASON_TESTS: list[AdminTestCase] = [
-    AdminTestCase(
-        f"same_reason_{tid}",
-        command=lambda ctx, r=reason: {
-            "setUserWriteBlockMode": 1,
-            "global": True,
-            "reason": r,
-        },
-        expected={"ok": 1.0},
-        msg=f"setUserWriteBlockMode should be idempotent with same reason {reason}",
-    )
-    for tid, reason in [
-        ("unspecified", "Unspecified"),
-        ("cluster_migration", "ClusterToClusterMigrationInProgress"),
-    ]
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(SAME_REASON_TESTS))
-def test_setUserWriteBlockMode_same_reason_idempotent(collection, test):
-    """Test setUserWriteBlockMode re-enable with same reason is idempotent."""
-    ctx = CommandContext.from_collection(collection)
-    # First enable with the reason.
-    execute_admin_command(collection, test.build_command(ctx))
-    # Re-enable with same reason should succeed.
-    result = execute_admin_command(collection, test.build_command(ctx))
-    assertResult(
-        result,
-        expected=test.expected,
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
     )

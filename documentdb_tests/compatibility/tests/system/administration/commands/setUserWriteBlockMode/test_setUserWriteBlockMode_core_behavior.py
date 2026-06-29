@@ -73,3 +73,46 @@ def test_setUserWriteBlockMode_enable_idempotent_same_reason(collection):
         {"ok": 1.0},
         msg="setUserWriteBlockMode should be idempotent when re-enabling with same reason",
     )
+
+
+# Property [Same Explicit Reason Idempotent]: re-enabling with same explicit reason succeeds.
+def test_setUserWriteBlockMode_same_reason_unspecified_idempotent(collection):
+    """Test setUserWriteBlockMode re-enable with same reason Unspecified is idempotent."""
+    execute_admin_command(
+        collection,
+        {"setUserWriteBlockMode": 1, "global": True, "reason": "Unspecified"},
+    )
+    result = execute_admin_command(
+        collection,
+        {"setUserWriteBlockMode": 1, "global": True, "reason": "Unspecified"},
+    )
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setUserWriteBlockMode should be idempotent with same explicit reason",
+    )
+
+
+def test_setUserWriteBlockMode_same_reason_cluster_migration_idempotent(collection):
+    """Test setUserWriteBlockMode re-enable with same reason ClusterToClusterMigrationInProgress."""
+    execute_admin_command(
+        collection,
+        {
+            "setUserWriteBlockMode": 1,
+            "global": True,
+            "reason": "ClusterToClusterMigrationInProgress",
+        },
+    )
+    result = execute_admin_command(
+        collection,
+        {
+            "setUserWriteBlockMode": 1,
+            "global": True,
+            "reason": "ClusterToClusterMigrationInProgress",
+        },
+    )
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setUserWriteBlockMode should be idempotent with same explicit reason",
+    )

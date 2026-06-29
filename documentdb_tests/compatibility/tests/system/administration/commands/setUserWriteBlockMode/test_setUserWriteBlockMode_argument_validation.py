@@ -1,7 +1,7 @@
-"""Tests for setUserWriteBlockMode argument validation.
+"""Tests for setUserWriteBlockMode argument validation errors.
 
-Validates type checking for the global and reason fields, unrecognized fields,
-and command value handling.
+Validates type rejection for the global and reason fields, missing required fields,
+invalid enum values, and unrecognized fields.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from documentdb_tests.compatibility.tests.system.administration.commands.setUser
 from documentdb_tests.compatibility.tests.system.administration.commands.utils.admin_test_case import (  # noqa: E501
     AdminTestCase,
 )
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     MISSING_FIELD_ERROR,
@@ -39,23 +39,6 @@ def _manage_write_block(collection):
     yield
     force_disable_write_block(collection)
 
-
-# Property [Global Field Boolean Acceptance]: setUserWriteBlockMode accepts only boolean values
-# for the global field.
-GLOBAL_VALID_TESTS: list[AdminTestCase] = [
-    AdminTestCase(
-        "global_true",
-        command=lambda ctx: {"setUserWriteBlockMode": 1, "global": True},
-        expected={"ok": 1.0},
-        msg="setUserWriteBlockMode should accept global:true",
-    ),
-    AdminTestCase(
-        "global_false",
-        command=lambda ctx: {"setUserWriteBlockMode": 1, "global": False},
-        expected={"ok": 1.0},
-        msg="setUserWriteBlockMode should accept global:false",
-    ),
-]
 
 # Property [Global Field Type Rejection]: setUserWriteBlockMode rejects all non-boolean types
 # for the global field with no coercion.
@@ -91,41 +74,6 @@ MISSING_GLOBAL_TESTS: list[AdminTestCase] = [
         command=lambda ctx: {"setUserWriteBlockMode": 1},
         error_code=MISSING_FIELD_ERROR,
         msg="setUserWriteBlockMode should require the global field",
-    ),
-]
-
-# Property [Reason Field Valid Values]: setUserWriteBlockMode accepts valid reason enum strings.
-REASON_VALID_TESTS: list[AdminTestCase] = [
-    AdminTestCase(
-        f"reason_{tid}",
-        command=lambda ctx, r=reason: {
-            "setUserWriteBlockMode": 1,
-            "global": True,
-            "reason": r,
-        },
-        expected={"ok": 1.0},
-        msg=f"setUserWriteBlockMode should accept reason:{reason}",
-    )
-    for tid, reason in [
-        ("unspecified", "Unspecified"),
-        ("cluster_migration", "ClusterToClusterMigrationInProgress"),
-        ("disk_threshold", "DiskUseThresholdExceeded"),
-    ]
-]
-
-# Property [Reason Field Optional]: the reason field can be omitted or null.
-REASON_OPTIONAL_TESTS: list[AdminTestCase] = [
-    AdminTestCase(
-        "reason_omitted",
-        command=lambda ctx: {"setUserWriteBlockMode": 1, "global": True},
-        expected={"ok": 1.0},
-        msg="setUserWriteBlockMode should succeed without reason field",
-    ),
-    AdminTestCase(
-        "reason_null",
-        command=lambda ctx: {"setUserWriteBlockMode": 1, "global": True, "reason": None},
-        expected={"ok": 1.0},
-        msg="setUserWriteBlockMode should treat null reason as omitted",
     ),
 ]
 
@@ -179,27 +127,18 @@ UNRECOGNIZED_FIELD_TESTS: list[AdminTestCase] = [
     ),
 ]
 
-ARGUMENT_VALIDATION_TESTS: list[AdminTestCase] = (
-    GLOBAL_VALID_TESTS
-    + GLOBAL_TYPE_REJECTION_TESTS
+ARGUMENT_ERROR_TESTS: list[AdminTestCase] = (
+    GLOBAL_TYPE_REJECTION_TESTS
     + MISSING_GLOBAL_TESTS
-    + REASON_VALID_TESTS
-    + REASON_OPTIONAL_TESTS
     + REASON_TYPE_REJECTION_TESTS
     + REASON_INVALID_ENUM_TESTS
     + UNRECOGNIZED_FIELD_TESTS
 )
 
 
-@pytest.mark.parametrize("test", pytest_params(ARGUMENT_VALIDATION_TESTS))
-def test_setUserWriteBlockMode_argument_validation(collection, test):
-    """Test setUserWriteBlockMode argument validation."""
+@pytest.mark.parametrize("test", pytest_params(ARGUMENT_ERROR_TESTS))
+def test_setUserWriteBlockMode_argument_error(collection, test):
+    """Test setUserWriteBlockMode rejects invalid arguments."""
     ctx = CommandContext.from_collection(collection)
     result = execute_admin_command(collection, test.build_command(ctx))
-    assertResult(
-        result,
-        expected=test.expected,
-        error_code=test.error_code,
-        msg=test.msg,
-        raw_res=True,
-    )
+    assertFailureCode(result, test.error_code, msg=test.msg)
