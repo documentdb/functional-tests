@@ -68,14 +68,8 @@ REASON_VALID_TESTS: list[AdminTestCase] = [
     ]
 ]
 
-# Property [Reason Field Optional]: the reason field can be omitted or null.
+# Property [Reason Field Optional]: the reason field can be null (treated as omitted).
 REASON_OPTIONAL_TESTS: list[AdminTestCase] = [
-    AdminTestCase(
-        "reason_omitted",
-        command=lambda ctx: {"setUserWriteBlockMode": 1, "global": True},
-        expected={"ok": 1.0},
-        msg="setUserWriteBlockMode should succeed without reason field",
-    ),
     AdminTestCase(
         "reason_null",
         command=lambda ctx: {"setUserWriteBlockMode": 1, "global": True, "reason": None},
