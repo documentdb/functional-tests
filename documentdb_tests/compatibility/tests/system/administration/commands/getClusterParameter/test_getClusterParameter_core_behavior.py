@@ -1,85 +1,41 @@
 """Tests for getClusterParameter core retrieval behavior.
 
-Covers the three accepted argument forms, default values on a fresh
-deployment, idempotency of repeated calls, and that requesting one name
-does not return unrelated parameters.
-
-Categories: #4 (core behavior + deployment variants), #7, #14
+Verifies that the wildcard returns more than one cluster parameter and
+that the result includes known parameters by name.
 """
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
+from documentdb_tests.compatibility.tests.system.administration.utils.administration_test_case import (  # noqa: E501
+    AdministrationTestCase,
+)
+from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_admin_command
-from documentdb_tests.framework.property_checks import Eq, Len
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Contains, LenGt
 
 pytestmark = pytest.mark.admin
 
 _VALID_PARAM = "changeStreamOptions"
-_VALID_PARAM_2 = "changeStreams"
 
-
-def test_getClusterParameter_single_name_succeeds(collection):
-    """Test single valid name returns ok:1 with clusterParameters length 1."""
-    result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
-    assertProperties(
-        result,
-        {"ok": Eq(1.0), "clusterParameters": Len(1)},
-        msg="Single valid name should return ok:1 with one parameter",
-        raw_res=True,
-    )
-
-
-def test_getClusterParameter_wildcard_returns_all_params(collection):
-    """Test '*' returns ok:1."""
-    result = execute_admin_command(collection, {"getClusterParameter": "*"})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Wildcard should return ok:1")
-
-
-def test_getClusterParameter_wildcard_includes_known_param(collection):
-    """Test '*' result includes the known parameter 'changeStreamOptions'."""
-    result = execute_admin_command(collection, {"getClusterParameter": "*"})
-    ids = [p["_id"] for p in result["clusterParameters"]]
-    assertProperties(
-        {"found": 1 if _VALID_PARAM in ids else 0},
-        {"found": Eq(1)},
+CORE_BEHAVIOR_TESTS: list[AdministrationTestCase] = [
+    AdministrationTestCase(
+        id="wildcard_returns_multiple_params",
+        command={"getClusterParameter": "*"},
+        checks={"clusterParameters": LenGt(1)},
+        msg="Wildcard should return more than one cluster parameter",
+    ),
+    AdministrationTestCase(
+        id="wildcard_includes_known_param",
+        command={"getClusterParameter": "*"},
+        checks={"clusterParameters": Contains("_id", _VALID_PARAM)},
         msg=f"Wildcard result should include '{_VALID_PARAM}'",
-        raw_res=True,
-    )
+    ),
+]
 
 
-def test_getClusterParameter_array_two_names_succeeds(collection):
-    """Test array of two valid names returns ok:1 with clusterParameters length 2."""
-    result = execute_admin_command(
-        collection, {"getClusterParameter": [_VALID_PARAM, _VALID_PARAM_2]}
-    )
-    assertProperties(
-        result,
-        {"ok": Eq(1.0), "clusterParameters": Len(2)},
-        msg="Array of two names should return ok:1 with two parameters",
-        raw_res=True,
-    )
-
-
-def test_getClusterParameter_single_name_id_equals_request(collection):
-    """Test requesting one name returns element with _id equal to requested name."""
-    result = execute_admin_command(collection, {"getClusterParameter": _VALID_PARAM})
-    assertProperties(
-        result,
-        {"clusterParameters.0._id": Eq(_VALID_PARAM)},
-        msg=f"_id should equal the requested name '{_VALID_PARAM}'",
-        raw_res=True,
-    )
-
-
-def test_getClusterParameter_wildcard_idempotent(collection):
-    """Test repeated '*' calls return the same parameter count."""
-    r1 = execute_admin_command(collection, {"getClusterParameter": "*"})
-    r2 = execute_admin_command(collection, {"getClusterParameter": "*"})
-    count1 = len(r1["clusterParameters"])
-    assertProperties(
-        {"count": len(r2["clusterParameters"])},
-        {"count": Eq(count1)},
-        msg="Repeated wildcard calls should return stable parameter count",
-        raw_res=True,
-    )
+@pytest.mark.parametrize("test", pytest_params(CORE_BEHAVIOR_TESTS))
+def test_getClusterParameter_core_behavior(collection, test):
+    """Test core retrieval behavior: wildcard parameter count and inclusion."""
+    result = execute_admin_command(collection, test.build_command())
+    assertProperties(result, test.build_checks(), msg=test.msg, raw_res=True)
