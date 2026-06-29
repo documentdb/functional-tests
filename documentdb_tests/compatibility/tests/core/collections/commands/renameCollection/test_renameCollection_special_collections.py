@@ -39,6 +39,7 @@ RENAME_OPLOG_SUCCESS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="local.oplog (no suffix) as target should be accepted",
+        marks=(pytest.mark.requires(local_rename=True),),
     ),
     CommandTestCase(
         "oplog_rs_non_local_db",
@@ -291,6 +292,7 @@ RENAME_RESERVED_DB_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="Renaming to local database (non-oplog collection) should succeed",
+        marks=(pytest.mark.requires(local_rename=True),),
     ),
     CommandTestCase(
         "to_config_db",

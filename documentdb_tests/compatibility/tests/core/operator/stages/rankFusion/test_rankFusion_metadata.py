@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -92,7 +92,7 @@ RANKFUSION_SCORE_META_AVAILABLE_TESTS: list[StageTestCase] = [
 # Property [Unpopulated Metadata Omitted]: requesting a metadata name that
 # $rankFusion does not populate silently omits the projected field with no
 # error, regardless of the scoreDetails setting.
-_UNPOPULATED_PARAMS: list[tuple[str, str, Dict[str, Any]]] = [
+_UNPOPULATED_PARAMS: list[tuple[str, str, dict[str, Any]]] = [
     ("searchScore", "omitted", {}),
     ("searchScore", "true", {"scoreDetails": True}),
     ("searchScoreDetails", "omitted", {}),
