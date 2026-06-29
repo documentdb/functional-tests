@@ -122,7 +122,7 @@ _ERROR_CASES: list[AdministrationTestCase] = (
 @pytest.mark.parametrize("test", pytest_params(_ERROR_CASES))
 def test_getClusterParameter_errors(collection, test):
     """Test all error-producing inputs: unknown names, type mismatches, and command routing."""
-    result = execute_admin_command(collection, test.build_command())
+    result = execute_admin_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)
 
 

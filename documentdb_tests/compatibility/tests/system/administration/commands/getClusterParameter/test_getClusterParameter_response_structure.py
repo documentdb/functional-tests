@@ -50,5 +50,5 @@ PROPERTY_TESTS: list[AdministrationTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(PROPERTY_TESTS))
 def test_getClusterParameter_response_properties(collection, test):
     """Verifies getClusterParameter response fields have expected types and values."""
-    result = execute_admin_command(collection, test.build_command())
-    assertProperties(result, test.build_checks(), msg=test.msg, raw_res=True)
+    result = execute_admin_command(collection, test.command)
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)

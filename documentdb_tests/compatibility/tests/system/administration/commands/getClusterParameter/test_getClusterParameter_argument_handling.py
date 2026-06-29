@@ -88,5 +88,5 @@ ARGUMENT_FORM_TESTS: list[AdministrationTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(ARGUMENT_FORM_TESTS))
 def test_getClusterParameter_argument_forms(collection, test):
     """Test accepted argument forms each return ok:1 with expected clusterParameters length."""
-    result = execute_admin_command(collection, test.build_command())
-    assertProperties(result, test.build_checks(), msg=test.msg, raw_res=True)
+    result = execute_admin_command(collection, test.command)
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)

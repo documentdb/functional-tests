@@ -37,5 +37,5 @@ CORE_BEHAVIOR_TESTS: list[AdministrationTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(CORE_BEHAVIOR_TESTS))
 def test_getClusterParameter_core_behavior(collection, test):
     """Test core retrieval behavior: wildcard parameter count and inclusion."""
-    result = execute_admin_command(collection, test.build_command())
-    assertProperties(result, test.build_checks(), msg=test.msg, raw_res=True)
+    result = execute_admin_command(collection, test.command)
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
