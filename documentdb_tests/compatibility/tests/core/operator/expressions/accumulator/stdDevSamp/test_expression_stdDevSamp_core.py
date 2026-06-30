@@ -54,6 +54,19 @@ STDDEVSAMP_CORE_TESTS: list[StdDevSampTest] = [
         expected=pytest.approx(1.2909944487358056),
         msg="Should compute sample std dev of mix numerical values",
     ),
+    # fractional
+    StdDevSampTest(
+        "core_fractional_double",
+        values=[1.5, 2.5],
+        expected=pytest.approx(0.7071067811865476),
+        msg="Should compute sample std dev of fractional double values",
+    ),
+    StdDevSampTest(
+        "core_fractional_decimal",
+        values=[Decimal128("1.5"), Decimal128("2.5")],
+        expected=pytest.approx(0.7071067811865476),
+        msg="Should compute sample std dev of fractional decimal values",
+    ),
     # negative operation
     StdDevSampTest(
         "core_numeric_negative",
@@ -79,6 +92,13 @@ STDDEVSAMP_CORE_TESTS: list[StdDevSampTest] = [
         values=list(range(1000)),
         expected=pytest.approx(288.8194360957494),
         msg="Should compute sample std dev of all 1000 values",
+    ),
+    # dec_high_precision_not_preserved
+    StdDevSampTest(
+        "core_high_precision",
+        values=[Decimal128("1.000000000000000000000000000000001"), Decimal128("1.0")],
+        expected=pytest.approx(0.0),
+        msg="Should match preservation behavior for high-precision Decimal128 inputs",
     ),
     # N<2 -> null rule
     StdDevSampTest(
