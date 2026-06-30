@@ -1,5 +1,3 @@
-"""Tests for $add null and missing field propagation."""
-
 from datetime import datetime, timezone
 
 import pytest

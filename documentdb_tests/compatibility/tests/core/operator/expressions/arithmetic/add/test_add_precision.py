@@ -1,5 +1,3 @@
-"""Tests for $add decimal128 precision and boundary value handling."""
-
 import pytest
 from bson import Decimal128
 

@@ -1,5 +1,3 @@
-"""Tests for $add input forms including nested expressions and mixed literal/field operands."""
-
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501

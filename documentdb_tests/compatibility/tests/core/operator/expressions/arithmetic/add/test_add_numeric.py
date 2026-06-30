@@ -1,7 +1,3 @@
-"""Tests for $add numeric operations including same-type and mixed-type addition, multiple
-operands, empty/single operands, and sign handling.
-"""
-
 import pytest
 from bson import Decimal128, Int64
 

@@ -1,5 +1,3 @@
-"""Tests for $add return type promotion rules across numeric and date operand combinations."""
-
 from datetime import datetime, timezone
 
 import pytest
