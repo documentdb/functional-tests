@@ -71,6 +71,12 @@ STDDEVSAMP_NON_NUMERIC_TESTS: list[StdDevSampTest] = [
         expected=pytest.approx(7.0710678118654755),
         msg="Should return stdDevSamp of numerical values, non-numericals are ignored",
     ),
+    StdDevSampTest(
+        "bool_ignored_with_numerics",
+        values=[True, 5, 10, False],
+        expected=pytest.approx(3.5355339059327378),
+        msg="Should ignore boolean values and compute over remaining numerics",
+    ),
 ]
 
 
