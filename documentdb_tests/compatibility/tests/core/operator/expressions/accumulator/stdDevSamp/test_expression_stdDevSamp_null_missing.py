@@ -46,7 +46,7 @@ STDDEVSAMP_NULL_MISSING_TESTS: list[StdDevSampTest] = [
     StdDevSampTest(
         "null_middle_array",
         values=[1, None, 3],
-        expected=01.4142135623730951,
+        expected=1.4142135623730951,
         msg="Should calculate stdDevSamp and ignore middle null",
     ),
     StdDevSampTest(
@@ -90,6 +90,18 @@ STDDEVSAMP_NULL_MISSING_TESTS: list[StdDevSampTest] = [
         values=[MISSING, 5],
         expected=None,
         msg="Should return None when only one numeric value with rest missing",
+    ),
+    StdDevSampTest(
+        "all_missing",
+        values=[MISSING, MISSING],
+        expected=None,
+        msg="Should return None when all values are missing",
+    ),
+    StdDevSampTest(
+        "null_and_missing",
+        values=[None, MISSING],
+        expected=None,
+        msg="Should return None for a mix of null and missing",
     ),
 ]
 
