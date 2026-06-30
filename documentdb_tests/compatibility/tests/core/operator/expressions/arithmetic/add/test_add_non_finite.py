@@ -1,3 +1,5 @@
+"""Tests for $add infinity and NaN propagation."""
+
 import math
 
 import pytest

@@ -1,3 +1,5 @@
+"""Tests for $add error cases including invalid operand types, multiple dates, and date overflow."""
+
 from datetime import datetime, timezone
 
 import pytest

@@ -1,3 +1,7 @@
+"""Tests for $add date arithmetic including numeric offsets, rounding boundaries, operand
+position, and sign handling.
+"""
+
 from datetime import datetime, timedelta, timezone
 
 import pytest
