@@ -3,7 +3,6 @@
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -11,6 +10,12 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
     execute_expression_with_insert,
+)
+from documentdb_tests.framework.assertions import assertFailureCode
+from documentdb_tests.framework.bson_type_validator import (
+    BsonType,
+    BsonTypeTestCase,
+    generate_bson_rejection_test_cases,
 )
 from documentdb_tests.framework.error_codes import (
     MORE_THAN_ONE_DATE_ERROR,
@@ -26,29 +31,36 @@ from documentdb_tests.framework.test_constants import (
     INT64_MAX,
 )
 
-# Property [Type Strictness]: $add rejects non-numeric, non-date operand types.
-ADD_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        f"type_{tid}",
-        doc={"a": 1, "b": val},
-        expression={"$add": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg=f"$add should reject a {tid} operand",
-    )
-    for tid, val in [
-        ("string", "string"),
-        ("bool", True),
-        ("array", [2, 3]),
-        ("object", {"a": 2}),
-        ("regex", Regex("abc")),
-        ("objectid", ObjectId("507f1f77bcf86cd799439011")),
-        ("binary", Binary(b"data")),
-        ("minkey", MinKey()),
-        ("maxkey", MaxKey()),
-        ("timestamp", Timestamp(1, 1)),
-        ("code", Code("function(){}")),
-    ]
+_NUMERIC_DATE_AND_NULL_TYPES = [
+    BsonType.DOUBLE,
+    BsonType.INT,
+    BsonType.LONG,
+    BsonType.DECIMAL,
+    BsonType.DATE,
+    BsonType.NULL,
 ]
+
+# Property [Type Strictness]: $add rejects non-numeric, non-date operand types.
+ADD_TYPE_SPEC = BsonTypeTestCase(
+    id="add_operand",
+    msg="$add should reject non-numeric, non-date operand",
+    keyword="$add",
+    valid_types=_NUMERIC_DATE_AND_NULL_TYPES,
+    default_error_code=TYPE_MISMATCH_ERROR,
+)
+
+ADD_TYPE_REJECTION_CASES = generate_bson_rejection_test_cases([ADD_TYPE_SPEC])
+_ADD_TYPE_REJECTION_EXPR = {"$add": [1, "$b"]}
+
+
+@pytest.mark.parametrize("bson_type,sample_value,spec", ADD_TYPE_REJECTION_CASES)
+def test_add_rejects_invalid_operand_type(collection, bson_type, sample_value, spec):
+    """Test $add rejects non-numeric, non-date BSON types as operands."""
+    result = execute_expression_with_insert(
+        collection, _ADD_TYPE_REJECTION_EXPR, {"b": sample_value}
+    )
+    assertFailureCode(result, spec.expected_code(bson_type), msg=spec.msg)
+
 
 # Property [Mixed Valid and Invalid]: $add rejects an invalid operand when it appears among
 # valid numeric operands.
@@ -183,9 +195,8 @@ ADD_DATE_OVERFLOW_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-ADD_ERROR_ALL_TESTS = (
-    ADD_TYPE_ERROR_TESTS
-    + ADD_MIXED_VALID_INVALID_TESTS
+ADD_REMAINING_ERROR_TESTS = (
+    ADD_MIXED_VALID_INVALID_TESTS
     + ADD_SINGLE_TYPE_ERROR_TESTS
     + ADD_MULTIPLE_DATE_TESTS
     + ADD_DATE_NON_FINITE_ERROR_TESTS
@@ -193,9 +204,9 @@ ADD_ERROR_ALL_TESTS = (
 )
 
 
-@pytest.mark.parametrize("test_case", pytest_params(ADD_ERROR_ALL_TESTS))
+@pytest.mark.parametrize("test_case", pytest_params(ADD_REMAINING_ERROR_TESTS))
 def test_add_errors(collection, test_case: ExpressionTestCase):
-    """Test $add type, multiple-date, and date non-finite error cases."""
+    """Test $add multiple-date, single-invalid, and date non-finite error cases."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
     assert_expression_result(
         result,
