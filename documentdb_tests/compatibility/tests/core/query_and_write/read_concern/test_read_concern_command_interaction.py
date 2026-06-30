@@ -6,7 +6,6 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import CommandTestCase
 from documentdb_tests.framework.assertions import assertProperties, assertResult
-from documentdb_tests.framework.error_codes import UNRECOGNIZED_COMMAND_FIELD_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
@@ -101,8 +100,8 @@ def test_getmore_after_find_with_read_concern_next_batch(collection):
     )
 
 
-def test_getmore_rejects_read_concern_parameter(collection):
-    """Test getMore rejects a readConcern parameter (only find accepts readConcern)."""
+def test_getmore_ignores_read_concern_parameter(collection):
+    """Test getMore ignores a readConcern parameter and still returns the next batch."""
     collection.insert_many([{"_id": i, "x": i} for i in range(10)])
 
     initial_result = execute_command(
@@ -126,8 +125,10 @@ def test_getmore_rejects_read_concern_parameter(collection):
             "readConcern": {"level": "local"},
         },
     )
-    assertResult(
+    expected_next = [{"_id": 3, "x": 3}, {"_id": 4, "x": 4}, {"_id": 5, "x": 5}]
+    assertProperties(
         getmore_result,
-        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
-        msg="getMore should reject a readConcern parameter.",
+        {"cursor.nextBatch": Eq(expected_next), "ok": Eq(1.0)},
+        raw_res=True,
+        msg="getMore should ignore a readConcern parameter and return the next batch.",
     )
