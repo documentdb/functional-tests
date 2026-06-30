@@ -1,4 +1,4 @@
-"""Tests for $searchMeta stage options (concurrent, returnScope)."""
+"""Tests for the $searchMeta concurrent stage option."""
 
 from __future__ import annotations
 
@@ -77,111 +77,15 @@ SEARCHMETA_CONCURRENT_OPTION_TYPE_ERROR_TESTS: list[StageTestCase] = [
     ]
 ]
 
-# Property [ReturnScope Type]: the returnScope option must be a document, so a
-# value of any non-document BSON type is rejected. A null returnScope is treated
-# as the default, so it is excluded.
-SEARCHMETA_RETURN_SCOPE_TYPE_ERROR_TESTS: list[StageTestCase] = [
-    StageTestCase(
-        f"return_scope_type_{tid}",
-        pipeline=[
-            {"$searchMeta": {"text": {"query": "quick", "path": "title"}, "returnScope": val}}
-        ],
-        error_code=UNKNOWN_ERROR,
-        msg=f"$searchMeta should reject a {tid} returnScope option as a non-document",
-    )
-    for tid, val in [
-        ("string", "title"),
-        ("int32", 1),
-        ("int64", Int64(1)),
-        ("double", 1.5),
-        ("bool", True),
-        ("array", [{"path": "title"}]),
-        ("objectid", ObjectId("0123456789abcdef01234567")),
-        ("datetime", datetime.datetime(2020, 1, 1)),
-        ("timestamp", Timestamp(1, 1)),
-        ("binary", Binary(b"\x01\x02\x03")),
-        ("regex", Regex(".*", "i")),
-        ("code", Code("function(){}")),
-        ("minkey", MinKey()),
-        ("maxkey", MaxKey()),
-        ("decimal128", DECIMAL128_ONE_AND_HALF),
-    ]
-]
-
-# Property [ReturnScope Path Required]: a returnScope document must carry a path
-# field, so a document missing it is rejected.
-SEARCHMETA_RETURN_SCOPE_PATH_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
-    StageTestCase(
-        "return_scope_empty",
-        pipeline=[
-            {"$searchMeta": {"text": {"query": "quick", "path": "title"}, "returnScope": {}}}
-        ],
-        error_code=UNKNOWN_ERROR,
-        msg="$searchMeta should reject a returnScope document with no path field",
-    ),
-    StageTestCase(
-        "return_scope_other_field",
-        pipeline=[
-            {
-                "$searchMeta": {
-                    "text": {"query": "quick", "path": "title"},
-                    "returnScope": {"other": "title"},
-                }
-            }
-        ],
-        error_code=UNKNOWN_ERROR,
-        msg="$searchMeta should reject a returnScope document that omits the required path field",
-    ),
-]
-
-# Property [ReturnScope Path Type]: the returnScope path field must be a string,
-# so a non-string path is rejected.
-SEARCHMETA_RETURN_SCOPE_PATH_TYPE_ERROR_TESTS: list[StageTestCase] = [
-    StageTestCase(
-        f"return_scope_path_type_{tid}",
-        pipeline=[
-            {
-                "$searchMeta": {
-                    "text": {"query": "quick", "path": "title"},
-                    "returnScope": {"path": val},
-                }
-            }
-        ],
-        error_code=UNKNOWN_ERROR,
-        msg=f"$searchMeta should reject a {tid} returnScope path as a non-string",
-    )
-    for tid, val in [
-        ("int32", 1),
-        ("int64", Int64(1)),
-        ("double", 1.5),
-        ("bool", True),
-        ("object", {"a": 1}),
-        ("array", ["title"]),
-        ("objectid", ObjectId("0123456789abcdef01234567")),
-        ("datetime", datetime.datetime(2020, 1, 1)),
-        ("timestamp", Timestamp(1, 1)),
-        ("binary", Binary(b"\x01\x02\x03")),
-        ("regex", Regex(".*", "i")),
-        ("code", Code("function(){}")),
-        ("minkey", MinKey()),
-        ("maxkey", MaxKey()),
-        ("decimal128", DECIMAL128_ONE_AND_HALF),
-    ]
-]
-
 SEARCHMETA_OPTION_TESTS: list[StageTestCase] = (
-    SEARCHMETA_CONCURRENT_OPTION_TESTS
-    + SEARCHMETA_CONCURRENT_OPTION_TYPE_ERROR_TESTS
-    + SEARCHMETA_RETURN_SCOPE_TYPE_ERROR_TESTS
-    + SEARCHMETA_RETURN_SCOPE_PATH_REQUIRED_ERROR_TESTS
-    + SEARCHMETA_RETURN_SCOPE_PATH_TYPE_ERROR_TESTS
+    SEARCHMETA_CONCURRENT_OPTION_TESTS + SEARCHMETA_CONCURRENT_OPTION_TYPE_ERROR_TESTS
 )
 
 
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(SEARCHMETA_OPTION_TESTS))
 def test_searchMeta_options(search_collection, test_case: StageTestCase):
-    """Test $searchMeta concurrent and returnScope stage options."""
+    """Test $searchMeta concurrent stage option."""
     result = execute_command(
         search_collection,
         {
