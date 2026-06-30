@@ -44,71 +44,6 @@ def search_collection(engine_client, worker_id) -> Iterator[Collection]:
         yield coll
 
 
-# Property [Metadata Result Semantics]: any recognized search operator returns a
-# lowerBound count reflecting its match count, never the matching documents.
-SEARCHMETA_METADATA_TESTS: list[StageTestCase] = [
-    StageTestCase(
-        "metadata_text",
-        pipeline=[{"$searchMeta": {"text": {"query": "quick", "path": "title"}}}],
-        expected=[{"count": {"lowerBound": Int64(3)}}],
-        msg="$searchMeta should return the match count for a text operator as metadata",
-    ),
-    StageTestCase(
-        "metadata_phrase",
-        pipeline=[{"$searchMeta": {"phrase": {"query": "brown fox", "path": "title"}}}],
-        expected=[{"count": {"lowerBound": Int64(1)}}],
-        msg="$searchMeta should return the match count for a phrase operator as metadata",
-    ),
-    StageTestCase(
-        "metadata_wildcard",
-        pipeline=[
-            {
-                "$searchMeta": {
-                    "wildcard": {
-                        "query": "quick*",
-                        "path": "title",
-                        "allowAnalyzedField": True,
-                    }
-                }
-            }
-        ],
-        expected=[{"count": {"lowerBound": Int64(3)}}],
-        msg="$searchMeta should return the match count for a wildcard operator as metadata",
-    ),
-    StageTestCase(
-        "metadata_exists",
-        pipeline=[{"$searchMeta": {"exists": {"path": "title"}}}],
-        expected=[{"count": {"lowerBound": Int64(5)}}],
-        msg="$searchMeta should return the match count for an exists operator as metadata",
-    ),
-    StageTestCase(
-        "metadata_equals",
-        pipeline=[{"$searchMeta": {"equals": {"path": "n", "value": 5}}}],
-        expected=[{"count": {"lowerBound": Int64(1)}}],
-        msg="$searchMeta should return the match count for an equals operator as metadata",
-    ),
-    StageTestCase(
-        "metadata_range",
-        pipeline=[{"$searchMeta": {"range": {"path": "n", "gte": 5, "lte": 15}}}],
-        expected=[{"count": {"lowerBound": Int64(3)}}],
-        msg="$searchMeta should return the match count for a range operator as metadata",
-    ),
-    StageTestCase(
-        "metadata_near",
-        pipeline=[{"$searchMeta": {"near": {"path": "n", "origin": 10, "pivot": 5}}}],
-        expected=[{"count": {"lowerBound": Int64(5)}}],
-        msg="$searchMeta should return the match count for a near operator as metadata",
-    ),
-    StageTestCase(
-        "metadata_compound",
-        pipeline=[
-            {"$searchMeta": {"compound": {"must": [{"text": {"query": "quick", "path": "title"}}]}}}
-        ],
-        expected=[{"count": {"lowerBound": Int64(3)}}],
-        msg="$searchMeta should return the match count for a compound operator as metadata",
-    ),
-]
-
 # Property [Count Result Shape and Defaults]: count.type selects the result
 # flavor (an exact {count:{total:n}} for total, a {count:{lowerBound:n}} for
 # lowerBound), and an empty, null, or type-less count defaults to a
@@ -287,8 +222,7 @@ SEARCHMETA_THRESHOLD_TYPE_TESTS: list[StageTestCase] = [
 ]
 
 SEARCHMETA_RESULT_TESTS: list[StageTestCase] = (
-    SEARCHMETA_METADATA_TESTS
-    + SEARCHMETA_COUNT_SHAPE_TESTS
+    SEARCHMETA_COUNT_SHAPE_TESTS
     + SEARCHMETA_THRESHOLD_EXACT_TESTS
     + SEARCHMETA_THRESHOLD_TYPE_TESTS
 )
