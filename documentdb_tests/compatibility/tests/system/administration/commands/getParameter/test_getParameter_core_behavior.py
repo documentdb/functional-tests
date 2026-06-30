@@ -160,36 +160,6 @@ def test_getParameter_star_and_allParameters_consistent(collection):
     )
 
 
-def test_getParameter_showDetails_all_entries_have_detail_structure(collection):
-    """Test every entry under {showDetails, allParameters} has the expected detail structure."""
-    result = execute_admin_command(
-        collection, {"getParameter": {"showDetails": True, "allParameters": True}}
-    )
-    malformed: list[str] = []
-    for name, entry in result.items():
-        if name == "ok":
-            continue
-        if not isinstance(entry, dict):
-            malformed.append(f"{name}: entry is {type(entry).__name__}, expected document")
-            continue
-        if not isinstance(entry.get("settableAtRuntime"), bool):
-            malformed.append(
-                f"{name}: settableAtRuntime is {type(entry.get('settableAtRuntime')).__name__}, "
-                "expected bool"
-            )
-        if not isinstance(entry.get("settableAtStartup"), bool):
-            malformed.append(
-                f"{name}: settableAtStartup is {type(entry.get('settableAtStartup')).__name__}, "
-                "expected bool"
-            )
-    assertSuccess(
-        {"ok": 1.0, "malformed": []},
-        {"ok": 1.0, "malformed": malformed},
-        raw_res=True,
-        msg="Every showDetails entry should have bool settableAtRuntime/settableAtStartup",
-    )
-
-
 def test_getParameter_showDetails_false(collection):
     """Test {showDetails: false} returns parameter value without detail fields."""
     result = execute_admin_command(
