@@ -10,10 +10,12 @@
 syncSource:
   replicaSet:
     hostAndPort: "mongo-replset:27017"
-    username: "searchSyncUser"
-    passwordFile: "/mongot-secrets/passwordFile"
-    authSource: "admin"
-    tls: false
+    scramAuth:
+      username: "searchSyncUser"
+      authSource: "admin"
+      passwordFile: "/mongot-secrets/passwordFile"
+      tls:
+        enabled: false
 storage:
   dataPath: "/var/lib/mongot"
 server:
