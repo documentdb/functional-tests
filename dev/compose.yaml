@@ -100,7 +100,7 @@ services:
   # on the replica set) with owner-only permissions before launching. It retries
   # the connection until that user exists.
   mongot:
-    image: mongodb/mongodb-community-search:latest
+    image: mongodb/mongodb-community-search:1.70.1
     profiles: ["mongo-replset", "all"]
     entrypoint:
       - "sh"
