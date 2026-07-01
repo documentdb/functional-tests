@@ -102,6 +102,15 @@ _NOT_YET_INITIALIZED = 94
 # replSetInitiate error code when the set is already initiated (e.g. a race
 # between concurrent callers); treated as success.
 _ALREADY_INITIALIZED = 23
+# createUser error code when the user already exists (idempotent re-runs).
+_USER_ALREADY_EXISTS = 51003
+
+# The user mongot authenticates as to replicate from a search-enabled mongod.
+# Its name and password are a fixed local-dev secret matched by the mongot
+# sidecar's config (see dev/mongot.yml and the mongot service in
+# dev/compose.yaml); it is not a real credential.
+_SEARCH_SYNC_USER = "searchSyncUser"
+_SEARCH_SYNC_PASSWORD = "searchSyncPassword"
 
 
 def ensure_initiated(connection_string: str, timeout_s: float = 30.0) -> None:
@@ -120,12 +129,14 @@ def ensure_initiated(connection_string: str, timeout_s: float = 30.0) -> None:
       that already initiated it (AlreadyInitialized) is tolerated.
 
     After initiating, it waits up to ``timeout_s`` for a primary to be elected
-    so callers can write immediately.
+    so callers can write immediately. A search-enabled mongod additionally has
+    the searchCoordinator user mongot needs provisioned once it is primary.
     """
     client: MongoClient = MongoClient(connection_string, serverSelectionTimeoutMS=5000)
     try:
         try:
             client.admin.command("replSetGetStatus")
+            _ensure_search_user(client)  # Idempotent; a no-op off a search target.
             return  # Already initiated.
         except OperationFailure as exc:
             if exc.code != _NOT_YET_INITIALIZED:
@@ -140,6 +151,7 @@ def ensure_initiated(connection_string: str, timeout_s: float = 30.0) -> None:
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
             if client.admin.command("hello").get("isWritablePrimary"):
+                _ensure_search_user(client)
                 return
             time.sleep(0.5)
         raise TimeoutError(
@@ -147,6 +159,29 @@ def ensure_initiated(connection_string: str, timeout_s: float = 30.0) -> None:
         )
     finally:
         client.close()
+
+
+def _ensure_search_user(client: MongoClient) -> None:
+    """Provision the searchCoordinator user a search-enabled mongod needs.
+
+    A search target points at a mongot sidecar (a non-empty ``mongotHost``).
+    mongot replicates from this mongod as an authenticated sync source, so it
+    needs a user with the searchCoordinator role to log in as. This creates that
+    user (idempotently) once the server is primary. It is a no-op on a target
+    without a mongot sidecar.
+    """
+    if not client.admin.command({"getParameter": 1, "mongotHost": 1}).get("mongotHost"):
+        return  # Not a search target.
+    try:
+        client.admin.command(
+            "createUser",
+            _SEARCH_SYNC_USER,
+            pwd=_SEARCH_SYNC_PASSWORD,
+            roles=[{"role": "searchCoordinator", "db": "admin"}],
+        )
+    except OperationFailure as exc:
+        if exc.code != _USER_ALREADY_EXISTS:
+            raise
 
 
 def live_targets(compose_path: Path = COMPOSE_PATH) -> list[Target]:
