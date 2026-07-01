@@ -1,3 +1,5 @@
+"""Tests for $abs magnitude across numeric types and signed-zero handling."""
+
 import pytest
 from bson import Decimal128, Int64
 

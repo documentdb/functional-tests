@@ -1,3 +1,5 @@
+"""Tests for $abs at representable-range boundaries, including overflow and underflow."""
+
 import pytest
 from bson import Int64
 

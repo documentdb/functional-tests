@@ -1,3 +1,5 @@
+"""Tests for $abs type, arity, and overflow errors."""
+
 from datetime import datetime, timezone
 
 import pytest

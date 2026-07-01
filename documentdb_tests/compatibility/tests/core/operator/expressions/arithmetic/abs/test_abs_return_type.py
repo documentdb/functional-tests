@@ -1,3 +1,5 @@
+"""Tests for $abs return type preservation."""
+
 import pytest
 from bson import Decimal128, Int64
 
