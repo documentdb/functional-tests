@@ -120,10 +120,11 @@ def test_stdDevSamp_expression(collection, test_case):
 
 
 @pytest.mark.parametrize(
-    "test_case", pytest_params([t for t in STDDEVSAMP_INPUT_FORMS_TESTS if t.document])
+    "test_case",
+    pytest_params([t for t in STDDEVSAMP_INPUT_FORMS_TESTS if t.document is not None]),
 )
 def test_stdDevSamp_expression_from_document(collection, test_case):
-    """Test $stdDevSamp expression input forms form inserted document fields."""
+    """Test $stdDevSamp expression input forms from inserted document fields."""
     result = execute_expression_with_insert(
         collection, {"$stdDevSamp": test_case.values}, test_case.document
     )
