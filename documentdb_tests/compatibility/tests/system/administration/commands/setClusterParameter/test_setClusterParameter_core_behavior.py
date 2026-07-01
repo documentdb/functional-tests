@@ -112,6 +112,28 @@ def test_setClusterParameter_round_trip(collection):
         _restore(collection)
 
 
+def test_setClusterParameter_round_trip_pauseMigrations(collection):
+    """Test pauseMigrationsDuringMultiUpdates round-trips through getClusterParameter unchanged."""
+    try:
+        execute_admin_command(
+            collection,
+            {"setClusterParameter": {"pauseMigrationsDuringMultiUpdates": {"enabled": True}}},
+        )
+        result = execute_admin_command(
+            collection, {"getClusterParameter": "pauseMigrationsDuringMultiUpdates"}
+        )
+        assertSuccessPartial(
+            result,
+            {"clusterParameters": [{"enabled": True}]},
+            msg="getClusterParameter should report the value just written",
+        )
+    finally:
+        execute_admin_command(
+            collection,
+            {"setClusterParameter": {"pauseMigrationsDuringMultiUpdates": {"enabled": False}}},
+        )
+
+
 def test_setClusterParameter_idempotent(collection):
     """Test re-applying a parameter's current value leaves it unchanged (no-op)."""
     try:

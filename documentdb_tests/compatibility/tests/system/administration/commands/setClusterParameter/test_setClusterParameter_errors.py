@@ -120,6 +120,12 @@ ERROR_TESTS: list[AdminTestCase] = [
         msg="Null for a document-typed parameter field should fail",
     ),
     AdminTestCase(
+        "zero_expireAfterSeconds",
+        command={"setClusterParameter": {"changeStreams": {"expireAfterSeconds": 0}}},
+        error_code=BAD_VALUE_ERROR,
+        msg="Zero expireAfterSeconds should fail (requires a positive integer, like negative)",
+    ),
+    AdminTestCase(
         "negative_expireAfterSeconds",
         command={"setClusterParameter": {"changeStreams": {"expireAfterSeconds": -1}}},
         error_code=BAD_VALUE_ERROR,
