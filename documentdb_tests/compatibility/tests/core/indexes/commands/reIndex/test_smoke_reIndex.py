@@ -12,6 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
+@pytest.mark.requires(reindex=True)
 def test_smoke_reIndex(collection):
     """Test basic reIndex command behavior."""
     collection.insert_one({"_id": 1, "name": "test"})

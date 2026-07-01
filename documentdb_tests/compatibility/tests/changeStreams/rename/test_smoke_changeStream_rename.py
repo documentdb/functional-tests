@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_admin_command, execute_c
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 def test_smoke_changeStream_rename(collection):
     """Test basic rename change stream event behavior."""
     collection.insert_one({"_id": 1, "x": 1})
