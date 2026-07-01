@@ -6,10 +6,12 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.search.utils.search_common import (
     QUERY_CLAUSE_CAP,
+    create_search_index,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
 )
+from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -326,3 +328,93 @@ def test_search_text_operator_cases(indexed_collection, test_case: StageTestCase
         msg=test_case.msg,
         raw_res=True,
     )
+
+
+_MULTI_ANALYZER_DOCS = [
+    {"_id": 1, "title": "the quick brown fox"},
+    {"_id": 2, "title": "quick red fox"},
+    {"_id": 3, "title": "quick"},
+    {"_id": 4, "title": "slow green turtle"},
+]
+
+_MULTI_ANALYZER_INDEX_DEFINITION = {
+    "mappings": {
+        "dynamic": False,
+        "fields": {
+            "title": {
+                "type": "string",
+                "analyzer": "lucene.standard",
+                "multi": {"kw": {"type": "string", "analyzer": "lucene.keyword"}},
+            }
+        },
+    }
+}
+
+
+@pytest.fixture(scope="module")
+def multi_analyzer_collection(engine_client, worker_id):
+    """A module-scoped collection whose title carries a keyword multi-analyzer
+    beside the default standard analyzer, so a {value, multi} path can select it."""
+    db_name = fixtures.generate_database_name("stages_search_multi_analyzer", worker_id)
+    fixtures.cleanup_database(engine_client, db_name)
+    db = engine_client[db_name]
+    coll = db["multi_analyzer"]
+    coll.insert_many(_MULTI_ANALYZER_DOCS)
+    create_search_index(coll, _MULTI_ANALYZER_INDEX_DEFINITION)
+    yield coll
+    fixtures.cleanup_database(engine_client, db_name)
+
+
+# Property [text Multi-Analyzer Path]: a {value, multi} path resolves through the
+# named alternate analyzer, so the same query matches a different document set
+# than the field's default analyzer.
+SEARCH_TEXT_MULTI_ANALYZER_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "multi_default_standard_analyzer",
+        pipeline=[{"$search": {"text": {"query": "quick", "path": "title"}}}],
+        expected={
+            "cursor.firstBatch": [
+                Len(3),
+                Contains("_id", 1),
+                Contains("_id", 2),
+                Contains("_id", 3),
+            ]
+        },
+        msg="$search text should match every standard-analyzed title containing the term",
+    ),
+    StageTestCase(
+        "multi_keyword_analyzer_term",
+        pipeline=[
+            {"$search": {"text": {"query": "quick", "path": {"value": "title", "multi": "kw"}}}}
+        ],
+        expected={"cursor.firstBatch": [Len(1), Contains("_id", 3)]},
+        msg="$search text should match only the keyword-analyzed title equal to the term when the "
+        "multi keyword analyzer is selected",
+    ),
+    StageTestCase(
+        "multi_keyword_analyzer_full_value",
+        pipeline=[
+            {
+                "$search": {
+                    "text": {
+                        "query": "the quick brown fox",
+                        "path": {"value": "title", "multi": "kw"},
+                    }
+                }
+            }
+        ],
+        expected={"cursor.firstBatch": [Len(1), Contains("_id", 1)]},
+        msg="$search text should match the keyword-analyzed title equal to the full query value",
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(SEARCH_TEXT_MULTI_ANALYZER_TESTS))
+def test_search_text_multi_analyzer(multi_analyzer_collection, test_case: StageTestCase):
+    """Test $search text {value, multi} path selecting an alternate analyzer."""
+    result = execute_command(
+        multi_analyzer_collection,
+        {"aggregate": multi_analyzer_collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+    assertResult(result, expected=test_case.expected, msg=test_case.msg, raw_res=True)
