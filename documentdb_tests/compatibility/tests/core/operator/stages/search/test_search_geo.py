@@ -438,8 +438,36 @@ SEARCH_GEO_WITHIN_SHAPE_REQUIRED_ERROR_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [GeoWithin Geo Index Required]: geoWithin against a path that is not
+# indexed as a geo field produces an error.
+SEARCH_GEO_WITHIN_INDEX_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "geo_within_path_not_geo_indexed",
+        pipeline=[
+            {
+                "$search": {
+                    "geoWithin": {
+                        "path": "region",
+                        "box": {
+                            "bottomLeft": {
+                                "type": "Point",
+                                "coordinates": [DOUBLE_ZERO, DOUBLE_ZERO],
+                            },
+                            "topRight": {"type": "Point", "coordinates": [5.0, 5.0]},
+                        },
+                    }
+                }
+            },
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$search geoWithin should reject a path not indexed as a geo field",
+    ),
+]
+
 SEARCH_GEO_WITHIN_ERROR_TESTS = (
-    SEARCH_GEO_WITHIN_COORDINATE_ERROR_TESTS + SEARCH_GEO_WITHIN_SHAPE_REQUIRED_ERROR_TESTS
+    SEARCH_GEO_WITHIN_COORDINATE_ERROR_TESTS
+    + SEARCH_GEO_WITHIN_SHAPE_REQUIRED_ERROR_TESTS
+    + SEARCH_GEO_WITHIN_INDEX_ERROR_TESTS
 )
 
 

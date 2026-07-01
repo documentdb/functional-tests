@@ -249,7 +249,23 @@ SEARCH_VECTOR_OP_ERROR_TESTS: list[StageTestCase] = [
     ),
 ]
 
-SEARCH_UNSUPPORTED_OP_ERROR_TESTS = SEARCH_HIERARCHY_OP_ERROR_TESTS + SEARCH_VECTOR_OP_ERROR_TESTS
+# Property [Nested Search Operator]: the search token is recognized in the
+# operator vocabulary but is not a usable operator inside $search, so a nested
+# search operator is rejected.
+SEARCH_NESTED_SEARCH_OP_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "nested_search_operator",
+        pipeline=[{"$search": {"search": {"text": {"query": "quick", "path": "title"}}}}],
+        error_code=UNKNOWN_ERROR,
+        msg="$search should reject a nested search operator",
+    ),
+]
+
+SEARCH_UNSUPPORTED_OP_ERROR_TESTS = (
+    SEARCH_HIERARCHY_OP_ERROR_TESTS
+    + SEARCH_VECTOR_OP_ERROR_TESTS
+    + SEARCH_NESTED_SEARCH_OP_ERROR_TESTS
+)
 
 
 @pytest.mark.aggregate
