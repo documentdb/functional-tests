@@ -57,7 +57,7 @@ STDDEVSAMP_NON_NUMERIC_TESTS: list[StdDevSampTest] = [
         "numeric_string_with_one_int",
         values=[60, "30"],
         expected=None,
-        msg="Should return None due to N>1, all strings are ignored",
+        msg="Should return None when fewer than two numeric values remain after ignoring strings",
     ),
     StdDevSampTest(
         "numeric_string_with_two_int",

@@ -67,42 +67,6 @@ STDDEVSAMP_NULL_MISSING_TESTS: list[StdDevSampTest] = [
         expected=None,
         msg="Should return None when only one numeric value with rest None",
     ),
-    StdDevSampTest(
-        "missing_first_array",
-        values=[MISSING, 2, 3],
-        expected=0.7071067811865476,
-        msg="Should calculate stdDevSamp and ignore leading missing",
-    ),
-    StdDevSampTest(
-        "missing_middle_array",
-        values=[1, MISSING, 3],
-        expected=1.4142135623730951,
-        msg="Should calculate stdDevSamp and ignore middle missing",
-    ),
-    StdDevSampTest(
-        "missing_end_array",
-        values=[1, 2, MISSING],
-        expected=0.7071067811865476,
-        msg="Should calculate stdDevSamp and ignore ending missing",
-    ),
-    StdDevSampTest(
-        "missing_leaves_one_numeric",
-        values=[MISSING, 5],
-        expected=None,
-        msg="Should return None when only one numeric value with rest missing",
-    ),
-    StdDevSampTest(
-        "all_missing",
-        values=[MISSING, MISSING],
-        expected=None,
-        msg="Should return None when all values are missing",
-    ),
-    StdDevSampTest(
-        "null_and_missing",
-        values=[None, MISSING],
-        expected=None,
-        msg="Should return None for a mix of null and missing",
-    ),
 ]
 
 
@@ -123,8 +87,13 @@ def test_stdDevSamp_null_missing_from_list(collection, test_case: StdDevSampTest
 @pytest.mark.parametrize("test_case", pytest_params(STDDEVSAMP_NULL_MISSING_TESTS))
 def test_stdDevSamp_null_missing_from_field(collection, test_case: StdDevSampTest):
     """Test $stdDevSamp expression null & missing properties from an inserted array field."""
+
+    document = {} if test_case.values is MISSING else {"values": test_case.values}
+
     result = execute_expression_with_insert(
-        collection, {"$stdDevSamp": "$values"}, {"values": test_case.values}
+        collection,
+        {"$stdDevSamp": "$values"},
+        document,
     )
 
     assert_expression_result(

@@ -62,7 +62,7 @@ STDDEVSAMP_INPUT_FORMS_TESTS: list[StdDevSampTest] = [
         values=[{"$literal": None}, 4, 6],
         document=None,
         expected=pytest.approx(1.4142135623730951),
-        msg="should calculate stdDevSamp ignoring expressions returning null",
+        msg="Should calculate stdDevSamp ignoring expressions returning null",
     ),
     # document traversal
     StdDevSampTest(
