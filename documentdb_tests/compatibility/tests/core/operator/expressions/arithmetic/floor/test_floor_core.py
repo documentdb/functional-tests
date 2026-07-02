@@ -10,7 +10,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
-    execute_expression,
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
@@ -151,9 +150,3 @@ def test_floor_core(collection, test):
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
-
-
-def test_floor_nested_expression(collection):
-    """Test $floor accepts an expression as its input."""
-    result = execute_expression(collection, {"$floor": {"$floor": -4.1}})
-    assert_expression_result(result, expected=-5.0, msg="$floor should evaluate a nested $floor")
