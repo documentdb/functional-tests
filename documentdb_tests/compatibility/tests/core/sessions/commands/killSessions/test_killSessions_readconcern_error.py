@@ -144,7 +144,10 @@ KILLSESSIONS_READCONCERN_SUBFIELD_ERROR_TESTS: list[CommandTestCase] = [
             "readConcern": {"afterClusterTime": Timestamp(1, 1)},
         },
         error_code=ILLEGAL_OPERATION_ERROR,
-        msg="killSessions should reject afterClusterTime in readConcern",
+        # afterClusterTime is rejected only where replication-dependent read
+        # concern is unavailable (standalone); a replica set accepts it.
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
+        msg="killSessions should reject afterClusterTime in readConcern on a standalone server",
     ),
 ]
 
