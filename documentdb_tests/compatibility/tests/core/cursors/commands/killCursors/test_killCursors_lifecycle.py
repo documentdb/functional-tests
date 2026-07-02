@@ -491,12 +491,12 @@ def test_killCursors_after_drop_database(engine_client, database_client, collect
 
 # Property [Cross-Connection Behavior]: a cursor created on one
 # connection can be killed from a different connection to the same server.
-def test_killCursors_cross_connection(request, database_client, collection):
+def test_killCursors_cross_connection(connection_string, database_client, collection):
     """Test killing a cursor from a different connection."""
     collection.insert_many([{"_id": i} for i in range(10)])
     (cursor_id,) = open_find_cursors(collection, 1)
 
-    second_client = fixtures.create_engine_client(request.config.connection_string, "second")
+    second_client = fixtures.create_engine_client(connection_string, "second")
     try:
         second_coll = second_client[database_client.name][collection.name]
         result = execute_command(
