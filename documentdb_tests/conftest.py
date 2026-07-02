@@ -375,10 +375,12 @@ def pytest_collection_modifyitems(session, config, items):
         config.hook.pytest_deselected(items=requires_deselected)
         items[:] = kept
 
-    # Skip skip_localhost tests whose target connects to a localhost server.
-    # Resolved per target (mirroring the requires(...) gate above) so a run
-    # against multiple targets skips only the localhost-bound parametrizations
-    # while still exercising a remote --connection-string override.
+    # Skip skip_localhost tests whose target's server sees the connection as
+    # originating from localhost. This uses the server-side ``whatsmyuri``
+    # command rather than inspecting the connection string, because network
+    # layers (e.g. Docker port mapping) can make a client-side "localhost" URI
+    # arrive from a non-local IP at the server — in which case the test is safe
+    # to run (the server will not treat it as a privileged local connection).
     localhost_hosts = {"localhost", "127.0.0.1", "::1"}
     localhost_by_target: dict[str, bool] = {}
     for item in items:
@@ -390,10 +392,22 @@ def pytest_collection_modifyitems(session, config, items):
         is_localhost = localhost_by_target.get(target.connection_string)
         if is_localhost is None:
             try:
-                nodes = parse_uri(target.connection_string)["nodelist"]
+                from pymongo import MongoClient
+
+                client = MongoClient(target.connection_string, serverSelectionTimeoutMS=5000)
+                result = client.admin.command("whatsmyuri")
+                client.close()
+                # result["you"] is "host:port" as seen by the server
+                server_sees_host = result["you"].rsplit(":", 1)[0]
+                is_localhost = server_sees_host in localhost_hosts
             except Exception:
-                nodes = []
-            is_localhost = any(host in localhost_hosts for host, _ in nodes)
+                # Fall back to connection-string check if we cannot reach the
+                # server (e.g. during --collect-only without a live target).
+                try:
+                    nodes = parse_uri(target.connection_string)["nodelist"]
+                except Exception:
+                    nodes = []
+                is_localhost = any(host in localhost_hosts for host, _ in nodes)
             localhost_by_target[target.connection_string] = is_localhost
         if is_localhost:
             item.add_marker(
