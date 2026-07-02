@@ -7,6 +7,13 @@ from __future__ import annotations
 # documents and is independent of the promoting stage.
 MAX_STORED_NESTING_DEPTH = 179
 
+# The maximum BSON nesting depth a command document may reach before the server
+# rejects it with an Overflow error. This is a global command-parse limit, not a
+# stage behavior: find/distinct bottom out at this same depth. A stage's
+# accepted literal depth is this ceiling minus the wrapper levels its command
+# path consumes.
+MAX_COMMAND_NESTING_DEPTH = 200
+
 # The output document size limit, in bytes, that both stages enforce on their
 # result: 16 MiB plus 16 KiB. It is higher than the 16 MiB standard insert
 # limit, so a stored input can stay within the standard limit while the
