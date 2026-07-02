@@ -50,9 +50,9 @@ def test_ping_multiple_times_in_succession(collection):
     """Test ping can be executed multiple times in succession."""
     for _ in range(3):
         result = execute_admin_command(collection, {"ping": 1})
-    assertProperties(
-        result, {"ok": Eq(1.0)}, msg="Should succeed on repeated execution", raw_res=True
-    )
+        assertProperties(
+            result, {"ok": Eq(1.0)}, msg="Should succeed on repeated execution", raw_res=True
+        )
 
 
 def test_ping_after_write_activity(collection):
