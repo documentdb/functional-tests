@@ -26,10 +26,12 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_ZERO,
     DOUBLE_JUST_ABOVE_HALF,
     DOUBLE_JUST_BELOW_HALF,
+    DOUBLE_MAX_SAFE_INTEGER,
     DOUBLE_MIN_NEGATIVE_SUBNORMAL,
     DOUBLE_MIN_SUBNORMAL,
     DOUBLE_NEAR_MAX,
     DOUBLE_NEAR_MIN,
+    DOUBLE_PRECISION_LOSS,
     DOUBLE_ZERO,
     INT32_MAX,
     INT32_MIN,
@@ -103,7 +105,8 @@ FLOOR_INT_BOUNDARY_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Double Boundaries]: floor handles subnormal and extreme double magnitudes,
-# including values on either side of the 0.5 rounding boundary.
+# including values on either side of the 0.5 rounding boundary and at the integer-representability
+# limit, where doubles have no fractional part and floor is an identity.
 FLOOR_DOUBLE_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "boundary_double_min_subnormal",
@@ -132,6 +135,20 @@ FLOOR_DOUBLE_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         expression={"$floor": ["$value"]},
         expected=DOUBLE_NEAR_MAX,
         msg="$floor should return a near-max whole-magnitude double unchanged",
+    ),
+    ExpressionTestCase(
+        "boundary_double_max_safe_integer",
+        doc={"value": float(DOUBLE_MAX_SAFE_INTEGER)},
+        expression={"$floor": ["$value"]},
+        expected=float(DOUBLE_MAX_SAFE_INTEGER),
+        msg="$floor should return the max safe integer double unchanged, having no fractional part",
+    ),
+    ExpressionTestCase(
+        "boundary_double_precision_loss",
+        doc={"value": float(DOUBLE_PRECISION_LOSS)},
+        expression={"$floor": ["$value"]},
+        expected=float(DOUBLE_PRECISION_LOSS),
+        msg="$floor should return a precision-loss double unchanged, having no fractional part",
     ),
     ExpressionTestCase(
         "boundary_double_just_below_half",
