@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 def test_smoke_changeStream_dropDatabase(collection):
     """Test basic dropDatabase change stream event behavior."""
     execute_command(collection, {"create": f"{collection.name}_temp"})
