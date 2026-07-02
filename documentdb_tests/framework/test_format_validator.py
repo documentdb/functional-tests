@@ -32,6 +32,7 @@ def validate_test_format(file_path: str) -> list[str]:
             "execute_project_with_insert",
             "execute_expression",
             "execute_expression_with_insert",
+            "execute_session_command",
         ]
     )
 
