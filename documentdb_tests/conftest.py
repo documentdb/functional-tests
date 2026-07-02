@@ -16,6 +16,8 @@ pytest.register_assert_rewrite("documentdb_tests.framework.assertions")
 
 from pathlib import Path  # noqa: E402
 
+from pymongo.uri_parser import parse_uri  # noqa: E402
+
 from documentdb_tests.framework import fixtures  # noqa: E402
 from documentdb_tests.framework.engine_registry import (  # noqa: E402
     Target,
@@ -341,6 +343,10 @@ def pytest_collection_modifyitems(session, config, items):
     a target they do not apply to (rather than appearing as skips). A target's
     capabilities are determined by its engine and topology, resolved per target
     at runtime (see ``framework.preconditions``).
+
+    Tests marked 'skip_localhost' are skipped when their target connects to a
+    localhost server -- a safety guard for destructive commands (e.g. shutdown)
+    that behave differently from a local client.
     """
     # Deselect a capability-gated test when its target's capabilities do not
     # match its requires(...) marker. Each item is parametrized over a target;
@@ -368,6 +374,31 @@ def pytest_collection_modifyitems(session, config, items):
     if requires_deselected:
         config.hook.pytest_deselected(items=requires_deselected)
         items[:] = kept
+
+    # Skip skip_localhost tests whose target connects to a localhost server.
+    # Resolved per target (mirroring the requires(...) gate above) so a run
+    # against multiple targets skips only the localhost-bound parametrizations
+    # while still exercising a remote --connection-string override.
+    localhost_hosts = {"localhost", "127.0.0.1", "::1"}
+    localhost_by_target: dict[str, bool] = {}
+    for item in items:
+        if not item.get_closest_marker("skip_localhost"):
+            continue
+        target = _item_target(item)
+        if target is None:
+            continue
+        is_localhost = localhost_by_target.get(target.connection_string)
+        if is_localhost is None:
+            try:
+                nodes = parse_uri(target.connection_string)["nodelist"]
+            except Exception:
+                nodes = []
+            is_localhost = any(host in localhost_hosts for host, _ in nodes)
+            localhost_by_target[target.connection_string] = is_localhost
+        if is_localhost:
+            item.add_marker(
+                pytest.mark.skip(reason="skipped on localhost (server connection is local)")
+            )
 
     # Deselect no_parallel tests when running under xdist
     is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")
