@@ -319,6 +319,37 @@ LOOKUP_PIPELINE_POSITION_TESTS: list[LookupTestCase] = [
         expected=[{"_id": 10, "ff": "a", "x": 42}],
         msg="$replaceRoot after $lookup should promote first joined doc to root",
     ),
+    LookupTestCase(
+        "lookup_unwind_replace_root_merge_objects",
+        docs=[{"_id": 1, "lf": "a", "q": 3}],
+        foreign_docs=[
+            {"_id": 10, "ff": "a", "label": "X"},
+            {"_id": 20, "ff": "b", "label": "Y"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "localField": "lf",
+                    "foreignField": "ff",
+                    "as": "j",
+                }
+            },
+            {"$unwind": "$j"},
+            {"$replaceRoot": {"newRoot": {"$mergeObjects": ["$$ROOT", "$j"]}}},
+        ],
+        expected=[
+            {
+                "_id": 10,
+                "lf": "a",
+                "q": 3,
+                "j": {"_id": 10, "ff": "a", "label": "X"},
+                "ff": "a",
+                "label": "X",
+            },
+        ],
+        msg="$replaceRoot with $mergeObjects should merge a joined doc onto the original root",
+    ),
     # Multi-stage combinations.
     LookupTestCase(
         "match_sort_then_lookup",
