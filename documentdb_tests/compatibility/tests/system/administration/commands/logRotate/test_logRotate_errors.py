@@ -60,6 +60,18 @@ def test_logRotate_unrecognized_field(collection):
     )
 
 
+def test_logRotate_unrecognized_field_with_comment(collection):
+    """Test that an unrecognized field still fails when a valid comment is present."""
+    result = execute_admin_command(
+        collection, {"logRotate": 1, "comment": "hello", "unknownField": 1}
+    )
+    assertFailureCode(
+        result,
+        UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        msg="Should reject unrecognized fields even when a valid comment is present",
+    )
+
+
 def test_logRotate_non_admin_database(collection):
     """Test that logRotate fails when run on a non-admin database."""
     result = execute_command(collection, {"logRotate": 1})

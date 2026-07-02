@@ -1,12 +1,17 @@
 """Tests for logRotate BSON type validation.
 
 The value field accepts numeric/bool types and the string "server"; other
-types are rejected with TypeMismatch. The comment field accepts all types.
+types are rejected with TypeMismatch. The comment field accepts all BSON
+types and is consumed by the server rather than echoed back in the response.
 """
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccessPartial
+from documentdb_tests.framework.assertions import (
+    assertFailureCode,
+    assertProperties,
+    assertSuccessPartial,
+)
 from documentdb_tests.framework.bson_type_validator import (
     BsonType,
     BsonTypeTestCase,
@@ -18,6 +23,7 @@ from documentdb_tests.framework.executor import (
     execute_admin_command,
     execute_admin_with_retry_command,
 )
+from documentdb_tests.framework.property_checks import Eq, NotExists
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
 
@@ -70,14 +76,15 @@ def test_logRotate_value_bson_type_accepted(collection, bson_type, sample_value,
 
 @pytest.mark.parametrize("bson_type,sample_value,spec", COMMENT_ACCEPTANCE)
 def test_logRotate_comment_bson_type_accepted(collection, bson_type, sample_value, spec):
-    """Test comment field accepts all BSON types."""
+    """Test comment field accepts all BSON types and is consumed, not echoed back."""
     result = execute_admin_with_retry_command(
         collection, {"logRotate": 1, "comment": sample_value}, retry_code=FILE_RENAME_FAILED_ERROR
     )
-    assertSuccessPartial(
+    assertProperties(
         result,
-        {"ok": 1.0},
-        msg=f"comment should accept {bson_type.value}",
+        {"ok": Eq(1.0), "comment": NotExists()},
+        msg=f"comment should be accepted and not echoed back ({bson_type.value})",
+        raw_res=True,
     )
 
 
