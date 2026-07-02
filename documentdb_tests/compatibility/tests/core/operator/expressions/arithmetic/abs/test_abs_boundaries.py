@@ -1,7 +1,7 @@
 """Tests for $abs at representable-range boundaries, including overflow and underflow."""
 
 import pytest
-from bson import Int64
+from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -111,7 +111,8 @@ ABS_INT64_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Double Boundaries]: $abs preserves double magnitude across the representable range.
+# Property [Double Boundaries]: $abs preserves double magnitude across the representable range,
+# for both positive inputs (a no-op) and negative inputs (an actual sign flip).
 ABS_DOUBLE_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_min_subnormal",
@@ -163,16 +164,30 @@ ABS_DOUBLE_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         msg="$abs should return the same value for a double just below half",
     ),
     ExpressionTestCase(
+        "negative_double_just_below_half",
+        doc={"value": -DOUBLE_JUST_BELOW_HALF},
+        expression={"$abs": ["$value"]},
+        expected=DOUBLE_JUST_BELOW_HALF,
+        msg="$abs should return the positive value for a negative double just below half",
+    ),
+    ExpressionTestCase(
         "double_just_above_half",
         doc={"value": DOUBLE_JUST_ABOVE_HALF},
         expression={"$abs": ["$value"]},
         expected=DOUBLE_JUST_ABOVE_HALF,
         msg="$abs should return the same value for a double just above half",
     ),
+    ExpressionTestCase(
+        "negative_double_just_above_half",
+        doc={"value": -DOUBLE_JUST_ABOVE_HALF},
+        expression={"$abs": ["$value"]},
+        expected=DOUBLE_JUST_ABOVE_HALF,
+        msg="$abs should return the positive value for a negative double just above half",
+    ),
 ]
 
 # Property [Decimal128 Boundaries]: $abs preserves decimal128 magnitude and precision, including
-# trailing zeros.
+# trailing zeros, for both positive inputs (a no-op) and negative inputs (an actual sign flip).
 ABS_DECIMAL_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "decimal128_max",
@@ -210,11 +225,25 @@ ABS_DECIMAL_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         msg="$abs should preserve a decimal128 trailing zero",
     ),
     ExpressionTestCase(
+        "negative_decimal128_trailing_zero",
+        doc={"value": Decimal128("-1.0")},
+        expression={"$abs": ["$value"]},
+        expected=DECIMAL128_TRAILING_ZERO,
+        msg="$abs should preserve a decimal128 trailing zero through negation",
+    ),
+    ExpressionTestCase(
         "decimal128_many_trailing_zeros",
         doc={"value": DECIMAL128_MANY_TRAILING_ZEROS},
         expression={"$abs": ["$value"]},
         expected=DECIMAL128_MANY_TRAILING_ZEROS,
         msg="$abs should preserve decimal128 many trailing zeros",
+    ),
+    ExpressionTestCase(
+        "negative_decimal128_many_trailing_zeros",
+        doc={"value": Decimal128("-1.00000000000000000000000000000000")},
+        expression={"$abs": ["$value"]},
+        expected=DECIMAL128_MANY_TRAILING_ZEROS,
+        msg="$abs should preserve decimal128 many trailing zeros through negation",
     ),
     ExpressionTestCase(
         "decimal128_just_below_half",
@@ -224,11 +253,25 @@ ABS_DECIMAL_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         msg="$abs should return the same value for a decimal128 just below half",
     ),
     ExpressionTestCase(
+        "negative_decimal128_just_below_half",
+        doc={"value": Decimal128("-0.4999999999999999999999999999999999")},
+        expression={"$abs": ["$value"]},
+        expected=DECIMAL128_JUST_BELOW_HALF,
+        msg="$abs should return the positive value for a negative decimal128 just below half",
+    ),
+    ExpressionTestCase(
         "decimal128_just_above_half",
         doc={"value": DECIMAL128_JUST_ABOVE_HALF},
         expression={"$abs": ["$value"]},
         expected=DECIMAL128_JUST_ABOVE_HALF,
         msg="$abs should return the same value for a decimal128 just above half",
+    ),
+    ExpressionTestCase(
+        "negative_decimal128_just_above_half",
+        doc={"value": Decimal128("-0.5000000000000000000000000000000001")},
+        expression={"$abs": ["$value"]},
+        expected=DECIMAL128_JUST_ABOVE_HALF,
+        msg="$abs should return the positive value for a negative decimal128 just above half",
     ),
 ]
 
