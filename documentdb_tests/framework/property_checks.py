@@ -184,6 +184,25 @@ class LenGt(Check):
         return f"{type(self).__name__}({self.minimum!r})"
 
 
+class LenLte(Check):
+    """Assert that the field is a list whose length is at most ``maximum``."""
+
+    def __init__(self, maximum: int) -> None:
+        self.maximum = maximum
+
+    def check(self, value: Any, path: str) -> str | None:
+        if value is _FIELD_ABSENT:
+            return f"expected '{path}' to have length <= {self.maximum}, but field is missing"
+        if not isinstance(value, list):
+            return f"expected '{path}' to be a list, got {type(value).__name__}"
+        if len(value) > self.maximum:
+            return f"expected '{path}' length <= {self.maximum}, got {len(value)}"
+        return None
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.maximum!r})"
+
+
 class Contains(Check):
     """Assert that a list contains a dict where ``key`` equals ``value``."""
 
@@ -328,6 +347,23 @@ class Gte(Check):
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.minimum!r})"
+
+
+class Lte(Check):
+    """Assert that the field is less than or equal to a value."""
+
+    def __init__(self, maximum: Any) -> None:
+        self.maximum = maximum
+
+    def check(self, value: Any, path: str) -> str | None:
+        if value is _FIELD_ABSENT:
+            return f"expected '{path}' <= {self.maximum!r}, but field is missing"
+        if value > self.maximum:
+            return f"expected '{path}' <= {self.maximum!r}, got {value!r}"
+        return None
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.maximum!r})"
 
 
 class NonEmptyStr(Check):
