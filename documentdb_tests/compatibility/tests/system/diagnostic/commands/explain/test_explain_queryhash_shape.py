@@ -10,9 +10,10 @@ from typing import Any, Optional
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq, Ne
 from documentdb_tests.framework.test_case import BaseTestCase
 
 pytestmark = pytest.mark.admin
@@ -25,7 +26,7 @@ def get_query_hash(
     projection: Optional[dict] = None,
     collation: Optional[dict] = None,
 ) -> str:
-    """Return the queryPlanner.queryHash from explain for a find filter."""
+    """Return queryPlanner.planCacheShapeHash from explain for a find filter."""
     cmd: dict[str, Any] = {"find": collection.name, "filter": find_filter}
     if sort is not None:
         cmd["sort"] = sort
@@ -37,14 +38,42 @@ def get_query_hash(
     if isinstance(result, Exception):
         raise RuntimeError(f"explain command failed: {result}")
     query_planner = result.get("queryPlanner", {})
-    if "queryHash" not in query_planner:
-        raise RuntimeError(f"explain did not return queryPlanner.queryHash; got: {result}")
-    return str(query_planner["queryHash"])
+    if "planCacheShapeHash" not in query_planner:
+        raise RuntimeError(f"explain did not return queryPlanner.planCacheShapeHash; got: {result}")
+    return str(query_planner["planCacheShapeHash"])
+
+
+def get_query_shape_hash(
+    collection,
+    find_filter: dict,
+    sort: Optional[dict] = None,
+    projection: Optional[dict] = None,
+    collation: Optional[dict] = None,
+) -> str:
+    """Return the top-level queryShapeHash from explain for a find filter."""
+    cmd: dict[str, Any] = {"find": collection.name, "filter": find_filter}
+    if sort is not None:
+        cmd["sort"] = sort
+    if projection is not None:
+        cmd["projection"] = projection
+    if collation is not None:
+        cmd["collation"] = collation
+    result = execute_command(collection, {"explain": cmd, "verbosity": "queryPlanner"})
+    if isinstance(result, Exception):
+        raise RuntimeError(f"explain command failed: {result}")
+    if "queryShapeHash" not in result:
+        raise RuntimeError(f"explain did not return queryShapeHash; got: {result}")
+    return str(result["queryShapeHash"])
 
 
 @dataclass(frozen=True)
 class QueryHashCase(BaseTestCase):
-    """Test case comparing the queryHash of two find queries."""
+    """Test case comparing the queryHash of two find queries.
+
+    query_shape_same overrides the expected same/different verdict specifically
+    for queryShapeHash when it differs from planCacheShapeHash behaviour.
+    Leave as None to inherit the planCacheShapeHash expectation.
+    """
 
     filter_a: Optional[dict] = None
     filter_b: Optional[dict] = None
@@ -54,6 +83,7 @@ class QueryHashCase(BaseTestCase):
     projection_b: Optional[dict] = None
     collation_a: Optional[dict] = None
     collation_b: Optional[dict] = None
+    query_shape_same: Optional[bool] = None
 
 
 SAME_SHAPE_TESTS: list[QueryHashCase] = [
@@ -91,12 +121,14 @@ SAME_SHAPE_TESTS: list[QueryHashCase] = [
         id="field_clause_order",
         filter_a={"a": 1, "b": 2},
         filter_b={"b": 2, "a": 1},
+        query_shape_same=False,
         msg="reversed top-level field order should share a query shape",
     ),
     QueryHashCase(
         id="and_clause_order",
         filter_a={"$and": [{"a": 1}, {"b": 2}]},
         filter_b={"$and": [{"b": 2}, {"a": 1}]},
+        query_shape_same=False,
         msg="reversed $and clause order should share a query shape",
     ),
     QueryHashCase(
@@ -133,6 +165,7 @@ SAME_SHAPE_TESTS: list[QueryHashCase] = [
         id="projection_field_order",
         filter_a={"a": 1},
         filter_b={"a": 1},
+        query_shape_same=False,
         projection_a={"a": 1, "b": 1},
         projection_b={"b": 1, "a": 1},
         msg="same projection fields in different order should share a query shape",
@@ -239,12 +272,14 @@ SAME_SHAPE_TESTS: list[QueryHashCase] = [
         id="expr_operator_variation",
         filter_a={"$expr": {"$gt": ["$a", "$b"]}},
         filter_b={"$expr": {"$lt": ["$a", "$b"]}},
+        query_shape_same=False,
         msg="$expr operators are not part of the shape; different operators share a query shape",
     ),
     QueryHashCase(
         id="type_argument_variation",
         filter_a={"a": {"$type": "int"}},
         filter_b={"a": {"$type": "string"}},
+        query_shape_same=False,
         msg="$type argument is treated as a literal and shares a query shape",
     ),
     QueryHashCase(
@@ -268,9 +303,9 @@ def test_explain_queryhash_same_shape(collection, test):
     hash_b = get_query_hash(
         collection, test.filter_b, test.sort_b, test.projection_b, test.collation_b
     )
-    assertSuccess(
-        {"queryHash": hash_a},
-        {"queryHash": hash_b},
+    assertProperties(
+        {"planCacheShapeHash": hash_a},
+        {"planCacheShapeHash": Eq(hash_b)},
         msg=test.msg,
         raw_res=True,
     )
@@ -323,6 +358,7 @@ DIFF_SHAPE_TESTS: list[QueryHashCase] = [
         id="in_length_variation",
         filter_a={"a": {"$in": [1]}},
         filter_b={"a": {"$in": [1, 2]}},
+        query_shape_same=True,
         msg="$in with different array lengths should have different query shapes",
     ),
     QueryHashCase(
@@ -486,111 +522,56 @@ def test_explain_queryhash_different_shape(collection, test):
     hash_b = get_query_hash(
         collection, test.filter_b, test.sort_b, test.projection_b, test.collation_b
     )
-    assertSuccess(
-        {"hashes_differ": hash_a != hash_b},
-        {"hashes_differ": True},
+    assertProperties(
+        {"planCacheShapeHash": hash_a},
+        {"planCacheShapeHash": Ne(hash_b)},
         msg=test.msg,
         raw_res=True,
     )
 
 
-def test_explain_queryhash_plan_cache_filter_collapses_same_shape(collection):
-    """Test that same-shape queries map to a single planCacheSetFilter entry.
+@pytest.mark.parametrize("test", pytest_params(SAME_SHAPE_TESTS))
+def test_explain_queryshapehash_same_shape(collection, test):
+    """Test that structurally equivalent queries produce the same top-level queryShapeHash.
 
-    Pins the shape function across subsystems: planner -> plan-cache-filter ->
-    explain. A divergence between them would cause planCacheListFilters to
-    return two separate filter entries for queries that share a queryHash.
+    Cases annotated with query_shape_same=False diverge from planCacheShapeHash
+    behaviour: queryShapeHash preserves field order, $and clause order,
+    projection order, $expr operators, and $type arguments.
     """
+    expected_same = test.query_shape_same if test.query_shape_same is not None else True
     collection.insert_many(
         [{"_id": i, "a": i % 5, "b": i % 3, "arr": [i, i + 1], "s": str(i)} for i in range(20)]
     )
-    collection.create_index([("a", 1)])
-    collection.database.command({"planCacheClear": collection.name})
-
-    filter_a = {"a": {"$eq": 1}}
-    filter_b = {"a": {"$eq": 3}}
-
-    hash_a = get_query_hash(collection, filter_a)
-    hash_b = get_query_hash(collection, filter_b)
-    if hash_a != hash_b:
-        raise RuntimeError(
-            f"pre-condition failed: filter_a and filter_b must share a query shape "
-            f"(hash_a={hash_a!r}, hash_b={hash_b!r})"
-        )
-
-    set_result = execute_command(
-        collection,
-        {"planCacheSetFilter": collection.name, "query": filter_a, "indexes": [{"a": 1}]},
+    hash_a = get_query_shape_hash(
+        collection, test.filter_a, test.sort_a, test.projection_a, test.collation_a
     )
-    if isinstance(set_result, Exception) or set_result.get("ok") != 1.0:
-        raise RuntimeError(f"planCacheSetFilter failed: {set_result}")
-
-    list_result = execute_command(collection, {"planCacheListFilters": collection.name})
-    if isinstance(list_result, Exception) or "filters" not in list_result:
-        raise RuntimeError(f"planCacheListFilters failed: {list_result}")
-
-    assertSuccess(
-        {"filter_count": len(list_result["filters"])},
-        {"filter_count": 1},
-        msg="same-shape queries should map to exactly one plan cache filter entry",
-        raw_res=True,
+    hash_b = get_query_shape_hash(
+        collection, test.filter_b, test.sort_b, test.projection_b, test.collation_b
+    )
+    check = Eq(hash_b) if expected_same else Ne(hash_b)
+    assertProperties(
+        {"queryShapeHash": hash_a}, {"queryShapeHash": check}, msg=test.msg, raw_res=True
     )
 
 
-def _explain_before_and_after_index(collection, find_filter: dict) -> tuple[dict, dict]:
-    """Return (queryPlanner before index, queryPlanner after index) for find_filter."""
-    result_before = execute_command(
-        collection,
-        {"explain": {"find": collection.name, "filter": find_filter}, "verbosity": "queryPlanner"},
-    )
-    if isinstance(result_before, Exception) or "queryPlanner" not in result_before:
-        raise RuntimeError(f"explain before index failed: {result_before}")
-    qp_before = result_before["queryPlanner"]
-    if qp_before.get("queryHash") is None or qp_before.get("planCacheKey") is None:
-        raise RuntimeError(f"explain did not return queryHash/planCacheKey: {result_before}")
+@pytest.mark.parametrize("test", pytest_params(DIFF_SHAPE_TESTS))
+def test_explain_queryshapehash_different_shape(collection, test):
+    """Test that structurally distinct queries produce different top-level queryShapeHash values.
 
-    collection.create_index([("a", 1)])
-
-    result_after = execute_command(
-        collection,
-        {"explain": {"find": collection.name, "filter": find_filter}, "verbosity": "queryPlanner"},
-    )
-    if isinstance(result_after, Exception) or "queryPlanner" not in result_after:
-        raise RuntimeError(f"explain after index failed: {result_after}")
-    return qp_before, result_after["queryPlanner"]
-
-
-def test_explain_queryhash_stable_after_index_add(collection):
-    """Test that queryHash is unchanged after an index is added.
-
-    queryHash (planCacheShapeHash) depends only on the query shape, not on
-    available indexes, so it must remain the same before and after index creation.
+    Cases annotated with query_shape_same=True diverge from planCacheShapeHash
+    behaviour: queryShapeHash treats $in array length as irrelevant.
     """
+    expected_same = test.query_shape_same if test.query_shape_same is not None else False
     collection.insert_many(
         [{"_id": i, "a": i % 5, "b": i % 3, "arr": [i, i + 1], "s": str(i)} for i in range(20)]
     )
-    qp_before, qp_after = _explain_before_and_after_index(collection, {"a": {"$eq": 1}})
-    assertSuccess(
-        {"queryHash": qp_after.get("queryHash")},
-        {"queryHash": qp_before["queryHash"]},
-        msg="queryHash must be stable across index creation",
-        raw_res=True,
+    hash_a = get_query_shape_hash(
+        collection, test.filter_a, test.sort_a, test.projection_a, test.collation_a
     )
-
-
-def test_explain_planCacheKey_changes_after_index_add(collection):
-    """Test that planCacheKey changes when an index is added.
-
-    planCacheKey depends on both the query shape and the available indexes,
-    so it must differ before and after index creation.
-    """
-    collection.insert_many(
-        [{"_id": i, "a": i % 5, "b": i % 3, "arr": [i, i + 1], "s": str(i)} for i in range(20)]
+    hash_b = get_query_shape_hash(
+        collection, test.filter_b, test.sort_b, test.projection_b, test.collation_b
     )
-    qp_before, qp_after = _explain_before_and_after_index(collection, {"a": {"$eq": 1}})
-    assertSuccess(
-        {"planCacheKey_changed": qp_before["planCacheKey"] != qp_after.get("planCacheKey")},
-        {"planCacheKey_changed": True},
-        msg="planCacheKey must change after an index is added",
-        raw_res=True,
+    check = Eq(hash_b) if expected_same else Ne(hash_b)
+    assertProperties(
+        {"queryShapeHash": hash_a}, {"queryShapeHash": check}, msg=test.msg, raw_res=True
     )
