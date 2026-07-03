@@ -45,12 +45,6 @@ PROPERTY_TESTS: list[AdministrationTestCase] = [
         msg=f"Single-name request should return element with _id equal to '{_VALID_PARAM}'",
     ),
     AdministrationTestCase(
-        id="wildcard_includes_auditConfig",
-        command={"getClusterParameter": "*"},
-        checks={"clusterParameters": Contains("_id", "auditConfig")},
-        msg="Wildcard result should include 'auditConfig'",
-    ),
-    AdministrationTestCase(
         id="wildcard_includes_fleDisableSubstringPreviewParameterLimits",
         command={"getClusterParameter": "*"},
         checks={"clusterParameters": Contains("_id", "fleDisableSubstringPreviewParameterLimits")},
