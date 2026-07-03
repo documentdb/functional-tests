@@ -13,7 +13,7 @@ from documentdb_tests.compatibility.tests.system.administration.utils.administra
 from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq, IsType, Len
+from documentdb_tests.framework.property_checks import Contains, Eq, IsType, Len
 
 pytestmark = pytest.mark.admin
 
@@ -43,6 +43,18 @@ PROPERTY_TESTS: list[AdministrationTestCase] = [
         command={"getClusterParameter": _VALID_PARAM},
         checks={"clusterParameters.0._id": Eq(_VALID_PARAM)},
         msg=f"Single-name request should return element with _id equal to '{_VALID_PARAM}'",
+    ),
+    AdministrationTestCase(
+        id="wildcard_includes_auditConfig",
+        command={"getClusterParameter": "*"},
+        checks={"clusterParameters": Contains("_id", "auditConfig")},
+        msg="Wildcard result should include 'auditConfig'",
+    ),
+    AdministrationTestCase(
+        id="wildcard_includes_fleDisableSubstringPreviewParameterLimits",
+        command={"getClusterParameter": "*"},
+        checks={"clusterParameters": Contains("_id", "fleDisableSubstringPreviewParameterLimits")},
+        msg="Wildcard result should include 'fleDisableSubstringPreviewParameterLimits'",
     ),
 ]
 
