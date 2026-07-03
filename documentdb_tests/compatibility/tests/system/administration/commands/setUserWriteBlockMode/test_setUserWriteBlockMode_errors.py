@@ -68,3 +68,41 @@ def test_setUserWriteBlockMode_disable_mismatched_reason_fails(collection):
         ILLEGAL_OPERATION_ERROR,
         msg="setUserWriteBlockMode should reject mismatched reason on disable",
     )
+
+
+# Property [Mismatched Reason on Enable]: re-enabling with DiskUseThresholdExceeded when a
+# different reason is active fails.
+def test_setUserWriteBlockMode_enable_mismatched_reason_disk_threshold_fails(collection):
+    """Test setUserWriteBlockMode re-enable with DiskUseThresholdExceeded over another reason."""
+    execute_admin_command(
+        collection,
+        {"setUserWriteBlockMode": 1, "global": True, "reason": "Unspecified"},
+    )
+    result = execute_admin_command(
+        collection,
+        {"setUserWriteBlockMode": 1, "global": True, "reason": "DiskUseThresholdExceeded"},
+    )
+    assertFailureCode(
+        result,
+        ILLEGAL_OPERATION_ERROR,
+        msg="setUserWriteBlockMode should reject mismatched reason on re-enable",
+    )
+
+
+# Property [Mismatched Reason on Disable]: disabling with DiskUseThresholdExceeded when a
+# different reason is active fails.
+def test_setUserWriteBlockMode_disable_mismatched_reason_disk_threshold_fails(collection):
+    """Test setUserWriteBlockMode disable with DiskUseThresholdExceeded over another reason."""
+    execute_admin_command(
+        collection,
+        {"setUserWriteBlockMode": 1, "global": True, "reason": "Unspecified"},
+    )
+    result = execute_admin_command(
+        collection,
+        {"setUserWriteBlockMode": 1, "global": False, "reason": "DiskUseThresholdExceeded"},
+    )
+    assertFailureCode(
+        result,
+        ILLEGAL_OPERATION_ERROR,
+        msg="setUserWriteBlockMode should reject mismatched reason on disable",
+    )

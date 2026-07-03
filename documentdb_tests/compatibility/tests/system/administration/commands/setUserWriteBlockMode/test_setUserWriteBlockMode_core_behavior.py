@@ -22,18 +22,24 @@ def _manage_write_block(collection):
     force_disable_write_block(collection)
 
 
-# Property [Idempotent Disable]: disabling write block when no block is active succeeds.
+# Property [Idempotent Disable]: disabling write block when no block is active succeeds and
+# writes are allowed.
 def test_setUserWriteBlockMode_disable_when_no_block_active(collection):
-    """Test setUserWriteBlockMode global:false when no block is active succeeds."""
-    result = execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
+    """Test setUserWriteBlockMode global:false when no block is active leaves writes allowed."""
+    execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": False})
+    result = execute_command(
+        collection, {"insert": collection.name, "documents": [{"_id": "no_block_write"}]}
+    )
     assertSuccessPartial(
         result,
-        {"ok": 1.0},
-        msg="setUserWriteBlockMode should succeed when disabling with no active block",
+        {"ok": 1.0, "n": 1},
+        msg="setUserWriteBlockMode should leave writes allowed when disabling with no active block",
     )
 
 
 # Property [Write Restoration]: writes succeed after disabling a previously active block.
+# (Blocking of writes while a block is active is covered by
+# test_setUserWriteBlockMode_write_block_enforcement.py.)
 def test_setUserWriteBlockMode_enable_disable_restores_writes(collection):
     """Test setUserWriteBlockMode enable then disable allows writes again."""
     execute_admin_command(collection, {"setUserWriteBlockMode": 1, "global": True})
@@ -43,7 +49,7 @@ def test_setUserWriteBlockMode_enable_disable_restores_writes(collection):
     )
     assertSuccessPartial(
         result,
-        {"ok": 1.0},
+        {"ok": 1.0, "n": 1},
         msg="setUserWriteBlockMode should allow writes after block is disabled",
     )
 
@@ -85,6 +91,23 @@ def test_setUserWriteBlockMode_same_reason_unspecified_idempotent(collection):
     result = execute_admin_command(
         collection,
         {"setUserWriteBlockMode": 1, "global": True, "reason": "Unspecified"},
+    )
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="setUserWriteBlockMode should be idempotent with same explicit reason",
+    )
+
+
+def test_setUserWriteBlockMode_same_reason_disk_threshold_idempotent(collection):
+    """Test setUserWriteBlockMode re-enable with same reason DiskUseThresholdExceeded."""
+    execute_admin_command(
+        collection,
+        {"setUserWriteBlockMode": 1, "global": True, "reason": "DiskUseThresholdExceeded"},
+    )
+    result = execute_admin_command(
+        collection,
+        {"setUserWriteBlockMode": 1, "global": True, "reason": "DiskUseThresholdExceeded"},
     )
     assertSuccessPartial(
         result,

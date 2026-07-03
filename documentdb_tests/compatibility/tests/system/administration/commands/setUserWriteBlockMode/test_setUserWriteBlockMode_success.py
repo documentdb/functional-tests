@@ -32,41 +32,9 @@ def _manage_write_block(collection):
     force_disable_write_block(collection)
 
 
-# Property [Global Field Boolean Acceptance]: setUserWriteBlockMode accepts only boolean values
-# for the global field.
-GLOBAL_VALID_TESTS: list[AdminTestCase] = [
-    AdminTestCase(
-        "global_true",
-        command=lambda ctx: {"setUserWriteBlockMode": 1, "global": True},
-        expected={"ok": 1.0},
-        msg="setUserWriteBlockMode should accept global:true",
-    ),
-    AdminTestCase(
-        "global_false",
-        command=lambda ctx: {"setUserWriteBlockMode": 1, "global": False},
-        expected={"ok": 1.0},
-        msg="setUserWriteBlockMode should accept global:false",
-    ),
-]
-
-# Property [Reason Field Valid Values]: setUserWriteBlockMode accepts valid reason enum strings.
-REASON_VALID_TESTS: list[AdminTestCase] = [
-    AdminTestCase(
-        f"reason_{tid}",
-        command=lambda ctx, r=reason: {
-            "setUserWriteBlockMode": 1,
-            "global": True,
-            "reason": r,
-        },
-        expected={"ok": 1.0},
-        msg=f"setUserWriteBlockMode should accept reason:{reason}",
-    )
-    for tid, reason in [
-        ("unspecified", "Unspecified"),
-        ("cluster_migration", "ClusterToClusterMigrationInProgress"),
-        ("disk_threshold", "DiskUseThresholdExceeded"),
-    ]
-]
+# Global-field boolean acceptance (global:true/false) and valid reason enum acceptance are
+# covered by test_setUserWriteBlockMode_core_behavior.py (enable/disable and idempotent-reason
+# tests), so they are not duplicated here.
 
 # Property [Reason Field Optional]: the reason field can be null (treated as omitted).
 REASON_OPTIONAL_TESTS: list[AdminTestCase] = [
@@ -172,11 +140,7 @@ WRITE_SUCCEEDS_TESTS: list[AdminTestCase] = [
 ]
 
 SUCCESS_TESTS: list[AdminTestCase] = (
-    GLOBAL_VALID_TESTS
-    + REASON_VALID_TESTS
-    + REASON_OPTIONAL_TESTS
-    + READ_NOT_BLOCKED_TESTS
-    + WRITE_SUCCEEDS_TESTS
+    REASON_OPTIONAL_TESTS + READ_NOT_BLOCKED_TESTS + WRITE_SUCCEEDS_TESTS
 )
 
 
