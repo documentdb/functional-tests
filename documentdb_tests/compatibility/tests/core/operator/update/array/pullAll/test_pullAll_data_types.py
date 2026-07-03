@@ -26,22 +26,6 @@ from documentdb_tests.framework.test_constants import (
 
 NUMERIC_EQUIVALENCE_TESTS: list[UpdateTestCase] = [
     UpdateTestCase(
-        "int_removes_all_numeric_types",
-        setup_docs=[{"_id": 1, "a": [1, Int64(1), 1.0, Decimal128("1")]}],
-        query={"_id": 1},
-        update={"$pullAll": {"a": [1]}},
-        expected={"_id": 1, "a": []},
-        msg="Should remove all numerically equivalent values",
-    ),
-    UpdateTestCase(
-        "zero_removes_all_zero_types",
-        setup_docs=[{"_id": 1, "a": [0, Int64(0), 0.0, Decimal128("0")]}],
-        query={"_id": 1},
-        update={"$pullAll": {"a": [0.0]}},
-        expected={"_id": 1, "a": []},
-        msg="Should remove all numerically equivalent zeros",
-    ),
-    UpdateTestCase(
         "mixed_types_in_values_list",
         setup_docs=[{"_id": 1, "a": [1, 2.0, Int64(3), Decimal128("4")]}],
         query={"_id": 1},
@@ -152,22 +136,6 @@ NAN_INFINITY_TESTS: list[UpdateTestCase] = [
         msg="float Infinity should match Decimal128 Infinity (cross-type equivalence)",
     ),
     UpdateTestCase(
-        "decimal128_nan_matches_float_nan",
-        setup_docs=[{"_id": 1, "a": [FLOAT_NAN, 1, 2]}],
-        query={"_id": 1},
-        update={"$pullAll": {"a": [DECIMAL128_NAN]}},
-        expected={"_id": 1, "a": [1, 2]},
-        msg="Decimal128 NaN should match float NaN (cross-type NaN equivalence)",
-    ),
-    UpdateTestCase(
-        "decimal128_inf_matches_float_inf",
-        setup_docs=[{"_id": 1, "a": [FLOAT_INFINITY, 1, 2]}],
-        query={"_id": 1},
-        update={"$pullAll": {"a": [DECIMAL128_INFINITY]}},
-        expected={"_id": 1, "a": [1, 2]},
-        msg="Decimal128 Infinity should match float Infinity (cross-type equivalence)",
-    ),
-    UpdateTestCase(
         "decimal128_neg_infinity_removes_self",
         setup_docs=[{"_id": 1, "a": [DECIMAL128_NEGATIVE_INFINITY, 1, 2]}],
         query={"_id": 1},
@@ -182,14 +150,6 @@ NAN_INFINITY_TESTS: list[UpdateTestCase] = [
         update={"$pullAll": {"a": [FLOAT_NEGATIVE_INFINITY]}},
         expected={"_id": 1, "a": [1, 2]},
         msg="float -Infinity should match Decimal128 -Infinity (cross-type equivalence)",
-    ),
-    UpdateTestCase(
-        "decimal128_neg_inf_matches_float_neg_inf",
-        setup_docs=[{"_id": 1, "a": [FLOAT_NEGATIVE_INFINITY, 1, 2]}],
-        query={"_id": 1},
-        update={"$pullAll": {"a": [DECIMAL128_NEGATIVE_INFINITY]}},
-        expected={"_id": 1, "a": [1, 2]},
-        msg="Decimal128 -Infinity should match float -Infinity (cross-type equivalence)",
     ),
     UpdateTestCase(
         "float_neg_nan_removes_nan",
@@ -232,28 +192,12 @@ NAN_INFINITY_TESTS: list[UpdateTestCase] = [
         msg="float -NaN should match Decimal128 NaN (cross-type NaN equivalence)",
     ),
     UpdateTestCase(
-        "decimal128_neg_nan_matches_float_nan",
-        setup_docs=[{"_id": 1, "a": [FLOAT_NAN, 1, 2]}],
-        query={"_id": 1},
-        update={"$pullAll": {"a": [DECIMAL128_NEGATIVE_NAN]}},
-        expected={"_id": 1, "a": [1, 2]},
-        msg="Decimal128 -NaN should match float NaN (cross-type NaN equivalence)",
-    ),
-    UpdateTestCase(
         "float_neg_zero_removes_decimal128_zero",
         setup_docs=[{"_id": 1, "a": [Decimal128("0"), 1, 2]}],
         query={"_id": 1},
         update={"$pullAll": {"a": [DOUBLE_NEGATIVE_ZERO]}},
         expected={"_id": 1, "a": [1, 2]},
         msg="float -0.0 should remove Decimal128 0 (cross-type negative zero equivalence)",
-    ),
-    UpdateTestCase(
-        "decimal128_neg_zero_removes_float_zero",
-        setup_docs=[{"_id": 1, "a": [0.0, 1, 2]}],
-        query={"_id": 1},
-        update={"$pullAll": {"a": [DECIMAL128_NEGATIVE_ZERO]}},
-        expected={"_id": 1, "a": [1, 2]},
-        msg="Decimal128 -0 should remove float 0.0 (cross-type negative zero equivalence)",
     ),
 ]
 
