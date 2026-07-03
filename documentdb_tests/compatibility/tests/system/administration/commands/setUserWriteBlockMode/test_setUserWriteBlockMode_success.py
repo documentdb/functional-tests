@@ -36,13 +36,31 @@ def _manage_write_block(collection):
 # covered by test_setUserWriteBlockMode_core_behavior.py (enable/disable and idempotent-reason
 # tests), so they are not duplicated here.
 
-# Property [Reason Field Optional]: the reason field can be null (treated as omitted).
+# Property [Reason Field Optional]: the reason field can be null. reason_null checks the command
+# accepts null; reason_null_treated_as_omitted checks null behaves like an omitted reason, proven
+# via a write (a no-reason disable only matches, restoring writes, if null was treated as omitted).
 REASON_OPTIONAL_TESTS: list[AdminTestCase] = [
     AdminTestCase(
         "reason_null",
         command=lambda ctx: {"setUserWriteBlockMode": 1, "global": True, "reason": None},
         expected={"ok": 1.0},
-        msg="setUserWriteBlockMode should treat null reason as omitted",
+        msg="setUserWriteBlockMode should accept null reason",
+    ),
+    AdminTestCase(
+        "reason_null_treated_as_omitted",
+        use_admin=False,
+        partial_success=True,
+        docs=[],
+        pre_command=lambda c: (
+            execute_admin_command(c, {"setUserWriteBlockMode": 1, "global": True, "reason": None}),
+            execute_admin_command(c, {"setUserWriteBlockMode": 1, "global": False}),
+        ),
+        command=lambda ctx: {
+            "insert": ctx.collection,
+            "documents": [{"_id": "null_reason_write"}],
+        },
+        expected={"ok": 1.0, "n": 1},
+        msg="setUserWriteBlockMode should treat null reason as omitted so writes resume",
     ),
 ]
 
