@@ -9,8 +9,8 @@ from datetime import datetime
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.arrays_in_common import (  # noqa: E501
-    InTest,
+from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.array_test_case import (  # noqa: E501
+    ArrayTestClass,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
@@ -27,113 +27,113 @@ from documentdb_tests.framework.test_constants import MISSING
 # ---------------------------------------------------------------------------
 # Error: second argument not an array (runs both literal and insert)
 # ---------------------------------------------------------------------------
-NOT_ARRAY_ERROR_TESTS: list[InTest] = [
-    InTest(
+NOT_ARRAY_ERROR_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="string_as_array",
         value=1,
         array="hello",
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject string as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="int_as_array",
         value=1,
         array=42,
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject int as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="double_as_array",
         value=1,
         array=3.14,
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject double as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="bool_true_as_array",
         value=1,
         array=True,
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject bool true as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="bool_false_as_array",
         value=1,
         array=False,
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject bool false as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="object_as_array",
         value=1,
         array={"a": 1},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject object as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="decimal128_as_array",
         value=1,
         array=Decimal128("1"),
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject decimal128 as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="int64_as_array",
         value=1,
         array=Int64(1),
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject int64 as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="binary_as_array",
         value=1,
         array=Binary(b"x", 0),
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject binary as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="datetime_as_array",
         value=1,
         array=datetime(2024, 1, 1),
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject datetime as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="objectid_as_array",
         value=1,
         array=ObjectId(),
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject objectid as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="regex_as_array",
         value=1,
         array=Regex("x"),
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject regex as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="maxkey_as_array",
         value=1,
         array=MaxKey(),
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject maxkey as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="minkey_as_array",
         value=1,
         array=MinKey(),
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject minkey as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="timestamp_as_array",
         value=1,
         array=Timestamp(0, 0),
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject timestamp as array arg",
     ),
-    InTest(
+    ArrayTestClass(
         id="null_as_array",
         value=1,
         array=None,
@@ -145,8 +145,8 @@ NOT_ARRAY_ERROR_TESTS: list[InTest] = [
 # ---------------------------------------------------------------------------
 # Error: missing as array (literal only, MISSING is a field ref)
 # ---------------------------------------------------------------------------
-LITERAL_ONLY_TESTS: list[InTest] = [
-    InTest(
+LITERAL_ONLY_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="missing_as_array",
         value=1,
         array=MISSING,

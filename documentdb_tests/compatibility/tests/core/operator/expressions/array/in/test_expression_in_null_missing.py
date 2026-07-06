@@ -4,8 +4,8 @@ Null and missing field handling tests for $in expression.
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.arrays_in_common import (  # noqa: E501
-    InTest,
+from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.array_test_case import (  # noqa: E501
+    ArrayTestClass,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
@@ -18,15 +18,15 @@ from documentdb_tests.framework.test_constants import MISSING
 # ---------------------------------------------------------------------------
 # Success: null/missing handling (runs both literal and insert)
 # ---------------------------------------------------------------------------
-NULL_TESTS: list[InTest] = [
-    InTest(
+NULL_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="null_value_in_array",
         value=None,
         array=[1, None, 3],
         expected=True,
         msg="Should find null value in array containing null",
     ),
-    InTest(
+    ArrayTestClass(
         id="null_value_not_in_array",
         value=None,
         array=[1, 2, 3],
@@ -38,15 +38,15 @@ NULL_TESTS: list[InTest] = [
 # ---------------------------------------------------------------------------
 # Success: missing value handling (literal only, MISSING is a field ref)
 # ---------------------------------------------------------------------------
-LITERAL_ONLY_TESTS: list[InTest] = [
-    InTest(
+LITERAL_ONLY_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="missing_value",
         value=MISSING,
         array=[1, 2, 3],
         expected=False,
         msg="Should not find missing value in array",
     ),
-    InTest(
+    ArrayTestClass(
         id="missing_value_null_in_array",
         value=MISSING,
         array=[1, None, 3],

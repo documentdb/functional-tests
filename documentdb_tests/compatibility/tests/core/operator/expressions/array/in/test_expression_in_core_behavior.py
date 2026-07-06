@@ -6,8 +6,8 @@ Tests value found/not found, mixed types, and large arrays.
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.arrays_in_common import (  # noqa: E501
-    InTest,
+from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.array_test_case import (  # noqa: E501
+    ArrayTestClass,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
@@ -19,64 +19,66 @@ from documentdb_tests.framework.parametrize import pytest_params
 # ---------------------------------------------------------------------------
 # Success: value found in array → True
 # ---------------------------------------------------------------------------
-FOUND_TESTS: list[InTest] = [
-    InTest(id="found_int", value=2, array=[1, 2, 3], expected=True, msg="Should find int in array"),
-    InTest(
+FOUND_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
+        id="found_int", value=2, array=[1, 2, 3], expected=True, msg="Should find int in array"
+    ),
+    ArrayTestClass(
         id="found_first", value=1, array=[1, 2, 3], expected=True, msg="Should find first element"
     ),
-    InTest(
+    ArrayTestClass(
         id="found_last", value=3, array=[1, 2, 3], expected=True, msg="Should find last element"
     ),
-    InTest(
+    ArrayTestClass(
         id="found_string",
         value="b",
         array=["a", "b", "c"],
         expected=True,
         msg="Should find string in array",
     ),
-    InTest(
+    ArrayTestClass(
         id="found_bool_true",
         value=True,
         array=[True, False],
         expected=True,
         msg="Should find true in array",
     ),
-    InTest(
+    ArrayTestClass(
         id="found_bool_false",
         value=False,
         array=[True, False],
         expected=True,
         msg="Should find false in array",
     ),
-    InTest(
+    ArrayTestClass(
         id="found_null",
         value=None,
         array=[None, 1, 2],
         expected=True,
         msg="Should find null in array",
     ),
-    InTest(
+    ArrayTestClass(
         id="found_nested_array",
         value=[3, 4],
         array=[[1, 2], [3, 4]],
         expected=True,
         msg="Should find nested array",
     ),
-    InTest(
+    ArrayTestClass(
         id="found_object",
         value={"a": 1},
         array=[{"a": 1}, {"b": 2}],
         expected=True,
         msg="Should find object in array",
     ),
-    InTest(
+    ArrayTestClass(
         id="found_single_element",
         value=42,
         array=[42],
         expected=True,
         msg="Should find value in single-element array",
     ),
-    InTest(
+    ArrayTestClass(
         id="found_duplicate",
         value=5,
         array=[5, 5, 5],
@@ -88,57 +90,57 @@ FOUND_TESTS: list[InTest] = [
 # ---------------------------------------------------------------------------
 # Success: value not found → False
 # ---------------------------------------------------------------------------
-NOT_FOUND_TESTS: list[InTest] = [
-    InTest(
+NOT_FOUND_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="not_found_int",
         value=4,
         array=[1, 2, 3],
         expected=False,
         msg="Should not find absent int",
     ),
-    InTest(
+    ArrayTestClass(
         id="not_found_string",
         value="z",
         array=["a", "b"],
         expected=False,
         msg="Should not find absent string",
     ),
-    InTest(
+    ArrayTestClass(
         id="not_found_empty_array",
         value=1,
         array=[],
         expected=False,
         msg="Should not find value in empty array",
     ),
-    InTest(
+    ArrayTestClass(
         id="not_found_type_mismatch",
         value="1",
         array=[1, 2, 3],
         expected=False,
         msg="Should not find string '1' in int array",
     ),
-    InTest(
+    ArrayTestClass(
         id="not_found_bool_vs_int",
         value=True,
         array=[1, 0],
         expected=False,
         msg="Should not find bool in int array",
     ),
-    InTest(
+    ArrayTestClass(
         id="not_found_null",
         value=None,
         array=[1, 2, 3],
         expected=False,
         msg="Should not find null in non-null array",
     ),
-    InTest(
+    ArrayTestClass(
         id="not_found_partial_array",
         value=[1],
         array=[[1, 2], [3, 4]],
         expected=False,
         msg="Should not find partial array match",
     ),
-    InTest(
+    ArrayTestClass(
         id="not_found_partial_object",
         value={"a": 1},
         array=[{"a": 1, "b": 2}],
@@ -150,29 +152,29 @@ NOT_FOUND_TESTS: list[InTest] = [
 # ---------------------------------------------------------------------------
 # Success: mixed types in array
 # ---------------------------------------------------------------------------
-MIXED_TYPE_TESTS: list[InTest] = [
-    InTest(
+MIXED_TYPE_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="mixed_find_string",
         value="2",
         array=[1, "2", True, None, [1]],
         expected=True,
         msg="Should find string in mixed-type array",
     ),
-    InTest(
+    ArrayTestClass(
         id="mixed_find_null",
         value=None,
         array=[1, "2", True, None, [1]],
         expected=True,
         msg="Should find null in mixed-type array",
     ),
-    InTest(
+    ArrayTestClass(
         id="mixed_find_array",
         value=[1],
         array=[1, "2", True, None, [1]],
         expected=True,
         msg="Should find array in mixed-type array",
     ),
-    InTest(
+    ArrayTestClass(
         id="mixed_not_found",
         value="x",
         array=[1, "2", True, None, [1]],
@@ -187,29 +189,29 @@ MIXED_TYPE_TESTS: list[InTest] = [
 _LARGE_ARRAY_SIZE = 20_000
 _LARGE_ARRAY = list(range(_LARGE_ARRAY_SIZE))
 
-LARGE_ARRAY_TESTS: list[InTest] = [
-    InTest(
+LARGE_ARRAY_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="large_array_found_first",
         value=0,
         array=_LARGE_ARRAY,
         expected=True,
         msg="Should find first element in large array",
     ),
-    InTest(
+    ArrayTestClass(
         id="large_array_found_last",
         value=_LARGE_ARRAY_SIZE - 1,
         array=_LARGE_ARRAY,
         expected=True,
         msg="Should find last element in large array",
     ),
-    InTest(
+    ArrayTestClass(
         id="large_array_found_middle",
         value=_LARGE_ARRAY_SIZE // 2,
         array=_LARGE_ARRAY,
         expected=True,
         msg="Should find middle element in large array",
     ),
-    InTest(
+    ArrayTestClass(
         id="large_array_not_found",
         value=-1,
         array=_LARGE_ARRAY,
