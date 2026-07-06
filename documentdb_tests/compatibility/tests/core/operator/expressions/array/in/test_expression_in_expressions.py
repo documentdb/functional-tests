@@ -46,15 +46,6 @@ def test_in_field_lookup(collection, document, value, array_ref, expected):
     assert_expression_result(result, expected=expected)
 
 
-# Field path: path through array of objects
-def test_in_path_through_array_of_objects(collection):
-    """Test $in where field path traverses array of objects."""
-    result = execute_expression_with_insert(
-        collection, {"$in": [20, "$a.b"]}, {"a": [{"b": 10}, {"b": 20}]}
-    )
-    assert_expression_result(result, expected=True)
-
-
 # Non-existent field as array → error (missing resolves to non-array)
 def test_in_nonexistent_array_field(collection):
     """Test $in where array field does not exist (resolves to missing)."""
@@ -69,7 +60,7 @@ def test_in_nonexistent_array_field(collection):
         ({"arr": [1, None, 3]}, False),
         ({"arr": [1, 2, 3]}, False),
     ],
-    ids=["null_in_array", "null_not_in_array"],
+    ids=["array_contains_null", "array_without_null"],
 )
 def test_in_nonexistent_value_field(collection, document, expected):
     """Test $in where value field does not exist (missing vs null)."""

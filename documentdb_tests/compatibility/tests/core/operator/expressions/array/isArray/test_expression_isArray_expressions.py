@@ -30,14 +30,14 @@ SELF_NESTING_TESTS: list[ExpressionTestCase] = [
 # Field path lookups
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="nested_array",
+        id="nested_field_array",
         expression={"$isArray": "$a.b"},
         doc={"a": {"b": [1, 2]}},
         expected=True,
         msg="Nested array field",
     ),
     ExpressionTestCase(
-        id="deeply_nested_array",
+        id="deeply_nested_field_array",
         expression={"$isArray": "$a.b.c"},
         doc={"a": {"b": {"c": [1]}}},
         expected=True,

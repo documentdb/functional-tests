@@ -81,15 +81,6 @@ def test_indexOfArray_field_lookup(collection, document, array_ref, search, expe
     assert_expression_result(result, expected=expected)
 
 
-# Field path: path through array of objects
-def test_indexOfArray_path_through_array_of_objects(collection):
-    """Test $indexOfArray where field path traverses array of objects."""
-    result = execute_expression_with_insert(
-        collection, {"$indexOfArray": ["$a.b", 20]}, {"a": [{"b": 10}, {"b": 20}]}
-    )
-    assert_expression_result(result, expected=1)
-
-
 def test_indexOfArray_composite_array_as_array(collection):
     """Test $indexOfArray with composite array from $x.y as the array argument."""
     result = execute_expression_with_insert(
