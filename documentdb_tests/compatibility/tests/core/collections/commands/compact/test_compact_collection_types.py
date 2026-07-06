@@ -3,7 +3,7 @@
 import pytest
 from pymongo import IndexModel
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -170,6 +170,7 @@ COMPACT_COLLECTION_TYPE_ALL_TESTS: list[CommandTestCase] = (
 )
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_COLLECTION_TYPE_ALL_TESTS))
 def test_compact_collection_types(database_client, collection, test):

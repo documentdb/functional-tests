@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from bson import Timestamp
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -141,6 +141,7 @@ VALIDATE_DB_METADATA_READ_CONCERN_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="validateDBMetadata should reject afterClusterTime in readConcern",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
 ]
 

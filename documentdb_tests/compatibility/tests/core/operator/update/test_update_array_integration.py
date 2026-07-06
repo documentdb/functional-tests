@@ -172,6 +172,15 @@ POSITIONAL_FILTERED_TESTS: list[FilteredUpdateTestCase] = [
         msg="$[<id>] with $push should append to matching sub-arrays",
     ),
     FilteredUpdateTestCase(
+        "pop_matching_subarrays",
+        setup_docs=[{"_id": 1, "arr": [[1, 2, 3], [4, 5, 6]]}],
+        query={"_id": 1},
+        update={"$pop": {"arr.$[elem]": -1}},
+        array_filters=[{"elem": {"$exists": True}}],
+        expected={"_id": 1, "arr": [[2, 3], [5, 6]]},
+        msg="$[<id>] with $pop should pop the first element from each matching sub-array",
+    ),
+    FilteredUpdateTestCase(
         "min_matching",
         setup_docs=[{"_id": 1, "arr": [10, 20, 30]}],
         query={"_id": 1},
@@ -361,12 +370,42 @@ POSITIONAL_INTEGRATION_TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "arr": [{"x": 1}, {"x": 99}, {"x": 3}]},
         msg="$ with negation inside $elemMatch should succeed",
     ),
+    UpdateTestCase(
+        "pop_matched_subarray",
+        setup_docs=[{"_id": 1, "arr": [[1, 2, 3], [4, 5, 6]]}],
+        query={"_id": 1, "arr": [4, 5, 6]},
+        update={"$pop": {"arr.$": 1}},
+        expected={"_id": 1, "arr": [[1, 2, 3], [4, 5]]},
+        msg="$ with $pop should pop the last element from the matched sub-array",
+    ),
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(POSITIONAL_INTEGRATION_TESTS))
+POP_COMBINATION_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        "pop_and_set_different_fields",
+        setup_docs=[{"_id": 1, "a": [1, 2, 3], "b": 1}],
+        query={"_id": 1},
+        update={"$pop": {"a": 1}, "$set": {"b": 99}},
+        expected={"_id": 1, "a": [1, 2], "b": 99},
+        msg="$pop and $set on different fields should both succeed",
+    ),
+    UpdateTestCase(
+        "pop_and_push_different_fields",
+        setup_docs=[{"_id": 1, "a": [1, 2, 3], "b": [10]}],
+        query={"_id": 1},
+        update={"$pop": {"a": 1}, "$push": {"b": 99}},
+        expected={"_id": 1, "a": [1, 2], "b": [10, 99]},
+        msg="$pop on one field and $push on another should both succeed",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "test", pytest_params(POSITIONAL_INTEGRATION_TESTS + POP_COMBINATION_TESTS)
+)
 def test_positional_query_operators(collection, test: UpdateTestCase):
-    """Test $ positional with various query operators."""
+    """Test $positional with query operators and $pop combined with other update operators."""
     if test.setup_docs:
         collection.insert_many(test.setup_docs)
 

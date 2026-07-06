@@ -15,7 +15,7 @@ from bson import (
     Timestamp,
 )
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -110,6 +110,7 @@ CREATE_WC_DOCUMENT_AND_W_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="w as tagged object with numeric values should succeed",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
 ]
 

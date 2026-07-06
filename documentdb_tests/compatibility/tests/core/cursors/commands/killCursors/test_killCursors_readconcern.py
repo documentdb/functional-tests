@@ -17,7 +17,7 @@ from bson import (
     Timestamp,
 )
 
-from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
     CommandTestCase,
 )
@@ -240,6 +240,7 @@ KILLCURSORS_READCONCERN_SUBFIELD_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="killCursors should reject afterClusterTime in readConcern",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
     CommandTestCase(
         "readconcern_provenance_invalid",
