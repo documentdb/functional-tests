@@ -506,44 +506,42 @@ MIXED_TYPE_TESTS: list[IndexOfArrayTest] = [
 ]
 
 # Success: large array
-_LARGE_ARRAY_SIZE = 20_000
-_LARGE_ARRAY = list(range(_LARGE_ARRAY_SIZE))
 
 LARGE_ARRAY_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="large_array_first",
-        array=_LARGE_ARRAY,
+        array=list(range(20_000)),
         search=0,
         expected=0,
         msg="Should find first in large array",
     ),
     IndexOfArrayTest(
         id="large_array_last",
-        array=_LARGE_ARRAY,
-        search=_LARGE_ARRAY_SIZE - 1,
-        expected=_LARGE_ARRAY_SIZE - 1,
+        array=list(range(20_000)),
+        search=19_999,
+        expected=19_999,
         msg="Should find last in large array",
     ),
     IndexOfArrayTest(
         id="large_array_middle",
-        array=_LARGE_ARRAY,
-        search=_LARGE_ARRAY_SIZE // 2,
-        expected=_LARGE_ARRAY_SIZE // 2,
+        array=list(range(20_000)),
+        search=10_000,
+        expected=10_000,
         msg="Should find middle in large array",
     ),
     IndexOfArrayTest(
         id="large_array_not_found",
-        array=_LARGE_ARRAY,
+        array=list(range(20_000)),
         search=-1,
         expected=-1,
         msg="Should return -1 for absent value in large array",
     ),
     IndexOfArrayTest(
         id="large_array_with_start",
-        array=_LARGE_ARRAY,
-        search=_LARGE_ARRAY_SIZE - 1,
-        start=_LARGE_ARRAY_SIZE - 2,
-        expected=_LARGE_ARRAY_SIZE - 1,
+        array=list(range(20_000)),
+        search=19_999,
+        start=19_998,
+        expected=19_999,
         msg="Should find with start in large array",
     ),
 ]

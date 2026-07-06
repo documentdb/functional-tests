@@ -178,35 +178,33 @@ MIXED_TYPE_TESTS: list[ArrayTestClass] = [
 ]
 
 # Success: large array
-_LARGE_ARRAY_SIZE = 20_000
-_LARGE_ARRAY = list(range(_LARGE_ARRAY_SIZE))
 
 LARGE_ARRAY_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="large_array_found_first",
         value=0,
-        array=_LARGE_ARRAY,
+        array=list(range(20_000)),
         expected=True,
         msg="Should find first element in large array",
     ),
     ArrayTestClass(
         id="large_array_found_last",
-        value=_LARGE_ARRAY_SIZE - 1,
-        array=_LARGE_ARRAY,
+        value=19_999,
+        array=list(range(20_000)),
         expected=True,
         msg="Should find last element in large array",
     ),
     ArrayTestClass(
         id="large_array_found_middle",
-        value=_LARGE_ARRAY_SIZE // 2,
-        array=_LARGE_ARRAY,
+        value=10_000,
+        array=list(range(20_000)),
         expected=True,
         msg="Should find middle element in large array",
     ),
     ArrayTestClass(
         id="large_array_not_found",
         value=-1,
-        array=_LARGE_ARRAY,
+        array=list(range(20_000)),
         expected=False,
         msg="Should not find absent value in large array",
     ),
