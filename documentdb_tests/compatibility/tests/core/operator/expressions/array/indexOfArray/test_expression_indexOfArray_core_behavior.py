@@ -19,6 +19,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import DECIMAL128_NEGATIVE_ZERO, INT32_MAX
 
 # Success: basic search — value found
 BASIC_FOUND_TESTS: list[IndexOfArrayTest] = [
@@ -572,6 +573,73 @@ NEGATIVE_ZERO_SEARCH_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
+# Boundary values for start/end indices
+BOUNDARY_INDEX_TESTS: list[IndexOfArrayTest] = [
+    IndexOfArrayTest(
+        id="start_int32_max",
+        array=[1, 2, 3],
+        search=1,
+        start=INT32_MAX,
+        expected=-1,
+        msg="Should return -1 with INT32_MAX start",
+    ),
+    IndexOfArrayTest(
+        id="end_int32_max",
+        array=[1, 2, 3],
+        search=2,
+        start=0,
+        end=INT32_MAX,
+        expected=1,
+        msg="Should find with INT32_MAX end",
+    ),
+    IndexOfArrayTest(
+        id="start_and_end_int32_max",
+        array=[1, 2, 3],
+        search=1,
+        start=INT32_MAX,
+        end=INT32_MAX,
+        expected=-1,
+        msg="Should return -1 with both INT32_MAX",
+    ),
+    IndexOfArrayTest(
+        id="start_int32_max_minus_1",
+        array=[1, 2, 3],
+        search=1,
+        start=INT32_MAX - 1,
+        expected=-1,
+        msg="Should return -1 with INT32_MAX-1 start",
+    ),
+]
+
+# Negative zero as start/end index treated as 0
+NEGATIVE_ZERO_INDEX_TESTS: list[IndexOfArrayTest] = [
+    IndexOfArrayTest(
+        id="double_neg_zero_start",
+        array=[10, 20, 30],
+        search=10,
+        start=-0.0,
+        expected=0,
+        msg="Should treat -0.0 start as 0",
+    ),
+    IndexOfArrayTest(
+        id="decimal128_neg_zero_start",
+        array=[10, 20, 30],
+        search=10,
+        start=DECIMAL128_NEGATIVE_ZERO,
+        expected=0,
+        msg="Should treat decimal128 -0 start as 0",
+    ),
+    IndexOfArrayTest(
+        id="double_neg_zero_end",
+        array=[10, 20, 30],
+        search=10,
+        start=0,
+        end=-0.0,
+        expected=-1,
+        msg="Should treat -0.0 end as 0",
+    ),
+]
+
 # Aggregate and test
 ALL_TESTS = (
     BASIC_FOUND_TESTS
@@ -584,6 +652,8 @@ ALL_TESTS = (
     + MIXED_TYPE_TESTS
     + LARGE_ARRAY_TESTS
     + NEGATIVE_ZERO_SEARCH_TESTS
+    + BOUNDARY_INDEX_TESTS
+    + NEGATIVE_ZERO_INDEX_TESTS
 )
 
 TEST_SUBSET_FOR_LITERAL = [

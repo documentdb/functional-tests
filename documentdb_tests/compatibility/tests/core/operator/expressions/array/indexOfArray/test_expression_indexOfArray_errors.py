@@ -28,22 +28,12 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
-    DECIMAL128_NEGATIVE_ZERO,
-    INT32_MAX,
     INT64_MAX,
     MISSING,
 )
 
-# Success: boundary values for start/end indices
-BOUNDARY_INDEX_TESTS: list[IndexOfArrayTest] = [
-    IndexOfArrayTest(
-        id="start_int32_max",
-        array=[1, 2, 3],
-        search=1,
-        start=INT32_MAX,
-        expected=-1,
-        msg="Should return -1 with INT32_MAX start",
-    ),
+# Error: INT64_MAX start/end index (not representable as int32)
+BOUNDARY_ERROR_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="start_int64_max",
         array=[1, 2, 3],
@@ -53,15 +43,6 @@ BOUNDARY_INDEX_TESTS: list[IndexOfArrayTest] = [
         msg="Should reject INT64_MAX start",
     ),
     IndexOfArrayTest(
-        id="end_int32_max",
-        array=[1, 2, 3],
-        search=2,
-        start=0,
-        end=INT32_MAX,
-        expected=1,
-        msg="Should find with INT32_MAX end",
-    ),
-    IndexOfArrayTest(
         id="end_int64_max",
         array=[1, 2, 3],
         search=2,
@@ -69,52 +50,6 @@ BOUNDARY_INDEX_TESTS: list[IndexOfArrayTest] = [
         end=INT64_MAX,
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="Should reject INT64_MAX end",
-    ),
-    IndexOfArrayTest(
-        id="start_and_end_int32_max",
-        array=[1, 2, 3],
-        search=1,
-        start=INT32_MAX,
-        end=INT32_MAX,
-        expected=-1,
-        msg="Should return -1 with both INT32_MAX",
-    ),
-    IndexOfArrayTest(
-        id="start_int32_max_minus_1",
-        array=[1, 2, 3],
-        search=1,
-        start=INT32_MAX - 1,
-        expected=-1,
-        msg="Should return -1 with INT32_MAX-1 start",
-    ),
-]
-
-# Success: negative zero as start index
-NEGATIVE_ZERO_START_TESTS: list[IndexOfArrayTest] = [
-    IndexOfArrayTest(
-        id="double_neg_zero_start",
-        array=[10, 20, 30],
-        search=10,
-        start=-0.0,
-        expected=0,
-        msg="Should treat -0.0 start as 0",
-    ),
-    IndexOfArrayTest(
-        id="decimal128_neg_zero_start",
-        array=[10, 20, 30],
-        search=10,
-        start=DECIMAL128_NEGATIVE_ZERO,
-        expected=0,
-        msg="Should treat decimal128 -0 start as 0",
-    ),
-    IndexOfArrayTest(
-        id="double_neg_zero_end",
-        array=[10, 20, 30],
-        search=10,
-        start=0,
-        end=-0.0,
-        expected=-1,
-        msg="Should treat -0.0 end as 0",
     ),
 ]
 
@@ -517,8 +452,7 @@ END_NEGATIVE_TESTS: list[IndexOfArrayTest] = [
 
 # Aggregate and test
 ALL_TESTS = (
-    BOUNDARY_INDEX_TESTS
-    + NEGATIVE_ZERO_START_TESTS
+    BOUNDARY_ERROR_TESTS
     + NOT_ARRAY_ERROR_TESTS
     + START_NOT_INTEGRAL_TESTS
     + END_NOT_INTEGRAL_TESTS
