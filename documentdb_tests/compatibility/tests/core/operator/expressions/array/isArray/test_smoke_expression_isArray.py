@@ -26,4 +26,4 @@ def test_smoke_expression_isArray(collection):
     )
 
     expected = [{"_id": 1, "isArray": True}, {"_id": 2, "isArray": False}]
-    assertSuccess(result, expected, "Should support $isArray expression")
+    assertSuccess(result, expected, msg="Should support $isArray expression")
