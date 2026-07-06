@@ -5,100 +5,86 @@ Tests that verify these operators work correctly when composed with each other
 and with other operators like $concatArrays, $reverseArray, $filter, $map, $size, etc.
 """
 
-from dataclasses import dataclass
-from typing import Any
-
 import pytest
 from bson import Decimal128, MaxKey, MinKey, Regex
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
+    ExpressionTestCase,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
     execute_expression,
 )
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
 
-
-@dataclass(frozen=True)
-class CombinationTest(BaseTestCase):
-    """Test case for combination expression tests."""
-
-    expr: Any = None
-
-
-# ---------------------------------------------------------------------------
-# $arrayElemAt combinations
-# ---------------------------------------------------------------------------
-ARRAY_ELEM_AT_COMBINATION_TESTS: list[CombinationTest] = [
-    CombinationTest(
+ARRAY_ELEM_AT_COMBINATION_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="arrayElemAt_index_from_indexOfArray",
-        expr={"$arrayElemAt": [[10, 20, 30], {"$indexOfArray": [[10, 20, 30], 30]}]},
+        expression={"$arrayElemAt": [[10, 20, 30], {"$indexOfArray": [[10, 20, 30], 30]}]},
         expected=30,
         msg="Should use $indexOfArray result as index",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="arrayElemAt_last_element_via_size",
-        expr={"$arrayElemAt": [[10, 20, 30], {"$subtract": [{"$size": [[10, 20, 30]]}, 1]}]},
+        expression={"$arrayElemAt": [[10, 20, 30], {"$subtract": [{"$size": [[10, 20, 30]]}, 1]}]},
         expected=30,
         msg="Should access last element via $size - 1",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="arrayElemAt_elem_from_slice",
-        expr={"$arrayElemAt": [{"$slice": [[10, 20, 30, 40], -2]}, 0]},
+        expression={"$arrayElemAt": [{"$slice": [[10, 20, 30, 40], -2]}, 0]},
         expected=30,
         msg="Should access element from $slice result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="arrayElemAt_elem_from_slice_3arg",
-        expr={"$arrayElemAt": [{"$slice": [[10, 20, 30, 40], 1, 2]}, 1]},
+        expression={"$arrayElemAt": [{"$slice": [[10, 20, 30, 40], 1, 2]}, 1]},
         expected=30,
         msg="Should access element from $slice 3-arg result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="arrayElemAt_elem_from_reverseArray",
-        expr={"$arrayElemAt": [{"$reverseArray": [[10, 20, 30]]}, 0]},
+        expression={"$arrayElemAt": [{"$reverseArray": [[10, 20, 30]]}, 0]},
         expected=30,
         msg="Should access element from $reverseArray result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="arrayElemAt_elem_from_concatArrays",
-        expr={"$arrayElemAt": [{"$concatArrays": [[10, 20], [30, 40]]}, 2]},
+        expression={"$arrayElemAt": [{"$concatArrays": [[10, 20], [30, 40]]}, 2]},
         expected=30,
         msg="Should access element from $concatArrays result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="arrayElemAt_computed_index",
-        expr={"$arrayElemAt": [[10, 20, 30], {"$subtract": [3, 1]}]},
+        expression={"$arrayElemAt": [[10, 20, 30], {"$subtract": [3, 1]}]},
         expected=30,
         msg="Should use computed index from $subtract",
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # $in combinations
-# ---------------------------------------------------------------------------
-IN_COMBINATION_TESTS: list[CombinationTest] = [
-    CombinationTest(
+IN_COMBINATION_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="in_value_from_add",
-        expr={"$in": [{"$add": [1, 1]}, [1, 2, 3]]},
+        expression={"$in": [{"$add": [1, 1]}, [1, 2, 3]]},
         expected=True,
         msg="Should find value computed by $add",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="in_array_from_concatArrays",
-        expr={"$in": [3, {"$concatArrays": [[1, 2], [3, 4]]}]},
+        expression={"$in": [3, {"$concatArrays": [[1, 2], [3, 4]]}]},
         expected=True,
         msg="Should search in $concatArrays result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="in_value_from_arrayElemAt",
-        expr={"$in": [{"$arrayElemAt": [[10, 20, 30], 1]}, [5, 20, 35]]},
+        expression={"$in": [{"$arrayElemAt": [[10, 20, 30], 1]}, [5, 20, 35]]},
         expected=True,
         msg="Should find value from $arrayElemAt",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="in_array_from_filter",
-        expr={
+        expression={
             "$in": [
                 4,
                 {
@@ -113,9 +99,9 @@ IN_COMBINATION_TESTS: list[CombinationTest] = [
         expected=True,
         msg="Should search in $filter result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="in_array_from_map",
-        expr={
+        expression={
             "$in": [
                 20,
                 {
@@ -130,33 +116,33 @@ IN_COMBINATION_TESTS: list[CombinationTest] = [
         expected=True,
         msg="Should search in $map result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="in_array_from_reverseArray",
-        expr={"$in": [1, {"$reverseArray": [[1, 2, 3]]}]},
+        expression={"$in": [1, {"$reverseArray": [[1, 2, 3]]}]},
         expected=True,
         msg="Should search in $reverseArray result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="in_cond_with_inner_in",
-        expr={"$in": [5, {"$cond": [{"$in": ["a", ["a", "b"]]}, [5, 6], [7, 8]]}]},
+        expression={"$in": [5, {"$cond": [{"$in": ["a", ["a", "b"]]}, [5, 6], [7, 8]]}]},
         expected=True,
         msg="Should search in $cond-selected array",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="in_inside_cond",
-        expr={"$cond": [{"$in": [2, [1, 2, 3]]}, "found", "not_found"]},
+        expression={"$cond": [{"$in": [2, [1, 2, 3]]}, "found", "not_found"]},
         expected="found",
         msg="Should use $in result in $cond",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="in_value_from_indexOfArray",
-        expr={"$in": [{"$indexOfArray": [[10, 20, 30], 20]}, [0, 1, 2]]},
+        expression={"$in": [{"$indexOfArray": [[10, 20, 30], 20]}, [0, 1, 2]]},
         expected=True,
         msg="Should find $indexOfArray result in array",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="in_nested_decimal128",
-        expr={
+        expression={
             "$in": [
                 {"$arrayElemAt": [[Decimal128("1.1"), Decimal128("2.2")], 1]},
                 [Decimal128("2.2"), Decimal128("3.3")],
@@ -167,31 +153,29 @@ IN_COMBINATION_TESTS: list[CombinationTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # $indexOfArray combinations
-# ---------------------------------------------------------------------------
-INDEX_OF_ARRAY_COMBINATION_TESTS: list[CombinationTest] = [
-    CombinationTest(
+INDEX_OF_ARRAY_COMBINATION_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="indexOfArray_result_as_arrayElemAt_index",
-        expr={"$arrayElemAt": [[10, 20, 30], {"$indexOfArray": [[10, 20, 30], 20]}]},
+        expression={"$arrayElemAt": [[10, 20, 30], {"$indexOfArray": [[10, 20, 30], 20]}]},
         expected=20,
         msg="Should use $indexOfArray result as $arrayElemAt index",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="indexOfArray_search_from_add",
-        expr={"$indexOfArray": [[1, 2, 3], {"$add": [1, 1]}]},
+        expression={"$indexOfArray": [[1, 2, 3], {"$add": [1, 1]}]},
         expected=1,
         msg="Should search for value computed by $add",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="indexOfArray_array_from_concatArrays",
-        expr={"$indexOfArray": [{"$concatArrays": [[1, 2], [3, 4]]}, 3]},
+        expression={"$indexOfArray": [{"$concatArrays": [[1, 2], [3, 4]]}, 3]},
         expected=2,
         msg="Should search in $concatArrays result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="indexOfArray_array_from_filter",
-        expr={
+        expression={
             "$indexOfArray": [
                 {"$filter": {"input": [1, 2, 3, 4, 5], "cond": {"$gt": ["$$this", 2]}}},
                 4,
@@ -200,21 +184,23 @@ INDEX_OF_ARRAY_COMBINATION_TESTS: list[CombinationTest] = [
         expected=1,
         msg="Should search in $filter result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="indexOfArray_result_in_cond",
-        expr={"$cond": [{"$gte": [{"$indexOfArray": [[1, 2, 3], 2]}, 0]}, "found", "not_found"]},
+        expression={
+            "$cond": [{"$gte": [{"$indexOfArray": [[1, 2, 3], 2]}, 0]}, "found", "not_found"]
+        },
         expected="found",
         msg="Should use $indexOfArray result in $cond",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="indexOfArray_start_from_subtract",
-        expr={"$indexOfArray": [[1, 2, 1, 2], 1, {"$subtract": [3, 1]}]},
+        expression={"$indexOfArray": [[1, 2, 1, 2], 1, {"$subtract": [3, 1]}]},
         expected=2,
         msg="Should use $subtract result as start index",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="indexOfArray_via_arrayElemAt",
-        expr={
+        expression={
             "$indexOfArray": [
                 ["a", "b", "c", "d"],
                 {
@@ -228,9 +214,9 @@ INDEX_OF_ARRAY_COMBINATION_TESTS: list[CombinationTest] = [
         expected=1,
         msg="Should search for value from nested $arrayElemAt/$indexOfArray",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="indexOfArray_subarray_mixed_bson",
-        expr={
+        expression={
             "$indexOfArray": [
                 [[MinKey(), MaxKey()], [1, 2], "x"],
                 {
@@ -244,9 +230,9 @@ INDEX_OF_ARRAY_COMBINATION_TESTS: list[CombinationTest] = [
         expected=1,
         msg="Should find mixed BSON subarray via nested operators",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="indexOfArray_triple_nested_decimal128",
-        expr={
+        expression={
             "$indexOfArray": [
                 [Decimal128("1.1"), Decimal128("2.2"), Decimal128("3.3")],
                 {
@@ -267,25 +253,23 @@ INDEX_OF_ARRAY_COMBINATION_TESTS: list[CombinationTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # $slice combinations
-# ---------------------------------------------------------------------------
-SLICE_COMBINATION_TESTS: list[CombinationTest] = [
-    CombinationTest(
+SLICE_COMBINATION_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="slice_array_from_concatArrays",
-        expr={"$slice": [{"$concatArrays": [[1, 2], [3, 4, 5]]}, 3]},
+        expression={"$slice": [{"$concatArrays": [[1, 2], [3, 4, 5]]}, 3]},
         expected=[1, 2, 3],
         msg="Should slice $concatArrays result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="slice_n_from_subtract",
-        expr={"$slice": [[1, 2, 3, 4, 5], {"$subtract": [5, 2]}]},
+        expression={"$slice": [[1, 2, 3, 4, 5], {"$subtract": [5, 2]}]},
         expected=[1, 2, 3],
         msg="Should use $subtract result as n",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="slice_array_from_filter",
-        expr={
+        expression={
             "$slice": [
                 {
                     "$filter": {
@@ -300,9 +284,9 @@ SLICE_COMBINATION_TESTS: list[CombinationTest] = [
         expected=[3, 4],
         msg="Should slice $filter result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="slice_position_from_indexOfArray",
-        expr={
+        expression={
             "$slice": [
                 [10, 20, 30, 40, 50],
                 {"$indexOfArray": [[10, 20, 30, 40, 50], 30]},
@@ -312,9 +296,9 @@ SLICE_COMBINATION_TESTS: list[CombinationTest] = [
         expected=[30, 40],
         msg="Should use $indexOfArray result as position",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="slice_array_from_map",
-        expr={
+        expression={
             "$slice": [
                 {
                     "$map": {
@@ -329,23 +313,23 @@ SLICE_COMBINATION_TESTS: list[CombinationTest] = [
         expected=[10, 20],
         msg="Should slice $map result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="slice_array_from_reverseArray",
-        expr={"$slice": [{"$reverseArray": [[1, 2, 3, 4, 5]]}, 3]},
+        expression={"$slice": [{"$reverseArray": [[1, 2, 3, 4, 5]]}, 3]},
         expected=[5, 4, 3],
         msg="Should slice $reverseArray result",
     ),
-    CombinationTest(
+    ExpressionTestCase(
         id="slice_n_from_size",
-        expr={"$slice": [[10, 20, 30, 40], {"$subtract": [{"$size": [[10, 20, 30, 40]]}, 1]}]},
+        expression={
+            "$slice": [[10, 20, 30, 40], {"$subtract": [{"$size": [[10, 20, 30, 40]]}, 1]}]
+        },
         expected=[10, 20, 30],
         msg="Should use $size-based computation as n",
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate all combination tests
-# ---------------------------------------------------------------------------
 ALL_COMBINATION_TESTS = (
     ARRAY_ELEM_AT_COMBINATION_TESTS
     + IN_COMBINATION_TESTS
@@ -357,13 +341,11 @@ ALL_COMBINATION_TESTS = (
 @pytest.mark.parametrize("test", pytest_params(ALL_COMBINATION_TESTS))
 def test_combination_expression(collection, test):
     """Test array operators composed with other operators."""
-    result = execute_expression(collection, test.expr)
+    result = execute_expression(collection, test.expression)
     assert_expression_result(result, expected=test.expected, msg=test.msg)
 
 
-# ---------------------------------------------------------------------------
 # Standalone tests for behavior that doesn't fit the dataclass pattern
-# ---------------------------------------------------------------------------
 def test_arrayElemAt_oob_is_missing_not_null(collection):
     """Test out-of-bounds result is truly MISSING (field absent), not null."""
     result = execute_expression(collection, {"$type": {"$arrayElemAt": [[1, 2, 3], 10]}})
