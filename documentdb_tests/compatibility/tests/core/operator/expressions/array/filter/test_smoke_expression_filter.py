@@ -40,4 +40,4 @@ def test_smoke_expression_filter(collection):
     )
 
     expected = [{"_id": 1, "filtered": [4, 5]}, {"_id": 2, "filtered": [10, 15, 20, 25]}]
-    assertSuccess(result, expected, msg="Should support $filter expression")
+    assertSuccess(result, expected, "Should support $filter expression")
