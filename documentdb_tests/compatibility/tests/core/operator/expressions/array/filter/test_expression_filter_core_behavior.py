@@ -19,9 +19,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import INT32_MAX
 
-# ---------------------------------------------------------------------------
 # Success: basic filtering
-# ---------------------------------------------------------------------------
 BASIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="gt_filter",
@@ -123,9 +121,7 @@ BASIC_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: nested arrays (filter does not recurse)
-# ---------------------------------------------------------------------------
 NESTED_ARRAY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_arrays_by_size",
@@ -143,9 +139,7 @@ NESTED_ARRAY_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: elements with null
-# ---------------------------------------------------------------------------
 NULL_ELEMENT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="filter_out_nulls",
@@ -163,9 +157,7 @@ NULL_ELEMENT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: objects as elements
-# ---------------------------------------------------------------------------
 OBJECT_ELEMENT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="filter_objects_by_nested_field",
@@ -190,9 +182,7 @@ OBJECT_ELEMENT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: limit parameter
-# ---------------------------------------------------------------------------
 LIMIT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="limit_1",
@@ -284,9 +274,7 @@ LIMIT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: type-based filtering
-# ---------------------------------------------------------------------------
 TYPE_FILTER_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="filter_by_type",
@@ -304,9 +292,7 @@ TYPE_FILTER_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: cond true or false
-# ---------------------------------------------------------------------------
 COND_FALSY_TRUTHY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="cond_nonzero_truthy",
@@ -360,9 +346,7 @@ COND_FALSY_TRUTHY_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-# ---------------------------------------------------------------------------
 # Success: type strict equality
-# ---------------------------------------------------------------------------
 TYPE_STRICT_EQUALITY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="false_vs_zero",
@@ -394,9 +378,7 @@ TYPE_STRICT_EQUALITY_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: numeric equivalence
-# ---------------------------------------------------------------------------
 NUMERIC_EQUIVALENCE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="numeric_equivalence_one",
@@ -414,9 +396,7 @@ NUMERIC_EQUIVALENCE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = (
     BASIC_TESTS
     + NESTED_ARRAY_TESTS

@@ -15,9 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.error_codes import EXPRESSION_IN_NOT_ARRAY_ERROR
 
 
-# ---------------------------------------------------------------------------
 # Nested expressions
-# ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
     "expression,expected",
     [
@@ -32,9 +30,7 @@ def test_in_nested_expression(collection, expression, expected):
     assert_expression_result(result, expected=expected)
 
 
-# ---------------------------------------------------------------------------
 # Field path lookups
-# ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
     "document,value,array_ref,expected",
     [
@@ -50,9 +46,7 @@ def test_in_field_lookup(collection, document, value, array_ref, expected):
     assert_expression_result(result, expected=expected)
 
 
-# ---------------------------------------------------------------------------
 # Field path: path through array of objects
-# ---------------------------------------------------------------------------
 def test_in_path_through_array_of_objects(collection):
     """Test $in where field path traverses array of objects."""
     result = execute_expression_with_insert(
@@ -61,18 +55,14 @@ def test_in_path_through_array_of_objects(collection):
     assert_expression_result(result, expected=True)
 
 
-# ---------------------------------------------------------------------------
 # Non-existent field as array → error (missing resolves to non-array)
-# ---------------------------------------------------------------------------
 def test_in_nonexistent_array_field(collection):
     """Test $in where array field does not exist (resolves to missing)."""
     result = execute_expression_with_insert(collection, {"$in": [1, "$nonexistent"]}, {"other": 1})
     assert_expression_result(result, error_code=EXPRESSION_IN_NOT_ARRAY_ERROR)
 
 
-# ---------------------------------------------------------------------------
 # Non-existent field as value (resolves to missing/null)
-# ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
     "document,expected",
     [

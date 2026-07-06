@@ -20,9 +20,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Success: basic search — value found
-# ---------------------------------------------------------------------------
 BASIC_FOUND_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="found_first",
@@ -110,9 +108,7 @@ BASIC_FOUND_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: value not found → -1
-# ---------------------------------------------------------------------------
 NOT_FOUND_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="not_found_int",
@@ -168,9 +164,7 @@ NOT_FOUND_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: with start index
-# ---------------------------------------------------------------------------
 START_INDEX_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="start_skips_first",
@@ -255,9 +249,7 @@ START_INDEX_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: with start and end index
-# ---------------------------------------------------------------------------
 START_END_INDEX_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="range_found",
@@ -342,9 +334,7 @@ START_END_INDEX_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: first occurrence from start with multiple duplicates
-# ---------------------------------------------------------------------------
 FIRST_FROM_START_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="dup_skip_to_third_occurrence",
@@ -364,9 +354,7 @@ FIRST_FROM_START_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: detailed range semantics
-# ---------------------------------------------------------------------------
 RANGE_SEMANTICS_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="end_exclusive_includes_before_boundary",
@@ -432,9 +420,7 @@ RANGE_SEMANTICS_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: degenerate and single-element edge cases
-# ---------------------------------------------------------------------------
 DEGENERATE_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="single_not_found",
@@ -493,9 +479,7 @@ DEGENERATE_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: mixed types in array
-# ---------------------------------------------------------------------------
 MIXED_TYPE_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="mixed_find_string",
@@ -520,9 +504,7 @@ MIXED_TYPE_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: large array
-# ---------------------------------------------------------------------------
 _LARGE_ARRAY_SIZE = 20_000
 _LARGE_ARRAY = list(range(_LARGE_ARRAY_SIZE))
 
@@ -565,9 +547,7 @@ LARGE_ARRAY_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = (
     BASIC_FOUND_TESTS
     + NOT_FOUND_TESTS

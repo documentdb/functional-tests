@@ -12,9 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.error_codes import EXPRESSION_TYPE_MISMATCH_ERROR
 
-# ---------------------------------------------------------------------------
 # Arity errors
-# ---------------------------------------------------------------------------
 ARITY_ERROR_TESTS = [
     pytest.param({"$isArray": []}, id="zero_args"),
     pytest.param({"$isArray": [1, 2]}, id="two_args"),

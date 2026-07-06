@@ -27,9 +27,7 @@ SELF_NESTING_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Field path lookups
-# ---------------------------------------------------------------------------
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_array",
@@ -54,9 +52,7 @@ FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Composite array paths
-# ---------------------------------------------------------------------------
 COMPOSITE_PATH_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="composite_array_path",
@@ -81,9 +77,7 @@ COMPOSITE_PATH_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Deep composite array traversal
-# ---------------------------------------------------------------------------
 DEEP_COMPOSITE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="array_at_leaf",
@@ -101,9 +95,7 @@ DEEP_COMPOSITE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Null and missing handling
-# ---------------------------------------------------------------------------
 NULL_MISSING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="missing_field",
@@ -128,9 +120,7 @@ NULL_MISSING_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # System variables
-# ---------------------------------------------------------------------------
 SYSTEM_VAR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="root_variable",
@@ -155,9 +145,7 @@ SYSTEM_VAR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_EXPR_TESTS = (
     FIELD_LOOKUP_TESTS
     + COMPOSITE_PATH_TESTS

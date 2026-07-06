@@ -34,9 +34,7 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-# ---------------------------------------------------------------------------
 # BSON types preserved
-# ---------------------------------------------------------------------------
 BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int64_values",
@@ -126,9 +124,7 @@ BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Mixed BSON types
-# ---------------------------------------------------------------------------
 MIXED_BSON_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="mixed_bson_types",
@@ -156,9 +152,7 @@ MIXED_BSON_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Special numeric values as elements
-# ---------------------------------------------------------------------------
 SPECIAL_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="infinity_values",
@@ -190,9 +184,7 @@ SPECIAL_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Decimal128 precision preservation
-# ---------------------------------------------------------------------------
 DECIMAL128_PRECISION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="decimal128_trailing_zeros",
@@ -210,9 +202,7 @@ DECIMAL128_PRECISION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # BSON type filtering with $eq condition
-# ---------------------------------------------------------------------------
 BSON_FILTER_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="filter_int64",
@@ -310,9 +300,7 @@ BSON_FILTER_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_BSON_TESTS = (
     BSON_TYPE_TESTS
     + MIXED_BSON_TESTS

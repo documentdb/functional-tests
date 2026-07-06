@@ -6,7 +6,7 @@ non-array BSON types return false, special numeric values,
 and boundary values.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -37,9 +37,7 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-# ---------------------------------------------------------------------------
 # Arrays containing specific BSON types → true
-# ---------------------------------------------------------------------------
 BSON_ARRAY_TRUE_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="bindata_array",
@@ -70,7 +68,7 @@ BSON_ARRAY_TRUE_TESTS: list[ArrayTestClass] = [
     ),
     ArrayTestClass(
         id="datetime_array",
-        value=[datetime(2024, 1, 1)],
+        value=[datetime(2024, 1, 1, tzinfo=timezone.utc)],
         expected=True,
         msg="Should return true for datetime array",
     ),
@@ -149,7 +147,7 @@ BSON_ARRAY_TRUE_TESTS: list[ArrayTestClass] = [
             MinKey(),
             {"a": [Decimal128("1.5")]},
             Int64(1),
-            datetime(2024, 1, 1),
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
             Binary(b"\x01", 0),
         ],
         expected=True,
@@ -157,9 +155,7 @@ BSON_ARRAY_TRUE_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Non-array BSON types → false
-# ---------------------------------------------------------------------------
 BSON_FALSE_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(id="int64", value=Int64(1), expected=False, msg="Should return false for Int64"),
     ArrayTestClass(
@@ -176,7 +172,7 @@ BSON_FALSE_TESTS: list[ArrayTestClass] = [
     ),
     ArrayTestClass(
         id="datetime",
-        value=datetime(2024, 1, 1),
+        value=datetime(2024, 1, 1, tzinfo=timezone.utc),
         expected=False,
         msg="Should return false for datetime",
     ),
@@ -200,9 +196,7 @@ BSON_FALSE_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Special numeric values → false
-# ---------------------------------------------------------------------------
 SPECIAL_NUMERIC_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(id="nan", value=FLOAT_NAN, expected=False, msg="Should return false for NaN"),
     ArrayTestClass(
@@ -252,9 +246,7 @@ SPECIAL_NUMERIC_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Boundary values → false
-# ---------------------------------------------------------------------------
 BOUNDARY_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="int32_max", value=INT32_MAX, expected=False, msg="Should return false for INT32_MAX"
@@ -282,9 +274,7 @@ BOUNDARY_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_BSON_TESTS = BSON_ARRAY_TRUE_TESTS + BSON_FALSE_TESTS + SPECIAL_NUMERIC_TESTS + BOUNDARY_TESTS
 
 

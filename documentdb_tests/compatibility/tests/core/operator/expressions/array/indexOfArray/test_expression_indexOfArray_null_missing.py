@@ -17,9 +17,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
 
-# ---------------------------------------------------------------------------
 # Success: null/missing array → null (runs both literal and insert)
-# ---------------------------------------------------------------------------
 NULL_ARRAY_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="null_array",
@@ -38,9 +36,7 @@ NULL_ARRAY_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: null/missing as search value (runs both literal and insert)
-# ---------------------------------------------------------------------------
 NULL_SEARCH_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="null_value_in_array",
@@ -58,9 +54,7 @@ NULL_SEARCH_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Literal only: MISSING field refs
-# ---------------------------------------------------------------------------
 LITERAL_ONLY_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="missing_array",
@@ -85,9 +79,7 @@ LITERAL_ONLY_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = NULL_ARRAY_TESTS + NULL_SEARCH_TESTS
 
 TEST_SUBSET_FOR_LITERAL = [

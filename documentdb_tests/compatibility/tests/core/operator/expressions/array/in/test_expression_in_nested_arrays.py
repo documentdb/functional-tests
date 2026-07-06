@@ -4,7 +4,7 @@ Nested array search tests for $in expression.
 Tests searching for complex elements in nested mixed arrays and deeply nested structures.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, MaxKey, MinKey, ObjectId
@@ -19,9 +19,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Success: nested mixed arrays as search targets
-# ---------------------------------------------------------------------------
 NESTED_MIXED_ARRAY_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="nested_find_object_in_mixed",
@@ -81,8 +79,12 @@ NESTED_MIXED_ARRAY_TESTS: list[ArrayTestClass] = [
     ),
     ArrayTestClass(
         id="nested_find_subarray_datetime_objectid",
-        value=[datetime(2024, 1, 1), ObjectId("000000000000000000000001")],
-        array=[0, [datetime(2024, 1, 1), ObjectId("000000000000000000000001")], "end"],
+        value=[datetime(2024, 1, 1, tzinfo=timezone.utc), ObjectId("000000000000000000000001")],
+        array=[
+            0,
+            [datetime(2024, 1, 1, tzinfo=timezone.utc), ObjectId("000000000000000000000001")],
+            "end",
+        ],
         expected=True,
         msg="Should find subarray with datetime and objectid",
     ),
@@ -95,9 +97,7 @@ NESTED_MIXED_ARRAY_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: deeply nested search targets (3-5 levels)
-# ---------------------------------------------------------------------------
 DEEPLY_NESTED_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="nested_3_levels",
@@ -143,9 +143,7 @@ DEEPLY_NESTED_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = NESTED_MIXED_ARRAY_TESTS + DEEPLY_NESTED_TESTS
 
 TEST_SUBSET_FOR_LITERAL = [

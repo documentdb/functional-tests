@@ -4,7 +4,7 @@ Error tests for $filter 'as' parameter.
 Tests invalid 'as' types.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -70,7 +70,13 @@ INVALID_AS_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         id="type_date",
-        expression={"$filter": {"input": [1, 2, 3], "as": datetime(2024, 1, 1), "cond": True}},
+        expression={
+            "$filter": {
+                "input": [1, 2, 3],
+                "as": datetime(2024, 1, 1, tzinfo=timezone.utc),
+                "cond": True,
+            }
+        },
         error_code=FAILED_TO_PARSE_ERROR,
         msg="as=datetime should error",
     ),

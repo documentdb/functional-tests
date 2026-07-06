@@ -4,7 +4,7 @@ Error tests for $in expression.
 Tests non-array second argument and wrong arity errors.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -24,9 +24,7 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
 
-# ---------------------------------------------------------------------------
 # Error: second argument not an array (runs both literal and insert)
-# ---------------------------------------------------------------------------
 NOT_ARRAY_ERROR_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="string_as_array",
@@ -94,7 +92,7 @@ NOT_ARRAY_ERROR_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="datetime_as_array",
         value=1,
-        array=datetime(2024, 1, 1),
+        array=datetime(2024, 1, 1, tzinfo=timezone.utc),
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
         msg="Should reject datetime as array arg",
     ),
@@ -142,9 +140,7 @@ NOT_ARRAY_ERROR_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: missing as array (literal only, MISSING is a field ref)
-# ---------------------------------------------------------------------------
 LITERAL_ONLY_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="missing_as_array",
@@ -155,9 +151,7 @@ LITERAL_ONLY_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 TEST_SUBSET_FOR_LITERAL = [
     NOT_ARRAY_ERROR_TESTS[0],  # string_as_array
     NOT_ARRAY_ERROR_TESTS[-1],  # null_as_array
@@ -184,9 +178,7 @@ def test_in_insert(collection, test):
     )
 
 
-# ---------------------------------------------------------------------------
 # Error: wrong arity
-# ---------------------------------------------------------------------------
 ARITY_ERROR_TESTS = [
     pytest.param({"$in": []}, id="zero_args"),
     pytest.param({"$in": [[1, 2, 3]]}, id="one_arg"),

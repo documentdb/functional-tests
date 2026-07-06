@@ -4,7 +4,7 @@ BSON type and numeric equivalence tests for $in expression.
 Tests searching for various BSON types and cross-type numeric matching.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -28,9 +28,7 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NEGATIVE_INFINITY,
 )
 
-# ---------------------------------------------------------------------------
 # Success: search for various BSON types
-# ---------------------------------------------------------------------------
 BSON_TYPE_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="bson_int64",
@@ -48,8 +46,8 @@ BSON_TYPE_TESTS: list[ArrayTestClass] = [
     ),
     ArrayTestClass(
         id="bson_datetime",
-        value=datetime(2024, 1, 1),
-        array=[datetime(2024, 1, 1), 1],
+        value=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        array=[datetime(2024, 1, 1, tzinfo=timezone.utc), 1],
         expected=True,
         msg="Should find datetime in array",
     ),
@@ -178,9 +176,7 @@ BSON_TYPE_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: numeric type equivalence
-# ---------------------------------------------------------------------------
 NUMERIC_EQUIVALENCE_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="int_in_doubles",
@@ -233,9 +229,7 @@ NUMERIC_EQUIVALENCE_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = BSON_TYPE_TESTS + NUMERIC_EQUIVALENCE_TESTS
 
 TEST_SUBSET_FOR_LITERAL = [

@@ -22,9 +22,7 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Error: non-object argument
-# ---------------------------------------------------------------------------
 NON_OBJECT_ARG_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="null_arg",
@@ -58,9 +56,7 @@ NON_OBJECT_ARG_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: unknown fields
-# ---------------------------------------------------------------------------
 UNKNOWN_FIELD_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="extra_unknown",
@@ -76,9 +72,7 @@ UNKNOWN_FIELD_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: missing required fields
-# ---------------------------------------------------------------------------
 MISSING_REQUIRED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="missing_input",
@@ -100,9 +94,7 @@ MISSING_REQUIRED_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_STRUCTURE_TESTS = NON_OBJECT_ARG_TESTS + UNKNOWN_FIELD_TESTS + MISSING_REQUIRED_TESTS
 
 

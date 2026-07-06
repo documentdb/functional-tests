@@ -17,9 +17,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Field path lookups
-# ---------------------------------------------------------------------------
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_field_path",
@@ -65,9 +63,7 @@ FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # $let and system variables
-# ---------------------------------------------------------------------------
 LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="let_variable",
@@ -97,9 +93,7 @@ LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Null/missing via expression
-# ---------------------------------------------------------------------------
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="missing_field",
@@ -117,9 +111,7 @@ NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Nested $filter
-# ---------------------------------------------------------------------------
 NESTED_FILTER_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="filter_then_filter",
@@ -136,9 +128,7 @@ NESTED_FILTER_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-# ---------------------------------------------------------------------------
 # Limit with field reference
-# ---------------------------------------------------------------------------
 LIMIT_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="limit_from_field",
@@ -149,9 +139,7 @@ LIMIT_EXPR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Literal array input (not field path)
-# ---------------------------------------------------------------------------
 LITERAL_INPUT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="literal_array_input",
@@ -162,9 +150,7 @@ LITERAL_INPUT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_EXPR_TESTS = (
     FIELD_LOOKUP_TESTS
     + LET_AND_VARIABLE_TESTS

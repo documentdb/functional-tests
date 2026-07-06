@@ -5,7 +5,7 @@ Tests searching for various BSON types, numeric equivalence, and
 complex nested mixed arrays.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -31,9 +31,7 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NEGATIVE_INFINITY,
 )
 
-# ---------------------------------------------------------------------------
 # Success: search for various BSON types
-# ---------------------------------------------------------------------------
 BSON_TYPE_SEARCH_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="search_int64",
@@ -51,8 +49,8 @@ BSON_TYPE_SEARCH_TESTS: list[IndexOfArrayTest] = [
     ),
     IndexOfArrayTest(
         id="search_datetime",
-        array=[datetime(2024, 1, 1), 1],
-        search=datetime(2024, 1, 1),
+        array=[datetime(2024, 1, 1, tzinfo=timezone.utc), 1],
+        search=datetime(2024, 1, 1, tzinfo=timezone.utc),
         expected=0,
         msg="Should find datetime value",
     ),
@@ -174,9 +172,7 @@ BSON_TYPE_SEARCH_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: numeric type equivalence in search
-# ---------------------------------------------------------------------------
 NUMERIC_EQUIVALENCE_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="int_matches_double",
@@ -222,9 +218,7 @@ NUMERIC_EQUIVALENCE_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: nested mixed arrays
-# ---------------------------------------------------------------------------
 NESTED_MIXED_ARRAY_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="nested_find_object_in_mixed",
@@ -284,8 +278,8 @@ NESTED_MIXED_ARRAY_TESTS: list[IndexOfArrayTest] = [
     ),
     IndexOfArrayTest(
         id="nested_find_datetime_in_mixed",
-        array=["a", datetime(2024, 1, 1), 3, [4]],
-        search=datetime(2024, 1, 1),
+        array=["a", datetime(2024, 1, 1, tzinfo=timezone.utc), 3, [4]],
+        search=datetime(2024, 1, 1, tzinfo=timezone.utc),
         expected=1,
         msg="Should find datetime in mixed array",
     ),
@@ -333,8 +327,12 @@ NESTED_MIXED_ARRAY_TESTS: list[IndexOfArrayTest] = [
     ),
     IndexOfArrayTest(
         id="nested_find_subarray_datetime_objectid",
-        array=[0, [datetime(2024, 1, 1), ObjectId("000000000000000000000001")], "end"],
-        search=[datetime(2024, 1, 1), ObjectId("000000000000000000000001")],
+        array=[
+            0,
+            [datetime(2024, 1, 1, tzinfo=timezone.utc), ObjectId("000000000000000000000001")],
+            "end",
+        ],
+        search=[datetime(2024, 1, 1, tzinfo=timezone.utc), ObjectId("000000000000000000000001")],
         expected=1,
         msg="Should find subarray with datetime and objectid",
     ),
@@ -389,9 +387,7 @@ NESTED_MIXED_ARRAY_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = BSON_TYPE_SEARCH_TESTS + NUMERIC_EQUIVALENCE_TESTS + NESTED_MIXED_ARRAY_TESTS
 
 TEST_SUBSET_FOR_LITERAL = [

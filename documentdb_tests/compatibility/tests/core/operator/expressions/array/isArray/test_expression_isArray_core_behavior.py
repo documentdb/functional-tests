@@ -17,9 +17,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Success: arrays → true
-# ---------------------------------------------------------------------------
 IS_ARRAY_TRUE_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="simple_array",
@@ -95,9 +93,7 @@ IS_ARRAY_TRUE_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: non-arrays → false
-# ---------------------------------------------------------------------------
 IS_ARRAY_FALSE_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="string", value="hello", expected=False, msg="Should return false for string"
@@ -130,9 +126,7 @@ IS_ARRAY_FALSE_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Array-like edge cases → false
-# ---------------------------------------------------------------------------
 ARRAY_LIKE_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="string_brackets", value="[]", expected=False, msg="Should return false for string '[]'"
@@ -157,9 +151,7 @@ ARRAY_LIKE_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 INSERT_TESTS = IS_ARRAY_TRUE_TESTS + IS_ARRAY_FALSE_TESTS + ARRAY_LIKE_TESTS
 
 

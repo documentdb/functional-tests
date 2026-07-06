@@ -16,9 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Success: value found in array → True
-# ---------------------------------------------------------------------------
 FOUND_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="found_int", value=2, array=[1, 2, 3], expected=True, msg="Should find int in array"
@@ -87,9 +85,7 @@ FOUND_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: value not found → False
-# ---------------------------------------------------------------------------
 NOT_FOUND_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="not_found_int",
@@ -149,9 +145,7 @@ NOT_FOUND_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: mixed types in array
-# ---------------------------------------------------------------------------
 MIXED_TYPE_TESTS: list[ArrayTestClass] = [
     ArrayTestClass(
         id="mixed_find_string",
@@ -183,9 +177,7 @@ MIXED_TYPE_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: large array
-# ---------------------------------------------------------------------------
 _LARGE_ARRAY_SIZE = 20_000
 _LARGE_ARRAY = list(range(_LARGE_ARRAY_SIZE))
 
@@ -220,9 +212,7 @@ LARGE_ARRAY_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = FOUND_TESTS + NOT_FOUND_TESTS + MIXED_TYPE_TESTS + LARGE_ARRAY_TESTS
 
 TEST_SUBSET_FOR_LITERAL = [

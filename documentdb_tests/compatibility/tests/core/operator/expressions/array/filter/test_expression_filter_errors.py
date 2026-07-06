@@ -6,7 +6,7 @@ and limit parameter validation.
 Note: $filter propagates null — null input returns null (tested in core_behavior).
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -42,9 +42,7 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-# ---------------------------------------------------------------------------
 # Error: non-array input — standard BSON types
-# ---------------------------------------------------------------------------
 NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="string_input",
@@ -126,7 +124,7 @@ NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="datetime_input",
         expression={"$filter": {"input": "$arr", "cond": True}},
-        doc={"arr": datetime(2024, 1, 1)},
+        doc={"arr": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=FILTER_INPUT_NOT_ARRAY_ERROR,
         msg="Should reject datetime input",
     ),
@@ -167,9 +165,7 @@ NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: special float/Decimal128 values
-# ---------------------------------------------------------------------------
 SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nan_input",
@@ -236,9 +232,7 @@ SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: numeric boundary values
-# ---------------------------------------------------------------------------
 BOUNDARY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int32_max_input",
@@ -284,9 +278,7 @@ BOUNDARY_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: invalid limit types
-# ---------------------------------------------------------------------------
 INVALID_LIMIT_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="string_limit",
@@ -318,9 +310,7 @@ INVALID_LIMIT_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: invalid limit numeric values
-# ---------------------------------------------------------------------------
 INVALID_LIMIT_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="zero_limit",
@@ -422,9 +412,7 @@ INVALID_LIMIT_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: cond evaluation errors
-# ---------------------------------------------------------------------------
 COND_EVALUATION_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="cond_divide_by_zero",
@@ -435,9 +423,7 @@ COND_EVALUATION_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = (
     NOT_ARRAY_ERROR_TESTS
     + SPECIAL_NUMERIC_ERROR_TESTS

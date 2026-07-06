@@ -5,7 +5,7 @@ Tests non-array first argument, non-integral start/end, negative start/end,
 boundary values, negative zero, and wrong arity errors.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -34,9 +34,7 @@ from documentdb_tests.framework.test_constants import (
     MISSING,
 )
 
-# ---------------------------------------------------------------------------
 # Success: boundary values for start/end indices
-# ---------------------------------------------------------------------------
 BOUNDARY_INDEX_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="start_int32_max",
@@ -91,9 +89,7 @@ BOUNDARY_INDEX_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: negative zero as start index
-# ---------------------------------------------------------------------------
 NEGATIVE_ZERO_START_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="double_neg_zero_start",
@@ -122,9 +118,7 @@ NEGATIVE_ZERO_START_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: first argument not an array (and not null)
-# ---------------------------------------------------------------------------
 NOT_ARRAY_ERROR_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="string_as_array",
@@ -191,7 +185,7 @@ NOT_ARRAY_ERROR_TESTS: list[IndexOfArrayTest] = [
     ),
     IndexOfArrayTest(
         id="datetime_as_array",
-        array=datetime(2024, 1, 1),
+        array=datetime(2024, 1, 1, tzinfo=timezone.utc),
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject datetime as array",
@@ -233,9 +227,7 @@ NOT_ARRAY_ERROR_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: start index not integral
-# ---------------------------------------------------------------------------
 START_NOT_INTEGRAL_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="start_fractional_double",
@@ -327,9 +319,7 @@ START_NOT_INTEGRAL_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: end index not integral
-# ---------------------------------------------------------------------------
 END_NOT_INTEGRAL_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="end_fractional_double",
@@ -432,9 +422,7 @@ END_NOT_INTEGRAL_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: negative start index
-# ---------------------------------------------------------------------------
 START_NEGATIVE_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="start_neg_one",
@@ -478,9 +466,7 @@ START_NEGATIVE_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: negative end index
-# ---------------------------------------------------------------------------
 END_NEGATIVE_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         id="end_neg_one",
@@ -529,9 +515,7 @@ END_NEGATIVE_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = (
     BOUNDARY_INDEX_TESTS
     + NEGATIVE_ZERO_START_TESTS
@@ -588,9 +572,7 @@ def test_indexOfArray_insert(collection, test):
     )
 
 
-# ---------------------------------------------------------------------------
 # Error: wrong arity
-# ---------------------------------------------------------------------------
 ARITY_ERROR_TESTS = [
     pytest.param({"$indexOfArray": []}, id="zero_args"),
     pytest.param({"$indexOfArray": [[1, 2, 3]]}, id="one_arg"),
@@ -605,11 +587,9 @@ def test_indexOfArray_arity_error(collection, expr):
     assert_expression_result(result, error_code=EXPRESSION_ARITY_ERROR)
 
 
-# ---------------------------------------------------------------------------
 # Error: null as literal start/end index
 # Standalone test because end=None in IndexOfArrayTest means "no end argument",
 # so null-as-end cannot be expressed via the dataclass.
-# ---------------------------------------------------------------------------
 def test_indexOfArray_null_end(collection):
     """Test $indexOfArray with null as end index errors."""
     result = execute_expression(collection, {"$indexOfArray": [[1, 2, 3], 1, 0, None]})
