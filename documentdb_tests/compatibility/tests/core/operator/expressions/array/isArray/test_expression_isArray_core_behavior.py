@@ -7,8 +7,8 @@ with basic types via both literal and insert paths.
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.isArray.utils.isArray_common import (  # noqa: E501
-    IsArrayTest,
+from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.array_test_case import (  # noqa: E501
+    ArrayTestClass,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
@@ -20,74 +20,74 @@ from documentdb_tests.framework.parametrize import pytest_params
 # ---------------------------------------------------------------------------
 # Success: arrays → true
 # ---------------------------------------------------------------------------
-IS_ARRAY_TRUE_TESTS: list[IsArrayTest] = [
-    IsArrayTest(
+IS_ARRAY_TRUE_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="simple_array",
         value=[1, 2, 3],
         expected=True,
         msg="Should return true for simple array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="empty_array",
         value=[],
         expected=True,
         msg="Should return true for empty array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="single_element",
         value=[42],
         expected=True,
         msg="Should return true for single-element array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="nested_array",
         value=[[1, 2], [3, 4]],
         expected=True,
         msg="Should return true for nested array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="mixed_type_array",
         value=[1, "two", True, None, {"a": 1}],
         expected=True,
         msg="Should return true for mixed-type array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="array_of_objects",
         value=[{"a": 1}, {"b": 2}],
         expected=True,
         msg="Should return true for array of objects",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="array_of_nulls",
         value=[None, None],
         expected=True,
         msg="Should return true for array of nulls",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="string_array",
         value=["a", "b", "c"],
         expected=True,
         msg="Should return true for string array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="bool_array",
         value=[True],
         expected=True,
         msg="Should return true for bool array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="large_array_10k",
         value=list(range(10000)),
         expected=True,
         msg="10K element array returns true",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="deeply_nested_array",
         value=[[[[[[1]]]]]],
         expected=True,
         msg="Deeply nested array returns true",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="large_array_of_arrays",
         value=[[i] for i in range(10000)],
         expected=True,
@@ -98,25 +98,31 @@ IS_ARRAY_TRUE_TESTS: list[IsArrayTest] = [
 # ---------------------------------------------------------------------------
 # Success: non-arrays → false
 # ---------------------------------------------------------------------------
-IS_ARRAY_FALSE_TESTS: list[IsArrayTest] = [
-    IsArrayTest(id="string", value="hello", expected=False, msg="Should return false for string"),
-    IsArrayTest(id="int", value=42, expected=False, msg="Should return false for int"),
-    IsArrayTest(id="double", value=3.14, expected=False, msg="Should return false for double"),
-    IsArrayTest(id="bool_true", value=True, expected=False, msg="Should return false for true"),
-    IsArrayTest(id="bool_false", value=False, expected=False, msg="Should return false for false"),
-    IsArrayTest(id="null", value=None, expected=False, msg="Should return false for null"),
-    IsArrayTest(id="object", value={"a": 1}, expected=False, msg="Should return false for object"),
-    IsArrayTest(
+IS_ARRAY_FALSE_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
+        id="string", value="hello", expected=False, msg="Should return false for string"
+    ),
+    ArrayTestClass(id="int", value=42, expected=False, msg="Should return false for int"),
+    ArrayTestClass(id="double", value=3.14, expected=False, msg="Should return false for double"),
+    ArrayTestClass(id="bool_true", value=True, expected=False, msg="Should return false for true"),
+    ArrayTestClass(
+        id="bool_false", value=False, expected=False, msg="Should return false for false"
+    ),
+    ArrayTestClass(id="null", value=None, expected=False, msg="Should return false for null"),
+    ArrayTestClass(
+        id="object", value={"a": 1}, expected=False, msg="Should return false for object"
+    ),
+    ArrayTestClass(
         id="empty_string", value="", expected=False, msg="Should return false for empty string"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="empty_object", value={}, expected=False, msg="Should return false for empty object"
     ),
-    IsArrayTest(id="zero", value=0, expected=False, msg="Should return false for zero"),
-    IsArrayTest(
+    ArrayTestClass(id="zero", value=0, expected=False, msg="Should return false for zero"),
+    ArrayTestClass(
         id="negative_int", value=-123, expected=False, msg="Should return false for negative int"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="negative_double",
         value=-1.23,
         expected=False,
@@ -127,23 +133,23 @@ IS_ARRAY_FALSE_TESTS: list[IsArrayTest] = [
 # ---------------------------------------------------------------------------
 # Array-like edge cases → false
 # ---------------------------------------------------------------------------
-ARRAY_LIKE_TESTS: list[IsArrayTest] = [
-    IsArrayTest(
+ARRAY_LIKE_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="string_brackets", value="[]", expected=False, msg="Should return false for string '[]'"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="string_array_repr",
         value="[1, 2, 3]",
         expected=False,
         msg="Should return false for string '[1, 2, 3]'",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="array_like_object",
         value={"0": "a", "1": "b"},
         expected=False,
         msg="Should return false for array-like object",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="length_object",
         value={"length": 3},
         expected=False,

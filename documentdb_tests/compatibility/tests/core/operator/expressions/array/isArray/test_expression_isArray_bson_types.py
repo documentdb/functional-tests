@@ -11,8 +11,8 @@ from datetime import datetime
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.isArray.utils.isArray_common import (  # noqa: E501
-    IsArrayTest,
+from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.array_test_case import (  # noqa: E501
+    ArrayTestClass,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
@@ -40,110 +40,110 @@ from documentdb_tests.framework.test_constants import (
 # ---------------------------------------------------------------------------
 # Arrays containing specific BSON types → true
 # ---------------------------------------------------------------------------
-BSON_ARRAY_TRUE_TESTS: list[IsArrayTest] = [
-    IsArrayTest(
+BSON_ARRAY_TRUE_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="bindata_array",
         value=[Binary(b"\x00", 0)],
         expected=True,
         msg="Should return true for BinData array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="timestamp_array",
         value=[Timestamp(0, 0)],
         expected=True,
         msg="Should return true for Timestamp array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="int64_array", value=[Int64(1)], expected=True, msg="Should return true for Int64 array"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_array",
         value=[Decimal128("1")],
         expected=True,
         msg="Should return true for Decimal128 array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="objectid_array",
         value=[ObjectId()],
         expected=True,
         msg="Should return true for ObjectId array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="datetime_array",
         value=[datetime(2024, 1, 1)],
         expected=True,
         msg="Should return true for datetime array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="minkey_array",
         value=[MinKey()],
         expected=True,
         msg="Should return true for MinKey array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="maxkey_array",
         value=[MaxKey()],
         expected=True,
         msg="Should return true for MaxKey array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="regex_array",
         value=[Regex(".*")],
         expected=True,
         msg="Should return true for Regex array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="nan_array", value=[float("nan")], expected=True, msg="Should return true for NaN array"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="inf_array",
         value=[float("inf")],
         expected=True,
         msg="Should return true for Infinity array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_nan_array",
         value=[Decimal128("NaN")],
         expected=True,
         msg="Should return true for Decimal128 NaN array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_inf_array",
         value=[Decimal128("Infinity")],
         expected=True,
         msg="Should return true for Decimal128 Infinity array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_neg_nan_array",
         value=[Decimal128("-NaN")],
         expected=True,
         msg="Should return true for Decimal128 -NaN array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_neg_inf_array",
         value=[DECIMAL128_NEGATIVE_INFINITY],
         expected=True,
         msg="Should return true for Decimal128 -Infinity array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="neg_inf_array",
         value=[FLOAT_NEGATIVE_INFINITY],
         expected=True,
         msg="Should return true for -Infinity array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="neg_zero_array",
         value=[DOUBLE_NEGATIVE_ZERO],
         expected=True,
         msg="Should return true for negative zero array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_neg_zero_array",
         value=[DECIMAL128_NEGATIVE_ZERO],
         expected=True,
         msg="Should return true for Decimal128 -0 array",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="nested_mixed_bson_array",
         value=[
             MinKey(),
@@ -160,87 +160,91 @@ BSON_ARRAY_TRUE_TESTS: list[IsArrayTest] = [
 # ---------------------------------------------------------------------------
 # Non-array BSON types → false
 # ---------------------------------------------------------------------------
-BSON_FALSE_TESTS: list[IsArrayTest] = [
-    IsArrayTest(id="int64", value=Int64(1), expected=False, msg="Should return false for Int64"),
-    IsArrayTest(
+BSON_FALSE_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(id="int64", value=Int64(1), expected=False, msg="Should return false for Int64"),
+    ArrayTestClass(
         id="decimal128",
         value=Decimal128("1"),
         expected=False,
         msg="Should return false for Decimal128",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="objectid",
         value=ObjectId("000000000000000000000001"),
         expected=False,
         msg="Should return false for ObjectId",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="datetime",
         value=datetime(2024, 1, 1),
         expected=False,
         msg="Should return false for datetime",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="binary", value=Binary(b"\x01", 0), expected=False, msg="Should return false for Binary"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="regex", value=Regex("^abc"), expected=False, msg="Should return false for Regex"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="timestamp",
         value=Timestamp(1, 1),
         expected=False,
         msg="Should return false for Timestamp",
     ),
-    IsArrayTest(id="minkey", value=MinKey(), expected=False, msg="Should return false for MinKey"),
-    IsArrayTest(id="maxkey", value=MaxKey(), expected=False, msg="Should return false for MaxKey"),
+    ArrayTestClass(
+        id="minkey", value=MinKey(), expected=False, msg="Should return false for MinKey"
+    ),
+    ArrayTestClass(
+        id="maxkey", value=MaxKey(), expected=False, msg="Should return false for MaxKey"
+    ),
 ]
 
 # ---------------------------------------------------------------------------
 # Special numeric values → false
 # ---------------------------------------------------------------------------
-SPECIAL_NUMERIC_TESTS: list[IsArrayTest] = [
-    IsArrayTest(id="nan", value=FLOAT_NAN, expected=False, msg="Should return false for NaN"),
-    IsArrayTest(
+SPECIAL_NUMERIC_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(id="nan", value=FLOAT_NAN, expected=False, msg="Should return false for NaN"),
+    ArrayTestClass(
         id="inf", value=FLOAT_INFINITY, expected=False, msg="Should return false for Infinity"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="neg_inf",
         value=FLOAT_NEGATIVE_INFINITY,
         expected=False,
         msg="Should return false for -Infinity",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="neg_zero",
         value=DOUBLE_NEGATIVE_ZERO,
         expected=False,
         msg="Should return false for negative zero",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_nan",
         value=DECIMAL128_NAN,
         expected=False,
         msg="Should return false for Decimal128 NaN",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_neg_nan",
         value=Decimal128("-NaN"),
         expected=False,
         msg="Should return false for Decimal128 -NaN",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_inf",
         value=DECIMAL128_INFINITY,
         expected=False,
         msg="Should return false for Decimal128 Infinity",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_neg_inf",
         value=DECIMAL128_NEGATIVE_INFINITY,
         expected=False,
         msg="Should return false for Decimal128 -Infinity",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_neg_zero",
         value=DECIMAL128_NEGATIVE_ZERO,
         expected=False,
@@ -251,26 +255,26 @@ SPECIAL_NUMERIC_TESTS: list[IsArrayTest] = [
 # ---------------------------------------------------------------------------
 # Boundary values → false
 # ---------------------------------------------------------------------------
-BOUNDARY_TESTS: list[IsArrayTest] = [
-    IsArrayTest(
+BOUNDARY_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="int32_max", value=INT32_MAX, expected=False, msg="Should return false for INT32_MAX"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="int32_min", value=INT32_MIN, expected=False, msg="Should return false for INT32_MIN"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="int64_max", value=INT64_MAX, expected=False, msg="Should return false for INT64_MAX"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="int64_min", value=INT64_MIN, expected=False, msg="Should return false for INT64_MIN"
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_max",
         value=DECIMAL128_MAX,
         expected=False,
         msg="Should return false for DECIMAL128_MAX",
     ),
-    IsArrayTest(
+    ArrayTestClass(
         id="decimal128_min",
         value=DECIMAL128_MIN,
         expected=False,
