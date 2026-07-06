@@ -23,6 +23,8 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_NEGATIVE_ZERO,
+    DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
@@ -229,8 +231,40 @@ NUMERIC_EQUIVALENCE_TESTS: list[ArrayTestClass] = [
     ),
 ]
 
+# Negative zero equivalence with positive zero
+NEGATIVE_ZERO_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
+        id="double_neg_zero_matches_zero",
+        value=DOUBLE_NEGATIVE_ZERO,
+        array=[0, 1, 2],
+        expected=True,
+        msg="$in should treat -0.0 as equivalent to 0",
+    ),
+    ArrayTestClass(
+        id="zero_matches_double_neg_zero_in_array",
+        value=0,
+        array=[DOUBLE_NEGATIVE_ZERO, 1, 2],
+        expected=True,
+        msg="$in should find 0 in array containing -0.0",
+    ),
+    ArrayTestClass(
+        id="decimal128_neg_zero_matches_zero",
+        value=DECIMAL128_NEGATIVE_ZERO,
+        array=[0, 1, 2],
+        expected=True,
+        msg="$in should treat Decimal128 -0 as equivalent to 0",
+    ),
+    ArrayTestClass(
+        id="zero_matches_decimal128_neg_zero_in_array",
+        value=0,
+        array=[DECIMAL128_NEGATIVE_ZERO, 1, 2],
+        expected=True,
+        msg="$in should find 0 in array containing Decimal128 -0",
+    ),
+]
+
 # Aggregate and test
-ALL_TESTS = BSON_TYPE_TESTS + NUMERIC_EQUIVALENCE_TESTS
+ALL_TESTS = BSON_TYPE_TESTS + NUMERIC_EQUIVALENCE_TESTS + NEGATIVE_ZERO_TESTS
 
 TEST_SUBSET_FOR_LITERAL = [
     BSON_TYPE_TESTS[0],  # bson_int64

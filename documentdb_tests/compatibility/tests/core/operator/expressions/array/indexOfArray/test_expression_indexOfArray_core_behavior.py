@@ -547,6 +547,31 @@ LARGE_ARRAY_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
+# Negative zero treated as equivalent to positive zero in search
+NEGATIVE_ZERO_SEARCH_TESTS: list[IndexOfArrayTest] = [
+    IndexOfArrayTest(
+        id="search_double_neg_zero_in_zeros",
+        array=[0, 1, 2],
+        search=-0.0,
+        expected=0,
+        msg="$indexOfArray should find -0.0 at index of 0",
+    ),
+    IndexOfArrayTest(
+        id="search_zero_finds_neg_zero",
+        array=[-0.0, 1, 2],
+        search=0,
+        expected=0,
+        msg="$indexOfArray should find 0 matching -0.0 in array",
+    ),
+    IndexOfArrayTest(
+        id="search_decimal128_neg_zero",
+        array=[0, 1, 2],
+        search=Decimal128("-0"),
+        expected=0,
+        msg="$indexOfArray should find Decimal128 -0 at index of 0",
+    ),
+]
+
 # Aggregate and test
 ALL_TESTS = (
     BASIC_FOUND_TESTS
@@ -558,6 +583,7 @@ ALL_TESTS = (
     + DEGENERATE_TESTS
     + MIXED_TYPE_TESTS
     + LARGE_ARRAY_TESTS
+    + NEGATIVE_ZERO_SEARCH_TESTS
 )
 
 TEST_SUBSET_FOR_LITERAL = [
