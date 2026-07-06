@@ -7,7 +7,7 @@ command and returns the appropriate error when the feature is not supported.
 import pytest
 
 from documentdb_tests.framework.assertions import assertFailureCode
-from documentdb_tests.framework.error_codes import COMMAND_NOT_SUPPORTED_ERROR
+from documentdb_tests.framework.error_codes import FEATURE_NOT_SUPPORTED_ERROR
 from documentdb_tests.framework.executor import execute_admin_command
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
@@ -23,11 +23,11 @@ def test_setFeatureCompatibilityVersion_unsupported_returns_303(collection):
     if (
         isinstance(result, Exception)
         and hasattr(result, "code")
-        and result.code == COMMAND_NOT_SUPPORTED_ERROR
+        and result.code == FEATURE_NOT_SUPPORTED_ERROR
     ):
         assertFailureCode(
             result,
-            COMMAND_NOT_SUPPORTED_ERROR,
+            FEATURE_NOT_SUPPORTED_ERROR,
             msg="setFeatureCompatibilityVersion should return 303 when not supported",
         )
     else:
