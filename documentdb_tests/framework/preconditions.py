@@ -59,6 +59,10 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
     "local_rename": "renaming into the unreplicated local database is permitted",
     "search": "search and vector search surfaces are available",
     "replication": "replication commands are available (applyOps, oplog access)",
+    "validate_repair": (
+        "validate with repair/fixMultikey is permitted and background validation "
+        "is rejected (standalone-only behavior)"
+    ),
 }
 
 # The capabilities each (engine, topology) target has. To add an engine or
@@ -87,6 +91,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "unforced_compact",
             "reindex",
             "local_rename",
+            "validate_repair",
         }
     ),
     ("documentdb", "standalone"): frozenset(
@@ -101,6 +106,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "unforced_compact",
             "reindex",
             "replication",
+            "validate_repair",
         }
     ),
 }
