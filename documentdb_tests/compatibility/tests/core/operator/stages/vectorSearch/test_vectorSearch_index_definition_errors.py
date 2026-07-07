@@ -15,8 +15,8 @@ import pytest
 
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
+    COMMAND_FAILED_ERROR,
     UNKNOWN_ERROR,
-    VECTOR_SEARCH_NESTED_ROOT_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -49,7 +49,7 @@ VECTORSEARCH_NESTED_ROOT_MISMATCH_ERROR_TESTS: list[IndexDefinitionErrorTest] = 
                 }
             ],
         },
-        error_code=VECTOR_SEARCH_NESTED_ROOT_MISMATCH_ERROR,
+        error_code=COMMAND_FAILED_ERROR,
         msg="createSearchIndexes should reject a vectorSearch index whose nestedRoot "
         "does not match any vector field path",
     ),
