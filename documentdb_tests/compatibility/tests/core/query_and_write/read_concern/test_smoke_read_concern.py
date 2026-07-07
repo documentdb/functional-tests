@@ -1,8 +1,4 @@
-"""
-Smoke test for readConcern.
-
-Tests basic readConcern functionality.
-"""
+"""Smoke test for basic readConcern functionality."""
 
 import pytest
 
