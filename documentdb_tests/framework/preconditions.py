@@ -53,9 +53,15 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
         "a quorum write concern is accepted (reported as a writeConcernError) rather than "
         "rejected up front"
     ),
+    "oplog": "a replicated oplog (local.oplog.rs) exists",
     "unforced_compact": "compact succeeds without force",
     "reindex": "reIndex is permitted",
     "local_rename": "renaming into the unreplicated local database is permitted",
+    "replication": "replication commands are available (applyOps, oplog access)",
+    "validate_repair": (
+        "validate with repair/fixMultikey is permitted and background validation "
+        "is rejected (standalone-only behavior)"
+    ),
 }
 
 # The capabilities each (engine, topology) target has. To add an engine or
@@ -70,6 +76,8 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "cluster_time",
             "cluster_read_concern",
             "quorum_write_concern",
+            "oplog",
+            "replication",
         }
     ),
     ("mongodb", "standalone"): frozenset(
@@ -77,6 +85,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "unforced_compact",
             "reindex",
             "local_rename",
+            "validate_repair",
         }
     ),
     ("documentdb", "standalone"): frozenset(
@@ -90,6 +99,8 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "quorum_write_concern",
             "unforced_compact",
             "reindex",
+            "replication",
+            "validate_repair",
         }
     ),
 }
