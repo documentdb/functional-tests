@@ -61,6 +61,17 @@ jobs:
             --json-report --json-report-file=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-report.json \
             --junitxml=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-results.xml
 
+      - name: Dump container logs
+        if: always()
+        run: |
+          # One file per service in the profile
+          mkdir -p "${{ github.workspace }}/.test-results/container-logs"
+          for svc in $(docker compose -f dev/compose.yaml --profile ${{ matrix.target.profile }} config --services); do
+            docker compose -f dev/compose.yaml --profile ${{ matrix.target.profile }} \
+              logs --no-color --timestamps "$svc" \
+              > "${{ github.workspace }}/.test-results/container-logs/${svc}.log" 2>&1 || true
+          done
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
