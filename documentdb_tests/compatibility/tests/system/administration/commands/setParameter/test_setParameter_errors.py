@@ -10,7 +10,6 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandTestCase,
 )
 from documentdb_tests.framework.assertions import (
-    assertFailureCode,
     assertResult,
     assertSuccessPartial,
 )
@@ -266,13 +265,4 @@ def test_setParameter_multi_param_atomic_on_failure(collection):
     result = execute_admin_command(collection, {"getParameter": 1, "logLevel": 1})
     assertSuccessPartial(
         result, {"logLevel": 0}, msg="First param should not be applied when second fails"
-    )
-
-
-# Property [Name Collision]: parameter name matching control field name fails.
-def test_setParameter_name_collides_with_control_field(collection):
-    """Test setParameter rejects param name that collides with control field."""
-    result = execute_admin_command(collection, {"setParameter": 1, "setParameter": 2})  # noqa: F601
-    assertFailureCode(
-        result, INVALID_OPTIONS_ERROR, msg="setParameter should reject name collision"
     )
