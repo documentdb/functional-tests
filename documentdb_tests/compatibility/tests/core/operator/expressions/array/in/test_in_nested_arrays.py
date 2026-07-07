@@ -14,6 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
+    execute_expression,
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
@@ -162,6 +163,43 @@ ALL_TESTS = NESTED_MIXED_ARRAY_TESTS + DEEPLY_NESTED_TESTS
 def test_in_nested_insert(collection, test):
     """Test $in nested array matching with values from inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
+
+
+# Property [Literal Evaluation]: $in nested array matching works with inline literal values.
+TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "literal_nested_find_object_in_mixed",
+        doc=None,
+        expression={"$in": [{"a": 1}, {"$literal": [1, "two", {"a": 1}, [3, 4], True]}]},
+        expected=True,
+        msg="$in should find object in literal nested mixed array",
+    ),
+    ExpressionTestCase(
+        "literal_nested_3_levels",
+        doc=None,
+        expression={
+            "$in": [{"$literal": [[2, 3], [4, 5]]}, {"$literal": [1, [[2, 3], [4, 5]], "end"]}]
+        },
+        expected=True,
+        msg="$in should find 3-level nested array in literal",
+    ),
+    ExpressionTestCase(
+        "literal_nested_deep_not_found",
+        doc=None,
+        expression={"$in": [{"$literal": [2, 3]}, {"$literal": [[1, [2, 3]], [4, 5]]}]},
+        expected=False,
+        msg="$in should not find array at wrong nesting level in literal",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
+def test_in_nested_literal(collection, test):
+    """Test $in nested arrays with literal values."""
+    result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

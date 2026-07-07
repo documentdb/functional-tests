@@ -16,6 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
+    execute_expression,
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
@@ -370,3 +371,45 @@ def test_isArray_bson_insert(collection, test):
     """Test $isArray BSON types with values from inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(result, expected=test.expected, msg=test.msg)
+
+
+# Property [Literal Evaluation]: $isArray BSON type detection works with inline literal values.
+TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "literal_bindata_array",
+        doc=None,
+        expression={"$isArray": [{"$literal": [Binary(b"\x00", 0)]}]},
+        expected=True,
+        msg="$isArray should return true for literal BinData array",
+    ),
+    ExpressionTestCase(
+        "literal_nested_mixed_bson_array",
+        doc=None,
+        expression={"$isArray": [{"$literal": [MinKey(), {"a": [Decimal128("1.5")]}, Int64(1)]}]},
+        expected=True,
+        msg="$isArray should return true for literal nested mixed BSON array",
+    ),
+    ExpressionTestCase(
+        "literal_int64",
+        doc=None,
+        expression={"$isArray": [Int64(1)]},
+        expected=False,
+        msg="$isArray should return false for literal Int64",
+    ),
+    ExpressionTestCase(
+        "literal_nan",
+        doc=None,
+        expression={"$isArray": [FLOAT_NAN]},
+        expected=False,
+        msg="$isArray should return false for literal NaN",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
+def test_isArray_bson_literal(collection, test):
+    """Test $isArray BSON types with literal values."""
+    result = execute_expression(collection, test.expression)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
