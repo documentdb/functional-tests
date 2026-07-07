@@ -110,8 +110,15 @@ def test_changeStream_timestamp_boundary_cluster_scope(
     )
     start = test_case.compute_start(base["operationTime"])
     spec = {"startAtOperationTime": start, "allChangesForCluster": True}
+    # batchSize 0 opens the stream without materializing historical events, whose
+    # resume tokens can exceed the BSON document size limit on a cluster-wide stream.
     result = execute_admin_command(
         collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": spec}], aggregate=1),
+        change_stream_command(
+            collection,
+            pipeline=[{"$changeStream": spec}],
+            aggregate=1,
+            cursor={"batchSize": 0},
+        ),
     )
     assertResult(result, expected=test_case.expected, msg=test_case.msg, raw_res=True)

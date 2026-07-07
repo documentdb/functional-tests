@@ -100,7 +100,7 @@ services:
   # on the replica set) with owner-only permissions before launching. It retries
   # the connection until that user exists.
   mongot:
-    image: mongodb/mongodb-community-search:latest
+    image: mongodb/mongodb-community-search:1.70.1
     profiles: ["mongo-replset", "all"]
     entrypoint:
       - "sh"
@@ -114,5 +114,7 @@ services:
       # Fixed local-dev secret shared with the searchCoordinator user the
       # harness provisions on mongo-replset. Not a real credential.
       MONGOT_SYNC_PASSWORD: "searchSyncPassword"
+      # Cap mongot's JVM heap. Unset, the JVM sizes its max heap to ~25% of host RAM.
+      JAVA_TOOL_OPTIONS: "-Xmx1g"
     volumes:
       - ./mongot.yml:/mongot-config/mongot.yml:ro
