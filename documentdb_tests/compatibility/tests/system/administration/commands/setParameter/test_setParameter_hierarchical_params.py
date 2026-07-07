@@ -2,9 +2,6 @@
 
 Validates logComponentVerbosity nested parameter behavior including
 read defaults, multi-member set, atomic rejection, and bare numeric form.
-
-Tests are standalone functions because each modifies server state and must
-save/restore original values.
 """
 
 import pytest
@@ -37,11 +34,10 @@ def test_setParameter_hierarchical_nested_field_defined(collection):
 # Property [Top-Level Verbosity]: top-level verbosity matches scalar logLevel.
 def test_setParameter_hierarchical_top_level_verbosity(collection):
     """Test setParameter top-level verbosity matches scalar logLevel default."""
-    execute_admin_command(collection, {"getParameter": 1, "logComponentVerbosity": 1})
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
-    result2 = execute_admin_command(collection, {"getParameter": 1, "logComponentVerbosity": 1})
+    result = execute_admin_command(collection, {"getParameter": 1, "logComponentVerbosity": 1})
     assertSuccessPartial(
-        result2,
+        result,
         {"logComponentVerbosity": {"verbosity": 0}},
         msg="setParameter top-level verbosity should match logLevel",
     )
@@ -50,13 +46,6 @@ def test_setParameter_hierarchical_top_level_verbosity(collection):
 # Property [Multi-Member Set]: setting several nested members in one command succeeds.
 def test_setParameter_hierarchical_multi_member_set(collection):
     """Test setParameter setting several nested members in one command succeeds."""
-    execute_admin_command(
-        collection,
-        {
-            "setParameter": 1,
-            "logComponentVerbosity": {"command": {"verbosity": -1}, "network": {"verbosity": -1}},
-        },
-    )
     result = execute_admin_command(
         collection,
         {
@@ -65,13 +54,6 @@ def test_setParameter_hierarchical_multi_member_set(collection):
         },
     )
     assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter multi-member set should succeed")
-    execute_admin_command(
-        collection,
-        {
-            "setParameter": 1,
-            "logComponentVerbosity": {"command": {"verbosity": -1}, "network": {"verbosity": -1}},
-        },
-    )
 
 
 # Property [Multi-Member Readback]: reading back reflects each member set.
@@ -89,13 +71,6 @@ def test_setParameter_hierarchical_multi_member_readback(collection):
         read_result,
         {"logComponentVerbosity": {"command": {"verbosity": 2}, "network": {"verbosity": 3}}},
         msg="setParameter should reflect both members after set",
-    )
-    execute_admin_command(
-        collection,
-        {
-            "setParameter": 1,
-            "logComponentVerbosity": {"command": {"verbosity": -1}, "network": {"verbosity": -1}},
-        },
     )
 
 
@@ -147,10 +122,6 @@ def test_setParameter_hierarchical_bare_numeric_form(collection):
         collection, {"setParameter": 1, "logComponentVerbosity": {"command": 4}}
     )
     assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter should accept bare numeric form")
-    execute_admin_command(
-        collection,
-        {"setParameter": 1, "logComponentVerbosity": {"command": {"verbosity": -1}}},
-    )
 
 
 def test_setParameter_hierarchical_bare_numeric_readback(collection):
@@ -161,8 +132,4 @@ def test_setParameter_hierarchical_bare_numeric_readback(collection):
         read_result,
         {"logComponentVerbosity": {"command": {"verbosity": 4}}},
         msg="setParameter bare numeric should set verbosity",
-    )
-    execute_admin_command(
-        collection,
-        {"setParameter": 1, "logComponentVerbosity": {"command": {"verbosity": -1}}},
     )

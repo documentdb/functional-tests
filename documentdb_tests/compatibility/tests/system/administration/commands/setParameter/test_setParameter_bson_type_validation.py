@@ -58,12 +58,10 @@ def test_setParameter_control_field_bson_type_accepted(collection, bson_type, sa
 )
 def test_setParameter_boolean_coercion_accepted(collection, value, desc):
     """Test setParameter boolean parameter coercion."""
-    original = execute_admin_command(collection, {"getParameter": 1, "quiet": 1})
     result = execute_admin_command(collection, {"setParameter": 1, "quiet": value})
     assertSuccessPartial(
         result, {"ok": 1.0}, msg=f"setParameter boolean param should accept {desc}"
     )
-    execute_admin_command(collection, {"setParameter": 1, "quiet": original["quiet"]})
 
 
 # Property [Integer Coercion Accepted]: integer-typed params accept whole-number numerics.
@@ -83,4 +81,3 @@ def test_setParameter_integer_coercion_accepted(collection, value, desc):
     assertSuccessPartial(
         result, {"ok": 1.0}, msg=f"setParameter integer param should accept {desc}"
     )
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})

@@ -44,17 +44,11 @@ def test_setParameter_accepted(database_client, collection, test):
     assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
 
 
-# Standalone tests below require save/restore of server state after each set.
-
-
 # Property [Response Structure]: setParameter returns ok:1 and previous value in 'was'.
 def test_setParameter_single_param_returns_ok(collection):
     """Test setParameter with one runtime-settable parameter returns ok:1."""
-    original = execute_admin_command(collection, {"getParameter": 1, "logLevel": 1})
-    original_val = original["logLevel"]
     result = execute_admin_command(collection, {"setParameter": 1, "logLevel": 1})
     assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter should return ok:1")
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": original_val})
 
 
 def test_setParameter_returns_was_field(collection):
@@ -64,18 +58,15 @@ def test_setParameter_returns_was_field(collection):
     assertSuccessPartial(
         result, {"ok": 1.0, "was": 0}, msg="setParameter should report previous value in 'was'"
     )
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
 
 
 def test_setParameter_boolean_was_type(collection):
     """Test setParameter 'was' field for a boolean parameter is boolean type."""
-    original = execute_admin_command(collection, {"getParameter": 1, "quiet": 1})
     execute_admin_command(collection, {"setParameter": 1, "quiet": False})
     result = execute_admin_command(collection, {"setParameter": 1, "quiet": True})
     assertSuccessPartial(
         result, {"ok": 1.0, "was": False}, msg="setParameter 'was' should be boolean for quiet"
     )
-    execute_admin_command(collection, {"setParameter": 1, "quiet": original["quiet"]})
 
 
 # Property [Value Persistence]: setParameter changes are reflected in getParameter.
@@ -87,7 +78,6 @@ def test_setParameter_getParameter_reflects_new_value(collection):
     assertSuccessPartial(
         result, {"logLevel": 3}, msg="setParameter should reflect new value via getParameter"
     )
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
 
 
 def test_setParameter_getParameter_unchanged_after_failure(collection):
@@ -116,7 +106,6 @@ def test_setParameter_two_params_returns_ok(collection):
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0, "quiet": False})
     result = execute_admin_command(collection, {"setParameter": 1, "logLevel": 1, "quiet": True})
     assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter should set both parameters")
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0, "quiet": False})
 
 
 # Property [Round Trip]: value can be restored via 'was' field.
@@ -133,11 +122,9 @@ def test_setParameter_round_trip_restore(collection):
 # Property [Boolean Toggle]: boolean-typed parameters toggle correctly.
 def test_setParameter_boolean_toggle(collection):
     """Test setParameter boolean-typed parameter toggles correctly."""
-    original = execute_admin_command(collection, {"getParameter": 1, "quiet": 1})
     execute_admin_command(collection, {"setParameter": 1, "quiet": False})
     result = execute_admin_command(collection, {"getParameter": 1, "quiet": 1})
     assertSuccessPartial(result, {"quiet": False}, msg="setParameter boolean should be False")
-    execute_admin_command(collection, {"setParameter": 1, "quiet": original["quiet"]})
 
 
 # Property [Ordering Independence]: parameter order in command does not affect result.
@@ -152,4 +139,3 @@ def test_setParameter_ordering_independence(collection):
     assertSuccessPartial(
         state2, {"logLevel": state1["logLevel"]}, msg="setParameter order should not matter"
     )
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0, "quiet": False})

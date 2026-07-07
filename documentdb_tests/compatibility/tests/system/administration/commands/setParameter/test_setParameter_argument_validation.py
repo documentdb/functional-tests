@@ -38,9 +38,6 @@ def test_setParameter_name_accepted(database_client, collection, test):
     assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
 
 
-# Standalone tests below require save/restore of server state after each set.
-
-
 # Property [Integer Range]: integer-typed parameters accept values within valid bounds.
 def test_setParameter_integer_param_with_fractional_double_coerces(collection):
     """Test setParameter truncates fractional double for integer-typed param."""
@@ -48,7 +45,6 @@ def test_setParameter_integer_param_with_fractional_double_coerces(collection):
     assertSuccessPartial(
         result, {"ok": 1.0}, msg="setParameter should truncate fractional double for integer param"
     )
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
 
 
 def test_setParameter_integer_param_valid_range(collection):
@@ -57,7 +53,6 @@ def test_setParameter_integer_param_valid_range(collection):
     assertSuccessPartial(
         result, {"ok": 1.0}, msg="setParameter should accept logLevel at upper bound"
     )
-    execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
 
 
 # Property [String Param Acceptance]: string-typed parameters accept valid strings.
@@ -67,4 +62,3 @@ def test_setParameter_string_param_valid_succeeds(collection):
         collection, {"setParameter": 1, "automationServiceDescriptor": "test"}
     )
     assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter should accept valid string value")
-    execute_admin_command(collection, {"setParameter": 1, "automationServiceDescriptor": ""})
