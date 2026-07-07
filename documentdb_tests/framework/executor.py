@@ -2,6 +2,7 @@
 Unified execution and assertion utilities for tests.
 """
 
+import time
 from datetime import timezone
 from typing import Any, Dict
 
@@ -50,3 +51,31 @@ def execute_admin_command(collection, command: Dict, session=None) -> Any:
         return result
     except Exception as e:
         return e
+
+
+def execute_admin_with_retry_command(
+    collection, command: Dict, *, retry_code: int, timeout: float = 30.0, interval: float = 0.2
+) -> Any:
+    """
+    Run an admin command, retrying while it fails with ``retry_code``.
+
+    Any other result (success or a different error) is returned immediately. On
+    timeout, the last result is returned as-is.
+
+    Args:
+        collection: DocumentDB collection
+        command: Command to execute via runCommand on the admin database
+        retry_code: Error code to treat as transient and retry past
+        timeout: Maximum seconds to keep retrying before returning the last result
+        interval: Seconds to wait between attempts
+
+    Returns:
+        Result if successful, Exception if failed
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        result = execute_admin_command(collection, command)
+        should_retry = isinstance(result, Exception) and getattr(result, "code", None) == retry_code
+        if not should_retry or time.monotonic() >= deadline:
+            return result
+        time.sleep(interval)
