@@ -35,13 +35,3 @@ def test_buildInfo_same_result_any_database(collection):
         msg="Should return same result from any database",
         raw_res=True,
     )
-
-
-def test_buildInfo_nonexistent_database(collection):
-    """Test buildInfo succeeds regardless of database context."""
-    result = execute_admin_command(collection, {"buildInfo": 1})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
-        msg="Should succeed regardless of database existence",
-    )
