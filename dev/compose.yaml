@@ -27,7 +27,7 @@
 #     query: <optional connection-string query string, without leading '?'>
 #
 # A service with no `x-test-target` is not a test target and is ignored by the
-# registry.
+# registry (e.g. the mongot sidecar, which is reached only through its mongod).
 #
 # Memory: each mongod caps its WiredTiger cache (--wiredTigerCacheSizeGB). By
 # default a mongod sizes its cache to ~50% of the host/VM RAM; with several
@@ -60,7 +60,26 @@ services:
   mongo-replset:
     image: mongo:8.2.4
     profiles: ["mongo-replset", "all"]
-    command: ["--replSet", "rs0", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1.5"]
+    command:
+      - "--replSet"
+      - "rs0"
+      - "--bind_ip_all"
+      - "--wiredTigerCacheSizeGB"
+      - "1.5"
+      # Point at the mongot search sidecar so this replica set also serves the
+      # search surfaces. mongot is transparent to all other behavior, so the
+      # set behaves identically to a plain replica set apart from gaining
+      # search; it is one target, not two.
+      - "--setParameter"
+      - "mongotHost=mongot:27028"
+      - "--setParameter"
+      - "searchIndexManagementHostAndPort=mongot:27028"
+      - "--setParameter"
+      - "useGrpcForSearch=true"
+      - "--setParameter"
+      - "skipAuthenticationToMongot=true"
+      - "--setParameter"
+      - "skipAuthenticationToSearchIndexManagementServer=true"
     ports:
       - "27018:27017"
     healthcheck:
@@ -71,3 +90,31 @@ services:
     x-test-target:
       engine: mongodb
       query: directConnection=true
+
+  # mongot: the search sidecar for the mongo-replset target. Not a test target
+  # on its own; the suite reaches it only through mongo-replset. mongot is
+  # MongoDB Search Community Edition (SSPL, same license as the server). It
+  # replicates from the replica set as an authenticated sync source and reads
+  # its password from a file, so the entrypoint writes that file (a fixed
+  # local-dev secret, matched by the searchCoordinator user the harness creates
+  # on the replica set) with owner-only permissions before launching. It retries
+  # the connection until that user exists.
+  mongot:
+    image: mongodb/mongodb-community-search:1.70.1
+    profiles: ["mongo-replset", "all"]
+    entrypoint:
+      - "sh"
+      - "-c"
+      - >
+        umask 077 &&
+        mkdir -p /mongot-secrets &&
+        printf '%s' "$$MONGOT_SYNC_PASSWORD" > /mongot-secrets/passwordFile &&
+        exec /mongot-community/mongot --config /mongot-config/mongot.yml
+    environment:
+      # Fixed local-dev secret shared with the searchCoordinator user the
+      # harness provisions on mongo-replset. Not a real credential.
+      MONGOT_SYNC_PASSWORD: "searchSyncPassword"
+      # Cap mongot's JVM heap. Unset, the JVM sizes its max heap to ~25% of host RAM.
+      JAVA_TOOL_OPTIONS: "-Xmx1g"
+    volumes:
+      - ./mongot.yml:/mongot-config/mongot.yml:ro
