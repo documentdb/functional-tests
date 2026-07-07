@@ -100,7 +100,6 @@ def test_setFeatureCompatibilityVersion_downgrade(database_client, collection, t
         msg=test.msg,
         raw_res=True,
     )
-    execute_admin_command(collection, {"setFeatureCompatibilityVersion": original, "confirm": True})
 
 
 @pytest.mark.parametrize("test", pytest_params(UPGRADE_TESTS))
@@ -136,4 +135,3 @@ def test_setFeatureCompatibilityVersion_getParameter_reflects_change(
     result = execute_admin_command(collection, test.build_command(ctx))
     expected = {"ok": 1.0, "featureCompatibilityVersion": {"version": other}}
     assertSuccessPartial(result, expected, msg=test.msg)
-    execute_admin_command(collection, {"setFeatureCompatibilityVersion": original, "confirm": True})
