@@ -22,9 +22,8 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Error: non-object argument
-# ---------------------------------------------------------------------------
+# Property [Object Argument]: $map rejects non-object arguments.
 NON_OBJECT_ARG_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="null_arg",
@@ -58,9 +57,8 @@ NON_OBJECT_ARG_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: unknown fields
-# ---------------------------------------------------------------------------
+# Property [Unknown Fields]: $map rejects unknown fields in the argument.
 UNKNOWN_FIELD_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="extra_unknown",
@@ -76,9 +74,8 @@ UNKNOWN_FIELD_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: missing required fields
-# ---------------------------------------------------------------------------
+# Property [Required Fields]: $map requires the input and in fields.
 MISSING_REQUIRED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="missing_input",
@@ -106,9 +103,7 @@ MISSING_REQUIRED_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_STRUCTURE_TESTS = NON_OBJECT_ARG_TESTS + UNKNOWN_FIELD_TESTS + MISSING_REQUIRED_TESTS
 
 

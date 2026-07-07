@@ -16,9 +16,8 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Field path lookups
-# ---------------------------------------------------------------------------
+# Property [Field Lookup]: $map resolves field paths in expressions.
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_field_path",
@@ -71,9 +70,8 @@ FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # $let and system variables
-# ---------------------------------------------------------------------------
+# Property [Variables]: $map works with $let and system variables.
 LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="let_variable",
@@ -103,9 +101,8 @@ LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Null/missing via expression
-# ---------------------------------------------------------------------------
+# Property [Null/Missing Fields]: $map handles null and missing field paths.
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="missing_field",
@@ -137,9 +134,8 @@ NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Nested $map
-# ---------------------------------------------------------------------------
+# Property [Nested Map]: $map can be nested inside another $map.
 NESTED_MAP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_map",
@@ -163,9 +159,8 @@ NESTED_MAP_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-# ---------------------------------------------------------------------------
 # $map within $reduce and vice versa
-# ---------------------------------------------------------------------------
+# Property [Reduce Interaction]: $map output works with $reduce.
 REDUCE_INTERACTION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="map_within_reduce",
@@ -202,9 +197,8 @@ REDUCE_INTERACTION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # $$ROOT returning full document, $$REMOVE behavior
-# ---------------------------------------------------------------------------
+# Property [System Variables]: $map works with $$ROOT and $$CURRENT.
 SYSTEM_VAR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="root_returns_full_doc",
@@ -235,9 +229,7 @@ SYSTEM_VAR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_EXPR_TESTS = (
     FIELD_LOOKUP_TESTS
     + LET_AND_VARIABLE_TESTS

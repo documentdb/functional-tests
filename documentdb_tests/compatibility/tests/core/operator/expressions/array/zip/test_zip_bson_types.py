@@ -32,9 +32,8 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-# ---------------------------------------------------------------------------
 # BSON types preserved after zipping
-# ---------------------------------------------------------------------------
+# Property [Type Preservation]: $map preserves each element's BSON type.
 BSON_TYPE_TESTS: list[ZipTest] = [
     ZipTest(
         id="int64_values",
@@ -108,9 +107,8 @@ BSON_TYPE_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Mixed BSON types across arrays
-# ---------------------------------------------------------------------------
+# Property [Mixed Types]: $map processes arrays with mixed BSON types.
 MIXED_BSON_TESTS: list[ZipTest] = [
     ZipTest(
         id="mixed_bson_types",
@@ -120,9 +118,8 @@ MIXED_BSON_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Special numeric values as elements
-# ---------------------------------------------------------------------------
+# Property [Special Numerics]: $map preserves NaN, Infinity, and boundary values.
 SPECIAL_NUMERIC_TESTS: list[ZipTest] = [
     ZipTest(
         id="infinity_values",
@@ -156,9 +153,7 @@ SPECIAL_NUMERIC_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Defaults with BSON types
-# ---------------------------------------------------------------------------
 BSON_DEFAULTS_TESTS: list[ZipTest] = [
     ZipTest(
         id="default_int64",
@@ -232,9 +227,7 @@ BSON_DEFAULTS_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Defaults with special numeric values
-# ---------------------------------------------------------------------------
 SPECIAL_NUMERIC_DEFAULTS_TESTS: list[ZipTest] = [
     ZipTest(
         id="default_infinity",
@@ -294,9 +287,7 @@ SPECIAL_NUMERIC_DEFAULTS_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_BSON_TESTS = (
     BSON_TYPE_TESTS
     + MIXED_BSON_TESTS

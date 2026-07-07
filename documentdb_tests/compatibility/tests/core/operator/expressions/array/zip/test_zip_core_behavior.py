@@ -19,9 +19,8 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Success: basic zipping — equal length arrays
-# ---------------------------------------------------------------------------
+# Property [Basic Transform]: $map applies an expression to each element.
 BASIC_TESTS: list[ZipTest] = [
     ZipTest(
         id="two_int_arrays",
@@ -55,9 +54,8 @@ BASIC_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: unequal length — truncate to shortest (default)
-# ---------------------------------------------------------------------------
+# Property [Unequal Length]: $zip truncates to the shortest array.
 UNEQUAL_LENGTH_TESTS: list[ZipTest] = [
     ZipTest(
         id="first_shorter",
@@ -79,9 +77,7 @@ UNEQUAL_LENGTH_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: useLongestLength
-# ---------------------------------------------------------------------------
 USE_LONGEST_TESTS: list[ZipTest] = [
     ZipTest(
         id="longest_pads_null",
@@ -113,9 +109,8 @@ USE_LONGEST_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: defaults
-# ---------------------------------------------------------------------------
+# Property [Defaults]: $zip pads shorter arrays with default values.
 DEFAULTS_TESTS: list[ZipTest] = [
     ZipTest(
         id="defaults_fill_shorter",
@@ -191,9 +186,7 @@ DEFAULTS_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: empty and single element
-# ---------------------------------------------------------------------------
 DEGENERATE_TESTS: list[ZipTest] = [
     ZipTest(
         id="both_empty",
@@ -253,9 +246,8 @@ DEGENERATE_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: nested arrays as elements
-# ---------------------------------------------------------------------------
+# Property [Nested Arrays]: $map operates on nested array structures.
 NESTED_ARRAY_TESTS: list[ZipTest] = [
     ZipTest(
         id="nested_arrays",
@@ -277,9 +269,7 @@ NESTED_ARRAY_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: null propagation
-# ---------------------------------------------------------------------------
 NULL_TESTS: list[ZipTest] = [
     ZipTest(
         id="null_first_input",
@@ -307,9 +297,7 @@ NULL_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: objects as elements
-# ---------------------------------------------------------------------------
 OBJECT_TESTS: list[ZipTest] = [
     ZipTest(
         id="arrays_of_objects",
@@ -319,9 +307,8 @@ OBJECT_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: large arrays
-# ---------------------------------------------------------------------------
+# Property [Large Arrays]: $map handles large arrays.
 LARGE_ARRAY_TESTS: list[ZipTest] = [
     ZipTest(
         id="large_arrays",
@@ -331,9 +318,7 @@ LARGE_ARRAY_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: many input arrays
-# ---------------------------------------------------------------------------
 MANY_INPUTS_TESTS: list[ZipTest] = [
     ZipTest(
         id="ten_inputs",
@@ -349,9 +334,7 @@ MANY_INPUTS_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: multiple arrays of different lengths
-# ---------------------------------------------------------------------------
 MULTI_LENGTH_TESTS: list[ZipTest] = [
     ZipTest(
         id="three_arrays_shortest",
@@ -389,9 +372,7 @@ MULTI_LENGTH_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = (
     BASIC_TESTS
     + UNEQUAL_LENGTH_TESTS

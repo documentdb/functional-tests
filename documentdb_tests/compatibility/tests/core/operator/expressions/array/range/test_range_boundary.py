@@ -17,9 +17,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import INT32_MAX, INT32_MAX_MINUS_1, INT32_MIN
 
-# ---------------------------------------------------------------------------
 # Success: INT32 boundary values
-# ---------------------------------------------------------------------------
 INT32_BOUNDARY_TESTS: list[RangeTest] = [
     RangeTest(
         id="int32_max_eq",
@@ -82,9 +80,7 @@ INT32_BOUNDARY_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_BOUNDARY_TESTS = INT32_BOUNDARY_TESTS
 
 

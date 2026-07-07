@@ -17,9 +17,8 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.error_codes import ZIP_REQUIRES_ARRAY_ELEMENT_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Field path lookups
-# ---------------------------------------------------------------------------
+# Property [Field Lookup]: $map resolves field paths in expressions.
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_field_path",
@@ -51,9 +50,7 @@ FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Composite array paths
-# ---------------------------------------------------------------------------
 COMPOSITE_PATH_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="composite_array",
@@ -71,9 +68,7 @@ COMPOSITE_PATH_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # $let and system variables
-# ---------------------------------------------------------------------------
 LET_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="let_variable",
@@ -103,9 +98,8 @@ LET_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Null/missing via expression
-# ---------------------------------------------------------------------------
+# Property [Null/Missing Fields]: $map handles null and missing field paths.
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="missing_field",
@@ -181,9 +175,7 @@ NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Self-composition
-# ---------------------------------------------------------------------------
 SELF_COMPOSITION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_zip_full",
@@ -201,9 +193,7 @@ SELF_COMPOSITION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Field path as element in input array
-# ---------------------------------------------------------------------------
 FIELD_PATH_ELEMENT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="field_path_as_element",
@@ -230,9 +220,7 @@ FIELD_PATH_ELEMENT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_EXPR_TESTS = (
     FIELD_LOOKUP_TESTS
     + COMPOSITE_PATH_TESTS

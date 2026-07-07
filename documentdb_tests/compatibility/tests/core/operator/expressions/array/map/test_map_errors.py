@@ -39,9 +39,7 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-# ---------------------------------------------------------------------------
 # Error: non-array input — standard BSON types
-# ---------------------------------------------------------------------------
 NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="string_input",
@@ -157,9 +155,7 @@ NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: special float/Decimal128 values
-# ---------------------------------------------------------------------------
 SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nan_input",
@@ -226,9 +222,7 @@ SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: numeric boundary values
-# ---------------------------------------------------------------------------
 BOUNDARY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int32_max_input",
@@ -274,9 +268,7 @@ BOUNDARY_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = NOT_ARRAY_ERROR_TESTS + SPECIAL_NUMERIC_ERROR_TESTS + BOUNDARY_ERROR_TESTS
 
 

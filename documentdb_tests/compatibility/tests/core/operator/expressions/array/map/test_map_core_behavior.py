@@ -17,9 +17,8 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Success: basic mapping
-# ---------------------------------------------------------------------------
+# Property [Basic Transform]: $map applies an expression to each element.
 BASIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="multiply_each",
@@ -93,9 +92,8 @@ BASIC_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: nested arrays (map does not flatten)
-# ---------------------------------------------------------------------------
+# Property [Nested Arrays]: $map operates on nested array structures.
 NESTED_ARRAY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_arrays_identity",
@@ -120,9 +118,7 @@ NESTED_ARRAY_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: elements with null
-# ---------------------------------------------------------------------------
 NULL_ELEMENT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="null_elements_identity",
@@ -140,9 +136,7 @@ NULL_ELEMENT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: wrap each element
-# ---------------------------------------------------------------------------
 WRAP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="wrap_in_array",
@@ -160,9 +154,7 @@ WRAP_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: type conversion in expression
-# ---------------------------------------------------------------------------
 TYPE_CONVERSION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="to_string",
@@ -180,9 +172,8 @@ TYPE_CONVERSION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: large array
-# ---------------------------------------------------------------------------
+# Property [Large Arrays]: $map handles large arrays.
 LARGE_ARRAY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="large_array_1000",
@@ -193,9 +184,7 @@ LARGE_ARRAY_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: order preservation and duplicates
-# ---------------------------------------------------------------------------
 ORDER_DUPLICATE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="preserves_order",
@@ -221,9 +210,8 @@ ORDER_DUPLICATE_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-# ---------------------------------------------------------------------------
 # Success: null element propagation
-# ---------------------------------------------------------------------------
+# Property [Null Propagation]: $zip returns null when inputs is null.
 NULL_PROPAGATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="null_add_propagation",
@@ -255,9 +243,7 @@ NULL_PROPAGATION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: conditional in expressions
-# ---------------------------------------------------------------------------
 CONDITIONAL_IN_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="cond_classify",
@@ -282,9 +268,7 @@ CONDITIONAL_IN_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: complex nested in expressions
-# ---------------------------------------------------------------------------
 NESTED_IN_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_multiply_add",
@@ -309,9 +293,7 @@ NESTED_IN_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = (
     BASIC_TESTS
     + NESTED_ARRAY_TESTS

@@ -18,9 +18,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Success: basic ascending ranges (default step=1)
-# ---------------------------------------------------------------------------
 BASIC_ASC_TESTS: list[RangeTest] = [
     RangeTest(
         id="zero_to_five",
@@ -59,9 +57,8 @@ BASIC_ASC_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: custom step
-# ---------------------------------------------------------------------------
+# Property [Step]: $range respects custom step values.
 STEP_TESTS: list[RangeTest] = [
     RangeTest(
         id="step_two",
@@ -128,9 +125,7 @@ STEP_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: negative step (descending)
-# ---------------------------------------------------------------------------
 NEGATIVE_STEP_TESTS: list[RangeTest] = [
     RangeTest(
         id="descending_basic",
@@ -190,9 +185,7 @@ NEGATIVE_STEP_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: empty results
-# ---------------------------------------------------------------------------
 EMPTY_TESTS: list[RangeTest] = [
     RangeTest(
         id="ascending_wrong_direction",
@@ -242,9 +235,7 @@ EMPTY_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: numeric type acceptance (int64, whole doubles, whole decimal128)
-# ---------------------------------------------------------------------------
 NUMERIC_TYPE_TESTS: list[RangeTest] = [
     RangeTest(
         id="int64_args",
@@ -314,9 +305,8 @@ NUMERIC_TYPE_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: single element result
-# ---------------------------------------------------------------------------
+# Property [Single Element]: $range produces single-element arrays.
 SINGLE_ELEMENT_TESTS: list[RangeTest] = [
     RangeTest(
         id="single_element",
@@ -351,9 +341,7 @@ SINGLE_ELEMENT_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: negative number ranges
-# ---------------------------------------------------------------------------
 NEGATIVE_RANGE_TESTS: list[RangeTest] = [
     RangeTest(
         id="neg_to_zero",
@@ -403,9 +391,7 @@ NEGATIVE_RANGE_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: large range
-# ---------------------------------------------------------------------------
 LARGE_RANGE_TESTS: list[RangeTest] = [
     RangeTest(
         id="large_range",
@@ -416,9 +402,7 @@ LARGE_RANGE_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Success: negative zero start/end
-# ---------------------------------------------------------------------------
 NEG_ZERO_TESTS: list[RangeTest] = [
     RangeTest(
         id="neg_zero_double_start",
@@ -450,9 +434,7 @@ NEG_ZERO_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = (
     BASIC_ASC_TESTS
     + STEP_TESTS

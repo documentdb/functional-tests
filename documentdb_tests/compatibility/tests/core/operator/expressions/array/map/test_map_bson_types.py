@@ -33,9 +33,8 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-# ---------------------------------------------------------------------------
 # BSON types preserved via identity map
-# ---------------------------------------------------------------------------
+# Property [Type Preservation]: $map preserves each element's BSON type.
 BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int64_values",
@@ -125,9 +124,8 @@ BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Mixed BSON types
-# ---------------------------------------------------------------------------
+# Property [Mixed Types]: $map processes arrays with mixed BSON types.
 MIXED_BSON_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="mixed_bson_types",
@@ -155,9 +153,8 @@ MIXED_BSON_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Special numeric values as elements
-# ---------------------------------------------------------------------------
+# Property [Special Numerics]: $map preserves NaN, Infinity, and boundary values.
 SPECIAL_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="infinity_values",
@@ -189,9 +186,7 @@ SPECIAL_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Decimal128 precision preservation
-# ---------------------------------------------------------------------------
 DECIMAL128_PRECISION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="decimal128_trailing_zeros",
@@ -209,9 +204,8 @@ DECIMAL128_PRECISION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # BSON type transformations
-# ---------------------------------------------------------------------------
+# Property [Type Transform]: $map transforms elements using type-specific operations.
 BSON_TRANSFORM_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="multiply_int64",
@@ -303,9 +297,7 @@ BSON_TRANSFORM_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_BSON_TESTS = (
     BSON_TYPE_TESTS
     + MIXED_BSON_TESTS

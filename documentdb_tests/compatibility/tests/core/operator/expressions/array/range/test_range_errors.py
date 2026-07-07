@@ -43,9 +43,7 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-# ---------------------------------------------------------------------------
 # Error: non-numeric start
-# ---------------------------------------------------------------------------
 NON_NUMERIC_START_TESTS: list[RangeTest] = [
     RangeTest(
         id="string_start",
@@ -133,9 +131,7 @@ NON_NUMERIC_START_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: non-numeric end
-# ---------------------------------------------------------------------------
 NON_NUMERIC_END_TESTS: list[RangeTest] = [
     RangeTest(
         id="string_end",
@@ -223,9 +219,7 @@ NON_NUMERIC_END_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: non-numeric step
-# ---------------------------------------------------------------------------
 NON_NUMERIC_STEP_TESTS: list[RangeTest] = [
     RangeTest(
         id="string_step",
@@ -317,9 +311,7 @@ NON_NUMERIC_STEP_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: non-integral start
-# ---------------------------------------------------------------------------
 NON_INTEGRAL_START_TESTS: list[RangeTest] = [
     RangeTest(
         id="fractional_start",
@@ -358,9 +350,7 @@ NON_INTEGRAL_START_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: non-integral end
-# ---------------------------------------------------------------------------
 NON_INTEGRAL_END_TESTS: list[RangeTest] = [
     RangeTest(
         id="fractional_end",
@@ -392,9 +382,7 @@ NON_INTEGRAL_END_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: non-integral step
-# ---------------------------------------------------------------------------
 NON_INTEGRAL_STEP_TESTS: list[RangeTest] = [
     RangeTest(
         id="fractional_step",
@@ -430,9 +418,8 @@ NON_INTEGRAL_STEP_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: special numeric values
-# ---------------------------------------------------------------------------
+# Property [Special Numerics]: $map preserves NaN, Infinity, and boundary values.
 SPECIAL_NUMERIC_TESTS: list[RangeTest] = [
     RangeTest(
         id="nan_start",
@@ -492,9 +479,8 @@ SPECIAL_NUMERIC_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: step zero → 34449
-# ---------------------------------------------------------------------------
+# Property [Step Zero]: $range rejects zero step value.
 STEP_ZERO_TESTS: list[RangeTest] = [
     RangeTest(
         id="step_zero_int",
@@ -546,9 +532,7 @@ STEP_ZERO_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: out of int32 range
-# ---------------------------------------------------------------------------
 OUT_OF_INT32_TESTS: list[RangeTest] = [
     RangeTest(
         id="start_int64_max",
@@ -632,9 +616,7 @@ OUT_OF_INT32_TESTS: list[RangeTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = (
     NON_NUMERIC_START_TESTS
     + NON_NUMERIC_END_TESTS
@@ -682,9 +664,7 @@ def test_range_error_insert(collection, test):
     )
 
 
-# ---------------------------------------------------------------------------
 # Error: wrong arity
-# ---------------------------------------------------------------------------
 ARITY_ERROR_TESTS = [
     pytest.param({"$range": []}, id="zero_args"),
     pytest.param({"$range": [1]}, id="one_arg"),

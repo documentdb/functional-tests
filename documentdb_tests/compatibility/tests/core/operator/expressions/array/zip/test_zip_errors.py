@@ -43,9 +43,7 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-# ---------------------------------------------------------------------------
 # Error: non-array input element — standard BSON types
-# ---------------------------------------------------------------------------
 NOT_ARRAY_ELEMENT_TESTS: list[ZipTest] = [
     ZipTest(
         id="string_input",
@@ -157,9 +155,7 @@ NOT_ARRAY_ELEMENT_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: special float/Decimal128 values as input element
-# ---------------------------------------------------------------------------
 SPECIAL_NUMERIC_ERROR_TESTS: list[ZipTest] = [
     ZipTest(
         id="nan_input",
@@ -211,9 +207,7 @@ SPECIAL_NUMERIC_ERROR_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: numeric boundary values as input element
-# ---------------------------------------------------------------------------
 BOUNDARY_ERROR_TESTS: list[ZipTest] = [
     ZipTest(
         id="int32_max_input",
@@ -253,9 +247,7 @@ BOUNDARY_ERROR_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: string edge cases as input element
-# ---------------------------------------------------------------------------
 STRING_EDGE_ERROR_TESTS: list[ZipTest] = [
     ZipTest(
         id="comma_separated_string_input",
@@ -271,9 +263,7 @@ STRING_EDGE_ERROR_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: invalid useLongestLength
-# ---------------------------------------------------------------------------
 USE_LONGEST_ERROR_TESTS: list[ZipTest] = [
     ZipTest(
         id="use_longest_string",
@@ -333,9 +323,7 @@ USE_LONGEST_ERROR_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Error: invalid defaults
-# ---------------------------------------------------------------------------
 DEFAULTS_ERROR_TESTS: list[ZipTest] = [
     ZipTest(
         id="defaults_without_use_longest",
@@ -394,9 +382,7 @@ DEFAULTS_ERROR_TESTS: list[ZipTest] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_INPUT_ELEMENT_TESTS = (
     NOT_ARRAY_ELEMENT_TESTS
     + SPECIAL_NUMERIC_ERROR_TESTS

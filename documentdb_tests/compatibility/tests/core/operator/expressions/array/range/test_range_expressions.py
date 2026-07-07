@@ -21,9 +21,8 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
 # Field path lookups
-# ---------------------------------------------------------------------------
+# Property [Field Lookup]: $map resolves field paths in expressions.
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_field_path",
@@ -55,9 +54,7 @@ FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # $let and system variables
-# ---------------------------------------------------------------------------
 LET_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="let_variable",
@@ -94,9 +91,8 @@ LET_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Null/missing via expression — $range does NOT propagate null, it errors
-# ---------------------------------------------------------------------------
+# Property [Null/Missing Fields]: $map handles null and missing field paths.
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="missing_start_field",
@@ -156,9 +152,7 @@ NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
 # Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_EXPR_TESTS = FIELD_LOOKUP_TESTS + LET_TESTS + NULL_MISSING_EXPR_TESTS
 
 
