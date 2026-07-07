@@ -28,4 +28,4 @@ def test_smoke_expression_zip(collection):
     )
 
     expected = [{"_id": 1, "zipped": [[1, 10], [2, 20]]}, {"_id": 2, "zipped": [[3, 30], [4, 40]]}]
-    assertSuccess(result, expected, msg="Should support $zip expression")
+    assertSuccess(result, expected, "Should support $zip expression")

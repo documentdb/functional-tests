@@ -26,4 +26,4 @@ def test_smoke_expression_range(collection):
     )
 
     expected = [{"_id": 1, "sequence": [0, 1, 2, 3, 4]}, {"_id": 2, "sequence": [10, 11, 12]}]
-    assertSuccess(result, expected, msg="Should support $range expression")
+    assertSuccess(result, expected, "Should support $range expression")
