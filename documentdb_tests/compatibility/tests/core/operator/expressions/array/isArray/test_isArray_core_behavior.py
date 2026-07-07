@@ -226,18 +226,6 @@ ARRAY_LIKE_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Aggregate and test
-INSERT_TESTS = IS_ARRAY_TRUE_TESTS + IS_ARRAY_FALSE_TESTS + ARRAY_LIKE_TESTS
-
-
-@pytest.mark.parametrize("test", pytest_params(INSERT_TESTS))
-def test_isArray_insert(collection, test):
-    """Test $isArray with values from inserted documents."""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
 # Property [Literal Evaluation]: $isArray evaluates correctly with inline literal values.
 TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -319,11 +307,18 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ),
 ]
 
+INSERT_TESTS = (
+    IS_ARRAY_TRUE_TESTS + IS_ARRAY_FALSE_TESTS + ARRAY_LIKE_TESTS + TEST_SUBSET_FOR_LITERAL
+)
 
-@pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
-def test_isArray_literal(collection, test):
-    """Test $isArray with literal values."""
-    result = execute_expression(collection, test.expression)
+
+@pytest.mark.parametrize("test", pytest_params(INSERT_TESTS))
+def test_isArray_insert(collection, test):
+    """Test $isArray with values from inserted documents."""
+    if test.doc is None:
+        result = execute_expression(collection, test.expression)
+    else:
+        result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

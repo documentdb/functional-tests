@@ -223,18 +223,6 @@ LARGE_ARRAY_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Aggregate and test
-ALL_TESTS = FOUND_TESTS + NOT_FOUND_TESTS + MIXED_TYPE_TESTS + LARGE_ARRAY_TESTS
-
-
-@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_in_insert(collection, test):
-    """Test $in with values from inserted documents."""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
 # Property [Literal Evaluation]: $in evaluates correctly with inline literal values.
 TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -260,11 +248,18 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ),
 ]
 
+ALL_TESTS = (
+    FOUND_TESTS + NOT_FOUND_TESTS + MIXED_TYPE_TESTS + LARGE_ARRAY_TESTS + TEST_SUBSET_FOR_LITERAL
+)
 
-@pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
-def test_in_literal(collection, test):
-    """Test $in with literal values."""
-    result = execute_expression(collection, test.expression)
+
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+def test_in_insert(collection, test):
+    """Test $in with values from inserted documents."""
+    if test.doc is None:
+        result = execute_expression(collection, test.expression)
+    else:
+        result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

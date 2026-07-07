@@ -363,16 +363,6 @@ BOUNDARY_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Aggregate and test
-ALL_BSON_TESTS = BSON_ARRAY_TRUE_TESTS + BSON_FALSE_TESTS + SPECIAL_NUMERIC_TESTS + BOUNDARY_TESTS
-
-
-@pytest.mark.parametrize("test", pytest_params(ALL_BSON_TESTS))
-def test_isArray_bson_insert(collection, test):
-    """Test $isArray BSON types with values from inserted documents."""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(result, expected=test.expected, msg=test.msg)
-
-
 # Property [Literal Evaluation]: $isArray BSON type detection works with inline literal values.
 TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -405,11 +395,20 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ),
 ]
 
+ALL_BSON_TESTS = (
+    BSON_ARRAY_TRUE_TESTS
+    + BSON_FALSE_TESTS
+    + SPECIAL_NUMERIC_TESTS
+    + BOUNDARY_TESTS
+    + TEST_SUBSET_FOR_LITERAL
+)
 
-@pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
-def test_isArray_bson_literal(collection, test):
-    """Test $isArray BSON types with literal values."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
+
+@pytest.mark.parametrize("test", pytest_params(ALL_BSON_TESTS))
+def test_isArray_bson_insert(collection, test):
+    """Test $isArray BSON types with values from inserted documents."""
+    if test.doc is None:
+        result = execute_expression(collection, test.expression)
+    else:
+        result = execute_expression_with_insert(collection, test.expression, test.doc)
+    assert_expression_result(result, expected=test.expected, msg=test.msg)

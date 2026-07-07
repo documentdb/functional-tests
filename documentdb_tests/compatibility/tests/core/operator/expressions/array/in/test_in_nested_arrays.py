@@ -156,18 +156,6 @@ DEEPLY_NESTED_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Aggregate and test
-ALL_TESTS = NESTED_MIXED_ARRAY_TESTS + DEEPLY_NESTED_TESTS
-
-
-@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_in_nested_insert(collection, test):
-    """Test $in nested array matching with values from inserted documents."""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
 # Property [Literal Evaluation]: $in nested array matching works with inline literal values.
 TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -195,11 +183,16 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ),
 ]
 
+ALL_TESTS = NESTED_MIXED_ARRAY_TESTS + DEEPLY_NESTED_TESTS + TEST_SUBSET_FOR_LITERAL
 
-@pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
-def test_in_nested_literal(collection, test):
-    """Test $in nested arrays with literal values."""
-    result = execute_expression(collection, test.expression)
+
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+def test_in_nested_insert(collection, test):
+    """Test $in nested array matching with values from inserted documents."""
+    if test.doc is None:
+        result = execute_expression(collection, test.expression)
+    else:
+        result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
