@@ -11,6 +11,7 @@ from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Ne
 from documentdb_tests.framework.test_constants import (
@@ -492,7 +493,7 @@ AGGREGATE_CURSOR_BATCHSIZE_LARGE_TESTS: list[CommandTestCase] = [
 AGGREGATE_CURSOR_RESPONSE_LIMIT_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "cursor_batchsize_16mb_limit",
-        docs=[{"_id": i, "data": "x" * 1_000_000} for i in range(20)],
+        docs=lazy(lambda: [{"_id": i, "data": "x" * 1_000_000} for i in range(20)]),
         command=lambda ctx: {
             "aggregate": ctx.collection,
             "pipeline": [],
