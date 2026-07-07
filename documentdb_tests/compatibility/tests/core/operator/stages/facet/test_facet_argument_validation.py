@@ -3,12 +3,6 @@
 Covers the positive TEST_COVERAGE.md §4 (Argument Handling) cases for $facet:
 valid edge cases such as empty sub-pipelines, many sub-pipelines, and
 unusual-but-valid output field names.
-
-Note: the "two sub-pipelines with the same output field name" spec item is not
-tested here. A BSON document cannot carry two identical field names through the
-driver -- the wire encoding collapses them to a single (last-wins) entry before
-the command is sent -- so a genuine duplicate-output-field $facet cannot be
-constructed via pymongo and the server never observes the duplicate.
 """
 
 from __future__ import annotations
