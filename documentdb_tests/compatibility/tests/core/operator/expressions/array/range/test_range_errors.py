@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.range.utils.range_common import (  # noqa: E501
-    RangeTest,
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
+    ExpressionTestCase,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
     assert_expression_result,
@@ -44,375 +44,360 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Error: non-numeric start
-NON_NUMERIC_START_TESTS: list[RangeTest] = [
-    RangeTest(
+NON_NUMERIC_START_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="string_start",
-        start="hello",
-        end=5,
+        doc={"start": "hello", "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject string start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="bool_start",
-        start=True,
-        end=5,
+        doc={"start": True, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject bool start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="null_start",
-        start=None,
-        end=5,
+        doc={"start": None, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject null start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="object_start",
-        start={"a": 1},
-        end=5,
+        doc={"start": {"a": 1}, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject object start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="array_start",
-        start=[1],
-        end=5,
+        doc={"start": [1], "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject array start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="objectid_start",
-        start=ObjectId(),
-        end=5,
+        doc={"start": ObjectId(), "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject objectid start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="datetime_start",
-        start=datetime(2024, 1, 1, tzinfo=timezone.utc),
-        end=5,
+        doc={"start": datetime(2024, 1, 1, tzinfo=timezone.utc), "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject datetime start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="binary_start",
-        start=Binary(b"x", 0),
-        end=5,
+        doc={"start": Binary(b"x", 0), "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject binary start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="regex_start",
-        start=Regex("x"),
-        end=5,
+        doc={"start": Regex("x"), "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject regex start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="maxkey_start",
-        start=MaxKey(),
-        end=5,
+        doc={"start": MaxKey(), "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject maxkey start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="minkey_start",
-        start=MinKey(),
-        end=5,
+        doc={"start": MinKey(), "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject minkey start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="timestamp_start",
-        start=Timestamp(0, 0),
-        end=5,
+        doc={"start": Timestamp(0, 0), "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject timestamp start",
     ),
 ]
 
 # Error: non-numeric end
-NON_NUMERIC_END_TESTS: list[RangeTest] = [
-    RangeTest(
+NON_NUMERIC_END_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="string_end",
-        start=0,
-        end="hello",
+        doc={"start": 0, "end": "hello"},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject string end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="bool_end",
-        start=0,
-        end=True,
+        doc={"start": 0, "end": True},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject bool end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="null_end",
-        start=0,
-        end=None,
+        doc={"start": 0, "end": None},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject null end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="object_end",
-        start=0,
-        end={"a": 1},
+        doc={"start": 0, "end": {"a": 1}},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject object end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="array_end",
-        start=0,
-        end=[1],
+        doc={"start": 0, "end": [1]},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject array end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="objectid_end",
-        start=0,
-        end=ObjectId(),
+        doc={"start": 0, "end": ObjectId()},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject objectid end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="datetime_end",
-        start=0,
-        end=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        doc={"start": 0, "end": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject datetime end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="binary_end",
-        start=0,
-        end=Binary(b"x", 0),
+        doc={"start": 0, "end": Binary(b"x", 0)},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject binary end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="regex_end",
-        start=0,
-        end=Regex("x"),
+        doc={"start": 0, "end": Regex("x")},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject regex end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="maxkey_end",
-        start=0,
-        end=MaxKey(),
+        doc={"start": 0, "end": MaxKey()},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject maxkey end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="minkey_end",
-        start=0,
-        end=MinKey(),
+        doc={"start": 0, "end": MinKey()},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject minkey end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="timestamp_end",
-        start=0,
-        end=Timestamp(0, 0),
+        doc={"start": 0, "end": Timestamp(0, 0)},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject timestamp end",
     ),
 ]
 
 # Error: non-numeric step
-NON_NUMERIC_STEP_TESTS: list[RangeTest] = [
-    RangeTest(
+NON_NUMERIC_STEP_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="string_step",
-        start=0,
-        end=5,
-        step="bad",
+        doc={"start": 0, "end": 5, "step": "bad"},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject string step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="bool_step",
-        start=0,
-        end=5,
-        step=True,
+        doc={"start": 0, "end": 5, "step": True},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject bool step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="object_step",
-        start=0,
-        end=5,
-        step={"a": 1},
+        doc={"start": 0, "end": 5, "step": {"a": 1}},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject object step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="array_step",
-        start=0,
-        end=5,
-        step=[1],
+        doc={"start": 0, "end": 5, "step": [1]},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject array step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="objectid_step",
-        start=0,
-        end=5,
-        step=ObjectId(),
+        doc={"start": 0, "end": 5, "step": ObjectId()},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject objectid step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="datetime_step",
-        start=0,
-        end=5,
-        step=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        doc={"start": 0, "end": 5, "step": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject datetime step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="binary_step",
-        start=0,
-        end=5,
-        step=Binary(b"x", 0),
+        doc={"start": 0, "end": 5, "step": Binary(b"x", 0)},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject binary step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="regex_step",
-        start=0,
-        end=5,
-        step=Regex("x"),
+        doc={"start": 0, "end": 5, "step": Regex("x")},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject regex step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="maxkey_step",
-        start=0,
-        end=5,
-        step=MaxKey(),
+        doc={"start": 0, "end": 5, "step": MaxKey()},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject maxkey step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="minkey_step",
-        start=0,
-        end=5,
-        step=MinKey(),
+        doc={"start": 0, "end": 5, "step": MinKey()},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject minkey step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="timestamp_step",
-        start=0,
-        end=5,
-        step=Timestamp(0, 0),
+        doc={"start": 0, "end": 5, "step": Timestamp(0, 0)},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject timestamp step",
     ),
 ]
 
 # Error: non-integral start
-NON_INTEGRAL_START_TESTS: list[RangeTest] = [
-    RangeTest(
+NON_INTEGRAL_START_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="fractional_start",
-        start=1.5,
-        end=5,
+        doc={"start": 1.5, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject fractional start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="decimal128_fractional_start",
-        start=Decimal128("0.5"),
-        end=5,
+        doc={"start": Decimal128("0.5"), "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject fractional Decimal128 start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="negative_fractional_start",
-        start=-1.5,
-        end=5,
+        doc={"start": -1.5, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject negative fractional start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="decimal128_negative_fractional_start",
-        start=Decimal128("-1.5"),
-        end=5,
+        doc={"start": Decimal128("-1.5"), "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject negative fractional Decimal128 start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="decimal128_negative_nan_start",
-        start=Decimal128("-NaN"),
-        end=5,
+        doc={"start": Decimal128("-NaN"), "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject Decimal128 -NaN start",
     ),
 ]
 
 # Error: non-integral end
-NON_INTEGRAL_END_TESTS: list[RangeTest] = [
-    RangeTest(
+NON_INTEGRAL_END_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="fractional_end",
-        start=0,
-        end=5.5,
+        doc={"start": 0, "end": 5.5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject fractional end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="decimal128_fractional_end",
-        start=0,
-        end=Decimal128("5.5"),
+        doc={"start": 0, "end": Decimal128("5.5")},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject fractional Decimal128 end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="negative_fractional_end",
-        start=0,
-        end=-1.5,
+        doc={"start": 0, "end": -1.5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject negative fractional end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="decimal128_negative_fractional_end",
-        start=0,
-        end=Decimal128("-1.5"),
+        doc={"start": 0, "end": Decimal128("-1.5")},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject negative fractional Decimal128 end",
     ),
 ]
 
 # Error: non-integral step
-NON_INTEGRAL_STEP_TESTS: list[RangeTest] = [
-    RangeTest(
+NON_INTEGRAL_STEP_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="fractional_step",
-        start=0,
-        end=10,
-        step=1.5,
+        doc={"start": 0, "end": 10, "step": 1.5},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_INT32_ERROR,
         msg="Should reject fractional step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="decimal128_fractional_step",
-        start=0,
-        end=10,
-        step=Decimal128("1.5"),
+        doc={"start": 0, "end": 10, "step": Decimal128("1.5")},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_INT32_ERROR,
         msg="Should reject fractional Decimal128 step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="negative_fractional_step",
-        start=10,
-        end=0,
-        step=-1.5,
+        doc={"start": 10, "end": 0, "step": -1.5},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_INT32_ERROR,
         msg="Should reject negative fractional step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="decimal128_negative_fractional_step",
-        start=10,
-        end=0,
-        step=Decimal128("-1.5"),
+        doc={"start": 10, "end": 0, "step": Decimal128("-1.5")},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_INT32_ERROR,
         msg="Should reject negative fractional Decimal128 step",
     ),
@@ -420,60 +405,60 @@ NON_INTEGRAL_STEP_TESTS: list[RangeTest] = [
 
 # Error: special numeric values
 # Property [Special Numerics]: $map preserves NaN, Infinity, and boundary values.
-SPECIAL_NUMERIC_TESTS: list[RangeTest] = [
-    RangeTest(
+SPECIAL_NUMERIC_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="nan_start",
-        start=FLOAT_NAN,
-        end=5,
+        doc={"start": FLOAT_NAN, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject NaN start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="inf_start",
-        start=FLOAT_INFINITY,
-        end=5,
+        doc={"start": FLOAT_INFINITY, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject Infinity start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="neg_inf_start",
-        start=FLOAT_NEGATIVE_INFINITY,
-        end=5,
+        doc={"start": FLOAT_NEGATIVE_INFINITY, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject -Infinity start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="nan_end",
-        start=0,
-        end=FLOAT_NAN,
+        doc={"start": 0, "end": FLOAT_NAN},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject NaN end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="inf_end",
-        start=0,
-        end=FLOAT_INFINITY,
+        doc={"start": 0, "end": FLOAT_INFINITY},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject Infinity end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="decimal128_nan_start",
-        start=DECIMAL128_NAN,
-        end=5,
+        doc={"start": DECIMAL128_NAN, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject Decimal128 NaN start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="decimal128_inf_start",
-        start=DECIMAL128_INFINITY,
-        end=5,
+        doc={"start": DECIMAL128_INFINITY, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject Decimal128 Infinity start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="decimal128_neg_inf_end",
-        start=0,
-        end=DECIMAL128_NEGATIVE_INFINITY,
+        doc={"start": 0, "end": DECIMAL128_NEGATIVE_INFINITY},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject Decimal128 -Infinity end",
     ),
@@ -481,136 +466,127 @@ SPECIAL_NUMERIC_TESTS: list[RangeTest] = [
 
 # Error: step zero → 34449
 # Property [Step Zero]: $range rejects zero step value.
-STEP_ZERO_TESTS: list[RangeTest] = [
-    RangeTest(
+STEP_ZERO_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="step_zero_int",
-        start=0,
-        end=5,
-        step=0,
+        doc={"start": 0, "end": 5, "step": 0},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="Should reject step 0",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="step_zero_int64",
-        start=0,
-        end=5,
-        step=Int64(0),
+        doc={"start": 0, "end": 5, "step": Int64(0)},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="Should reject Int64 step 0",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="step_zero_double",
-        start=0,
-        end=5,
-        step=0.0,
+        doc={"start": 0, "end": 5, "step": 0.0},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="Should reject double step 0.0",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="step_zero_decimal128",
-        start=0,
-        end=5,
-        step=Decimal128("0"),
+        doc={"start": 0, "end": 5, "step": Decimal128("0")},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="Should reject Decimal128 step 0",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="step_neg_zero_double",
-        start=0,
-        end=5,
-        step=-0.0,
+        doc={"start": 0, "end": 5, "step": -0.0},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="Should reject negative zero double step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="step_neg_zero_decimal128",
-        start=0,
-        end=5,
-        step=Decimal128("-0"),
+        doc={"start": 0, "end": 5, "step": Decimal128("-0")},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="Should reject negative zero Decimal128 step",
     ),
 ]
 
 # Error: out of int32 range
-OUT_OF_INT32_TESTS: list[RangeTest] = [
-    RangeTest(
+OUT_OF_INT32_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         id="start_int64_max",
-        start=INT64_MAX,
-        end=5,
+        doc={"start": INT64_MAX, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject INT64_MAX start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="start_int64_min",
-        start=INT64_MIN,
-        end=5,
+        doc={"start": INT64_MIN, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject INT64_MIN start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="end_int64_max",
-        start=0,
-        end=INT64_MAX,
+        doc={"start": 0, "end": INT64_MAX},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject INT64_MAX end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="end_int64_min",
-        start=0,
-        end=INT64_MIN,
+        doc={"start": 0, "end": INT64_MIN},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject INT64_MIN end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="step_int64_max",
-        start=0,
-        end=5,
-        step=INT64_MAX,
+        doc={"start": 0, "end": 5, "step": INT64_MAX},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_INT32_ERROR,
         msg="Should reject INT64_MAX step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="start_int32_overflow",
-        start=INT32_OVERFLOW,
-        end=5,
+        doc={"start": INT32_OVERFLOW, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject INT32_OVERFLOW start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="start_int32_underflow",
-        start=INT32_UNDERFLOW,
-        end=5,
+        doc={"start": INT32_UNDERFLOW, "end": 5},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="Should reject INT32_UNDERFLOW start",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="end_int32_overflow",
-        start=0,
-        end=INT32_OVERFLOW,
+        doc={"start": 0, "end": INT32_OVERFLOW},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject INT32_OVERFLOW end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="end_int32_underflow",
-        start=0,
-        end=INT32_UNDERFLOW,
+        doc={"start": 0, "end": INT32_UNDERFLOW},
+        expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="Should reject INT32_UNDERFLOW end",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="step_int32_overflow",
-        start=0,
-        end=5,
-        step=INT32_OVERFLOW,
+        doc={"start": 0, "end": 5, "step": INT32_OVERFLOW},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_INT32_ERROR,
         msg="Should reject INT32_OVERFLOW step",
     ),
-    RangeTest(
+    ExpressionTestCase(
         id="step_int32_underflow",
-        start=0,
-        end=5,
-        step=INT32_UNDERFLOW,
+        doc={"start": 0, "end": 5, "step": INT32_UNDERFLOW},
+        expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_INT32_ERROR,
         msg="Should reject INT32_UNDERFLOW step",
     ),
@@ -630,35 +606,13 @@ ALL_TESTS = (
 )
 
 
-TEST_SUBSET_FOR_LITERAL = [
-    NON_NUMERIC_START_TESTS[0],  # string_start
-    NON_INTEGRAL_START_TESTS[0],  # fractional_start
-    SPECIAL_NUMERIC_TESTS[0],  # nan_start
-    STEP_ZERO_TESTS[0],  # step_zero_int
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
-def test_range_error_literal(collection, test):
-    """Test $range error with literal values."""
-    args = [test.start, test.end]
-    if test.step is not None:
-        args.append(test.step)
-    result = execute_expression(collection, {"$range": args})
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_range_error_insert(collection, test):
     """Test $range error with values from inserted documents."""
-    doc = {"start": test.start, "end": test.end}
-    args = ["$start", "$end"]
-    if test.step is not None:
-        args.append("$step")
-        doc["step"] = test.step
-    result = execute_expression_with_insert(collection, {"$range": args}, doc)
+    if test.doc is None:
+        result = execute_expression(collection, test.expression)
+    else:
+        result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
