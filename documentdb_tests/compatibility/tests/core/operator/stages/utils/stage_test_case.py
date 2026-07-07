@@ -24,6 +24,9 @@ class StageTestCase(BaseTestCase):
     docs: list[dict[str, Any]] | None = None
     setup: Callable | None = None
     pipeline: list[dict[str, Any]] = field(default_factory=list)
+    ignore_doc_order: bool = False
+    ignore_order_in: list[str] | None = None
+    extra_command_fields: dict[str, Any] = field(default_factory=dict)
 
 
 def populate_collection(collection: Collection, test_case: StageTestCase) -> Collection:
