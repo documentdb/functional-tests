@@ -12,7 +12,6 @@ from pymongo.collection import Collection
 from documentdb_tests.compatibility.tests.core.operator.stages.searchMeta.utils.searchMeta_common import (  # noqa: E501
     CollectionFixtureTestCase,
     build_collection,
-    open_search_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -20,13 +19,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import INT64_ZERO
 
 pytestmark = pytest.mark.requires(search=True)
-
-
-@pytest.fixture(scope="module")
-def search_collection(engine_client, worker_id) -> Iterator[Collection]:
-    """Module-scoped metadata search collection (default + alt_idx indexes)."""
-    with open_search_collection(engine_client, worker_id, f"{__name__}::search_collection") as coll:
-        yield coll
 
 
 # Dates spanning two query buckets: ids 1-3 fall in the first interval and ids

@@ -2,15 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-
 import pytest
 from bson import Int64
-from pymongo.collection import Collection
 
-from documentdb_tests.compatibility.tests.core.operator.stages.searchMeta.utils.searchMeta_common import (  # noqa: E501
-    open_search_collection,
-)
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
 )
@@ -19,13 +13,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = pytest.mark.requires(search=True)
-
-
-@pytest.fixture(scope="module")
-def search_collection(engine_client, worker_id) -> Iterator[Collection]:
-    """Module-scoped metadata search collection (default + alt_idx indexes)."""
-    with open_search_collection(engine_client, worker_id, f"{__name__}::search_collection") as coll:
-        yield coll
 
 
 # Property [Facet Stage Count Modifier]: a stage-level count modifier changes

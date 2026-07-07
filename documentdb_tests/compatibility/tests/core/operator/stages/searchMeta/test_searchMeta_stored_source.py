@@ -12,7 +12,6 @@ from pymongo.collection import Collection
 from documentdb_tests.compatibility.tests.core.operator.stages.searchMeta.utils.searchMeta_common import (  # noqa: E501
     CollectionFixtureTestCase,
     build_collection,
-    open_search_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import UNKNOWN_ERROR
@@ -21,13 +20,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
 
 pytestmark = pytest.mark.requires(search=True)
-
-
-@pytest.fixture(scope="module")
-def search_collection(engine_client, worker_id) -> Iterator[Collection]:
-    """Module-scoped metadata search collection without a storedSource config."""
-    with open_search_collection(engine_client, worker_id, f"{__name__}::search_collection") as coll:
-        yield coll
 
 
 _STORED_SOURCE_DOCS = [

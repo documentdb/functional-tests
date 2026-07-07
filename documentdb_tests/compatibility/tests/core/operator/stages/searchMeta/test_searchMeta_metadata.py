@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from datetime import datetime, timezone
 
 import pytest
@@ -16,11 +15,7 @@ from bson import (
     Regex,
     Timestamp,
 )
-from pymongo.collection import Collection
 
-from documentdb_tests.compatibility.tests.core.operator.stages.searchMeta.utils.searchMeta_common import (  # noqa: E501
-    open_search_collection,
-)
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
 )
@@ -35,13 +30,6 @@ from documentdb_tests.framework.property_checks import Gte, Lte
 from documentdb_tests.framework.test_constants import DECIMAL128_ZERO, INT32_MAX
 
 pytestmark = pytest.mark.requires(search=True)
-
-
-@pytest.fixture(scope="module")
-def search_collection(engine_client, worker_id) -> Iterator[Collection]:
-    """Module-scoped metadata search collection (default + alt_idx indexes)."""
-    with open_search_collection(engine_client, worker_id, f"{__name__}::search_collection") as coll:
-        yield coll
 
 
 # Property [Count Result Shape and Defaults]: count.type selects the result
