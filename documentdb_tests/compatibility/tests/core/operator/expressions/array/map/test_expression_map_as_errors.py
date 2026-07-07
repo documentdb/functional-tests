@@ -13,9 +13,9 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
     ExpressionTestCase,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -125,4 +125,4 @@ ALL_AS_TESTS = INVALID_AS_TYPE_TESTS
 def test_map_invalid_as(collection, test):
     """Test $map with invalid 'as' parameter values."""
     result = execute_expression(collection, test.expression)
-    assertResult(result, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(result, error_code=test.error_code, msg=test.msg)

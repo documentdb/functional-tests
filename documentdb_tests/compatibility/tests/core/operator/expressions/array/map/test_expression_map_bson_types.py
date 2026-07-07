@@ -5,7 +5,7 @@ Tests that various BSON types are preserved when mapping over arrays,
 including special numeric values and boundary values.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -15,9 +15,9 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
     ExpressionTestCase,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
@@ -54,8 +54,16 @@ BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="datetime_values",
         expression={"$map": {"input": "$arr", "in": "$$this"}},
-        doc={"arr": [datetime(2024, 1, 1), datetime(2024, 6, 1)]},
-        expected=[datetime(2024, 1, 1), datetime(2024, 6, 1)],
+        doc={
+            "arr": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 6, 1, tzinfo=timezone.utc),
+            ]
+        },
+        expected=[
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+            datetime(2024, 6, 1, tzinfo=timezone.utc),
+        ],
         msg="Should preserve datetime values",
     ),
     ExpressionTestCase(
@@ -131,8 +139,18 @@ MIXED_BSON_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="mixed_dates_and_ids",
         expression={"$map": {"input": "$arr", "in": "$$this"}},
-        doc={"arr": [datetime(2024, 1, 1), ObjectId("000000000000000000000001"), Timestamp(1, 0)]},
-        expected=[datetime(2024, 1, 1), ObjectId("000000000000000000000001"), Timestamp(1, 0)],
+        doc={
+            "arr": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                ObjectId("000000000000000000000001"),
+                Timestamp(1, 0),
+            ]
+        },
+        expected=[
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+            ObjectId("000000000000000000000001"),
+            Timestamp(1, 0),
+        ],
         msg="Should preserve dates, ObjectIds, timestamps",
     ),
 ]
@@ -224,7 +242,12 @@ BSON_TRANSFORM_TESTS: list[ExpressionTestCase] = [
                 "in": {"$dateToString": {"format": "%Y-%m-%d", "date": "$$this"}},
             }
         },
-        doc={"arr": [datetime(2024, 1, 1), datetime(2024, 6, 15)]},
+        doc={
+            "arr": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 6, 15, tzinfo=timezone.utc),
+            ]
+        },
         expected=["2024-01-01", "2024-06-15"],
         msg="$dateToString on datetime array",
     ),
@@ -259,8 +282,16 @@ BSON_TRANSFORM_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="add_millis_to_datetime",
         expression={"$map": {"input": "$arr", "in": {"$add": ["$$this", 86400000]}}},
-        doc={"arr": [datetime(2024, 1, 1), datetime(2024, 6, 1)]},
-        expected=[datetime(2024, 1, 2), datetime(2024, 6, 2)],
+        doc={
+            "arr": [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 6, 1, tzinfo=timezone.utc),
+            ]
+        },
+        expected=[
+            datetime(2024, 1, 2, tzinfo=timezone.utc),
+            datetime(2024, 6, 2, tzinfo=timezone.utc),
+        ],
         msg="Add one day in millis to datetime array",
     ),
     ExpressionTestCase(
@@ -288,4 +319,4 @@ ALL_BSON_TESTS = (
 def test_map_bson_insert(collection, test):
     """Test $map BSON types with values from inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assertResult(result, expected=test.expected, msg=test.msg)
+    assert_expression_result(result, expected=test.expected, msg=test.msg)

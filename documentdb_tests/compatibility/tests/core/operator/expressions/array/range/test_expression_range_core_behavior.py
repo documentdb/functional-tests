@@ -12,10 +12,10 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.array.range.
     RangeTest,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.parametrize import pytest_params
 
 # ---------------------------------------------------------------------------
@@ -475,7 +475,9 @@ def test_range_insert(collection, test):
         args.append("$step")
         doc["step"] = test.step
     result = execute_expression_with_insert(collection, {"$range": args}, doc)
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
 
 
 TEST_SUBSET_FOR_LITERAL = [
@@ -493,4 +495,6 @@ def test_range_literal(collection, test):
     if test.step is not None:
         args.append(test.step)
     result = execute_expression(collection, {"$range": args})
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )

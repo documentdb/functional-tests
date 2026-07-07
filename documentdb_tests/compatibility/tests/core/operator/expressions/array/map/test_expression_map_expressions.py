@@ -11,9 +11,9 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
     ExpressionTestCase,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.parametrize import pytest_params
 
 # ---------------------------------------------------------------------------
@@ -252,4 +252,6 @@ ALL_EXPR_TESTS = (
 def test_map_expression(collection, test):
     """Test $map with field paths and expressions."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )

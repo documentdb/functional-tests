@@ -5,7 +5,7 @@ Tests non-array inputs, invalid useLongestLength, invalid defaults,
 defaults without useLongestLength, and defaults length mismatch.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -14,10 +14,10 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.array.zip.ut
     ZipTest,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     ZIP_DEFAULTS_LENGTH_MISMATCH_ERROR,
     ZIP_DEFAULTS_NOT_ARRAY_ERROR,
@@ -109,7 +109,7 @@ NOT_ARRAY_ELEMENT_TESTS: list[ZipTest] = [
     ),
     ZipTest(
         id="datetime_input",
-        inputs=[datetime(2024, 1, 1), [1]],
+        inputs=[datetime(2024, 1, 1, tzinfo=timezone.utc), [1]],
         error_code=ZIP_REQUIRES_ARRAY_ELEMENT_ERROR,
         msg="Should reject datetime input element",
     ),
@@ -417,7 +417,9 @@ def test_zip_not_array_insert(collection, test):
         expr["defaults"] = test.defaults
     doc = {f"arr{i}": arr for i, arr in enumerate(test.inputs)}
     result = execute_expression_with_insert(collection, {"$zip": expr}, doc)
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
 
 
 TEST_SUBSET_FOR_LITERAL = [
@@ -437,4 +439,6 @@ def test_zip_not_array_literal(collection, test):
     if test.defaults is not None:
         expr["defaults"] = test.defaults
     result = execute_expression(collection, {"$zip": expr})
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )

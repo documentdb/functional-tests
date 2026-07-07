@@ -6,7 +6,7 @@ structural errors (missing fields, unknown fields).
 Note: $map propagates null — null input returns null (tested in core_behavior).
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -15,9 +15,9 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
     ExpressionTestCase,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     MAP_INPUT_NOT_ARRAY_ERROR,
 )
@@ -116,7 +116,7 @@ NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="datetime_input",
         expression={"$map": {"input": "$arr", "in": "$$this"}},
-        doc={"arr": datetime(2024, 1, 1)},
+        doc={"arr": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=MAP_INPUT_NOT_ARRAY_ERROR,
         msg="Should reject datetime input",
     ),
@@ -284,4 +284,6 @@ ALL_TESTS = NOT_ARRAY_ERROR_TESTS + SPECIAL_NUMERIC_ERROR_TESTS + BOUNDARY_ERROR
 def test_map_not_array_insert(collection, test):
     """Test $map error with non-array input from inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )

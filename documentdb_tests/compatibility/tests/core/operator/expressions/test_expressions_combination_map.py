@@ -7,10 +7,10 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
-from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.parametrize import pytest_params
 
 MAP_COMBINATION_TESTS: list[ExpressionTestCase] = [
@@ -91,4 +91,6 @@ MAP_COMBINATION_TESTS: list[ExpressionTestCase] = [
 def test_map_combination(collection, test):
     """Test $map composed with other operators."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )

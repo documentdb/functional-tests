@@ -13,9 +13,9 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
     ExpressionTestCase,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     ZIP_INPUT_ELEMENT_NOT_ARRAY_ERROR,
     ZIP_INPUTS_NOT_ARRAY_ERROR,
@@ -130,4 +130,6 @@ ALL_STRUCTURE_TESTS = STRUCTURE_ERROR_TESTS + NON_OBJECT_ARG_TESTS
 def test_zip_argument_handling(collection, test):
     """Test $zip argument structure validation."""
     result = execute_expression(collection, test.expression)
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )

@@ -4,7 +4,7 @@ BSON type element preservation tests for $zip expression.
 Tests that various BSON types are preserved when zipping arrays.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -14,10 +14,10 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.array.zip.ut
     ZipTest,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
@@ -50,8 +50,13 @@ BSON_TYPE_TESTS: list[ZipTest] = [
     ),
     ZipTest(
         id="datetime_values",
-        inputs=[[datetime(2024, 1, 1)], [datetime(2024, 6, 1)]],
-        expected=[[datetime(2024, 1, 1), datetime(2024, 6, 1)]],
+        inputs=[
+            [datetime(2024, 1, 1, tzinfo=timezone.utc)],
+            [datetime(2024, 6, 1, tzinfo=timezone.utc)],
+        ],
+        expected=[
+            [datetime(2024, 1, 1, tzinfo=timezone.utc), datetime(2024, 6, 1, tzinfo=timezone.utc)]
+        ],
         msg="Should preserve datetime values",
     ),
     ZipTest(
@@ -173,10 +178,13 @@ BSON_DEFAULTS_TESTS: list[ZipTest] = [
     ),
     ZipTest(
         id="default_datetime",
-        inputs=[[1, 2], [datetime(2024, 1, 1)]],
+        inputs=[[1, 2], [datetime(2024, 1, 1, tzinfo=timezone.utc)]],
         use_longest_length=True,
-        defaults=[0, datetime(1970, 1, 1)],
-        expected=[[1, datetime(2024, 1, 1)], [2, datetime(1970, 1, 1)]],
+        defaults=[0, datetime(1970, 1, 1, tzinfo=timezone.utc)],
+        expected=[
+            [1, datetime(2024, 1, 1, tzinfo=timezone.utc)],
+            [2, datetime(1970, 1, 1, tzinfo=timezone.utc)],
+        ],
         msg="Should use datetime default value",
     ),
     ZipTest(
@@ -308,7 +316,9 @@ def test_zip_bson_insert(collection, test):
         expr["defaults"] = test.defaults
     doc = {f"arr{i}": arr for i, arr in enumerate(test.inputs)}
     result = execute_expression_with_insert(collection, {"$zip": expr}, doc)
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
 
 
 TEST_SUBSET_FOR_LITERAL = [
@@ -328,4 +338,6 @@ def test_zip_bson_literal(collection, test):
     if test.defaults is not None:
         expr["defaults"] = test.defaults
     result = execute_expression(collection, {"$zip": expr})
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )

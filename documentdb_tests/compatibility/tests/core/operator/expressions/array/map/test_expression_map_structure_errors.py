@@ -11,9 +11,9 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
     ExpressionTestCase,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     EXPRESSION_NON_OBJECT_ARG_ERROR,
     MAP_MISSING_IN_ERROR,
@@ -116,4 +116,4 @@ ALL_STRUCTURE_TESTS = NON_OBJECT_ARG_TESTS + UNKNOWN_FIELD_TESTS + MISSING_REQUI
 def test_map_structure_error(collection, test):
     """Test $map argument structure validation."""
     result = execute_expression(collection, test.expression)
-    assertResult(result, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(result, error_code=test.error_code, msg=test.msg)

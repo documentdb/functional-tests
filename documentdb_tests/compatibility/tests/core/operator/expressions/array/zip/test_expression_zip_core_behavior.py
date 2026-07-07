@@ -13,10 +13,10 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.array.zip.ut
     ZipTest,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.parametrize import pytest_params
 
 # ---------------------------------------------------------------------------
@@ -418,7 +418,9 @@ def test_zip_insert(collection, test):
         expr["defaults"] = test.defaults
     doc = {f"arr{i}": arr for i, arr in enumerate(test.inputs)}
     result = execute_expression_with_insert(collection, {"$zip": expr}, doc)
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
 
 
 TEST_SUBSET_FOR_LITERAL = [
@@ -439,4 +441,6 @@ def test_zip_literal(collection, test):
     if test.defaults is not None:
         expr["defaults"] = test.defaults
     result = execute_expression(collection, {"$zip": expr})
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )

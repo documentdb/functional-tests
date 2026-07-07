@@ -6,7 +6,7 @@ int32 values, and wrong arity.
 
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
@@ -15,10 +15,10 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.array.range.
     RangeTest,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     EXPRESSION_ARITY_ERROR,
     RANGE_END_NOT_INT32_ERROR,
@@ -91,7 +91,7 @@ NON_NUMERIC_START_TESTS: list[RangeTest] = [
     ),
     RangeTest(
         id="datetime_start",
-        start=datetime(2024, 1, 1),
+        start=datetime(2024, 1, 1, tzinfo=timezone.utc),
         end=5,
         error_code=RANGE_START_NOT_INT32_ERROR,
         msg="Should reject datetime start",
@@ -182,7 +182,7 @@ NON_NUMERIC_END_TESTS: list[RangeTest] = [
     RangeTest(
         id="datetime_end",
         start=0,
-        end=datetime(2024, 1, 1),
+        end=datetime(2024, 1, 1, tzinfo=timezone.utc),
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
         msg="Should reject datetime end",
     ),
@@ -271,7 +271,7 @@ NON_NUMERIC_STEP_TESTS: list[RangeTest] = [
         id="datetime_step",
         start=0,
         end=5,
-        step=datetime(2024, 1, 1),
+        step=datetime(2024, 1, 1, tzinfo=timezone.utc),
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
         msg="Should reject datetime step",
     ),
@@ -663,7 +663,9 @@ def test_range_error_literal(collection, test):
     if test.step is not None:
         args.append(test.step)
     result = execute_expression(collection, {"$range": args})
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
@@ -675,7 +677,9 @@ def test_range_error_insert(collection, test):
         args.append("$step")
         doc["step"] = test.step
     result = execute_expression_with_insert(collection, {"$range": args}, doc)
-    assertResult(result, expected=test.expected, error_code=test.error_code, msg=test.msg)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -692,4 +696,4 @@ ARITY_ERROR_TESTS = [
 def test_range_arity_error(collection, expr):
     """Test $range errors with wrong number of arguments."""
     result = execute_expression(collection, expr)
-    assertResult(result, error_code=EXPRESSION_ARITY_ERROR)
+    assert_expression_result(result, error_code=EXPRESSION_ARITY_ERROR)
