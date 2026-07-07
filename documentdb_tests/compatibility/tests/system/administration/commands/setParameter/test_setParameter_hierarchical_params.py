@@ -6,10 +6,44 @@ read defaults, multi-member set, atomic rejection, and bare numeric form.
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    CommandContext,
+    CommandTestCase,
+)
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel]
+
+
+# Property [Single-Command Hierarchical]: simple set/read operations.
+HIERARCHICAL_SINGLE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "multi_member_set",
+        command=lambda ctx: {
+            "setParameter": 1,
+            "logComponentVerbosity": {"command": {"verbosity": 2}, "network": {"verbosity": 3}},
+        },
+        expected={"ok": 1.0},
+        msg="setParameter multi-member set should succeed",
+    ),
+    CommandTestCase(
+        "bare_numeric_form",
+        command=lambda ctx: {"setParameter": 1, "logComponentVerbosity": {"command": 4}},
+        expected={"ok": 1.0},
+        msg="setParameter should accept bare numeric form",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(HIERARCHICAL_SINGLE_TESTS))
+def test_setParameter_hierarchical_single(database_client, collection, test):
+    """Test setParameter hierarchical single-command cases."""
+    collection = test.prepare(database_client, collection)
+    ctx = CommandContext.from_collection(collection)
+    result = execute_admin_command(collection, test.build_command(ctx))
+    assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
 
 
 # Property [Readability]: logComponentVerbosity is readable with defined defaults.
@@ -41,19 +75,6 @@ def test_setParameter_hierarchical_top_level_verbosity(collection):
         {"logComponentVerbosity": {"verbosity": 0}},
         msg="setParameter top-level verbosity should match logLevel",
     )
-
-
-# Property [Multi-Member Set]: setting several nested members in one command succeeds.
-def test_setParameter_hierarchical_multi_member_set(collection):
-    """Test setParameter setting several nested members in one command succeeds."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setParameter": 1,
-            "logComponentVerbosity": {"command": {"verbosity": 2}, "network": {"verbosity": 3}},
-        },
-    )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter multi-member set should succeed")
 
 
 # Property [Multi-Member Readback]: reading back reflects each member set.
@@ -115,15 +136,7 @@ def test_setParameter_hierarchical_clear_with_negative(collection):
     )
 
 
-# Property [Bare Numeric Form]: setting component with bare numeric level succeeds.
-def test_setParameter_hierarchical_bare_numeric_form(collection):
-    """Test setParameter setting nested component with bare numeric level succeeds."""
-    result = execute_admin_command(
-        collection, {"setParameter": 1, "logComponentVerbosity": {"command": 4}}
-    )
-    assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter should accept bare numeric form")
-
-
+# Property [Bare Numeric Readback]: bare numeric form takes effect when read back.
 def test_setParameter_hierarchical_bare_numeric_readback(collection):
     """Test setParameter bare numeric component set takes effect when read back."""
     execute_admin_command(collection, {"setParameter": 1, "logComponentVerbosity": {"command": 4}})

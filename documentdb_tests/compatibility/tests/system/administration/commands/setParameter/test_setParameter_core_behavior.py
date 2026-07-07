@@ -32,6 +32,12 @@ COMMAND_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         expected={"ok": 1.0},
         msg="setParameter should accept comment field alongside params",
     ),
+    CommandTestCase(
+        "single_param_returns_ok",
+        command=lambda ctx: {"setParameter": 1, "logLevel": 1},
+        expected={"ok": 1.0},
+        msg="setParameter should return ok:1",
+    ),
 ]
 
 
@@ -45,12 +51,6 @@ def test_setParameter_accepted(database_client, collection, test):
 
 
 # Property [Response Structure]: setParameter returns ok:1 and previous value in 'was'.
-def test_setParameter_single_param_returns_ok(collection):
-    """Test setParameter with one runtime-settable parameter returns ok:1."""
-    result = execute_admin_command(collection, {"setParameter": 1, "logLevel": 1})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="setParameter should return ok:1")
-
-
 def test_setParameter_returns_was_field(collection):
     """Test setParameter response includes the previous value in 'was' field."""
     execute_admin_command(collection, {"setParameter": 1, "logLevel": 0})
