@@ -104,14 +104,14 @@ BSON_ARRAY_TRUE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "nan_array",
-        doc={"val": [float("nan")]},
+        doc={"val": [FLOAT_NAN]},
         expression={"$isArray": "$val"},
         expected=True,
         msg="$isArray should return true for NaN array",
     ),
     ExpressionTestCase(
         "inf_array",
-        doc={"val": [float("inf")]},
+        doc={"val": [FLOAT_INFINITY]},
         expression={"$isArray": "$val"},
         expected=True,
         msg="$isArray should return true for Infinity array",

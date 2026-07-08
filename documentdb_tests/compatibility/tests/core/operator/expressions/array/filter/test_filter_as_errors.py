@@ -18,6 +18,10 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.error_codes import FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import (
+    FLOAT_INFINITY,
+    FLOAT_NAN,
+)
 
 INVALID_AS_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -112,13 +116,13 @@ INVALID_AS_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "type_nan",
-        expression={"$filter": {"input": [1, 2, 3], "as": float("nan"), "cond": True}},
+        expression={"$filter": {"input": [1, 2, 3], "as": FLOAT_NAN, "cond": True}},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="$filter should reject NaN as variable name",
     ),
     ExpressionTestCase(
         "type_infinity",
-        expression={"$filter": {"input": [1, 2, 3], "as": float("inf"), "cond": True}},
+        expression={"$filter": {"input": [1, 2, 3], "as": FLOAT_INFINITY, "cond": True}},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="$filter should reject inf as variable name",
     ),
