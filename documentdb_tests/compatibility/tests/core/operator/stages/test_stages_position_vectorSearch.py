@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import time
-
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
+)
+from documentdb_tests.compatibility.tests.core.operator.stages.vectorSearch.utils.vectorSearch_common import (  # noqa: E501
+    wait_for_search_index_ready,
 )
 from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import assertResult
@@ -27,8 +28,6 @@ _POSITION_CORPUS = [
     {"_id": 2, "vec": [0.8, 0.2, DOUBLE_ZERO]},
     {"_id": 3, "vec": [0.6, 0.4, DOUBLE_ZERO]},
 ]
-
-_INDEX_READY_TIMEOUT_SECONDS = 120
 
 
 @pytest.fixture(scope="module")
@@ -63,14 +62,7 @@ def position_collection(engine_client, worker_id):
             ],
         }
     )
-    deadline = time.monotonic() + _INDEX_READY_TIMEOUT_SECONDS
-    while time.monotonic() < deadline:
-        indexes = list(coll.aggregate([{"$listSearchIndexes": {}}]))
-        if indexes and indexes[0].get("status") == "READY":
-            break
-        time.sleep(2)
-    else:
-        raise TimeoutError("vectorSearch index did not reach READY state")
+    wait_for_search_index_ready(coll)
     yield coll
     fixtures.cleanup_database(engine_client, db_name)
 

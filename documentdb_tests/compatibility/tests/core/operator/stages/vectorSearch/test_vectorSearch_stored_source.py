@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from datetime import datetime, timezone
 
 import pytest
@@ -35,11 +34,10 @@ from documentdb_tests.framework.test_constants import (
 
 from .utils.vectorSearch_common import (
     VectorSearchTest,
+    wait_for_search_index_ready,
 )
 
 pytestmark = pytest.mark.requires(search=True)
-
-_INDEX_READY_TIMEOUT_SECONDS = 120
 
 _STORED_SOURCE_CORPUS = [
     {
@@ -92,14 +90,7 @@ def stored_source_vector_search_collection(engine_client, worker_id):
             ],
         }
     )
-    deadline = time.monotonic() + _INDEX_READY_TIMEOUT_SECONDS
-    while time.monotonic() < deadline:
-        indexes = list(coll.aggregate([{"$listSearchIndexes": {}}]))
-        if indexes and indexes[0].get("status") == "READY":
-            break
-        time.sleep(2)
-    else:
-        raise TimeoutError("storedSource vectorSearch index did not reach READY state")
+    wait_for_search_index_ready(coll)
     yield coll
     engine_client.drop_database(db_name)
 

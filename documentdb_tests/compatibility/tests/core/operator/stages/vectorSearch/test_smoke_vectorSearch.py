@@ -6,16 +6,14 @@ target. Gated with requires(search=True) so it is deselected on non-search
 targets rather than unconditionally skipped.
 """
 
-import time
-
 import pytest
 
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
-pytestmark = [pytest.mark.smoke, pytest.mark.requires(search=True)]
+from .utils.vectorSearch_common import wait_for_search_index_ready
 
-_INDEX_READY_TIMEOUT_SECONDS = 120
+pytestmark = [pytest.mark.smoke, pytest.mark.requires(search=True)]
 
 
 @pytest.mark.aggregate
@@ -46,14 +44,7 @@ def test_smoke_vectorSearch(collection):
         },
     )
 
-    deadline = time.monotonic() + _INDEX_READY_TIMEOUT_SECONDS
-    while time.monotonic() < deadline:
-        indexes = list(collection.aggregate([{"$listSearchIndexes": {}}]))
-        if indexes and indexes[0].get("status") == "READY":
-            break
-        time.sleep(2)
-    else:
-        raise TimeoutError("vectorSearch index did not reach READY state")
+    wait_for_search_index_ready(collection)
 
     result = execute_command(
         collection,

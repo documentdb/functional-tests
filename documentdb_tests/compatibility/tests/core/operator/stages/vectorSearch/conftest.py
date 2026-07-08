@@ -5,7 +5,6 @@ corpora and indexes are built once per package here rather than per test file.""
 
 from __future__ import annotations
 
-import time
 from datetime import datetime, timezone
 
 import pytest
@@ -18,6 +17,7 @@ from .utils.vectorSearch_common import (
     _FILTER_OID_B,
     _FILTER_UUID_A,
     _FILTER_UUID_B,
+    wait_for_search_index_ready,
 )
 
 _VECTOR_CORPUS = [
@@ -123,8 +123,6 @@ for _doc in _VECTOR_CORPUS:
     _doc["caf\u00e9_vec"] = _doc["vc"]
     _doc["v8c"] = _doc["v8"]
 
-_INDEX_READY_TIMEOUT_SECONDS = 120
-
 
 @pytest.fixture(scope="package")
 def vector_search_collection(engine_client, worker_id):
@@ -202,14 +200,7 @@ def vector_search_collection(engine_client, worker_id):
             ],
         }
     )
-    deadline = time.monotonic() + _INDEX_READY_TIMEOUT_SECONDS
-    while time.monotonic() < deadline:
-        indexes = list(coll.aggregate([{"$listSearchIndexes": {}}]))
-        if indexes and indexes[0].get("status") == "READY":
-            break
-        time.sleep(2)
-    else:
-        raise TimeoutError("vectorSearch index did not reach READY state")
+    wait_for_search_index_ready(coll)
     yield coll
     engine_client.drop_database(db_name)
 

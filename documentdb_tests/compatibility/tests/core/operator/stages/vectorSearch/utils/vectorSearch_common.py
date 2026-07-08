@@ -1,21 +1,42 @@
-"""Shared dataclass and pre-filter constants for $vectorSearch stage tests.
+"""Shared dataclass, index-ready helper, and pre-filter constants for
+$vectorSearch stage tests.
 
 The ``VectorSearchTest`` dataclass tags each case with the fixture and execution
-mode it runs under. The ObjectId/UUID constants are stored on the shared corpus
-(see conftest.py) and queried back by the filter, parentFilter, and
+mode it runs under. ``wait_for_search_index_ready`` is shared by every fixture
+that builds an index. The ObjectId/UUID constants are stored on the shared
+corpus (see conftest.py) and queried back by the filter, parentFilter, and
 explainOptions test files, so they live here rather than in any single file."""
 
 from __future__ import annotations
 
+import time
 import uuid
 from dataclasses import dataclass
 
 from bson import ObjectId
 from bson.binary import Binary, UuidRepresentation
+from pymongo.collection import Collection
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
 )
+
+_INDEX_READY_TIMEOUT_SECONDS = 120
+
+
+def wait_for_search_index_ready(coll: Collection) -> None:
+    """Poll until the collection's search index reports READY, or time out.
+
+    A vectorSearch index builds asynchronously after ``createSearchIndexes``
+    returns, so a query issued before it is READY sees no index. This polls
+    ``$listSearchIndexes`` until the first index reports READY."""
+    deadline = time.monotonic() + _INDEX_READY_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        indexes = list(coll.aggregate([{"$listSearchIndexes": {}}]))
+        if indexes and indexes[0].get("status") == "READY":
+            return
+        time.sleep(2)
+    raise TimeoutError("vectorSearch index did not reach READY state")
 
 
 @dataclass(frozen=True)
