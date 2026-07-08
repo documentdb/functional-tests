@@ -593,6 +593,28 @@ OUT_OF_INT32_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Aggregate and test
+# Error: wrong arity
+ARITY_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        id="zero_args",
+        expression={"$range": []},
+        error_code=EXPRESSION_ARITY_ERROR,
+        msg="Should error with zero arguments",
+    ),
+    ExpressionTestCase(
+        id="one_arg",
+        expression={"$range": [1]},
+        error_code=EXPRESSION_ARITY_ERROR,
+        msg="Should error with one argument",
+    ),
+    ExpressionTestCase(
+        id="four_args",
+        expression={"$range": [1, 2, 3, 4]},
+        error_code=EXPRESSION_ARITY_ERROR,
+        msg="Should error with four arguments",
+    ),
+]
+
 ALL_TESTS = (
     NON_NUMERIC_START_TESTS
     + NON_NUMERIC_END_TESTS
@@ -603,6 +625,7 @@ ALL_TESTS = (
     + SPECIAL_NUMERIC_TESTS
     + STEP_ZERO_TESTS
     + OUT_OF_INT32_TESTS
+    + ARITY_ERROR_TESTS
 )
 
 
@@ -616,18 +639,3 @@ def test_range_error_insert(collection, test):
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
-
-
-# Error: wrong arity
-ARITY_ERROR_TESTS = [
-    pytest.param({"$range": []}, id="zero_args"),
-    pytest.param({"$range": [1]}, id="one_arg"),
-    pytest.param({"$range": [1, 2, 3, 4]}, id="four_args"),
-]
-
-
-@pytest.mark.parametrize("expr", ARITY_ERROR_TESTS)
-def test_range_arity_error(collection, expr):
-    """Test $range errors with wrong number of arguments."""
-    result = execute_expression(collection, expr)
-    assert_expression_result(result, error_code=EXPRESSION_ARITY_ERROR)
