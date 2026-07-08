@@ -20,53 +20,53 @@ from documentdb_tests.framework.parametrize import pytest_params
 # Field path lookups
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="nested_field_path",
+        "nested_field_path",
         expression={"$filter": {"input": "$a.b", "cond": {"$gt": ["$$this", 2]}}},
         doc={"a": {"b": [1, 2, 3, 4]}},
         expected=[3, 4],
-        msg="Should resolve nested field path",
+        msg="$filter should resolve nested field path",
     ),
     ExpressionTestCase(
-        id="deeply_nested_field",
+        "deeply_nested_field",
         expression={"$filter": {"input": "$a.b.c", "cond": True}},
         doc={"a": {"b": {"c": [10, 20]}}},
         expected=[10, 20],
-        msg="Should resolve deeply nested field path",
+        msg="$filter should resolve deeply nested field path",
     ),
     ExpressionTestCase(
-        id="composite_array_path",
+        "composite_array_path",
         expression={"$filter": {"input": "$a.b", "cond": {"$gt": ["$$this", 1]}}},
         doc={"a": [{"b": 1}, {"b": 2}, {"b": 3}]},
         expected=[2, 3],
-        msg="Composite array path should resolve to array",
+        msg="$filter composite array path should resolve to array",
     ),
     ExpressionTestCase(
-        id="index_path_on_object_key",
+        "index_path_on_object_key",
         expression={"$filter": {"input": "$a.0.b", "cond": True}},
         doc={"a": {"0": {"b": [1, 2, 3]}}},
         expected=[1, 2, 3],
-        msg="Object key '0' resolves correctly",
+        msg="$filter object key '0' resolves correctly",
     ),
     ExpressionTestCase(
-        id="object_key_zero",
+        "object_key_zero",
         expression={"$filter": {"input": "$a.0", "cond": True}},
         doc={"a": {"0": [1, 2, 3]}},
         expected=[1, 2, 3],
         msg="$a.0 resolves as field named '0' on object",
     ),
     ExpressionTestCase(
-        id="access_outer_field",
+        "access_outer_field",
         expression={"$filter": {"input": "$arr", "cond": {"$gt": ["$$this", "$threshold"]}}},
         doc={"arr": [1, 2, 3, 4, 5], "threshold": 3},
         expected=[4, 5],
-        msg="Should access outer document field in cond",
+        msg="$filter should access outer document field in cond",
     ),
 ]
 
 # $let and system variables
 LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="let_variable",
+        "let_variable",
         expression={
             "$let": {
                 "vars": {"arr": "$values"},
@@ -75,17 +75,17 @@ LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
         },
         doc={"values": [1, 2, 3, 4]},
         expected=[3, 4],
-        msg="Should work with $let variables",
+        msg="$filter should work with $let variables",
     ),
     ExpressionTestCase(
-        id="root_variable",
+        "root_variable",
         expression={"$filter": {"input": "$$ROOT.values", "cond": {"$gt": ["$$this", 2]}}},
         doc={"_id": 1, "values": [1, 2, 3, 4]},
         expected=[3, 4],
-        msg="Should work with $$ROOT",
+        msg="$filter should work with $$ROOT",
     ),
     ExpressionTestCase(
-        id="current_variable",
+        "current_variable",
         expression={"$filter": {"input": "$$CURRENT.values", "cond": {"$gt": ["$$this", 2]}}},
         doc={"_id": 2, "values": [1, 2, 3, 4]},
         expected=[3, 4],
@@ -96,14 +96,14 @@ LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
 # Null/missing via expression
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="missing_field",
+        "missing_field",
         expression={"$filter": {"input": "$nonexistent", "cond": True}},
         doc={"other": 1},
         expected=None,
-        msg="Missing field should return null",
+        msg="$filter missing field should return null",
     ),
     ExpressionTestCase(
-        id="remove_variable",
+        "remove_variable",
         expression={"$filter": {"input": "$$REMOVE", "cond": True}},
         doc={"x": 1},
         expected=None,
@@ -114,7 +114,7 @@ NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
 # Nested $filter
 NESTED_FILTER_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="filter_then_filter",
+        "filter_then_filter",
         expression={
             "$filter": {
                 "input": {"$filter": {"input": "$arr", "cond": {"$gt": ["$$this", 1]}}},
@@ -123,7 +123,7 @@ NESTED_FILTER_TESTS: list[ExpressionTestCase] = [
         },
         doc={"arr": [1, 2, 3, 4, 5, 6]},
         expected=[2, 3, 4],
-        msg="Nested $filter should chain conditions",
+        msg="$filter nested $filter should chain conditions",
     ),
 ]
 
@@ -131,22 +131,22 @@ NESTED_FILTER_TESTS: list[ExpressionTestCase] = [
 # Limit with field reference
 LIMIT_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="limit_from_field",
+        "limit_from_field",
         expression={"$filter": {"input": "$arr", "cond": {"$gt": ["$$this", 0]}, "limit": "$n"}},
         doc={"arr": [1, 2, 3, 4, 5], "n": 2},
         expected=[1, 2],
-        msg="Limit from field reference",
+        msg="$filter limit from field reference",
     ),
 ]
 
 # Literal array input (not field path)
 LITERAL_INPUT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="literal_array_input",
+        "literal_array_input",
         expression={"$filter": {"input": [1, 2, 3, 4, 5], "cond": {"$gt": ["$$this", 3]}}},
         doc={"x": 1},
         expected=[4, 5],
-        msg="Should filter literal array input",
+        msg="$filter should filter literal array input",
     ),
 ]
 

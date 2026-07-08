@@ -19,125 +19,125 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 SELF_NESTING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="self_nested",
+        "self_nested",
         expression={"$isArray": [{"$isArray": "$arr"}]},
         doc={"arr": [1, 2]},
         expected=False,
-        msg="Inner returns bool, outer returns false",
+        msg="$isArray inner returns bool, outer returns false",
     ),
 ]
 
 # Field path lookups
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="nested_field_array",
+        "nested_field_array",
         expression={"$isArray": "$a.b"},
         doc={"a": {"b": [1, 2]}},
         expected=True,
-        msg="Nested array field",
+        msg="$isArray nested array field",
     ),
     ExpressionTestCase(
-        id="deeply_nested_field_array",
+        "deeply_nested_field_array",
         expression={"$isArray": "$a.b.c"},
         doc={"a": {"b": {"c": [1]}}},
         expected=True,
-        msg="Deeply nested array field",
+        msg="$isArray deeply nested array field",
     ),
     ExpressionTestCase(
-        id="numeric_index_on_object_key",
+        "numeric_index_on_object_key",
         expression={"$isArray": "$a.0.b"},
         doc={"a": {"0": {"b": [1]}}},
         expected=True,
-        msg="Numeric key on object resolves to array",
+        msg="$isArray numeric key on object resolves to array",
     ),
 ]
 
 # Composite array paths
 COMPOSITE_PATH_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="composite_array_path",
+        "composite_array_path",
         expression={"$isArray": "$a.b"},
         doc={"a": [{"b": 1}, {"b": 2}]},
         expected=True,
-        msg="Composite array path should resolve to array",
+        msg="$isArray composite array path should resolve to array",
     ),
     ExpressionTestCase(
-        id="composite_empty_array",
+        "composite_empty_array",
         expression={"$isArray": "$a.b"},
         doc={"a": []},
         expected=True,
-        msg="Composite on empty array resolves to empty array",
+        msg="$isArray composite on empty array resolves to empty array",
     ),
     ExpressionTestCase(
-        id="composite_three_elements",
+        "composite_three_elements",
         expression={"$isArray": "$a.b"},
         doc={"a": [{"b": 1}, {"b": 2}, {"b": 3}]},
         expected=True,
-        msg="Three-element composite resolves to array",
+        msg="$isArray three-element composite resolves to array",
     ),
 ]
 
 # Deep composite array traversal
 DEEP_COMPOSITE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="array_at_leaf",
+        "array_at_leaf",
         expression={"$isArray": "$a.b.c.d"},
         doc={"a": {"b": {"c": {"d": [1, 2, 3]}}}},
         expected=True,
-        msg="Array at leaf level",
+        msg="$isArray array at leaf level",
     ),
     ExpressionTestCase(
-        id="array_at_c",
+        "array_at_c",
         expression={"$isArray": "$a.b.c.d"},
         doc={"a": {"b": {"c": [{"d": 1}]}}},
         expected=True,
-        msg="Array at c level",
+        msg="$isArray array at c level",
     ),
 ]
 
 # Null and missing handling
 NULL_MISSING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="missing_field",
+        "missing_field",
         expression={"$isArray": "$nonexistent"},
         doc={"other": 1},
         expected=False,
-        msg="Missing field should return false",
+        msg="$isArray missing field should return false",
     ),
     ExpressionTestCase(
-        id="missing_nested_partial_path",
+        "missing_nested_partial_path",
         expression={"$isArray": "$a.b"},
         doc={"a": 1},
         expected=False,
-        msg="Nested field on scalar parent returns false",
+        msg="$isArray nested field on scalar parent returns false",
     ),
     ExpressionTestCase(
-        id="missing_nested_empty_doc",
+        "missing_nested_empty_doc",
         expression={"$isArray": "$a.b"},
         doc={"x": 1},
         expected=False,
-        msg="Missing nested field returns false",
+        msg="$isArray missing nested field returns false",
     ),
 ]
 
 # System variables
 SYSTEM_VAR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="root_variable",
+        "root_variable",
         expression={"$isArray": "$$ROOT"},
         doc={"a": 1},
         expected=False,
         msg="$$ROOT is object, returns false",
     ),
     ExpressionTestCase(
-        id="current_variable",
+        "current_variable",
         expression={"$isArray": "$$CURRENT"},
         doc={"a": 1},
         expected=False,
         msg="$$CURRENT is object, returns false",
     ),
     ExpressionTestCase(
-        id="let_array_variable",
+        "let_array_variable",
         expression={"$let": {"vars": {"x": "$arr"}, "in": {"$isArray": "$$x"}}},
         doc={"arr": [1, 2]},
         expected=True,

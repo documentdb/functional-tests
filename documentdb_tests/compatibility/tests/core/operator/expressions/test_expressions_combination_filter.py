@@ -15,14 +15,14 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 FILTER_COMBINATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="filter_then_size",
+        "filter_then_size",
         expression={"$size": {"$filter": {"input": "$arr", "cond": {"$gt": ["$$this", 2]}}}},
         doc={"arr": [1, 2, 3, 4, 5]},
         expected=3,
-        msg="Size of filtered array",
+        msg="$filter size of filtered array",
     ),
     ExpressionTestCase(
-        id="map_then_filter",
+        "map_then_filter",
         expression={
             "$filter": {
                 "input": {"$map": {"input": "$arr", "in": {"$multiply": ["$$this", 2]}}},
@@ -31,17 +31,17 @@ FILTER_COMBINATION_TESTS: list[ExpressionTestCase] = [
         },
         doc={"arr": [1, 2, 3, 4, 5]},
         expected=[6, 8, 10],
-        msg="Should filter mapped array",
+        msg="$filter should filter mapped array",
     ),
     ExpressionTestCase(
-        id="isArray_on_filter_result",
+        "isArray_on_filter_result",
         expression={"$isArray": {"$filter": {"input": "$arr", "cond": {"$gt": ["$$this", 0]}}}},
         doc={"arr": [1, 2, 3]},
         expected=True,
         msg="$isArray on $filter result should return true",
     ),
     ExpressionTestCase(
-        id="filter_result_into_reduce",
+        "filter_result_into_reduce",
         expression={
             "$reduce": {
                 "input": {"$filter": {"input": "$arr", "cond": {"$gt": ["$$this", 3]}}},

@@ -15,28 +15,28 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 ISARRAY_COMBINATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="isarray_guard_array",
+        "isarray_guard_array",
         expression={"$cond": {"if": {"$isArray": "$arr"}, "then": {"$size": "$arr"}, "else": "NA"}},
         doc={"arr": [1, 2]},
         expected=2,
         msg="$isArray guard should allow $size on array",
     ),
     ExpressionTestCase(
-        id="isarray_on_concatArrays",
+        "isarray_on_concatArrays",
         expression={"$isArray": {"$concatArrays": ["$a", "$b"]}},
         doc={"a": [1], "b": [2]},
         expected=True,
         msg="$isArray on $concatArrays result should return true",
     ),
     ExpressionTestCase(
-        id="isarray_on_objectToArray",
+        "isarray_on_objectToArray",
         expression={"$isArray": {"$objectToArray": "$obj"}},
         doc={"obj": {"a": 1}},
         expected=True,
         msg="$isArray on $objectToArray result should return true",
     ),
     ExpressionTestCase(
-        id="isarray_on_non_array_expression",
+        "isarray_on_non_array_expression",
         expression={"$isArray": {"$add": ["$x", "$y"]}},
         doc={"x": 1, "y": 2},
         expected=False,

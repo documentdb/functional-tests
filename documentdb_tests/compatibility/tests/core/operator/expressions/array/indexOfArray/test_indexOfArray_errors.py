@@ -15,6 +15,9 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.array.indexO
     build_args,
     build_insert_args,
 )
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
+    ExpressionTestCase,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
     execute_expression,
@@ -35,418 +38,418 @@ from documentdb_tests.framework.test_constants import (
 # Error: INT64_MAX start/end index (not representable as int32)
 BOUNDARY_ERROR_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
-        id="start_int64_max",
+        "start_int64_max",
         array=[1, 2, 3],
         search=1,
         start=INT64_MAX,
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject INT64_MAX start",
+        msg="$indexOfArray should reject INT64_MAX start",
     ),
     IndexOfArrayTest(
-        id="end_int64_max",
+        "end_int64_max",
         array=[1, 2, 3],
         search=2,
         start=0,
         end=INT64_MAX,
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject INT64_MAX end",
+        msg="$indexOfArray should reject INT64_MAX end",
     ),
 ]
 
 # Error: first argument not an array (and not null)
 NOT_ARRAY_ERROR_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
-        id="string_as_array",
+        "string_as_array",
         array="hello",
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject string as array",
+        msg="$indexOfArray should reject string as array",
     ),
     IndexOfArrayTest(
-        id="int_as_array",
+        "int_as_array",
         array=42,
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject int as array",
+        msg="$indexOfArray should reject int as array",
     ),
     IndexOfArrayTest(
-        id="double_as_array",
+        "double_as_array",
         array=3.14,
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject double as array",
+        msg="$indexOfArray should reject double as array",
     ),
     IndexOfArrayTest(
-        id="bool_true_as_array",
+        "bool_true_as_array",
         array=True,
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject bool true as array",
+        msg="$indexOfArray should reject bool true as array",
     ),
     IndexOfArrayTest(
-        id="bool_false_as_array",
+        "bool_false_as_array",
         array=False,
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject bool false as array",
+        msg="$indexOfArray should reject bool false as array",
     ),
     IndexOfArrayTest(
-        id="object_as_array",
+        "object_as_array",
         array={"a": 1},
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject object as array",
+        msg="$indexOfArray should reject object as array",
     ),
     IndexOfArrayTest(
-        id="decimal128_as_array",
+        "decimal128_as_array",
         array=Decimal128("1"),
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject decimal128 as array",
+        msg="$indexOfArray should reject decimal128 as array",
     ),
     IndexOfArrayTest(
-        id="int64_as_array",
+        "int64_as_array",
         array=Int64(1),
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject int64 as array",
+        msg="$indexOfArray should reject int64 as array",
     ),
     IndexOfArrayTest(
-        id="binary_as_array",
+        "binary_as_array",
         array=Binary(b"x", 0),
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject binary as array",
+        msg="$indexOfArray should reject binary as array",
     ),
     IndexOfArrayTest(
-        id="datetime_as_array",
+        "datetime_as_array",
         array=datetime(2024, 1, 1, tzinfo=timezone.utc),
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject datetime as array",
+        msg="$indexOfArray should reject datetime as array",
     ),
     IndexOfArrayTest(
-        id="objectid_as_array",
+        "objectid_as_array",
         array=ObjectId(),
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject objectid as array",
+        msg="$indexOfArray should reject objectid as array",
     ),
     IndexOfArrayTest(
-        id="regex_as_array",
+        "regex_as_array",
         array=Regex("x"),
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject regex as array",
+        msg="$indexOfArray should reject regex as array",
     ),
     IndexOfArrayTest(
-        id="maxkey_as_array",
+        "maxkey_as_array",
         array=MaxKey(),
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject maxkey as array",
+        msg="$indexOfArray should reject maxkey as array",
     ),
     IndexOfArrayTest(
-        id="minkey_as_array",
+        "minkey_as_array",
         array=MinKey(),
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject minkey as array",
+        msg="$indexOfArray should reject minkey as array",
     ),
     IndexOfArrayTest(
-        id="timestamp_as_array",
+        "timestamp_as_array",
         array=Timestamp(0, 0),
         search=1,
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
-        msg="Should reject timestamp as array",
+        msg="$indexOfArray should reject timestamp as array",
     ),
 ]
 
 # Error: start index not integral
 START_NOT_INTEGRAL_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
-        id="start_fractional_double",
+        "start_fractional_double",
         array=[1, 2, 3],
         search=1,
         start=1.5,
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject fractional double start",
+        msg="$indexOfArray should reject fractional double start",
     ),
     IndexOfArrayTest(
-        id="start_fractional_decimal128",
+        "start_fractional_decimal128",
         array=[1, 2, 3],
         search=1,
         start=Decimal128("0.5"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject fractional decimal128 start",
+        msg="$indexOfArray should reject fractional decimal128 start",
     ),
     IndexOfArrayTest(
-        id="start_nan",
+        "start_nan",
         array=[1, 2, 3],
         search=1,
         start=float("nan"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject NaN start",
+        msg="$indexOfArray should reject NaN start",
     ),
     IndexOfArrayTest(
-        id="start_inf",
+        "start_inf",
         array=[1, 2, 3],
         search=1,
         start=float("inf"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject infinity start",
+        msg="$indexOfArray should reject infinity start",
     ),
     IndexOfArrayTest(
-        id="start_neg_inf",
+        "start_neg_inf",
         array=[1, 2, 3],
         search=1,
         start=float("-inf"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject -infinity start",
+        msg="$indexOfArray should reject -infinity start",
     ),
     IndexOfArrayTest(
-        id="start_decimal128_nan",
+        "start_decimal128_nan",
         array=[1, 2, 3],
         search=1,
         start=Decimal128("NaN"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject decimal128 NaN start",
+        msg="$indexOfArray should reject decimal128 NaN start",
     ),
     IndexOfArrayTest(
-        id="start_decimal128_inf",
+        "start_decimal128_inf",
         array=[1, 2, 3],
         search=1,
         start=Decimal128("Infinity"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject decimal128 infinity start",
+        msg="$indexOfArray should reject decimal128 infinity start",
     ),
     IndexOfArrayTest(
-        id="start_string",
+        "start_string",
         array=[1, 2, 3],
         search=1,
         start="0",
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject string start",
+        msg="$indexOfArray should reject string start",
     ),
     IndexOfArrayTest(
-        id="start_bool",
+        "start_bool",
         array=[1, 2, 3],
         search=1,
         start=True,
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject bool start",
+        msg="$indexOfArray should reject bool start",
     ),
     IndexOfArrayTest(
-        id="start_array",
+        "start_array",
         array=[1, 2, 3],
         search=1,
         start=[0],
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject array start",
+        msg="$indexOfArray should reject array start",
     ),
     IndexOfArrayTest(
-        id="start_object",
+        "start_object",
         array=[1, 2, 3],
         search=1,
         start={"a": 0},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject object start",
+        msg="$indexOfArray should reject object start",
     ),
 ]
 
 # Error: end index not integral
 END_NOT_INTEGRAL_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
-        id="end_fractional_double",
+        "end_fractional_double",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=1.5,
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject fractional double end",
+        msg="$indexOfArray should reject fractional double end",
     ),
     IndexOfArrayTest(
-        id="end_fractional_decimal128",
+        "end_fractional_decimal128",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=Decimal128("0.5"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject fractional decimal128 end",
+        msg="$indexOfArray should reject fractional decimal128 end",
     ),
     IndexOfArrayTest(
-        id="end_nan",
+        "end_nan",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=float("nan"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject NaN end",
+        msg="$indexOfArray should reject NaN end",
     ),
     IndexOfArrayTest(
-        id="end_inf",
+        "end_inf",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=float("inf"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject infinity end",
+        msg="$indexOfArray should reject infinity end",
     ),
     IndexOfArrayTest(
-        id="end_string",
+        "end_string",
         array=[1, 2, 3],
         search=1,
         start=0,
         end="3",
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject string end",
+        msg="$indexOfArray should reject string end",
     ),
     IndexOfArrayTest(
-        id="end_bool",
+        "end_bool",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=True,
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject bool end",
+        msg="$indexOfArray should reject bool end",
     ),
     IndexOfArrayTest(
-        id="end_neg_inf",
+        "end_neg_inf",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=float("-inf"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject -infinity end",
+        msg="$indexOfArray should reject -infinity end",
     ),
     IndexOfArrayTest(
-        id="end_decimal128_nan",
+        "end_decimal128_nan",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=Decimal128("NaN"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject decimal128 NaN end",
+        msg="$indexOfArray should reject decimal128 NaN end",
     ),
     IndexOfArrayTest(
-        id="end_decimal128_inf",
+        "end_decimal128_inf",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=Decimal128("Infinity"),
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject decimal128 infinity end",
+        msg="$indexOfArray should reject decimal128 infinity end",
     ),
     IndexOfArrayTest(
-        id="end_array",
+        "end_array",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=[3],
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject array end",
+        msg="$indexOfArray should reject array end",
     ),
     IndexOfArrayTest(
-        id="end_object",
+        "end_object",
         array=[1, 2, 3],
         search=1,
         start=0,
         end={"a": 0},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject object end",
+        msg="$indexOfArray should reject object end",
     ),
 ]
 
 # Error: negative start index
 START_NEGATIVE_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
-        id="start_neg_one",
+        "start_neg_one",
         array=[1, 2, 3],
         search=1,
         start=-1,
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
-        msg="Should reject negative start -1",
+        msg="$indexOfArray should reject negative start -1",
     ),
     IndexOfArrayTest(
-        id="start_neg_large",
+        "start_neg_large",
         array=[1, 2, 3],
         search=1,
         start=-100,
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
-        msg="Should reject negative start -100",
+        msg="$indexOfArray should reject negative start -100",
     ),
     IndexOfArrayTest(
-        id="start_neg_int64",
+        "start_neg_int64",
         array=[1, 2, 3],
         search=1,
         start=Int64(-1),
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
-        msg="Should reject negative Int64 start",
+        msg="$indexOfArray should reject negative Int64 start",
     ),
     IndexOfArrayTest(
-        id="start_neg_double",
+        "start_neg_double",
         array=[1, 2, 3],
         search=1,
         start=-1.0,
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
-        msg="Should reject negative double start",
+        msg="$indexOfArray should reject negative double start",
     ),
     IndexOfArrayTest(
-        id="start_neg_decimal128",
+        "start_neg_decimal128",
         array=[1, 2, 3],
         search=1,
         start=Decimal128("-1"),
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
-        msg="Should reject negative decimal128 start",
+        msg="$indexOfArray should reject negative decimal128 start",
     ),
 ]
 
 # Error: negative end index
 END_NEGATIVE_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
-        id="end_neg_one",
+        "end_neg_one",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=-1,
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
-        msg="Should reject negative end -1",
+        msg="$indexOfArray should reject negative end -1",
     ),
     IndexOfArrayTest(
-        id="end_neg_large",
+        "end_neg_large",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=-100,
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
-        msg="Should reject negative end -100",
+        msg="$indexOfArray should reject negative end -100",
     ),
     IndexOfArrayTest(
-        id="end_neg_int64",
+        "end_neg_int64",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=Int64(-1),
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
-        msg="Should reject negative Int64 end",
+        msg="$indexOfArray should reject negative Int64 end",
     ),
     IndexOfArrayTest(
-        id="end_neg_double",
+        "end_neg_double",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=-1.0,
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
-        msg="Should reject negative double end",
+        msg="$indexOfArray should reject negative double end",
     ),
     IndexOfArrayTest(
-        id="end_neg_decimal128",
+        "end_neg_decimal128",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=Decimal128("-1"),
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
-        msg="Should reject negative decimal128 end",
+        msg="$indexOfArray should reject negative decimal128 end",
     ),
 ]
 
@@ -462,21 +465,21 @@ ALL_TESTS = (
 
 LITERAL_ONLY_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
-        id="start_missing_field",
+        "start_missing_field",
         array=[1, 2, 3],
         search=1,
         start=MISSING,
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject missing field as start",
+        msg="$indexOfArray should reject missing field as start",
     ),
     IndexOfArrayTest(
-        id="end_missing_field",
+        "end_missing_field",
         array=[1, 2, 3],
         search=1,
         start=0,
         end=MISSING,
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Should reject missing field as end",
+        msg="$indexOfArray should reject missing field as end",
     ),
 ]
 
@@ -506,19 +509,36 @@ def test_indexOfArray_insert(collection, test):
     )
 
 
-# Error: wrong arity
-ARITY_ERROR_TESTS = [
-    pytest.param({"$indexOfArray": []}, id="zero_args"),
-    pytest.param({"$indexOfArray": [[1, 2, 3]]}, id="one_arg"),
-    pytest.param({"$indexOfArray": [[1, 2, 3], 1, 0, 3, 99]}, id="five_args"),
+# Property [Arity]: $indexOfArray requires two to four arguments.
+ARITY_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "zero_args",
+        expression={"$indexOfArray": []},
+        error_code=EXPRESSION_ARITY_ERROR,
+        msg="$indexOfArray should reject zero arguments",
+    ),
+    ExpressionTestCase(
+        "one_arg",
+        expression={"$indexOfArray": [[1, 2, 3]]},
+        error_code=EXPRESSION_ARITY_ERROR,
+        msg="$indexOfArray should reject one argument",
+    ),
+    ExpressionTestCase(
+        "five_args",
+        expression={"$indexOfArray": [[1, 2, 3], 1, 0, 3, 99]},
+        error_code=EXPRESSION_ARITY_ERROR,
+        msg="$indexOfArray should reject five arguments",
+    ),
 ]
 
 
-@pytest.mark.parametrize("expr", ARITY_ERROR_TESTS)
-def test_indexOfArray_arity_error(collection, expr):
-    """Test $indexOfArray errors with wrong number of arguments."""
-    result = execute_expression(collection, expr)
-    assert_expression_result(result, error_code=EXPRESSION_ARITY_ERROR)
+@pytest.mark.parametrize("test", pytest_params(ARITY_ERROR_TESTS))
+def test_indexOfArray_arity_error(collection, test):
+    """Test $indexOfArray arity error cases."""
+    result = execute_expression(collection, test.expression)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
 
 
 # Error: null as literal start/end index
@@ -528,7 +548,9 @@ def test_indexOfArray_null_end(collection):
     """Test $indexOfArray with null as end index errors."""
     result = execute_expression(collection, {"$indexOfArray": [[1, 2, 3], 1, 0, None]})
     assert_expression_result(
-        result, error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR, msg="Null end should fail"
+        result,
+        error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
+        msg="$indexOfArray should reject null end",
     )
 
 
@@ -540,5 +562,5 @@ def test_indexOfArray_null_start(collection):
     assert_expression_result(
         result,
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="Null start should fail",
+        msg="$indexOfArray null start should fail",
     )

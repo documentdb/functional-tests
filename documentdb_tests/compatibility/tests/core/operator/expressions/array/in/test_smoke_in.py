@@ -28,4 +28,4 @@ def test_smoke_expression_in(collection):
     )
 
     expected = [{"_id": 1, "found": True}, {"_id": 2, "found": False}]
-    assertSuccess(result, expected, msg="Should support $in expression")
+    assertSuccess(result, expected, ignore_doc_order=True, msg="Should support $in expression")

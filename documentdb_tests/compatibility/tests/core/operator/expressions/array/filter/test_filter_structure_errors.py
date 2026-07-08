@@ -25,72 +25,72 @@ from documentdb_tests.framework.parametrize import pytest_params
 # Error: non-object argument
 NON_OBJECT_ARG_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="null_arg",
+        "null_arg",
         expression={"$filter": None},
         error_code=FILTER_NON_OBJECT_ARG_ERROR,
-        msg="Null arg should error",
+        msg="$filter null arg should error",
     ),
     ExpressionTestCase(
-        id="int_arg",
+        "int_arg",
         expression={"$filter": 1},
         error_code=FILTER_NON_OBJECT_ARG_ERROR,
-        msg="Int arg should error",
+        msg="$filter int arg should error",
     ),
     ExpressionTestCase(
-        id="string_arg",
+        "string_arg",
         expression={"$filter": "string"},
         error_code=FILTER_NON_OBJECT_ARG_ERROR,
-        msg="String arg should error",
+        msg="$filter string arg should error",
     ),
     ExpressionTestCase(
-        id="array_arg",
+        "array_arg",
         expression={"$filter": []},
         error_code=FILTER_NON_OBJECT_ARG_ERROR,
-        msg="Array arg should error",
+        msg="$filter array arg should error",
     ),
     ExpressionTestCase(
-        id="bool_arg",
+        "bool_arg",
         expression={"$filter": True},
         error_code=FILTER_NON_OBJECT_ARG_ERROR,
-        msg="Bool arg should error",
+        msg="$filter bool arg should error",
     ),
 ]
 
 # Error: unknown fields
 UNKNOWN_FIELD_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="extra_unknown",
+        "extra_unknown",
         expression={"$filter": {"input": [1], "cond": True, "unknown": 1}},
         error_code=FILTER_UNKNOWN_FIELD_ERROR,
-        msg="Extra unknown field should error",
+        msg="$filter extra unknown field should error",
     ),
     ExpressionTestCase(
-        id="only_unknown",
+        "only_unknown",
         expression={"$filter": {"dummy": 124}},
         error_code=FILTER_UNKNOWN_FIELD_ERROR,
-        msg="Only unknown field should error",
+        msg="$filter only unknown field should error",
     ),
 ]
 
 # Error: missing required fields
 MISSING_REQUIRED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="missing_input",
+        "missing_input",
         expression={"$filter": {"as": "x", "cond": True}},
         error_code=FILTER_MISSING_INPUT_ERROR,
-        msg="Missing input should error",
+        msg="$filter missing input should error",
     ),
     ExpressionTestCase(
-        id="missing_cond",
+        "missing_cond",
         expression={"$filter": {"input": [1, 2, 3]}},
         error_code=FILTER_MISSING_COND_ERROR,
-        msg="Missing cond should error",
+        msg="$filter missing cond should error",
     ),
     ExpressionTestCase(
-        id="empty_object",
+        "empty_object",
         expression={"$filter": {}},
         error_code=FILTER_MISSING_INPUT_ERROR,
-        msg="Empty object should error",
+        msg="$filter empty object should error",
     ),
 ]
 

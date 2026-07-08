@@ -17,36 +17,36 @@ from documentdb_tests.framework.test_constants import MISSING
 # Success: null/missing handling (runs both literal and insert)
 NULL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="null_value_in_array",
+        "null_value_in_array",
         doc={"val": None, "arr": [1, None, 3]},
         expression={"$in": ["$val", "$arr"]},
         expected=True,
-        msg="Should find null value in array containing null",
+        msg="$in should find null value in array containing null",
     ),
     ExpressionTestCase(
-        id="null_value_not_in_array",
+        "null_value_not_in_array",
         doc={"val": None, "arr": [1, 2, 3]},
         expression={"$in": ["$val", "$arr"]},
         expected=False,
-        msg="Should not find null in array without null",
+        msg="$in should not find null in array without null",
     ),
 ]
 
 # Success: missing value handling (literal only, MISSING is a field ref)
 LITERAL_ONLY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="missing_value",
+        "missing_value",
         doc={"val": MISSING, "arr": [1, 2, 3]},
         expression={"$in": ["$val", "$arr"]},
         expected=False,
-        msg="Should not find missing value in array",
+        msg="$in should not find missing value in array",
     ),
     ExpressionTestCase(
-        id="missing_value_null_in_array",
+        "missing_value_null_in_array",
         doc={"val": MISSING, "arr": [1, None, 3]},
         expression={"$in": ["$val", "$arr"]},
         expected=False,
-        msg="Should not find missing value even with null in array",
+        msg="$in should not find missing value even with null in array",
     ),
 ]
 

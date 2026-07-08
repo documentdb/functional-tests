@@ -31,4 +31,6 @@ def test_smoke_expression_indexOfArray(collection):
     )
 
     expected = [{"_id": 1, "index": 1}, {"_id": 2, "index": 1}]
-    assertSuccess(result, expected, msg="Should support $indexOfArray expression")
+    assertSuccess(
+        result, expected, ignore_doc_order=True, msg="Should support $indexOfArray expression"
+    )

@@ -20,62 +20,62 @@ from documentdb_tests.framework.test_constants import MISSING
 # Success: null/missing array → null (runs both literal and insert)
 NULL_ARRAY_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
-        id="null_array",
+        "null_array",
         array=None,
         search=1,
         expected=None,
-        msg="Should return null for null array",
+        msg="$indexOfArray should return null for null array",
     ),
     IndexOfArrayTest(
-        id="null_array_with_start",
+        "null_array_with_start",
         array=None,
         search=1,
         start=0,
         expected=None,
-        msg="Should return null for null array with start",
+        msg="$indexOfArray should return null for null array with start",
     ),
 ]
 
 # Success: null/missing as search value (runs both literal and insert)
 NULL_SEARCH_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
-        id="null_value_in_array",
+        "null_value_in_array",
         array=[1, None, 3],
         search=None,
         expected=1,
-        msg="Should find null in array",
+        msg="$indexOfArray should find null in array",
     ),
     IndexOfArrayTest(
-        id="null_value_not_in_array",
+        "null_value_not_in_array",
         array=[1, 2, 3],
         search=None,
         expected=-1,
-        msg="Should return -1 for null not in array",
+        msg="$indexOfArray should return -1 for null not in array",
     ),
 ]
 
 # Literal only: MISSING field refs
 LITERAL_ONLY_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
-        id="missing_array",
+        "missing_array",
         array=MISSING,
         search=1,
         expected=None,
-        msg="Should return null for missing array",
+        msg="$indexOfArray should return null for missing array",
     ),
     IndexOfArrayTest(
-        id="missing_value",
+        "missing_value",
         array=[1, 2, 3],
         search=MISSING,
         expected=-1,
-        msg="Should return -1 for missing search value",
+        msg="$indexOfArray should return -1 for missing search value",
     ),
     IndexOfArrayTest(
-        id="missing_value_null_in_array",
+        "missing_value_null_in_array",
         array=[1, None, 3],
         search=MISSING,
         expected=-1,
-        msg="Should return -1 for missing search even with null in array",
+        msg="$indexOfArray should return -1 for missing search even with null in array",
     ),
 ]
 
