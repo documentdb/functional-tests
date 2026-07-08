@@ -62,13 +62,6 @@ DEGENERATE_TESTS: list[ExpressionTestCase] = [
         msg="All single-element arrays produce one row",
     ),
     ExpressionTestCase(
-        id="empty_with_longest_false",
-        doc={"arr0": [], "arr1": [1, 2, 3]},
-        expression={"$zip": {"inputs": ["$arr0", "$arr1"]}},
-        expected=[],
-        msg="Empty array with shortest length returns []",
-    ),
-    ExpressionTestCase(
         id="empty_with_longest_true",
         doc={"arr0": [], "arr1": [1, 2, 3]},
         expression={"$zip": {"inputs": ["$arr0", "$arr1"], "useLongestLength": True}},

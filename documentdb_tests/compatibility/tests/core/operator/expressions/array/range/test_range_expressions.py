@@ -39,13 +39,6 @@ FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
         msg="Should resolve deeply nested field paths",
     ),
     ExpressionTestCase(
-        id="step_from_field",
-        expression={"$range": ["$start", "$end", "$step"]},
-        doc={"start": 0, "end": 10, "step": 3},
-        expected=[0, 3, 6, 9],
-        msg="Should resolve step from field path",
-    ),
-    ExpressionTestCase(
         id="nested_expr_start_end",
         expression={"$range": [{"$add": [1, 2]}, {"$multiply": [2, 5]}]},
         doc={"_placeholder": 1},

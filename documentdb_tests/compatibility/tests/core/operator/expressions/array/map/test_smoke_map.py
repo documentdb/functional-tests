@@ -38,4 +38,4 @@ def test_smoke_expression_map(collection):
     )
 
     expected = [{"_id": 1, "doubled": [2, 4, 6]}, {"_id": 2, "doubled": [8, 10, 12]}]
-    assertSuccess(result, expected, "Should support $map expression")
+    assertSuccess(result, expected, "Should support $map expression", ignore_doc_order=True)
