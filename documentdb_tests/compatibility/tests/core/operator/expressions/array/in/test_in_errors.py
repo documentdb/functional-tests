@@ -24,159 +24,165 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
 
-# Error: second argument not an array (runs both literal and insert)
+# Property [Not Array]: $in rejects non-array second argument across all BSON types.
 NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="string_as_array",
+        "string_as_array",
         doc={"val": 1, "arr": "hello"},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject string as array arg",
+        msg="$in should reject string as array arg",
     ),
     ExpressionTestCase(
-        id="int_as_array",
+        "int_as_array",
         doc={"val": 1, "arr": 42},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject int as array arg",
+        msg="$in should reject int as array arg",
     ),
     ExpressionTestCase(
-        id="double_as_array",
+        "double_as_array",
         doc={"val": 1, "arr": 3.14},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject double as array arg",
+        msg="$in should reject double as array arg",
     ),
     ExpressionTestCase(
-        id="bool_true_as_array",
+        "bool_true_as_array",
         doc={"val": 1, "arr": True},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject bool true as array arg",
+        msg="$in should reject bool true as array arg",
     ),
     ExpressionTestCase(
-        id="bool_false_as_array",
+        "bool_false_as_array",
         doc={"val": 1, "arr": False},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject bool false as array arg",
+        msg="$in should reject bool false as array arg",
     ),
     ExpressionTestCase(
-        id="object_as_array",
+        "object_as_array",
         doc={"val": 1, "arr": {"a": 1}},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject object as array arg",
+        msg="$in should reject object as array arg",
     ),
     ExpressionTestCase(
-        id="decimal128_as_array",
+        "decimal128_as_array",
         doc={"val": 1, "arr": Decimal128("1")},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject decimal128 as array arg",
+        msg="$in should reject decimal128 as array arg",
     ),
     ExpressionTestCase(
-        id="int64_as_array",
+        "int64_as_array",
         doc={"val": 1, "arr": Int64(1)},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject int64 as array arg",
+        msg="$in should reject int64 as array arg",
     ),
     ExpressionTestCase(
-        id="binary_as_array",
+        "binary_as_array",
         doc={"val": 1, "arr": Binary(b"x", 0)},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject binary as array arg",
+        msg="$in should reject binary as array arg",
     ),
     ExpressionTestCase(
-        id="datetime_as_array",
+        "datetime_as_array",
         doc={"val": 1, "arr": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject datetime as array arg",
+        msg="$in should reject datetime as array arg",
     ),
     ExpressionTestCase(
-        id="objectid_as_array",
+        "objectid_as_array",
         doc={"val": 1, "arr": ObjectId()},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject objectid as array arg",
+        msg="$in should reject objectid as array arg",
     ),
     ExpressionTestCase(
-        id="regex_as_array",
+        "regex_as_array",
         doc={"val": 1, "arr": Regex("x")},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject regex as array arg",
+        msg="$in should reject regex as array arg",
     ),
     ExpressionTestCase(
-        id="maxkey_as_array",
+        "maxkey_as_array",
         doc={"val": 1, "arr": MaxKey()},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject maxkey as array arg",
+        msg="$in should reject maxkey as array arg",
     ),
     ExpressionTestCase(
-        id="minkey_as_array",
+        "minkey_as_array",
         doc={"val": 1, "arr": MinKey()},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject minkey as array arg",
+        msg="$in should reject minkey as array arg",
     ),
     ExpressionTestCase(
-        id="timestamp_as_array",
+        "timestamp_as_array",
         doc={"val": 1, "arr": Timestamp(0, 0)},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject timestamp as array arg",
+        msg="$in should reject timestamp as array arg",
     ),
     ExpressionTestCase(
-        id="null_as_array",
+        "null_as_array",
         doc={"val": 1, "arr": None},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject null as array arg",
+        msg="$in should reject null as array arg",
     ),
 ]
 
-# Error: missing as array (literal only, MISSING is a field ref)
+# Property [Missing Field]: $in rejects a missing field as the second argument.
 LITERAL_ONLY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="missing_as_array",
+        "missing_as_array",
         doc={"val": 1, "arr": MISSING},
         expression={"$in": ["$val", "$arr"]},
         error_code=EXPRESSION_IN_NOT_ARRAY_ERROR,
-        msg="Should reject missing as array arg",
+        msg="$in should reject missing as array arg",
     ),
 ]
 
-# Aggregate and test
-TEST_SUBSET_FOR_LITERAL = [
-    NOT_ARRAY_ERROR_TESTS[0],  # string_as_array
-    NOT_ARRAY_ERROR_TESTS[-1],  # null_as_array
-] + LITERAL_ONLY_TESTS
+# Property [Arity]: $in requires exactly two arguments.
+ARITY_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "zero_args",
+        expression={"$in": []},
+        error_code=EXPRESSION_TYPE_MISMATCH_ERROR,
+        msg="$in should reject zero arguments",
+    ),
+    ExpressionTestCase(
+        "one_arg",
+        expression={"$in": [[1, 2, 3]]},
+        error_code=EXPRESSION_TYPE_MISMATCH_ERROR,
+        msg="$in should reject one argument",
+    ),
+    ExpressionTestCase(
+        "three_args",
+        expression={"$in": [1, [1, 2], 3]},
+        error_code=EXPRESSION_TYPE_MISMATCH_ERROR,
+        msg="$in should reject three arguments",
+    ),
+]
+
+ALL_ERROR_TESTS = NOT_ARRAY_ERROR_TESTS + LITERAL_ONLY_TESTS + ARITY_ERROR_TESTS
 
 
-@pytest.mark.parametrize("test", pytest_params(NOT_ARRAY_ERROR_TESTS))
-def test_in_insert(collection, test):
-    """Test $in error cases with values from inserted documents."""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
+@pytest.mark.parametrize("test", pytest_params(ALL_ERROR_TESTS))
+def test_in_error(collection, test):
+    """Test $in error cases."""
+    if test.doc is None:
+        result = execute_expression(collection, test.expression)
+    else:
+        result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
-
-
-# Error: wrong arity
-ARITY_ERROR_TESTS = [
-    pytest.param({"$in": []}, id="zero_args"),
-    pytest.param({"$in": [[1, 2, 3]]}, id="one_arg"),
-    pytest.param({"$in": [1, [1, 2], 3]}, id="three_args"),
-]
-
-
-@pytest.mark.parametrize("expr", ARITY_ERROR_TESTS)
-def test_in_arity_error(collection, expr):
-    """Test $in errors with wrong number of arguments."""
-    result = execute_expression(collection, expr)
-    assert_expression_result(result, error_code=EXPRESSION_TYPE_MISMATCH_ERROR)
