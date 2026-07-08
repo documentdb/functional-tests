@@ -329,12 +329,29 @@ SLICE_COMBINATION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
+# Property [Type Preservation]: $arrayElemAt preserves element type and reports missing for OOB.
+ARRAY_ELEM_AT_TYPE_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "arrayElemAt_oob_is_missing",
+        expression={"$type": {"$arrayElemAt": [[1, 2, 3], 10]}},
+        expected="missing",
+        msg="$arrayElemAt out-of-bounds should produce missing, not null",
+    ),
+    ExpressionTestCase(
+        "arrayElemAt_regex_type_preserved",
+        expression={"$type": {"$arrayElemAt": [[Regex("abc")], 0]}},
+        expected="regex",
+        msg="$arrayElemAt should preserve the regex element type",
+    ),
+]
+
 # Aggregate all combination tests
 ALL_COMBINATION_TESTS = (
     ARRAY_ELEM_AT_COMBINATION_TESTS
     + IN_COMBINATION_TESTS
     + INDEX_OF_ARRAY_COMBINATION_TESTS
     + SLICE_COMBINATION_TESTS
+    + ARRAY_ELEM_AT_TYPE_TESTS
 )
 
 
@@ -343,16 +360,3 @@ def test_combination_expression(collection, test):
     """Test array operators composed with other operators."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(result, expected=test.expected, msg=test.msg)
-
-
-# Standalone tests for behavior that doesn't fit the dataclass pattern
-def test_arrayElemAt_oob_is_missing_not_null(collection):
-    """Test out-of-bounds result is truly MISSING (field absent), not null."""
-    result = execute_expression(collection, {"$type": {"$arrayElemAt": [[1, 2, 3], 10]}})
-    assert_expression_result(result, expected="missing")
-
-
-def test_arrayElemAt_regex_type_preserved(collection):
-    """Test $arrayElemAt preserves regex element type."""
-    result = execute_expression(collection, {"$type": {"$arrayElemAt": [[Regex("abc")], 0]}})
-    assert_expression_result(result, expected="regex")

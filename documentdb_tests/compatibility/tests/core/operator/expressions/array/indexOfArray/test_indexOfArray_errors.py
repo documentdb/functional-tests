@@ -541,26 +541,27 @@ def test_indexOfArray_arity_error(collection, test):
     )
 
 
-# Error: null as literal start/end index
-# Standalone test because end=None in IndexOfArrayTest means "no end argument",
-# so null-as-end cannot be expressed via the dataclass.
-def test_indexOfArray_null_end(collection):
-    """Test $indexOfArray with null as end index errors."""
-    result = execute_expression(collection, {"$indexOfArray": [[1, 2, 3], 1, 0, None]})
-    assert_expression_result(
-        result,
+# Property [Null Index]: $indexOfArray rejects null as start or end index.
+NULL_INDEX_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "null_end",
+        expression={"$indexOfArray": [[1, 2, 3], 1, 0, None]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject null end",
-    )
-
-
-def test_indexOfArray_null_start(collection):
-    """Test $indexOfArray with null as start index errors."""
-
-    result = execute_expression(collection, {"$indexOfArray": [[1, 2, 3], 1, None]})
-
-    assert_expression_result(
-        result,
+    ),
+    ExpressionTestCase(
+        "null_start",
+        expression={"$indexOfArray": [[1, 2, 3], 1, None]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
-        msg="$indexOfArray null start should fail",
+        msg="$indexOfArray should reject null start",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(NULL_INDEX_ERROR_TESTS))
+def test_indexOfArray_null_index_error(collection, test):
+    """Test $indexOfArray rejects null as start or end index."""
+    result = execute_expression(collection, test.expression)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
