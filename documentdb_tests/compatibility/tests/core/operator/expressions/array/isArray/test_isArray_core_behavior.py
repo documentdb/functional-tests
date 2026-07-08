@@ -2,7 +2,7 @@
 Core behavior tests for $isArray expression.
 
 Tests that arrays return true, non-arrays return false,
-with basic types via both literal and insert paths.
+with basic types.
 """
 
 import pytest

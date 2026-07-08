@@ -14,7 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
 
-# Success: null/missing handling (runs both literal and insert)
+# Property [Null/Missing]: $in returns null when value or array is null or missing.
 NULL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "null_value_in_array",
@@ -32,7 +32,7 @@ NULL_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Success: missing value handling (literal only, MISSING is a field ref)
+# Property [Missing Value]: $in handles missing value field correctly.
 LITERAL_ONLY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "missing_value",

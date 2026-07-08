@@ -17,7 +17,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
 
-# Success: null/missing array → null (runs both literal and insert)
+# Property [Null Array]: $indexOfArray returns null when array is null or missing.
 NULL_ARRAY_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         "null_array",
@@ -36,7 +36,7 @@ NULL_ARRAY_TESTS: list[IndexOfArrayTest] = [
     ),
 ]
 
-# Success: null/missing as search value (runs both literal and insert)
+# Property [Null Search]: $indexOfArray handles null and missing search values.
 NULL_SEARCH_TESTS: list[IndexOfArrayTest] = [
     IndexOfArrayTest(
         "null_value_in_array",
