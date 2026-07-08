@@ -16,65 +16,64 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# Field path lookups
+# Property [Field Path Resolution]: $map resolves nested and composite field paths.
 # Property [Field Lookup]: $map resolves field paths in expressions.
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="nested_field_path",
+        "nested_field_path",
         expression={"$map": {"input": "$a.b", "in": {"$multiply": ["$$this", 2]}}},
         doc={"a": {"b": [1, 2, 3]}},
         expected=[2, 4, 6],
-        msg="Should resolve nested field path",
+        msg="$map should resolve nested field path",
     ),
     ExpressionTestCase(
-        id="deeply_nested_field",
+        "deeply_nested_field",
         expression={"$map": {"input": "$a.b.c", "in": "$$this"}},
         doc={"a": {"b": {"c": [10, 20]}}},
         expected=[10, 20],
-        msg="Should resolve deeply nested field path",
+        msg="$map should resolve deeply nested field path",
     ),
     ExpressionTestCase(
-        id="composite_array_path",
+        "composite_array_path",
         expression={"$map": {"input": "$a.b", "in": {"$multiply": ["$$this", 10]}}},
         doc={"a": [{"b": 1}, {"b": 2}, {"b": 3}]},
         expected=[10, 20, 30],
-        msg="Composite array path should resolve to array",
+        msg="$map composite array path should resolve to array",
     ),
     ExpressionTestCase(
-        id="index_path_on_object_key",
+        "index_path_on_object_key",
         expression={"$map": {"input": "$a.0.b", "in": "$$this"}},
         doc={"a": {"0": {"b": [1, 2, 3]}}},
         expected=[1, 2, 3],
-        msg="Object key '0' resolves correctly",
+        msg="$map object key '0' resolves correctly",
     ),
     ExpressionTestCase(
-        id="object_key_zero",
+        "object_key_zero",
         expression={"$map": {"input": "$a.0", "in": "$$this"}},
         doc={"a": {"0": [1, 2, 3]}},
         expected=[1, 2, 3],
         msg="$a.0 resolves as field named '0' on object",
     ),
     ExpressionTestCase(
-        id="access_outer_field",
+        "access_outer_field",
         expression={"$map": {"input": "$arr", "in": {"$add": ["$$this", "$val"]}}},
         doc={"arr": [1, 2, 3], "val": 100},
         expected=[101, 102, 103],
-        msg="Should access outer document field in 'in' expression",
+        msg="$map should access outer document field in 'in' expression",
     ),
     ExpressionTestCase(
-        id="array_expression_input",
+        "array_expression_input",
         expression={"$map": {"input": ["$x", "$y"], "in": {"$multiply": ["$$this", 2]}}},
         doc={"x": 1, "y": 2},
         expected=[2, 4],
-        msg="Array expression with field refs resolved",
+        msg="$map array expression with field refs resolved",
     ),
 ]
 
-# $let and system variables
 # Property [Variables]: $map works with $let and system variables.
 LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="let_variable",
+        "let_variable",
         expression={
             "$let": {
                 "vars": {"arr": "$values"},
@@ -83,17 +82,17 @@ LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
         },
         doc={"values": [1, 2, 3]},
         expected=[2, 3, 4],
-        msg="Should work with $let variables",
+        msg="$map should work with $let variables",
     ),
     ExpressionTestCase(
-        id="root_variable",
+        "root_variable",
         expression={"$map": {"input": "$$ROOT.values", "in": "$$this"}},
         doc={"_id": 1, "values": [10, 20]},
         expected=[10, 20],
-        msg="Should work with $$ROOT",
+        msg="$map should work with $$ROOT",
     ),
     ExpressionTestCase(
-        id="current_variable",
+        "current_variable",
         expression={"$map": {"input": "$$CURRENT.values", "in": "$$this"}},
         doc={"_id": 2, "values": [10, 20]},
         expected=[10, 20],
@@ -101,44 +100,43 @@ LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Null/missing via expression
+# Property [Null/Missing Fields]: null and missing field paths produce null results.
 # Property [Null/Missing Fields]: $map handles null and missing field paths.
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="missing_field",
+        "missing_field",
         expression={"$map": {"input": "$nonexistent", "in": "$$this"}},
         doc={"other": 1},
         expected=None,
-        msg="Missing field should return null",
+        msg="$map missing field should return null",
     ),
     ExpressionTestCase(
-        id="missing_input_type_is_null",
+        "missing_input_type_is_null",
         expression={"$type": {"$map": {"input": "$nonexistent", "in": "$$this"}}},
         doc={"x": 1},
         expected="null",
-        msg="Missing field should produce null type",
+        msg="$map missing field should produce null type",
     ),
     ExpressionTestCase(
-        id="remove_variable",
+        "remove_variable",
         expression={"$map": {"input": "$$REMOVE", "in": "$$this"}},
         doc={"x": 1},
         expected=None,
         msg="$$REMOVE propagates null",
     ),
     ExpressionTestCase(
-        id="missing_field_in_expression",
+        "missing_field_in_expression",
         expression={"$map": {"input": "$arr", "in": "$missing"}},
         doc={"arr": [1, 2, 3]},
         expected=[None, None, None],
-        msg="Missing field in 'in' should produce null for each element",
+        msg="$map missing field in 'in' should produce null for each element",
     ),
 ]
 
-# Nested $map
 # Property [Nested Map]: $map can be nested inside another $map.
 NESTED_MAP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="nested_map",
+        "nested_map",
         expression={
             "$map": {
                 "input": "$arr",
@@ -154,16 +152,16 @@ NESTED_MAP_TESTS: list[ExpressionTestCase] = [
         },
         doc={"arr": [[1, 2], [3, 4]]},
         expected=[[2, 4], [6, 8]],
-        msg="Nested $map should process 2D array",
+        msg="$map nested $map should process 2D array",
     ),
 ]
 
 
-# $map within $reduce and vice versa
+# Property [Reduce Interaction]: $map composes correctly with $reduce scoping.
 # Property [Reduce Interaction]: $map output works with $reduce.
 REDUCE_INTERACTION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="map_within_reduce",
+        "map_within_reduce",
         expression={
             "$reduce": {
                 "input": [4, 5, 6],
@@ -178,7 +176,7 @@ REDUCE_INTERACTION_TESTS: list[ExpressionTestCase] = [
         msg="$map's $$this should reference $map elements, not $reduce's",
     ),
     ExpressionTestCase(
-        id="reduce_within_map",
+        "reduce_within_map",
         expression={
             "$map": {
                 "input": [100, 50],
@@ -197,25 +195,25 @@ REDUCE_INTERACTION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# $$ROOT returning full document, $$REMOVE behavior
+# Property [System Variables]: $map works with $$ROOT and $$REMOVE.
 # Property [System Variables]: $map works with $$ROOT and $$CURRENT.
 SYSTEM_VAR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="root_returns_full_doc",
+        "root_returns_full_doc",
         expression={"$map": {"input": "$arr", "in": "$$ROOT"}},
         doc={"_id": 1, "arr": [1, 2]},
         expected=[{"_id": 1, "arr": [1, 2]}, {"_id": 1, "arr": [1, 2]}],
         msg="$$ROOT should return root document for each element",
     ),
     ExpressionTestCase(
-        id="root_field_access",
+        "root_field_access",
         expression={"$map": {"input": "$arr", "in": "$$ROOT.name"}},
         doc={"_id": 1, "arr": [1, 2], "name": "test"},
         expected=["test", "test"],
         msg="$$ROOT.field should access root field for each element",
     ),
     ExpressionTestCase(
-        id="remove_in_cond_becomes_null",
+        "remove_in_cond_becomes_null",
         expression={
             "$map": {
                 "input": [1, 10, 2, 20],
@@ -229,7 +227,6 @@ SYSTEM_VAR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-# Aggregate and test
 ALL_EXPR_TESTS = (
     FIELD_LOOKUP_TESTS
     + LET_AND_VARIABLE_TESTS

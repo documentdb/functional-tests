@@ -22,88 +22,86 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# Error: non-object argument
 # Property [Object Argument]: $map rejects non-object arguments.
 NON_OBJECT_ARG_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="null_arg",
+        "null_arg",
         expression={"$map": None},
         error_code=EXPRESSION_NON_OBJECT_ARG_ERROR,
-        msg="Null arg should error",
+        msg="$map null arg should error",
     ),
     ExpressionTestCase(
-        id="int_arg",
+        "int_arg",
         expression={"$map": 1},
         error_code=EXPRESSION_NON_OBJECT_ARG_ERROR,
-        msg="Int arg should error",
+        msg="$map int arg should error",
     ),
     ExpressionTestCase(
-        id="string_arg",
+        "string_arg",
         expression={"$map": "string"},
         error_code=EXPRESSION_NON_OBJECT_ARG_ERROR,
-        msg="String arg should error",
+        msg="$map string arg should error",
     ),
     ExpressionTestCase(
-        id="array_arg",
+        "array_arg",
         expression={"$map": [1, 2]},
         error_code=EXPRESSION_NON_OBJECT_ARG_ERROR,
-        msg="Array arg should error",
+        msg="$map array arg should error",
     ),
     ExpressionTestCase(
-        id="bool_arg",
+        "bool_arg",
         expression={"$map": True},
         error_code=EXPRESSION_NON_OBJECT_ARG_ERROR,
-        msg="Bool arg should error",
+        msg="$map bool arg should error",
     ),
 ]
 
-# Error: unknown fields
+# Property [Unknown Fields]: $map rejects unrecognized fields in the argument object.
 # Property [Unknown Fields]: $map rejects unknown fields in the argument.
 UNKNOWN_FIELD_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="extra_unknown",
+        "extra_unknown",
         expression={"$map": {"input": [1], "in": "$$this", "unknown": 1}},
         error_code=MAP_UNKNOWN_FIELD_ERROR,
-        msg="Extra unknown field should error",
+        msg="$map extra unknown field should error",
     ),
     ExpressionTestCase(
-        id="misspelled_inputs",
+        "misspelled_inputs",
         expression={"$map": {"inputs": [1], "in": "$$this"}},
         error_code=MAP_UNKNOWN_FIELD_ERROR,
-        msg="Misspelled 'inputs' should error",
+        msg="$map misspelled 'inputs' should error",
     ),
 ]
 
-# Error: missing required fields
+# Property [Required Fields]: $map rejects when required fields are missing.
 # Property [Required Fields]: $map requires the input and in fields.
 MISSING_REQUIRED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="missing_input",
+        "missing_input",
         expression={"$map": {"in": "$$this"}},
         error_code=MAP_MISSING_INPUT_ERROR,
-        msg="Missing input should error",
+        msg="$map missing input should error",
     ),
     ExpressionTestCase(
-        id="missing_in",
+        "missing_in",
         expression={"$map": {"input": [1, 2, 3]}},
         error_code=MAP_MISSING_IN_ERROR,
-        msg="Missing in should error",
+        msg="$map missing in should error",
     ),
     ExpressionTestCase(
-        id="missing_in_with_as",
+        "missing_in_with_as",
         expression={"$map": {"input": [1, 2, 3], "as": "x"}},
         error_code=MAP_MISSING_IN_ERROR,
-        msg="Missing in with as should error",
+        msg="$map missing in with as should error",
     ),
     ExpressionTestCase(
-        id="empty_object",
+        "empty_object",
         expression={"$map": {}},
         error_code=MAP_MISSING_INPUT_ERROR,
-        msg="Empty object should error",
+        msg="$map empty object should error",
     ),
 ]
 
-# Aggregate and test
 ALL_STRUCTURE_TESTS = NON_OBJECT_ARG_TESTS + UNKNOWN_FIELD_TESTS + MISSING_REQUIRED_TESTS
 
 

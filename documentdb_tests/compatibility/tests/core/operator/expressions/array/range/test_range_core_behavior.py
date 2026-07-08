@@ -16,202 +16,202 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# Success: basic ascending ranges (default step=1)
+# Property [Basic Ascending]: $range generates ascending integer sequences.
 BASIC_ASC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="zero_to_five",
+        "zero_to_five",
         doc={"start": 0, "end": 5},
         expression={"$range": ["$start", "$end"]},
         expected=[0, 1, 2, 3, 4],
-        msg="Should generate 0..4",
+        msg="$range should generate 0..4",
     ),
     ExpressionTestCase(
-        id="one_to_four",
+        "one_to_four",
         doc={"start": 1, "end": 4},
         expression={"$range": ["$start", "$end"]},
         expected=[1, 2, 3],
-        msg="Should generate 1..3",
+        msg="$range should generate 1..3",
     ),
     ExpressionTestCase(
-        id="negative_range",
+        "negative_range",
         doc={"start": -5, "end": -1},
         expression={"$range": ["$start", "$end"]},
         expected=[-5, -4, -3, -2],
-        msg="Should generate -5..-2",
+        msg="$range should generate -5..-2",
     ),
     ExpressionTestCase(
-        id="start_equals_end",
+        "start_equals_end",
         doc={"start": 5, "end": 5},
         expression={"$range": ["$start", "$end"]},
         expected=[],
-        msg="Should return empty when start equals end",
+        msg="$range should return empty when start equals end",
     ),
     ExpressionTestCase(
-        id="start_greater_than_end",
+        "start_greater_than_end",
         doc={"start": 10, "end": 5},
         expression={"$range": ["$start", "$end"]},
         expected=[],
-        msg="Should return empty when start > end with default step",
+        msg="$range should return empty when start > end with default step",
     ),
 ]
 
-# Success: custom step
+# Property [Custom Step]: $range respects custom step values.
 # Property [Step]: $range respects custom step values.
 STEP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="step_two",
+        "step_two",
         doc={"start": 0, "end": 10, "step": 2},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[0, 2, 4, 6, 8],
-        msg="Should generate with step 2",
+        msg="$range should generate with step 2",
     ),
     ExpressionTestCase(
-        id="step_three",
+        "step_three",
         doc={"start": 0, "end": 10, "step": 3},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[0, 3, 6, 9],
-        msg="Should generate with step 3",
+        msg="$range should generate with step 3",
     ),
     ExpressionTestCase(
-        id="step_five",
+        "step_five",
         doc={"start": 0, "end": 20, "step": 5},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[0, 5, 10, 15],
-        msg="Should generate with step 5",
+        msg="$range should generate with step 5",
     ),
     ExpressionTestCase(
-        id="step_one_explicit",
+        "step_one_explicit",
         doc={"start": 0, "end": 3, "step": 1},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[0, 1, 2],
-        msg="Explicit step 1 same as default",
+        msg="$range explicit step 1 same as default",
     ),
     ExpressionTestCase(
-        id="step_overshoots",
+        "step_overshoots",
         doc={"start": 0, "end": 5, "step": 3},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[0, 3],
-        msg="Should stop when step overshoots end",
+        msg="$range should stop when step overshoots end",
     ),
     ExpressionTestCase(
-        id="step_exactly_reaches",
+        "step_exactly_reaches",
         doc={"start": 0, "end": 6, "step": 2},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[0, 2, 4],
-        msg="End is exclusive even when step exactly reaches it",
+        msg="$range end is exclusive even when step exactly reaches it",
     ),
     ExpressionTestCase(
-        id="start_nonzero",
+        "start_nonzero",
         doc={"start": 5, "end": 15},
         expression={"$range": ["$start", "$end"]},
         expected=[5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-        msg="Should work with nonzero start",
+        msg="$range should work with nonzero start",
     ),
     ExpressionTestCase(
-        id="step_4",
+        "step_4",
         doc={"start": 5, "end": 15, "step": 4},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[5, 9, 13],
-        msg="Should work with step 4",
+        msg="$range should work with step 4",
     ),
 ]
 
-# Success: negative step (descending)
+# Property [Negative Step]: $range generates descending sequences with negative step.
 NEGATIVE_STEP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="descending_basic",
+        "descending_basic",
         doc={"start": 5, "end": 0, "step": -1},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[5, 4, 3, 2, 1],
-        msg="Should generate descending 5..1",
+        msg="$range should generate descending 5..1",
     ),
     ExpressionTestCase(
-        id="descending_step_two",
+        "descending_step_two",
         doc={"start": 10, "end": 0, "step": -2},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[10, 8, 6, 4, 2],
-        msg="Should generate descending with step -2",
+        msg="$range should generate descending with step -2",
     ),
     ExpressionTestCase(
-        id="descending_negative_range",
+        "descending_negative_range",
         doc={"start": -1, "end": -5, "step": -1},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[-1, -2, -3, -4],
-        msg="Should generate descending in negative range",
+        msg="$range should generate descending in negative range",
     ),
     ExpressionTestCase(
-        id="descending_start_equals_end",
+        "descending_start_equals_end",
         doc={"start": 5, "end": 5, "step": -1},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[],
-        msg="Should return empty when start equals end with negative step",
+        msg="$range should return empty when start equals end with negative step",
     ),
     ExpressionTestCase(
-        id="descending_wrong_direction",
+        "descending_wrong_direction",
         doc={"start": 0, "end": 5, "step": -1},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[],
-        msg="Should return empty when step direction mismatches",
+        msg="$range should return empty when step direction mismatches",
     ),
     ExpressionTestCase(
-        id="descending_step_neg3",
+        "descending_step_neg3",
         doc={"start": 10, "end": 0, "step": -3},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[10, 7, 4, 1],
-        msg="Should generate descending with step -3",
+        msg="$range should generate descending with step -3",
     ),
     ExpressionTestCase(
-        id="descending_past_zero",
+        "descending_past_zero",
         doc={"start": 5, "end": -1, "step": -1},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[5, 4, 3, 2, 1, 0],
-        msg="Should descend past zero",
+        msg="$range should descend past zero",
     ),
 ]
 
-# Success: empty results
+# Property [Empty Result]: $range returns empty when start/end/step produce no elements.
 EMPTY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="ascending_wrong_direction",
+        "ascending_wrong_direction",
         doc={"start": 5, "end": 0, "step": 1},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[],
-        msg="Should return empty when ascending step but start > end",
+        msg="$range should return empty when ascending step but start > end",
     ),
     ExpressionTestCase(
-        id="zero_zero_pos_step",
+        "zero_zero_pos_step",
         doc={"start": 0, "end": 0, "step": 1},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[],
-        msg="0 to 0 step 1 should be empty",
+        msg="$range 0 to 0 step 1 should be empty",
     ),
     ExpressionTestCase(
-        id="zero_zero_neg_step",
+        "zero_zero_neg_step",
         doc={"start": 0, "end": 0, "step": -1},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[],
-        msg="0 to 0 step -1 should be empty",
+        msg="$range 0 to 0 step -1 should be empty",
     ),
     ExpressionTestCase(
-        id="neg_equal",
+        "neg_equal",
         doc={"start": -1, "end": -1},
         expression={"$range": ["$start", "$end"]},
         expected=[],
-        msg="-1 to -1 should be empty",
+        msg="$range -1 to -1 should be empty",
     ),
     ExpressionTestCase(
-        id="large_equal",
+        "large_equal",
         doc={"start": 1000000, "end": 1000000},
         expression={"$range": ["$start", "$end"]},
         expected=[],
-        msg="Large equal start/end should be empty",
+        msg="$range large equal start/end should be empty",
     ),
     ExpressionTestCase(
-        id="neg_mismatch",
+        "neg_mismatch",
         doc={"start": -1, "end": -5, "step": 1},
         expression={"$range": ["$start", "$end", "$step"]},
         expected=[],
-        msg="Negative range with positive step should be empty",
+        msg="$range negative range with positive step should be empty",
     ),
 ]
 

@@ -21,36 +21,36 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# Field path lookups
+# Property [Field Path Resolution]: $map resolves nested and composite field paths.
 # Property [Field Lookup]: $range resolves field paths in expressions.
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="nested_field_path",
+        "nested_field_path",
         expression={"$range": ["$a.start", "$a.end"]},
         doc={"a": {"start": 0, "end": 3}},
         expected=[0, 1, 2],
-        msg="Should resolve nested field paths",
+        msg="$range should resolve nested field paths",
     ),
     ExpressionTestCase(
-        id="deeply_nested_field",
+        "deeply_nested_field",
         expression={"$range": ["$a.b.start", "$a.b.end"]},
         doc={"a": {"b": {"start": 1, "end": 4}}},
         expected=[1, 2, 3],
-        msg="Should resolve deeply nested field paths",
+        msg="$range should resolve deeply nested field paths",
     ),
     ExpressionTestCase(
-        id="nested_expr_start_end",
+        "nested_expr_start_end",
         expression={"$range": [{"$add": [1, 2]}, {"$multiply": [2, 5]}]},
         doc={"_placeholder": 1},
         expected=[3, 4, 5, 6, 7, 8, 9],
-        msg="Should support nested expressions as start and end",
+        msg="$range should support nested expressions as start and end",
     ),
 ]
 
-# $let and system variables
+# Property [Variables]: $map works with $let and system variables.
 LET_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="let_variable",
+        "let_variable",
         expression={
             "$let": {
                 "vars": {"s": "$start", "e": "$end"},
@@ -59,24 +59,24 @@ LET_TESTS: list[ExpressionTestCase] = [
         },
         doc={"start": 0, "end": 3},
         expected=[0, 1, 2],
-        msg="Should work with $let variables",
+        msg="$range should work with $let variables",
     ),
     ExpressionTestCase(
-        id="root_variable",
+        "root_variable",
         expression={"$range": ["$$ROOT.start", "$$ROOT.end"]},
         doc={"_id": 1, "start": 0, "end": 3},
         expected=[0, 1, 2],
-        msg="Should work with $$ROOT",
+        msg="$range should work with $$ROOT",
     ),
     ExpressionTestCase(
-        id="current_variable",
+        "current_variable",
         expression={"$range": ["$$CURRENT.start", "$$CURRENT.end"]},
         doc={"_id": 2, "start": 0, "end": 3},
         expected=[0, 1, 2],
         msg="$$CURRENT should be equivalent to field path",
     ),
     ExpressionTestCase(
-        id="remove_variable",
+        "remove_variable",
         expression={"$range": ["$$REMOVE", 5]},
         doc={"x": 1},
         error_code=RANGE_START_NOT_INT32_ERROR,
@@ -84,68 +84,66 @@ LET_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Null/missing via expression — $range does NOT propagate null, it errors
 # Property [Null/Missing Fields]: $range errors on null and missing field paths.
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="missing_start_field",
+        "missing_start_field",
         expression={"$range": ["$nonexistent", 5]},
         doc={"other": 1},
         error_code=RANGE_START_NOT_INT32_ERROR,
-        msg="Missing start field should error",
+        msg="$range missing start field should error",
     ),
     ExpressionTestCase(
-        id="missing_end_field",
+        "missing_end_field",
         expression={"$range": [0, "$nonexistent"]},
         doc={"other": 1},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
-        msg="Missing end field should error",
+        msg="$range missing end field should error",
     ),
     ExpressionTestCase(
-        id="null_start_field",
+        "null_start_field",
         expression={"$range": ["$a", 5]},
         doc={"a": None},
         error_code=RANGE_START_NOT_INT32_ERROR,
-        msg="Null start field should error",
+        msg="$range null start field should error",
     ),
     ExpressionTestCase(
-        id="null_end_field",
+        "null_end_field",
         expression={"$range": [0, "$a"]},
         doc={"a": None},
         error_code=RANGE_END_NOT_NUMERIC_ERROR,
-        msg="Null end field should error",
+        msg="$range null end field should error",
     ),
     ExpressionTestCase(
-        id="null_step_field",
+        "null_step_field",
         expression={"$range": [0, 5, "$a"]},
         doc={"a": None},
         error_code=RANGE_STEP_NOT_NUMERIC_ERROR,
-        msg="Null step field should error",
+        msg="$range null step field should error",
     ),
     ExpressionTestCase(
-        id="all_missing_fields",
+        "all_missing_fields",
         expression={"$range": ["$a", "$b"]},
         doc={"_placeholder": 1},
         error_code=RANGE_START_NOT_INT32_ERROR,
-        msg="All missing should error on start first",
+        msg="$range all missing should error on start first",
     ),
     ExpressionTestCase(
-        id="composite_array_path_error",
+        "composite_array_path_error",
         expression={"$range": ["$a.b", 5]},
         doc={"a": [{"b": 0}, {"b": 5}]},
         error_code=RANGE_START_NOT_INT32_ERROR,
-        msg="Composite array path should error",
+        msg="$range composite array path should error",
     ),
     ExpressionTestCase(
-        id="array_index_path_error",
+        "array_index_path_error",
         expression={"$range": ["$a.0", "$a.1", "$a.2"]},
         doc={"a": [0, 5, 2]},
         error_code=RANGE_START_NOT_INT32_ERROR,
-        msg="Array index path should error in expression context",
+        msg="$range array index path should error in expression context",
     ),
 ]
 
-# Aggregate and test
 ALL_EXPR_TESTS = FIELD_LOOKUP_TESTS + LET_TESTS + NULL_MISSING_EXPR_TESTS
 
 

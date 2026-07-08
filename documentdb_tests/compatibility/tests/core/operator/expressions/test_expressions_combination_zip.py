@@ -16,35 +16,35 @@ from documentdb_tests.framework.test_constants import FLOAT_NAN
 
 ZIP_COMBINATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="zip_on_sortArray",
+        "zip_on_sortArray",
         expression={"$zip": {"inputs": [{"$sortArray": {"input": "$a", "sortBy": 1}}, "$b"]}},
         doc={"a": [3, 1, 2], "b": [10, 20, 30]},
         expected=[[1, 10], [2, 20], [3, 30]],
-        msg="Should zip $sortArray result with array",
+        msg="$zip should zip $sortArray result with array",
     ),
     ExpressionTestCase(
-        id="zip_on_concatArrays",
+        "zip_on_concatArrays",
         expression={"$zip": {"inputs": [{"$concatArrays": ["$a", "$b"]}, "$c"]}},
         doc={"a": [1], "b": [2], "c": [10, 20]},
         expected=[[1, 10], [2, 20]],
-        msg="Should zip $concatArrays result with array",
+        msg="$zip should zip $concatArrays result with array",
     ),
     ExpressionTestCase(
-        id="zip_on_range",
+        "zip_on_range",
         expression={"$zip": {"inputs": [{"$range": [0, 3]}, {"$range": [10, 13]}]}},
         doc={"x": 1},
         expected=[[0, 10], [1, 11], [2, 12]],
-        msg="Should zip two $range results",
+        msg="$zip should zip two $range results",
     ),
     ExpressionTestCase(
-        id="arrayElemAt_on_zip",
+        "arrayElemAt_on_zip",
         expression={"$arrayElemAt": [{"$zip": {"inputs": ["$a", "$b"]}}, 1]},
         doc={"a": [1, 2, 3], "b": [10, 20, 30]},
         expected=[2, 20],
         msg="$arrayElemAt on $zip result",
     ),
     ExpressionTestCase(
-        id="zip_matrix_transpose_2x3",
+        "zip_matrix_transpose_2x3",
         expression={
             "$zip": {
                 "inputs": [
@@ -55,17 +55,17 @@ ZIP_COMBINATION_TESTS: list[ExpressionTestCase] = [
         },
         doc={"matrix": [[0, 1, 2], [3, 4, 5]]},
         expected=[[0, 3], [1, 4], [2, 5]],
-        msg="2x3 matrix transposed to 3x2",
+        msg="$zip 2x3 matrix transposed to 3x2",
     ),
     ExpressionTestCase(
-        id="zip_index_preservation",
+        "zip_index_preservation",
         expression={"$zip": {"inputs": ["$arr", {"$range": [0, {"$size": "$arr"}]}]}},
         doc={"arr": ["a", "b", "c"]},
         expected=[["a", 0], ["b", 1], ["c", 2]],
-        msg="Elements paired with indices",
+        msg="$zip elements paired with indices",
     ),
     ExpressionTestCase(
-        id="zip_reduce_on_output",
+        "zip_reduce_on_output",
         expression={
             "$reduce": {
                 "input": {"$zip": {"inputs": ["$a", "$b"]}},
@@ -78,21 +78,21 @@ ZIP_COMBINATION_TESTS: list[ExpressionTestCase] = [
         msg="$reduce sums second elements of zipped pairs",
     ),
     ExpressionTestCase(
-        id="zip_output_is_array",
+        "zip_output_is_array",
         expression={"$isArray": {"$zip": {"inputs": ["$a", "$b"]}}},
         doc={"a": [1, 2], "b": ["a", "b"]},
         expected=True,
-        msg="Output is an array",
+        msg="$zip output is an array",
     ),
     ExpressionTestCase(
-        id="float_nan_preserved",
+        "float_nan_preserved",
         expression={"$arrayElemAt": [{"$arrayElemAt": [{"$zip": {"inputs": ["$a", "$b"]}}, 0]}, 0]},
         doc={"a": [FLOAT_NAN], "b": [1]},
         expected=pytest.approx(FLOAT_NAN, nan_ok=True),
-        msg="Float NaN element preserved after zipping",
+        msg="$zip float NaN element preserved after zipping",
     ),
     ExpressionTestCase(
-        id="default_float_nan",
+        "default_float_nan",
         expression={
             "$arrayElemAt": [
                 {
@@ -112,7 +112,7 @@ ZIP_COMBINATION_TESTS: list[ExpressionTestCase] = [
         },
         doc={"a": [1, 2], "b": [10]},
         expected=pytest.approx(FLOAT_NAN, nan_ok=True),
-        msg="Should use float NaN as default value",
+        msg="$zip should use float NaN as default value",
     ),
 ]
 

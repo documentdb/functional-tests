@@ -15,16 +15,16 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 MAP_COMBINATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        id="map_on_range",
+        "map_on_range",
         expression={
             "$map": {"input": {"$range": [0, 5]}, "in": {"$multiply": ["$$this", "$$this"]}}
         },
         doc={"_placeholder": 1},
         expected=[0, 1, 4, 9, 16],
-        msg="Should map squares over $range result",
+        msg="$map should map squares over $range result",
     ),
     ExpressionTestCase(
-        id="map_with_concatArrays",
+        "map_with_concatArrays",
         expression={
             "$concatArrays": [
                 {"$map": {"input": "$a", "in": {"$multiply": ["$$this", 2]}}},
@@ -33,10 +33,10 @@ MAP_COMBINATION_TESTS: list[ExpressionTestCase] = [
         },
         doc={"a": [1, 2], "b": [3, 4]},
         expected=[2, 4, 9, 12],
-        msg="Should concatenate two mapped arrays",
+        msg="$map should concatenate two mapped arrays",
     ),
     ExpressionTestCase(
-        id="map_with_filter",
+        "map_with_filter",
         expression={
             "$map": {
                 "input": {"$filter": {"input": "$arr", "cond": {"$gt": ["$$this", 2]}}},
@@ -45,10 +45,10 @@ MAP_COMBINATION_TESTS: list[ExpressionTestCase] = [
         },
         doc={"arr": [1, 2, 3, 4, 5]},
         expected=[30, 40, 50],
-        msg="Should map over filtered array",
+        msg="$map should map over filtered array",
     ),
     ExpressionTestCase(
-        id="map_result_into_reduce",
+        "map_result_into_reduce",
         expression={
             "$reduce": {
                 "input": {"$map": {"input": "$arr", "in": {"$multiply": ["$$this", 2]}}},
@@ -61,7 +61,7 @@ MAP_COMBINATION_TESTS: list[ExpressionTestCase] = [
         msg="$reduce on $map result should sum doubled values",
     ),
     ExpressionTestCase(
-        id="map_3_level_nested",
+        "map_3_level_nested",
         expression={
             "$map": {
                 "input": [[[1]]],
@@ -82,7 +82,7 @@ MAP_COMBINATION_TESTS: list[ExpressionTestCase] = [
         },
         doc={"_placeholder": 1},
         expected=[[[101]]],
-        msg="3-level nested $map should work",
+        msg="$map 3-level nested $map should work",
     ),
 ]
 
