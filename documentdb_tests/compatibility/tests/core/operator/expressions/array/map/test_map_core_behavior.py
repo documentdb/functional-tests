@@ -211,7 +211,7 @@ ORDER_DUPLICATE_TESTS: list[ExpressionTestCase] = [
 
 
 # Success: null element propagation
-# Property [Null Propagation]: $zip returns null when inputs is null.
+# Property [Null Propagation]: $map returns null when input is null.
 NULL_PROPAGATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="null_add_propagation",
@@ -309,8 +309,8 @@ ALL_TESTS = (
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_map_insert(collection, test):
-    """Test $map with values from inserted documents."""
+def test_map_core_behavior(collection, test):
+    """Test $map core behavior: transforms, null propagation, conditionals."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

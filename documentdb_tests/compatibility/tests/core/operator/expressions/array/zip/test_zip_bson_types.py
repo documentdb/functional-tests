@@ -33,7 +33,7 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # BSON types preserved after zipping
-# Property [Type Preservation]: $map preserves each element's BSON type.
+# Property [Type Preservation]: $zip preserves each element's BSON type.
 BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int64_values",
@@ -117,7 +117,7 @@ BSON_TYPE_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Mixed BSON types across arrays
-# Property [Mixed Types]: $map processes arrays with mixed BSON types.
+# Property [Mixed Types]: $zip processes arrays with mixed BSON types.
 MIXED_BSON_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="mixed_bson_types",
@@ -129,7 +129,7 @@ MIXED_BSON_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Special numeric values as elements
-# Property [Special Numerics]: $map preserves NaN, Infinity, and boundary values.
+# Property [Special Numerics]: $zip preserves NaN, Infinity, and boundary values.
 SPECIAL_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="infinity_values",
@@ -388,8 +388,8 @@ ALL_BSON_TESTS = (
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_BSON_TESTS))
-def test_zip_bson_insert(collection, test):
-    """Test $zip BSON types with values from inserted documents."""
+def test_zip_bson_type_preservation(collection, test):
+    """Test $zip preserves BSON types in zipped output arrays."""
     if test.doc is None:
         result = execute_expression(collection, test.expression)
     else:

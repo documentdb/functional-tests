@@ -83,8 +83,8 @@ ALL_BOUNDARY_TESTS = INT32_BOUNDARY_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_BOUNDARY_TESTS))
-def test_range_boundary_insert(collection, test):
-    """Test $range boundary values with inserted documents."""
+def test_range_int32_boundary(collection, test):
+    """Test $range with INT32 boundary values for start, end, step."""
     if test.doc is None:
         result = execute_expression(collection, test.expression)
     else:

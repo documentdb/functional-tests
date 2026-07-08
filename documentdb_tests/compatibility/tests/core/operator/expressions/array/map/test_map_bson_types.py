@@ -308,7 +308,7 @@ ALL_BSON_TESTS = (
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_BSON_TESTS))
-def test_map_bson_insert(collection, test):
-    """Test $map BSON types with values from inserted documents."""
+def test_map_bson_type_preservation(collection, test):
+    """Test $map preserves BSON types and handles type-specific transforms."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(result, expected=test.expected, msg=test.msg)

@@ -22,7 +22,7 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Field path lookups
-# Property [Field Lookup]: $map resolves field paths in expressions.
+# Property [Field Lookup]: $range resolves field paths in expressions.
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_field_path",
@@ -85,7 +85,7 @@ LET_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Null/missing via expression — $range does NOT propagate null, it errors
-# Property [Null/Missing Fields]: $map handles null and missing field paths.
+# Property [Null/Missing Fields]: $range errors on null and missing field paths.
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="missing_start_field",
@@ -150,8 +150,8 @@ ALL_EXPR_TESTS = FIELD_LOOKUP_TESTS + LET_TESTS + NULL_MISSING_EXPR_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_EXPR_TESTS))
-def test_range_expression(collection, test):
-    """Test $range with field paths and expressions."""
+def test_range_field_paths_and_variables(collection, test):
+    """Test $range with field paths, $let, system variables, and null/missing errors."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

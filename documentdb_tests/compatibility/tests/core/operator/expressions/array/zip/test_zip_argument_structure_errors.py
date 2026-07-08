@@ -71,7 +71,7 @@ STRUCTURE_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Non-object argument (error 34460)
-# Property [Object Argument]: $map rejects non-object arguments.
+# Property [Object Argument]: $zip rejects non-object arguments.
 NON_OBJECT_ARG_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int_arg",

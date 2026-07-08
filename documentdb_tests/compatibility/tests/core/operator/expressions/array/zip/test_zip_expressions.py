@@ -18,7 +18,7 @@ from documentdb_tests.framework.error_codes import ZIP_REQUIRES_ARRAY_ELEMENT_ER
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Field path lookups
-# Property [Field Lookup]: $map resolves field paths in expressions.
+# Property [Field Lookup]: $zip resolves field paths in expressions.
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_field_path",
@@ -99,7 +99,7 @@ LET_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Null/missing via expression
-# Property [Null/Missing Fields]: $map handles null and missing field paths.
+# Property [Null/Missing Fields]: $zip handles null and missing field paths.
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="missing_field",
@@ -232,8 +232,8 @@ ALL_EXPR_TESTS = (
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_EXPR_TESTS))
-def test_zip_expression(collection, test):
-    """Test $zip with field paths and expressions."""
+def test_zip_field_paths_and_variables(collection, test):
+    """Test $zip with field paths, $let, system variables, and null propagation."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

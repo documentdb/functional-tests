@@ -217,7 +217,7 @@ ALL_TESTS = (
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_range_numeric_acceptance(collection, test):
-    """Test $range with various accepted numeric types and value patterns."""
+    """Test $range accepts Int64, whole doubles, whole Decimal128, and negative zero."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

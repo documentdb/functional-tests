@@ -241,8 +241,8 @@ ALL_EXPR_TESTS = (
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_EXPR_TESTS))
-def test_map_expression(collection, test):
-    """Test $map with field paths and expressions."""
+def test_map_field_paths_and_variables(collection, test):
+    """Test $map with field paths, $let, system variables, and nested composition."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

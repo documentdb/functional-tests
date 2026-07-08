@@ -273,8 +273,8 @@ ALL_TESTS = NOT_ARRAY_ERROR_TESTS + SPECIAL_NUMERIC_ERROR_TESTS + BOUNDARY_ERROR
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_map_not_array_insert(collection, test):
-    """Test $map error with non-array input from inserted documents."""
+def test_map_non_array_input_error(collection, test):
+    """Test $map rejects non-array input with correct error code."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

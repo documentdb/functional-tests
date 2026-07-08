@@ -234,8 +234,8 @@ ALL_TESTS = (
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_zip_degenerate(collection, test):
-    """Test $zip with degenerate and edge case inputs."""
+def test_zip_edge_cases(collection, test):
+    """Test $zip with empty, single, nested, null, large, and multi-length inputs."""
     if test.doc is None:
         result = execute_expression(collection, test.expression)
     else:

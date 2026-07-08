@@ -430,8 +430,8 @@ ALL_INPUT_ELEMENT_TESTS = (
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_INPUT_ELEMENT_TESTS))
-def test_zip_not_array_insert(collection, test):
-    """Test $zip error with non-array input element from inserted documents."""
+def test_zip_non_array_input_error(collection, test):
+    """Test $zip rejects non-array inputs and invalid useLongestLength/defaults."""
     if test.doc is None:
         result = execute_expression(collection, test.expression)
     else:

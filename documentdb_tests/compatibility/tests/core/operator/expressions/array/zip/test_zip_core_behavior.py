@@ -225,8 +225,8 @@ ALL_TESTS = BASIC_TESTS + UNEQUAL_LENGTH_TESTS + USE_LONGEST_TESTS + DEFAULTS_TE
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_zip_insert(collection, test):
-    """Test $zip with values from inserted documents."""
+def test_zip_core_behavior(collection, test):
+    """Test $zip core behavior: basic zipping, unequal lengths, useLongestLength, defaults."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
