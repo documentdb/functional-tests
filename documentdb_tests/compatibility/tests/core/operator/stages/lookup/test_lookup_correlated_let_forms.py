@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from bson import Decimal128, Int64, MaxKey, MinKey
+from bson import Binary, Decimal128, Int64, MaxKey, MinKey
 
 from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.lookup_common import (
     FOREIGN,
@@ -132,7 +132,7 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
             {
                 "$lookup": {
                     "from": FOREIGN,
-                    "let": {"x": BSON_TYPE_SAMPLES[BsonType.BIN_DATA]},
+                    "let": {"x": Binary(b"\x00\x01\x02", 128)},
                     "pipeline": [{"$addFields": {"val": "$$x", "t": {"$type": "$$x"}}}],
                     "as": "joined",
                 }
@@ -141,9 +141,7 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
         expected=[
             {
                 "_id": 1,
-                "joined": [
-                    {"_id": 10, "val": BSON_TYPE_SAMPLES[BsonType.BIN_DATA], "t": "binData"}
-                ],
+                "joined": [{"_id": 10, "val": Binary(b"\x00\x01\x02", 128), "t": "binData"}],
             }
         ],
         msg="$lookup let with BinData constant should preserve binData type",
