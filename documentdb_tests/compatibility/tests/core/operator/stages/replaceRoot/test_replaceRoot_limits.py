@@ -24,6 +24,7 @@ from documentdb_tests.framework.error_codes import (
     OVERFLOW_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 
 
@@ -61,7 +62,7 @@ REPLACEROOT_DEEP_PROMOTION_TESTS: list[StageTestCase] = [
 REPLACEROOT_SIZE_BOUNDARY_TESTS: list[StageTestCase] = [
     StageTestCase(
         "size_boundary_max_output_accepted",
-        docs=[{"_id": 1, "data": {"s": "x" * BIG_STORED_STRING_BYTES}}],
+        docs=lazy(lambda: [{"_id": 1, "data": {"s": "x" * BIG_STORED_STRING_BYTES}}]),
         pipeline=[
             {
                 "$replaceRoot": {
@@ -95,7 +96,7 @@ REPLACEROOT_NESTING_BOUNDARY_TESTS: list[StageTestCase] = [
 REPLACEROOT_SIZE_LIMIT_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "size_limit_one_over_rejected",
-        docs=[{"_id": 1, "data": {"s": "x" * BIG_STORED_STRING_BYTES}}],
+        docs=lazy(lambda: [{"_id": 1, "data": {"s": "x" * BIG_STORED_STRING_BYTES}}]),
         pipeline=[
             {
                 "$replaceRoot": {
