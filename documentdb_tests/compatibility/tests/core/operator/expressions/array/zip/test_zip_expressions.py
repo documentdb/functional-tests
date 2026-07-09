@@ -16,6 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.error_codes import ZIP_REQUIRES_ARRAY_ELEMENT_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import MISSING
 
 # Property [Field Path Resolution]: $map resolves nested and composite field paths.
 # Property [Field Lookup]: $zip resolves field paths in expressions.
@@ -131,7 +132,7 @@ NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "missing_first_input",
-        expression={"$zip": {"inputs": ["$missing", [1, 2]]}},
+        expression={"$zip": {"inputs": [MISSING, [1, 2]]}},
         doc={"a": 1},
         expected=None,
         msg="$zip missing first input returns null",

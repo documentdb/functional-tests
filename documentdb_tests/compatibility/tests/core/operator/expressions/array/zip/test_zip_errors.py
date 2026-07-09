@@ -344,14 +344,14 @@ USE_LONGEST_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "use_longest_nan",
         doc={"arr0": [1, 2]},
-        expression={"$zip": {"inputs": ["$arr0"], "useLongestLength": float("nan")}},
+        expression={"$zip": {"inputs": ["$arr0"], "useLongestLength": FLOAT_NAN}},
         error_code=ZIP_USE_LONGEST_NOT_BOOL_ERROR,
         msg="$zip naN should error (not bool)",
     ),
     ExpressionTestCase(
         "use_longest_infinity",
         doc={"arr0": [1, 2]},
-        expression={"$zip": {"inputs": ["$arr0"], "useLongestLength": float("inf")}},
+        expression={"$zip": {"inputs": ["$arr0"], "useLongestLength": FLOAT_INFINITY}},
         error_code=ZIP_USE_LONGEST_NOT_BOOL_ERROR,
         msg="$zip infinity should error (not bool)",
     ),

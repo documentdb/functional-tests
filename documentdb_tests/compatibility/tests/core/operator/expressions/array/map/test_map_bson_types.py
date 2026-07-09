@@ -24,6 +24,9 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ONE_AND_HALF,
+    DECIMAL128_TRAILING_ZERO,
+    DECIMAL128_TWO_AND_HALF,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NEGATIVE_INFINITY,
@@ -46,8 +49,8 @@ BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "decimal128_values",
         expression={"$map": {"input": "$arr", "in": "$$this"}},
-        doc={"arr": [Decimal128("1.5"), Decimal128("2.5")]},
-        expected=[Decimal128("1.5"), Decimal128("2.5")],
+        doc={"arr": [DECIMAL128_ONE_AND_HALF, DECIMAL128_TWO_AND_HALF]},
+        expected=[DECIMAL128_ONE_AND_HALF, DECIMAL128_TWO_AND_HALF],
         msg="$map should preserve Decimal128 values",
     ),
     ExpressionTestCase(
@@ -189,8 +192,8 @@ DECIMAL128_PRECISION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "decimal128_trailing_zeros",
         expression={"$map": {"input": "$arr", "in": "$$this"}},
-        doc={"arr": [Decimal128("1.0"), Decimal128("1.00"), Decimal128("1.000")]},
-        expected=[Decimal128("1.0"), Decimal128("1.00"), Decimal128("1.000")],
+        doc={"arr": [DECIMAL128_TRAILING_ZERO, Decimal128("1.00"), Decimal128("1.000")]},
+        expected=[DECIMAL128_TRAILING_ZERO, Decimal128("1.00"), Decimal128("1.000")],
         msg="$map decimal128 trailing zeros preserved",
     ),
     ExpressionTestCase(
@@ -215,7 +218,7 @@ BSON_TRANSFORM_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "add_decimal128",
         expression={"$map": {"input": "$arr", "in": {"$add": ["$$this", Decimal128("0.1")]}}},
-        doc={"arr": [Decimal128("1.5"), Decimal128("2.5"), Decimal128("3.5")]},
+        doc={"arr": [DECIMAL128_ONE_AND_HALF, DECIMAL128_TWO_AND_HALF, Decimal128("3.5")]},
         expected=[Decimal128("1.6"), Decimal128("2.6"), Decimal128("3.6")],
         msg="$add on Decimal128 should preserve precision",
     ),
@@ -260,7 +263,7 @@ BSON_TRANSFORM_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "toDouble_decimal128",
         expression={"$map": {"input": "$arr", "in": {"$toDouble": "$$this"}}},
-        doc={"arr": [Decimal128("1.5"), Decimal128("2.0")]},
+        doc={"arr": [DECIMAL128_ONE_AND_HALF, Decimal128("2.0")]},
         expected=[1.5, 2.0],
         msg="$toDouble on Decimal128 array",
     ),

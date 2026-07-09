@@ -6,7 +6,7 @@ step zero, out-of-int32-range values, and wrong arity.
 """
 
 import pytest
-from bson import Decimal128, Int64
+from bson import Decimal128
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -25,9 +25,17 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
+    DECIMAL128_HALF,
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_NEGATIVE_NAN,
+    DECIMAL128_NEGATIVE_ONE_AND_HALF,
+    DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ONE_AND_HALF,
+    DECIMAL128_ZERO,
+    DOUBLE_NEGATIVE_ZERO,
+    DOUBLE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
@@ -35,6 +43,7 @@ from documentdb_tests.framework.test_constants import (
     INT32_UNDERFLOW,
     INT64_MAX,
     INT64_MIN,
+    INT64_ZERO,
 )
 
 # Property [Non-Integral Start]: $range rejects fractional numeric values for start.
@@ -48,7 +57,7 @@ NON_INTEGRAL_START_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "decimal128_fractional_start",
-        doc={"start": Decimal128("0.5"), "end": 5},
+        doc={"start": DECIMAL128_HALF, "end": 5},
         expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="$range should reject fractional Decimal128 start",
@@ -62,14 +71,14 @@ NON_INTEGRAL_START_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "decimal128_negative_fractional_start",
-        doc={"start": Decimal128("-1.5"), "end": 5},
+        doc={"start": DECIMAL128_NEGATIVE_ONE_AND_HALF, "end": 5},
         expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="$range should reject negative fractional Decimal128 start",
     ),
     ExpressionTestCase(
         "decimal128_negative_nan_start",
-        doc={"start": Decimal128("-NaN"), "end": 5},
+        doc={"start": DECIMAL128_NEGATIVE_NAN, "end": 5},
         expression={"$range": ["$start", "$end"]},
         error_code=RANGE_START_NOT_INTEGRAL_ERROR,
         msg="$range should reject Decimal128 -NaN start",
@@ -101,7 +110,7 @@ NON_INTEGRAL_END_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "decimal128_negative_fractional_end",
-        doc={"start": 0, "end": Decimal128("-1.5")},
+        doc={"start": 0, "end": DECIMAL128_NEGATIVE_ONE_AND_HALF},
         expression={"$range": ["$start", "$end"]},
         error_code=RANGE_END_NOT_INT32_ERROR,
         msg="$range should reject negative fractional Decimal128 end",
@@ -119,7 +128,7 @@ NON_INTEGRAL_STEP_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "decimal128_fractional_step",
-        doc={"start": 0, "end": 10, "step": Decimal128("1.5")},
+        doc={"start": 0, "end": 10, "step": DECIMAL128_ONE_AND_HALF},
         expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_INT32_ERROR,
         msg="$range should reject fractional Decimal128 step",
@@ -133,7 +142,7 @@ NON_INTEGRAL_STEP_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "decimal128_negative_fractional_step",
-        doc={"start": 10, "end": 0, "step": Decimal128("-1.5")},
+        doc={"start": 10, "end": 0, "step": DECIMAL128_NEGATIVE_ONE_AND_HALF},
         expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_NOT_INT32_ERROR,
         msg="$range should reject negative fractional Decimal128 step",
@@ -212,35 +221,35 @@ STEP_ZERO_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "step_zero_int64",
-        doc={"start": 0, "end": 5, "step": Int64(0)},
+        doc={"start": 0, "end": 5, "step": INT64_ZERO},
         expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="$range should reject Int64 step 0",
     ),
     ExpressionTestCase(
         "step_zero_double",
-        doc={"start": 0, "end": 5, "step": 0.0},
+        doc={"start": 0, "end": 5, "step": DOUBLE_ZERO},
         expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="$range should reject double step 0.0",
     ),
     ExpressionTestCase(
         "step_zero_decimal128",
-        doc={"start": 0, "end": 5, "step": Decimal128("0")},
+        doc={"start": 0, "end": 5, "step": DECIMAL128_ZERO},
         expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="$range should reject Decimal128 step 0",
     ),
     ExpressionTestCase(
         "step_neg_zero_double",
-        doc={"start": 0, "end": 5, "step": -0.0},
+        doc={"start": 0, "end": 5, "step": DOUBLE_NEGATIVE_ZERO},
         expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="$range should reject negative zero double step",
     ),
     ExpressionTestCase(
         "step_neg_zero_decimal128",
-        doc={"start": 0, "end": 5, "step": Decimal128("-0")},
+        doc={"start": 0, "end": 5, "step": DECIMAL128_NEGATIVE_ZERO},
         expression={"$range": ["$start", "$end", "$step"]},
         error_code=RANGE_STEP_ZERO_ERROR,
         msg="$range should reject negative zero Decimal128 step",

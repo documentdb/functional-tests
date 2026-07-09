@@ -23,6 +23,9 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_ONE_AND_HALF,
+    DECIMAL128_TWO_AND_HALF,
+    DECIMAL128_ZERO,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NEGATIVE_INFINITY,
@@ -30,6 +33,7 @@ from documentdb_tests.framework.test_constants import (
     INT32_MIN,
     INT64_MAX,
     INT64_MIN,
+    INT64_ZERO,
 )
 
 # Property [Type Preservation]: $zip preserves each element BSON type.
@@ -44,9 +48,9 @@ BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "decimal128_values",
-        doc={"arr0": [Decimal128("1.5")], "arr1": [Decimal128("2.5")]},
+        doc={"arr0": [DECIMAL128_ONE_AND_HALF], "arr1": [DECIMAL128_TWO_AND_HALF]},
         expression={"$zip": {"inputs": ["$arr0", "$arr1"]}},
-        expected=[[Decimal128("1.5"), Decimal128("2.5")]],
+        expected=[[DECIMAL128_ONE_AND_HALF, DECIMAL128_TWO_AND_HALF]],
         msg="$zip should preserve Decimal128 values",
     ),
     ExpressionTestCase(
@@ -177,23 +181,23 @@ BSON_DEFAULTS_TESTS: list[ExpressionTestCase] = [
             "$zip": {
                 "inputs": ["$arr0", "$arr1"],
                 "useLongestLength": True,
-                "defaults": [0, Int64(0)],
+                "defaults": [0, INT64_ZERO],
             }
         },
-        expected=[[1, Int64(10)], [2, Int64(0)], [3, Int64(0)]],
+        expected=[[1, Int64(10)], [2, INT64_ZERO], [3, INT64_ZERO]],
         msg="$zip should use Int64 default value",
     ),
     ExpressionTestCase(
         "default_decimal128",
-        doc={"arr0": [1, 2, 3], "arr1": [Decimal128("1.5")]},
+        doc={"arr0": [1, 2, 3], "arr1": [DECIMAL128_ONE_AND_HALF]},
         expression={
             "$zip": {
                 "inputs": ["$arr0", "$arr1"],
                 "useLongestLength": True,
-                "defaults": [0, Decimal128("0")],
+                "defaults": [0, DECIMAL128_ZERO],
             }
         },
-        expected=[[1, Decimal128("1.5")], [2, Decimal128("0")], [3, Decimal128("0")]],
+        expected=[[1, DECIMAL128_ONE_AND_HALF], [2, DECIMAL128_ZERO], [3, DECIMAL128_ZERO]],
         msg="$zip should use Decimal128 default value",
     ),
     ExpressionTestCase(

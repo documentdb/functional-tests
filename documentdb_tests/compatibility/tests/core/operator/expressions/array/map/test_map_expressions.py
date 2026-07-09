@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import MISSING
 
 # Property [Field Path Resolution]: $map resolves nested and composite field paths.
 # Property [Field Lookup]: $map resolves field paths in expressions.
@@ -126,7 +127,7 @@ NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "missing_field_in_expression",
-        expression={"$map": {"input": "$arr", "in": "$missing"}},
+        expression={"$map": {"input": "$arr", "in": MISSING}},
         doc={"arr": [1, 2, 3]},
         expected=[None, None, None],
         msg="$map missing field in 'in' should produce null for each element",

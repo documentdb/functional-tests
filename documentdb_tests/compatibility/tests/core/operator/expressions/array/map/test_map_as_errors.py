@@ -18,6 +18,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.error_codes import FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import FLOAT_INFINITY, FLOAT_NAN
 
 # Property [Invalid As Type]: $map rejects non-string types for the as parameter.
 INVALID_AS_TYPE_TESTS: list[ExpressionTestCase] = [
@@ -107,13 +108,13 @@ INVALID_AS_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "type_nan",
-        expression={"$map": {"input": [1, 2, 3], "as": float("nan"), "in": "$$this"}},
+        expression={"$map": {"input": [1, 2, 3], "as": FLOAT_NAN, "in": "$$this"}},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="$map should reject NaN as variable name",
     ),
     ExpressionTestCase(
         "type_infinity",
-        expression={"$map": {"input": [1, 2, 3], "as": float("inf"), "in": "$$this"}},
+        expression={"$map": {"input": [1, 2, 3], "as": FLOAT_INFINITY, "in": "$$this"}},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="$map should reject Infinity as variable name",
     ),

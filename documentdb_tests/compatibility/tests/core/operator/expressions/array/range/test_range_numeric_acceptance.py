@@ -16,26 +16,33 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ZERO,
+    DOUBLE_NEGATIVE_ZERO,
+    DOUBLE_ZERO,
+    INT64_ZERO,
+)
 
 # Property [Numeric Type Acceptance]: $range accepts Int64, whole doubles, and whole Decimal128.
 NUMERIC_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int64_args",
-        doc={"start": Int64(0), "end": Int64(3)},
+        doc={"start": INT64_ZERO, "end": Int64(3)},
         expression={"$range": ["$start", "$end"]},
         expected=[0, 1, 2],
         msg="$range should accept Int64 arguments",
     ),
     ExpressionTestCase(
         "whole_double_args",
-        doc={"start": 0.0, "end": 3.0},
+        doc={"start": DOUBLE_ZERO, "end": 3.0},
         expression={"$range": ["$start", "$end"]},
         expected=[0, 1, 2],
         msg="$range should accept whole-number double arguments",
     ),
     ExpressionTestCase(
         "whole_decimal128_args",
-        doc={"start": Decimal128("0"), "end": Decimal128("3")},
+        doc={"start": DECIMAL128_ZERO, "end": Decimal128("3")},
         expression={"$range": ["$start", "$end"]},
         expected=[0, 1, 2],
         msg="$range should accept whole-number Decimal128 arguments",
@@ -178,28 +185,28 @@ LARGE_RANGE_TESTS: list[ExpressionTestCase] = [
 NEG_ZERO_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "neg_zero_double_start",
-        doc={"start": -0.0, "end": 5},
+        doc={"start": DOUBLE_NEGATIVE_ZERO, "end": 5},
         expression={"$range": ["$start", "$end"]},
         expected=[0, 1, 2, 3, 4],
         msg="$range negative zero double start treated as 0",
     ),
     ExpressionTestCase(
         "neg_zero_decimal_start",
-        doc={"start": Decimal128("-0"), "end": 5},
+        doc={"start": DECIMAL128_NEGATIVE_ZERO, "end": 5},
         expression={"$range": ["$start", "$end"]},
         expected=[0, 1, 2, 3, 4],
         msg="$range negative zero Decimal128 start treated as 0",
     ),
     ExpressionTestCase(
         "neg_zero_double_end",
-        doc={"start": 0, "end": -0.0},
+        doc={"start": 0, "end": DOUBLE_NEGATIVE_ZERO},
         expression={"$range": ["$start", "$end"]},
         expected=[],
         msg="$range negative zero double end treated as 0",
     ),
     ExpressionTestCase(
         "neg_zero_decimal_end",
-        doc={"start": 0, "end": Decimal128("-0")},
+        doc={"start": 0, "end": DECIMAL128_NEGATIVE_ZERO},
         expression={"$range": ["$start", "$end"]},
         expected=[],
         msg="$range negative zero Decimal128 end treated as 0",

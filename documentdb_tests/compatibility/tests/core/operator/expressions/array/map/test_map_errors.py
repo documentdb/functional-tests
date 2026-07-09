@@ -28,6 +28,7 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_MIN,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_NEGATIVE_NAN,
     DECIMAL128_NEGATIVE_ZERO,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
@@ -195,7 +196,7 @@ SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "decimal128_neg_nan_input",
         expression={"$map": {"input": "$arr", "in": "$$this"}},
-        doc={"arr": Decimal128("-NaN")},
+        doc={"arr": DECIMAL128_NEGATIVE_NAN},
         error_code=MAP_INPUT_NOT_ARRAY_ERROR,
         msg="$map should reject Decimal128 -NaN input",
     ),
