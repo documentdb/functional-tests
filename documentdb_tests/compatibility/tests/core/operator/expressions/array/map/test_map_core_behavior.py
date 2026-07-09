@@ -17,7 +17,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# Property [Basic Transform]: $map applies an expression to each array element.
 # Property [Basic Transform]: $map applies an expression to each element.
 BASIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -92,7 +91,6 @@ BASIC_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Nested Arrays]: $map does not flatten nested array structures.
 # Property [Nested Arrays]: $map operates on nested array structures.
 NESTED_ARRAY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -172,7 +170,6 @@ TYPE_CONVERSION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Large Arrays]: $map handles arrays with many elements.
 # Property [Large Arrays]: $map handles large arrays.
 LARGE_ARRAY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

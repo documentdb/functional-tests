@@ -56,7 +56,6 @@ NON_OBJECT_ARG_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Unknown Fields]: $map rejects unrecognized fields in the argument object.
 # Property [Unknown Fields]: $map rejects unknown fields in the argument.
 UNKNOWN_FIELD_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -73,7 +72,6 @@ UNKNOWN_FIELD_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Required Fields]: $map rejects when required fields are missing.
 # Property [Required Fields]: $map requires the input and in fields.
 MISSING_REQUIRED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

@@ -91,7 +91,6 @@ NUMERIC_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Single Element]: $range produces single-element arrays at boundaries.
 # Property [Single Element]: $range produces single-element arrays.
 SINGLE_ELEMENT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

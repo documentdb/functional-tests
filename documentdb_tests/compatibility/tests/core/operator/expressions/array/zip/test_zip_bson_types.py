@@ -36,7 +36,6 @@ from documentdb_tests.framework.test_constants import (
     INT64_ZERO,
 )
 
-# Property [Type Preservation]: $zip preserves each element BSON type.
 # Property [Type Preservation]: $zip preserves each element's BSON type.
 BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -120,7 +119,6 @@ BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Mixed Types]: $map processes arrays with mixed BSON types. across arrays
 # Property [Mixed Types]: $zip processes arrays with mixed BSON types.
 MIXED_BSON_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -132,7 +130,6 @@ MIXED_BSON_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Special Numerics]: $map preserves NaN, Infinity, and boundary values.
 # Property [Special Numerics]: $zip preserves NaN, Infinity, and boundary values.
 SPECIAL_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

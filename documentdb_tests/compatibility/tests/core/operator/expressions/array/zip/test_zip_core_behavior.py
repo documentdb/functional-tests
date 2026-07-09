@@ -56,7 +56,6 @@ BASIC_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Unequal Length]: $zip truncates to the shortest array by default.
 # Property [Unequal Length]: $zip truncates to the shortest array.
 UNEQUAL_LENGTH_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -114,7 +113,6 @@ USE_LONGEST_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Defaults]: $zip pads shorter arrays with specified default values.
 # Property [Defaults]: $zip pads shorter arrays with default values.
 DEFAULTS_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

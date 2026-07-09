@@ -36,7 +36,6 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN,
 )
 
-# Property [Type Preservation]: $map preserves each element BSON type.
 # Property [Type Preservation]: $map preserves each element's BSON type.
 BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -205,7 +204,6 @@ DECIMAL128_PRECISION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Type Transforms]: $map applies type-specific operator transformations.
 # Property [Type Transform]: $map transforms elements using type-specific operations.
 BSON_TRANSFORM_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

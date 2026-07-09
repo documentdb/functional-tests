@@ -149,7 +149,6 @@ NON_INTEGRAL_STEP_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Special Numeric Values]: $range rejects NaN and Infinity values.
 # Property [Special Numerics]: $range rejects NaN and Infinity values.
 SPECIAL_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

@@ -173,7 +173,7 @@ NOT_ARRAY_ELEMENT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Special Numeric Input]: $map rejects special numeric values as input. as input element
+# Property [Special Numeric Input]: $zip rejects special numeric values as input.
 SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "nan_input",
@@ -233,7 +233,7 @@ SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Boundary Input]: $map rejects numeric boundary values as input. as input element
+# Property [Boundary Input]: $zip rejects numeric boundary values as input.
 BOUNDARY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int32_max_input",

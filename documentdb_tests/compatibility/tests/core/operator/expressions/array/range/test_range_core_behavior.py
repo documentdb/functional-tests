@@ -56,7 +56,6 @@ BASIC_ASC_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Custom Step]: $range respects custom step values.
-# Property [Step]: $range respects custom step values.
 STEP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "step_two",

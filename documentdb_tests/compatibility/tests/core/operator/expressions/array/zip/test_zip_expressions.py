@@ -18,7 +18,7 @@ from documentdb_tests.framework.error_codes import ZIP_REQUIRES_ARRAY_ELEMENT_ER
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
 
-# Property [Field Path Resolution]: $map resolves nested and composite field paths.
+# Property [Field Path Resolution]: $zip resolves nested and composite field paths.
 # Property [Field Lookup]: $zip resolves field paths in expressions.
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -69,7 +69,7 @@ COMPOSITE_PATH_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Variables]: $map works with $let and system variables.
+# Property [Variables]: $zip works with $let and system variables.
 LET_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "let_variable",
@@ -99,7 +99,6 @@ LET_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Null/Missing Fields]: null and missing field paths produce null results.
 # Property [Null/Missing Fields]: $zip handles null and missing field paths.
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

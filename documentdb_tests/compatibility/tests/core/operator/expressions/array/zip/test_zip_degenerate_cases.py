@@ -78,7 +78,6 @@ DEGENERATE_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Nested Arrays]: $zip preserves nested array and object elements.
-# Property [Nested Arrays]: $zip operates on nested array structures.
 NESTED_ARRAY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "nested_arrays",
@@ -146,7 +145,6 @@ OBJECT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Large Arrays]: $map handles arrays with many elements.s
 # Property [Large Arrays]: $zip handles large arrays.
 LARGE_ARRAY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

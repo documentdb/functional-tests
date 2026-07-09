@@ -101,7 +101,6 @@ LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Null/Missing Fields]: null and missing field paths produce null results.
 # Property [Null/Missing Fields]: $map handles null and missing field paths.
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -158,7 +157,6 @@ NESTED_MAP_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-# Property [Reduce Interaction]: $map composes correctly with $reduce scoping.
 # Property [Reduce Interaction]: $map output works with $reduce.
 REDUCE_INTERACTION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -197,7 +195,6 @@ REDUCE_INTERACTION_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [System Variables]: $map works with $$ROOT and $$REMOVE.
-# Property [System Variables]: $map works with $$ROOT and $$CURRENT.
 SYSTEM_VAR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "root_returns_full_doc",

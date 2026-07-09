@@ -21,7 +21,7 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# Property [Field Path Resolution]: $map resolves nested and composite field paths.
+# Property [Field Path Resolution]: $range resolves nested and composite field paths.
 # Property [Field Lookup]: $range resolves field paths in expressions.
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -47,7 +47,7 @@ FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Variables]: $map works with $let and system variables.
+# Property [Variables]: $range works with $let and system variables.
 LET_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "let_variable",
