@@ -23,6 +23,7 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ONE_AND_HALF,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NAN,
@@ -40,7 +41,7 @@ BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "bson_decimal128",
-        doc={"val": Decimal128("1.5"), "arr": [Decimal128("1.5"), 2]},
+        doc={"val": DECIMAL128_ONE_AND_HALF, "arr": [DECIMAL128_ONE_AND_HALF, 2]},
         expression={"$in": ["$val", "$arr"]},
         expected=True,
         msg="$in should find Decimal128 in array",
@@ -232,7 +233,7 @@ NUMERIC_EQUIVALENCE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "decimal128_in_doubles",
-        doc={"val": Decimal128("1.5"), "arr": [1.5, 2.5]},
+        doc={"val": DECIMAL128_ONE_AND_HALF, "arr": [1.5, 2.5]},
         expression={"$in": ["$val", "$arr"]},
         expected=True,
         msg="$in should find decimal128 in doubles via numeric equivalence",

@@ -26,7 +26,9 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_MIN,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_NEGATIVE_NAN,
     DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ONE_AND_HALF,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NAN,
@@ -118,21 +120,21 @@ BSON_ARRAY_TRUE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "decimal128_nan_array",
-        doc={"val": [Decimal128("NaN")]},
+        doc={"val": [DECIMAL128_NAN]},
         expression={"$isArray": "$val"},
         expected=True,
         msg="$isArray should return true for Decimal128 NaN array",
     ),
     ExpressionTestCase(
         "decimal128_inf_array",
-        doc={"val": [Decimal128("Infinity")]},
+        doc={"val": [DECIMAL128_INFINITY]},
         expression={"$isArray": "$val"},
         expected=True,
         msg="$isArray should return true for Decimal128 Infinity array",
     ),
     ExpressionTestCase(
         "decimal128_neg_nan_array",
-        doc={"val": [Decimal128("-NaN")]},
+        doc={"val": [DECIMAL128_NEGATIVE_NAN]},
         expression={"$isArray": "$val"},
         expected=True,
         msg="$isArray should return true for Decimal128 -NaN array",
@@ -170,7 +172,7 @@ BSON_ARRAY_TRUE_TESTS: list[ExpressionTestCase] = [
         doc={
             "val": [
                 MinKey(),
-                {"a": [Decimal128("1.5")]},
+                {"a": [DECIMAL128_ONE_AND_HALF]},
                 Int64(1),
                 datetime(2024, 1, 1, tzinfo=timezone.utc),
                 Binary(b"\x01", 0),
@@ -288,7 +290,7 @@ SPECIAL_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "decimal128_neg_nan",
-        doc={"val": Decimal128("-NaN")},
+        doc={"val": DECIMAL128_NEGATIVE_NAN},
         expression={"$isArray": "$val"},
         expected=False,
         msg="$isArray should return false for Decimal128 -NaN",
@@ -375,7 +377,9 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "literal_nested_mixed_bson_array",
         doc=None,
-        expression={"$isArray": [{"$literal": [MinKey(), {"a": [Decimal128("1.5")]}, Int64(1)]}]},
+        expression={
+            "$isArray": [{"$literal": [MinKey(), {"a": [DECIMAL128_ONE_AND_HALF]}, Int64(1)]}]
+        },
         expected=True,
         msg="$isArray should return true for literal nested mixed BSON array",
     ),

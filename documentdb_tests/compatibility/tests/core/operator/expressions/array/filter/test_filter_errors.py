@@ -26,11 +26,13 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
+    DECIMAL128_HALF,
     DECIMAL128_INFINITY,
     DECIMAL128_MAX,
     DECIMAL128_MIN,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_NEGATIVE_NAN,
     DECIMAL128_NEGATIVE_ZERO,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
@@ -205,7 +207,7 @@ SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "decimal128_neg_nan_input",
         expression={"$filter": {"input": "$arr", "cond": True}},
-        doc={"arr": Decimal128("-NaN")},
+        doc={"arr": DECIMAL128_NEGATIVE_NAN},
         error_code=FILTER_INPUT_NOT_ARRAY_ERROR,
         msg="$filter should reject Decimal128 -NaN input",
     ),
@@ -356,7 +358,7 @@ INVALID_LIMIT_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "fractional_dec_0_5_limit",
-        expression={"$filter": {"input": "$arr", "cond": True, "limit": Decimal128("0.5")}},
+        expression={"$filter": {"input": "$arr", "cond": True, "limit": DECIMAL128_HALF}},
         doc={"arr": [1, 2, 3]},
         error_code=FILTER_LIMIT_NOT_INTEGRAL_ERROR,
         msg="$filter fractional decimal128 0.5 should error",
@@ -384,28 +386,28 @@ INVALID_LIMIT_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "decimal128_nan_limit",
-        expression={"$filter": {"input": "$arr", "cond": True, "limit": Decimal128("NaN")}},
+        expression={"$filter": {"input": "$arr", "cond": True, "limit": DECIMAL128_NAN}},
         doc={"arr": [1, 2, 3]},
         error_code=FILTER_LIMIT_NOT_INTEGRAL_ERROR,
         msg="$filter decimal128 NaN should error",
     ),
     ExpressionTestCase(
         "decimal128_inf_limit",
-        expression={"$filter": {"input": "$arr", "cond": True, "limit": Decimal128("Infinity")}},
+        expression={"$filter": {"input": "$arr", "cond": True, "limit": DECIMAL128_INFINITY}},
         doc={"arr": [1, 2, 3]},
         error_code=FILTER_LIMIT_NOT_INTEGRAL_ERROR,
         msg="$filter decimal128 Infinity should error",
     ),
     ExpressionTestCase(
         "neg_zero_double_limit",
-        expression={"$filter": {"input": "$arr", "cond": True, "limit": -0.0}},
+        expression={"$filter": {"input": "$arr", "cond": True, "limit": DOUBLE_NEGATIVE_ZERO}},
         doc={"arr": [1, 2, 3]},
         error_code=FILTER_LIMIT_NOT_POSITIVE_ERROR,
         msg="$filter -0.0 limit should error",
     ),
     ExpressionTestCase(
         "neg_zero_decimal128_limit",
-        expression={"$filter": {"input": "$arr", "cond": True, "limit": Decimal128("-0")}},
+        expression={"$filter": {"input": "$arr", "cond": True, "limit": DECIMAL128_NEGATIVE_ZERO}},
         doc={"arr": [1, 2, 3]},
         error_code=FILTER_LIMIT_NOT_POSITIVE_ERROR,
         msg="$filter decimal128 -0 limit should error",

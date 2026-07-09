@@ -25,6 +25,9 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ONE_AND_HALF,
+    DECIMAL128_TRAILING_ZERO,
+    DECIMAL128_TWO_AND_HALF,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NEGATIVE_INFINITY,
@@ -46,8 +49,8 @@ BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "decimal128_values",
         expression={"$filter": {"input": "$arr", "cond": True}},
-        doc={"arr": [Decimal128("1.5"), Decimal128("2.5")]},
-        expected=[Decimal128("1.5"), Decimal128("2.5")],
+        doc={"arr": [DECIMAL128_ONE_AND_HALF, DECIMAL128_TWO_AND_HALF]},
+        expected=[DECIMAL128_ONE_AND_HALF, DECIMAL128_TWO_AND_HALF],
         msg="$filter should preserve Decimal128 values",
     ),
     ExpressionTestCase(
@@ -189,8 +192,8 @@ DECIMAL128_PRECISION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "decimal128_trailing_zeros",
         expression={"$filter": {"input": "$arr", "cond": True}},
-        doc={"arr": [Decimal128("1.0"), Decimal128("1.00"), Decimal128("1.000")]},
-        expected=[Decimal128("1.0"), Decimal128("1.00"), Decimal128("1.000")],
+        doc={"arr": [DECIMAL128_TRAILING_ZERO, Decimal128("1.00"), Decimal128("1.000")]},
+        expected=[DECIMAL128_TRAILING_ZERO, Decimal128("1.00"), Decimal128("1.000")],
         msg="$filter decimal128 trailing zeros preserved",
     ),
     ExpressionTestCase(
@@ -213,9 +216,11 @@ BSON_FILTER_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "filter_decimal128",
-        expression={"$filter": {"input": "$arr", "cond": {"$eq": ["$$this", Decimal128("2.5")]}}},
-        doc={"arr": [Decimal128("1.5"), Decimal128("2.5")]},
-        expected=[Decimal128("2.5")],
+        expression={
+            "$filter": {"input": "$arr", "cond": {"$eq": ["$$this", DECIMAL128_TWO_AND_HALF]}}
+        },
+        doc={"arr": [DECIMAL128_ONE_AND_HALF, DECIMAL128_TWO_AND_HALF]},
+        expected=[DECIMAL128_TWO_AND_HALF],
         msg="$filter should filter and preserve Decimal128",
     ),
     ExpressionTestCase(
@@ -280,22 +285,22 @@ BSON_FILTER_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "filter_decimal128_nan_not_gte",
         expression={"$filter": {"input": "$arr", "cond": {"$gte": ["$$this", 1]}}},
-        doc={"arr": [Decimal128("NaN")]},
+        doc={"arr": [DECIMAL128_NAN]},
         expected=[],
         msg="$filter decimal128 NaN not >= 1",
     ),
     ExpressionTestCase(
         "filter_decimal128_neg_inf_not_gte",
         expression={"$filter": {"input": "$arr", "cond": {"$gte": ["$$this", 1]}}},
-        doc={"arr": [Decimal128("-Infinity")]},
+        doc={"arr": [DECIMAL128_NEGATIVE_INFINITY]},
         expected=[],
         msg="$filter decimal128 -Infinity not >= 1",
     ),
     ExpressionTestCase(
         "filter_decimal128_inf_gte",
         expression={"$filter": {"input": "$arr", "cond": {"$gte": ["$$this", 1]}}},
-        doc={"arr": [Decimal128("Infinity")]},
-        expected=[Decimal128("Infinity")],
+        doc={"arr": [DECIMAL128_INFINITY]},
+        expected=[DECIMAL128_INFINITY],
         msg="$filter decimal128 Infinity >= 1",
     ),
 ]

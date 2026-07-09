@@ -17,7 +17,14 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import DECIMAL128_NEGATIVE_ZERO, INT32_MAX
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ZERO,
+    DOUBLE_NEGATIVE_ZERO,
+    DOUBLE_ZERO,
+    INT32_MAX,
+    INT64_ZERO,
+)
 
 # Success: basic search — value found
 BASIC_FOUND_TESTS: list[ExpressionTestCase] = [
@@ -287,14 +294,14 @@ START_END_INDEX_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "range_int64_bounds",
-        doc={"arr": [10, 20, 30], "search": 20, "start": Int64(0), "end": Int64(3)},
+        doc={"arr": [10, 20, 30], "search": 20, "start": INT64_ZERO, "end": Int64(3)},
         expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         expected=1,
         msg="$indexOfArray should accept Int64 bounds",
     ),
     ExpressionTestCase(
         "range_double_integral_bounds",
-        doc={"arr": [10, 20, 30], "search": 20, "start": 0.0, "end": 3.0},
+        doc={"arr": [10, 20, 30], "search": 20, "start": DOUBLE_ZERO, "end": 3.0},
         expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         expected=1,
         msg="$indexOfArray should accept integral double bounds",
@@ -304,7 +311,7 @@ START_END_INDEX_TESTS: list[ExpressionTestCase] = [
         doc={
             "arr": [10, 20, 30],
             "search": 20,
-            "start": Decimal128("0"),
+            "start": DECIMAL128_ZERO,
             "end": Decimal128("3"),
         },
         expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
@@ -505,21 +512,21 @@ LARGE_ARRAY_TESTS: list[ExpressionTestCase] = [
 NEGATIVE_ZERO_SEARCH_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "search_double_neg_zero_in_zeros",
-        doc={"arr": [0, 1, 2], "search": -0.0},
+        doc={"arr": [0, 1, 2], "search": DOUBLE_NEGATIVE_ZERO},
         expression={"$indexOfArray": ["$arr", "$search"]},
         expected=0,
         msg="$indexOfArray should find -0.0 at index of 0",
     ),
     ExpressionTestCase(
         "search_zero_finds_neg_zero",
-        doc={"arr": [-0.0, 1, 2], "search": 0},
+        doc={"arr": [DOUBLE_NEGATIVE_ZERO, 1, 2], "search": 0},
         expression={"$indexOfArray": ["$arr", "$search"]},
         expected=0,
         msg="$indexOfArray should find 0 matching -0.0 in array",
     ),
     ExpressionTestCase(
         "search_decimal128_neg_zero",
-        doc={"arr": [0, 1, 2], "search": Decimal128("-0")},
+        doc={"arr": [0, 1, 2], "search": DECIMAL128_NEGATIVE_ZERO},
         expression={"$indexOfArray": ["$arr", "$search"]},
         expected=0,
         msg="$indexOfArray should find Decimal128 -0 at index of 0",
@@ -562,7 +569,7 @@ BOUNDARY_INDEX_TESTS: list[ExpressionTestCase] = [
 NEGATIVE_ZERO_INDEX_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_neg_zero_start",
-        doc={"arr": [10, 20, 30], "search": 10, "start": -0.0},
+        doc={"arr": [10, 20, 30], "search": 10, "start": DOUBLE_NEGATIVE_ZERO},
         expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         expected=0,
         msg="$indexOfArray should treat -0.0 start as 0",
@@ -576,7 +583,7 @@ NEGATIVE_ZERO_INDEX_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "double_neg_zero_end",
-        doc={"arr": [10, 20, 30], "search": 10, "start": 0, "end": -0.0},
+        doc={"arr": [10, 20, 30], "search": 10, "start": 0, "end": DOUBLE_NEGATIVE_ZERO},
         expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         expected=-1,
         msg="$indexOfArray should treat -0.0 end as 0",

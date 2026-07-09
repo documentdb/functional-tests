@@ -17,7 +17,12 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import INT32_MAX
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_ZERO,
+    DOUBLE_ZERO,
+    INT32_MAX,
+    INT64_ZERO,
+)
 
 # Success: basic filtering
 BASIC_TESTS: list[ExpressionTestCase] = [
@@ -390,8 +395,8 @@ NUMERIC_EQUIVALENCE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "numeric_equivalence_zero",
         expression={"$filter": {"input": "$arr", "cond": {"$eq": ["$$this", 0]}}},
-        doc={"arr": [0, Int64(0), 0.0, Decimal128("0")]},
-        expected=[0, Int64(0), 0.0, Decimal128("0")],
+        doc={"arr": [0, INT64_ZERO, DOUBLE_ZERO, DECIMAL128_ZERO]},
+        expected=[0, INT64_ZERO, DOUBLE_ZERO, DECIMAL128_ZERO],
         msg="$filter all numeric representations of 0 should match",
     ),
 ]

@@ -18,6 +18,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import DECIMAL128_ONE_AND_HALF
 
 # Success: nested mixed arrays as search targets
 NESTED_MIXED_ARRAY_TESTS: list[ExpressionTestCase] = [
@@ -125,8 +126,8 @@ DEEPLY_NESTED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "nested_deep_mixed_bson",
         doc={
-            "val": [[MinKey(), {"a": [Decimal128("1.5")]}], True],
-            "arr": [0, [[MinKey(), {"a": [Decimal128("1.5")]}], True], "x"],
+            "val": [[MinKey(), {"a": [DECIMAL128_ONE_AND_HALF]}], True],
+            "arr": [0, [[MinKey(), {"a": [DECIMAL128_ONE_AND_HALF]}], True], "x"],
         },
         expression={"$in": ["$val", "$arr"]},
         expected=True,

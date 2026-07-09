@@ -24,6 +24,8 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_NEGATIVE_NAN,
+    DECIMAL128_ONE_AND_HALF,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
@@ -40,7 +42,7 @@ BSON_TYPE_SEARCH_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "search_decimal128",
-        doc={"arr": [Decimal128("1.5"), 2], "search": Decimal128("1.5")},
+        doc={"arr": [DECIMAL128_ONE_AND_HALF, 2], "search": DECIMAL128_ONE_AND_HALF},
         expression={"$indexOfArray": ["$arr", "$search"]},
         expected=0,
         msg="$indexOfArray should find Decimal128 value",
@@ -175,7 +177,7 @@ BSON_TYPE_SEARCH_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "search_decimal128_neg_nan_matches_nan",
-        doc={"arr": [DECIMAL128_NAN, 1], "search": Decimal128("-NaN")},
+        doc={"arr": [DECIMAL128_NAN, 1], "search": DECIMAL128_NEGATIVE_NAN},
         expression={"$indexOfArray": ["$arr", "$search"]},
         expected=0,
         msg="$indexOfArray decimal128 -NaN should match Decimal128 NaN",
@@ -388,8 +390,8 @@ NESTED_MIXED_ARRAY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "nested_deep_mixed_bson",
         doc={
-            "arr": [0, [[MinKey(), {"a": [Decimal128("1.5")]}], True], "x"],
-            "search": [[MinKey(), {"a": [Decimal128("1.5")]}], True],
+            "arr": [0, [[MinKey(), {"a": [DECIMAL128_ONE_AND_HALF]}], True], "x"],
+            "search": [[MinKey(), {"a": [DECIMAL128_ONE_AND_HALF]}], True],
         },
         expression={"$indexOfArray": ["$arr", "$search"]},
         expected=1,

@@ -26,6 +26,9 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
+    DECIMAL128_HALF,
+    DECIMAL128_INFINITY,
+    DECIMAL128_NAN,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
@@ -171,7 +174,7 @@ START_NOT_INTEGRAL_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "start_fractional_decimal128",
-        doc={"arr": [1, 2, 3], "search": 1, "start": Decimal128("0.5")},
+        doc={"arr": [1, 2, 3], "search": 1, "start": DECIMAL128_HALF},
         expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject fractional decimal128 start",
@@ -199,14 +202,14 @@ START_NOT_INTEGRAL_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "start_decimal128_nan",
-        doc={"arr": [1, 2, 3], "search": 1, "start": Decimal128("NaN")},
+        doc={"arr": [1, 2, 3], "search": 1, "start": DECIMAL128_NAN},
         expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject decimal128 NaN start",
     ),
     ExpressionTestCase(
         "start_decimal128_inf",
-        doc={"arr": [1, 2, 3], "search": 1, "start": Decimal128("Infinity")},
+        doc={"arr": [1, 2, 3], "search": 1, "start": DECIMAL128_INFINITY},
         expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject decimal128 infinity start",
@@ -252,7 +255,7 @@ END_NOT_INTEGRAL_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "end_fractional_decimal128",
-        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": Decimal128("0.5")},
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": DECIMAL128_HALF},
         expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject fractional decimal128 end",
@@ -294,14 +297,14 @@ END_NOT_INTEGRAL_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "end_decimal128_nan",
-        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": Decimal128("NaN")},
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": DECIMAL128_NAN},
         expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject decimal128 NaN end",
     ),
     ExpressionTestCase(
         "end_decimal128_inf",
-        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": Decimal128("Infinity")},
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": DECIMAL128_INFINITY},
         expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject decimal128 infinity end",
