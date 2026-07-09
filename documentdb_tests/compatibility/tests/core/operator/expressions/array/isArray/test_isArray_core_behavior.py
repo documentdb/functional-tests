@@ -15,6 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Success: arrays → true
@@ -98,7 +99,7 @@ IS_ARRAY_TRUE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "large_array_of_arrays",
-        doc={"val": [[i] for i in range(10000)]},
+        doc=lazy(lambda: {"val": [[i] for i in range(10000)]}),
         expression={"$isArray": "$val"},
         expected=True,
         msg="$isArray 10K nested arrays returns true",
