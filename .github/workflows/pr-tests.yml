@@ -53,6 +53,36 @@ jobs:
 
       - name: Run compatibility tests against ${{ matrix.target.name }}
         run: |
+          # Sample memory, load, and per-container usage to the live step log
+          # while the tests run. Writing to the live log means the samples
+          # survive even when the job is killed before it finishes, which is
+          # when a resource problem is most likely to show up. Every line begins
+          # with resource-monitor so the timeline can be read on its own by
+          # filtering the log for that word.
+          echo "resource-monitor samples follow. Each line shows the UTC time, host memory as used over total in megabytes, and swap in megabytes. It then shows the 1, 5, and 15 minute load average and the memory each container is using. Filter the log for resource-monitor to read them on their own."
+          sample_resources() {
+            set +e
+            while true; do
+              memory=$(free -m | awk '/^Mem:/{print $3"/"$2}')
+              swap=$(free -m | awk '/^Swap:/{print $3}')
+              load=$(cut -d' ' -f1-3 /proc/loadavg | tr ' ' ',')
+              containers=$(docker stats --no-stream --format '{{.Name}} {{.MemUsage}}' 2>/dev/null \
+                    | awk '{print $1"="$2}' | paste -sd' ' -)
+              echo "resource-monitor $(date -u +%H:%M:%S) memory=${memory}MB swap=${swap}MB load=${load} ${containers}"
+              sleep 10
+            done
+          }
+          sample_resources &
+          # When the machine runs out of memory the kernel logs a line naming
+          # the process it kills. Follow the kernel log and forward that line so
+          # it lands in the step log, since it is the clearest evidence of an
+          # out of memory kill. The search terms are the exact phrases the
+          # kernel writes.
+          ( sudo -n dmesg --follow 2>/dev/null \
+            | grep --line-buffered -iE 'out of memory|killed process|oom-kill' \
+            | sed -u 's/^/resource-monitor out-of-memory /' ) &
+          trap 'kill %1 %2 2>/dev/null || true' EXIT
+
           pytest documentdb_tests/compatibility/tests \
             --connection-string "${{ matrix.target.connection_string }}" \
             --engine-name "${{ matrix.target.engine }}" \
