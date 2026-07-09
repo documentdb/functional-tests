@@ -10,11 +10,6 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.indexOfArray.utils.indexOfArray_common import (  # noqa: E501
-    IndexOfArrayTest,
-    build_args,
-    build_insert_args,
-)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -39,418 +34,367 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Error: INT64_MAX start/end index (not representable as int32)
-BOUNDARY_ERROR_TESTS: list[IndexOfArrayTest] = [
-    IndexOfArrayTest(
+BOUNDARY_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         "start_int64_max",
-        array=[1, 2, 3],
-        search=1,
-        start=INT64_MAX,
+        doc={"arr": [1, 2, 3], "search": 1, "start": INT64_MAX},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject INT64_MAX start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_int64_max",
-        array=[1, 2, 3],
-        search=2,
-        start=0,
-        end=INT64_MAX,
+        doc={"arr": [1, 2, 3], "search": 2, "start": 0, "end": INT64_MAX},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject INT64_MAX end",
     ),
 ]
 
 # Error: first argument not an array (and not null)
-NOT_ARRAY_ERROR_TESTS: list[IndexOfArrayTest] = [
-    IndexOfArrayTest(
+NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         "string_as_array",
-        array="hello",
-        search=1,
+        doc={"arr": "hello", "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject string as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "int_as_array",
-        array=42,
-        search=1,
+        doc={"arr": 42, "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject int as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "double_as_array",
-        array=3.14,
-        search=1,
+        doc={"arr": 3.14, "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject double as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "bool_true_as_array",
-        array=True,
-        search=1,
+        doc={"arr": True, "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject bool true as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "bool_false_as_array",
-        array=False,
-        search=1,
+        doc={"arr": False, "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject bool false as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "object_as_array",
-        array={"a": 1},
-        search=1,
+        doc={"arr": {"a": 1}, "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject object as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "decimal128_as_array",
-        array=Decimal128("1"),
-        search=1,
+        doc={"arr": Decimal128("1"), "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject decimal128 as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "int64_as_array",
-        array=Int64(1),
-        search=1,
+        doc={"arr": Int64(1), "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject int64 as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "binary_as_array",
-        array=Binary(b"x", 0),
-        search=1,
+        doc={"arr": Binary(b"x", 0), "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject binary as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "datetime_as_array",
-        array=datetime(2024, 1, 1, tzinfo=timezone.utc),
-        search=1,
+        doc={"arr": datetime(2024, 1, 1, tzinfo=timezone.utc), "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject datetime as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "objectid_as_array",
-        array=ObjectId(),
-        search=1,
+        doc={"arr": ObjectId(), "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject objectid as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "regex_as_array",
-        array=Regex("x"),
-        search=1,
+        doc={"arr": Regex("x"), "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject regex as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "maxkey_as_array",
-        array=MaxKey(),
-        search=1,
+        doc={"arr": MaxKey(), "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject maxkey as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "minkey_as_array",
-        array=MinKey(),
-        search=1,
+        doc={"arr": MinKey(), "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject minkey as array",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "timestamp_as_array",
-        array=Timestamp(0, 0),
-        search=1,
+        doc={"arr": Timestamp(0, 0), "search": 1},
+        expression={"$indexOfArray": ["$arr", "$search"]},
         error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
         msg="$indexOfArray should reject timestamp as array",
     ),
 ]
 
 # Error: start index not integral
-START_NOT_INTEGRAL_TESTS: list[IndexOfArrayTest] = [
-    IndexOfArrayTest(
+START_NOT_INTEGRAL_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         "start_fractional_double",
-        array=[1, 2, 3],
-        search=1,
-        start=1.5,
+        doc={"arr": [1, 2, 3], "search": 1, "start": 1.5},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject fractional double start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_fractional_decimal128",
-        array=[1, 2, 3],
-        search=1,
-        start=Decimal128("0.5"),
+        doc={"arr": [1, 2, 3], "search": 1, "start": Decimal128("0.5")},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject fractional decimal128 start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_nan",
-        array=[1, 2, 3],
-        search=1,
-        start=FLOAT_NAN,
+        doc={"arr": [1, 2, 3], "search": 1, "start": FLOAT_NAN},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject NaN start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_inf",
-        array=[1, 2, 3],
-        search=1,
-        start=FLOAT_INFINITY,
+        doc={"arr": [1, 2, 3], "search": 1, "start": FLOAT_INFINITY},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject infinity start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_neg_inf",
-        array=[1, 2, 3],
-        search=1,
-        start=FLOAT_NEGATIVE_INFINITY,
+        doc={"arr": [1, 2, 3], "search": 1, "start": FLOAT_NEGATIVE_INFINITY},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject -infinity start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_decimal128_nan",
-        array=[1, 2, 3],
-        search=1,
-        start=Decimal128("NaN"),
+        doc={"arr": [1, 2, 3], "search": 1, "start": Decimal128("NaN")},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject decimal128 NaN start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_decimal128_inf",
-        array=[1, 2, 3],
-        search=1,
-        start=Decimal128("Infinity"),
+        doc={"arr": [1, 2, 3], "search": 1, "start": Decimal128("Infinity")},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject decimal128 infinity start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_string",
-        array=[1, 2, 3],
-        search=1,
-        start="0",
+        doc={"arr": [1, 2, 3], "search": 1, "start": "0"},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject string start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_bool",
-        array=[1, 2, 3],
-        search=1,
-        start=True,
+        doc={"arr": [1, 2, 3], "search": 1, "start": True},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject bool start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_array",
-        array=[1, 2, 3],
-        search=1,
-        start=[0],
+        doc={"arr": [1, 2, 3], "search": 1, "start": [0]},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject array start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_object",
-        array=[1, 2, 3],
-        search=1,
-        start={"a": 0},
+        doc={"arr": [1, 2, 3], "search": 1, "start": {"a": 0}},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject object start",
     ),
 ]
 
 # Error: end index not integral
-END_NOT_INTEGRAL_TESTS: list[IndexOfArrayTest] = [
-    IndexOfArrayTest(
+END_NOT_INTEGRAL_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         "end_fractional_double",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=1.5,
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": 1.5},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject fractional double end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_fractional_decimal128",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=Decimal128("0.5"),
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": Decimal128("0.5")},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject fractional decimal128 end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_nan",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=FLOAT_NAN,
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": FLOAT_NAN},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject NaN end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_inf",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=FLOAT_INFINITY,
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": FLOAT_INFINITY},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject infinity end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_string",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end="3",
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": "3"},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject string end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_bool",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=True,
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": True},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject bool end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_neg_inf",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=FLOAT_NEGATIVE_INFINITY,
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": FLOAT_NEGATIVE_INFINITY},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject -infinity end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_decimal128_nan",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=Decimal128("NaN"),
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": Decimal128("NaN")},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject decimal128 NaN end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_decimal128_inf",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=Decimal128("Infinity"),
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": Decimal128("Infinity")},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject decimal128 infinity end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_array",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=[3],
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": [3]},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject array end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_object",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end={"a": 0},
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": {"a": 0}},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject object end",
     ),
 ]
 
 # Error: negative start index
-START_NEGATIVE_TESTS: list[IndexOfArrayTest] = [
-    IndexOfArrayTest(
+START_NEGATIVE_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         "start_neg_one",
-        array=[1, 2, 3],
-        search=1,
-        start=-1,
+        doc={"arr": [1, 2, 3], "search": 1, "start": -1},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
         msg="$indexOfArray should reject negative start -1",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_neg_large",
-        array=[1, 2, 3],
-        search=1,
-        start=-100,
+        doc={"arr": [1, 2, 3], "search": 1, "start": -100},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
         msg="$indexOfArray should reject negative start -100",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_neg_int64",
-        array=[1, 2, 3],
-        search=1,
-        start=Int64(-1),
+        doc={"arr": [1, 2, 3], "search": 1, "start": Int64(-1)},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
         msg="$indexOfArray should reject negative Int64 start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_neg_double",
-        array=[1, 2, 3],
-        search=1,
-        start=-1.0,
+        doc={"arr": [1, 2, 3], "search": 1, "start": -1.0},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
         msg="$indexOfArray should reject negative double start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "start_neg_decimal128",
-        array=[1, 2, 3],
-        search=1,
-        start=Decimal128("-1"),
+        doc={"arr": [1, 2, 3], "search": 1, "start": Decimal128("-1")},
+        expression={"$indexOfArray": ["$arr", "$search", "$start"]},
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
         msg="$indexOfArray should reject negative decimal128 start",
     ),
 ]
 
 # Error: negative end index
-END_NEGATIVE_TESTS: list[IndexOfArrayTest] = [
-    IndexOfArrayTest(
+END_NEGATIVE_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         "end_neg_one",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=-1,
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": -1},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
         msg="$indexOfArray should reject negative end -1",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_neg_large",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=-100,
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": -100},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
         msg="$indexOfArray should reject negative end -100",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_neg_int64",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=Int64(-1),
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": Int64(-1)},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
         msg="$indexOfArray should reject negative Int64 end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_neg_double",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=-1.0,
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": -1.0},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
         msg="$indexOfArray should reject negative double end",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_neg_decimal128",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=Decimal128("-1"),
+        doc={"arr": [1, 2, 3], "search": 1, "start": 0, "end": Decimal128("-1")},
+        expression={"$indexOfArray": ["$arr", "$search", "$start", "$end"]},
         error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
         msg="$indexOfArray should reject negative decimal128 end",
     ),
@@ -466,37 +410,45 @@ ALL_TESTS = (
     + END_NEGATIVE_TESTS
 )
 
-LITERAL_ONLY_TESTS: list[IndexOfArrayTest] = [
-    IndexOfArrayTest(
+# Property [Literal Evaluation]: error cases with inline literal values.
+TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "string_as_array",
+        expression={"$indexOfArray": ["hello", 1]},
+        error_code=INDEX_OF_ARRAY_NOT_ARRAY_ERROR,
+        msg="$indexOfArray should reject string as array",
+    ),
+    ExpressionTestCase(
+        "start_fractional_double",
+        expression={"$indexOfArray": [[1, 2, 3], 1, 1.5]},
+        error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
+        msg="$indexOfArray should reject fractional double start",
+    ),
+    ExpressionTestCase(
+        "start_neg_one",
+        expression={"$indexOfArray": [[1, 2, 3], 1, -1]},
+        error_code=INDEX_OF_ARRAY_INDEX_NEGATIVE_ERROR,
+        msg="$indexOfArray should reject negative start -1",
+    ),
+    ExpressionTestCase(
         "start_missing_field",
-        array=[1, 2, 3],
-        search=1,
-        start=MISSING,
+        expression={"$indexOfArray": [[1, 2, 3], 1, MISSING]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject missing field as start",
     ),
-    IndexOfArrayTest(
+    ExpressionTestCase(
         "end_missing_field",
-        array=[1, 2, 3],
-        search=1,
-        start=0,
-        end=MISSING,
+        expression={"$indexOfArray": [[1, 2, 3], 1, 0, MISSING]},
         error_code=INDEX_OF_ARRAY_INDEX_NOT_INTEGRAL_ERROR,
         msg="$indexOfArray should reject missing field as end",
     ),
 ]
 
-TEST_SUBSET_FOR_LITERAL = [
-    NOT_ARRAY_ERROR_TESTS[0],  # string_as_array
-    START_NOT_INTEGRAL_TESTS[0],  # start_fractional_double
-    START_NEGATIVE_TESTS[0],  # start_neg_one
-] + LITERAL_ONLY_TESTS
-
 
 @pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
 def test_indexOfArray_literal(collection, test):
     """Test $indexOfArray error cases with literal values."""
-    result = execute_expression(collection, {"$indexOfArray": build_args(test)})
+    result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
@@ -505,8 +457,7 @@ def test_indexOfArray_literal(collection, test):
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_indexOfArray_insert(collection, test):
     """Test $indexOfArray error cases with values from inserted documents."""
-    args, doc = build_insert_args(test)
-    result = execute_expression_with_insert(collection, {"$indexOfArray": args}, doc)
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
