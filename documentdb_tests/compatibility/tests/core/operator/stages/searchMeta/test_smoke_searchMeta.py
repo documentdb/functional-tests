@@ -1,18 +1,13 @@
-"""
-Smoke test for $searchMeta stage.
-
-Tests basic $searchMeta stage functionality.
-"""
+"""Smoke test for the $searchMeta stage."""
 
 import pytest
 
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
 
-pytestmark = pytest.mark.smoke
+pytestmark = [pytest.mark.smoke, pytest.mark.requires(search=True)]
 
 
-@pytest.mark.skip(reason="Requires Atlas Search configuration - not available on standard MongoDB")
 def test_smoke_searchMeta(collection):
     """Test basic $searchMeta stage behavior."""
     collection.insert_many([{"_id": 1, "title": "test document"}])

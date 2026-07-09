@@ -18,6 +18,7 @@ from documentdb_tests.framework.error_codes import (
     UNKNOWN_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_ONE_AND_HALF,
@@ -297,7 +298,14 @@ SEARCH_QUERY_TOKEN_SIZE_ERROR_TESTS: list[StageTestCase] = [
     StageTestCase(
         "query_single_byte_run_over_cap",
         pipeline=[
-            {"$search": {"text": {"query": "a" * STRING_SIZE_LIMIT_BYTES, "path": "title"}}},
+            {
+                "$search": {
+                    "text": {
+                        "query": lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
+                        "path": "title",
+                    }
+                }
+            },
         ],
         error_code=UNKNOWN_ERROR,
         msg="$search should reject a multi-megabyte single-character run the analyzer "
@@ -308,7 +316,10 @@ SEARCH_QUERY_TOKEN_SIZE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[
             {
                 "$search": {
-                    "text": {"query": "\u00e9" * (STRING_SIZE_LIMIT_BYTES // 2), "path": "title"}
+                    "text": {
+                        "query": lazy(lambda: "\u00e9" * (STRING_SIZE_LIMIT_BYTES // 2)),
+                        "path": "title",
+                    }
                 }
             },
         ],
