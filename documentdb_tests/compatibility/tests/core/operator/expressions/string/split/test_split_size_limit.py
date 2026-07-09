@@ -7,6 +7,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -19,15 +20,15 @@ from .utils.split_common import (
 SPLIT_SIZE_LIMIT_SUCCESS_TESTS: list[SplitTest] = [
     SplitTest(
         "size_string_one_under",
-        string="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        string=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         delimiter="-",
-        expected=["a" * (STRING_SIZE_LIMIT_BYTES - 1)],
+        expected=lazy(lambda: ["a" * (STRING_SIZE_LIMIT_BYTES - 1)]),
         msg="$split should accept input string one byte under the size limit",
     ),
     SplitTest(
         "size_delim_one_under",
         string="hello",
-        delimiter="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        delimiter=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         expected=["hello"],
         msg="$split should accept delimiter one byte under the size limit",
     ),
@@ -39,7 +40,7 @@ SPLIT_SIZE_LIMIT_SUCCESS_TESTS: list[SplitTest] = [
 SPLIT_SIZE_LIMIT_ERROR_TESTS: list[SplitTest] = [
     SplitTest(
         "size_limit_input_at_boundary",
-        string="a" * STRING_SIZE_LIMIT_BYTES,
+        string=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         delimiter="-",
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$split should reject input string at the size limit",
@@ -47,13 +48,13 @@ SPLIT_SIZE_LIMIT_ERROR_TESTS: list[SplitTest] = [
     SplitTest(
         "size_limit_delim_at_boundary",
         string="hello",
-        delimiter="a" * STRING_SIZE_LIMIT_BYTES,
+        delimiter=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$split should reject delimiter at the size limit",
     ),
     SplitTest(
         "size_limit_input_2byte",
-        string="\u00e9" * (STRING_SIZE_LIMIT_BYTES // 2),
+        string=lazy(lambda: "\u00e9" * (STRING_SIZE_LIMIT_BYTES // 2)),
         delimiter="-",
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$split should reject 2-byte char input totaling the size limit",
@@ -61,9 +62,14 @@ SPLIT_SIZE_LIMIT_ERROR_TESTS: list[SplitTest] = [
     # Sub-expression producing oversized result is caught before $split runs.
     SplitTest(
         "size_limit_input_subexpr",
-        string={
-            "$concat": ["a" * (STRING_SIZE_LIMIT_BYTES // 2), "a" * (STRING_SIZE_LIMIT_BYTES // 2)]
-        },
+        string=lazy(
+            lambda: {
+                "$concat": [
+                    "a" * (STRING_SIZE_LIMIT_BYTES // 2),
+                    "a" * (STRING_SIZE_LIMIT_BYTES // 2),
+                ]
+            }
+        ),
         delimiter="-",
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$split should reject sub-expression producing oversized string",

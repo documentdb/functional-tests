@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, Optional, Union
 from bson import Decimal128, Int64
 
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
+from documentdb_tests.framework.lazy_payload import materialize
 from documentdb_tests.framework.property_checks import _FIELD_ABSENT, Check, PerDoc
 
 _MAX_REPR_LEN = 1000
@@ -165,6 +166,7 @@ def assertSuccess(
         transform: Optional callback to transform result before comparison
         ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
     """
+    expected = materialize(expected)
     if isinstance(result, Exception):
         if isinstance(result, _INFRA_TYPES):
             raise result
@@ -338,6 +340,7 @@ def assertResult(
         assertResult(result, expected=[{"r": [3, 1, 2]}], ignore_order_in=["r"])
         assertResult(result, expected={"ok": 1.0}, raw_res=True)  # Raw command result
     """
+    expected = materialize(expected)
     if error_code is not None:
         assertFailureCode(result, error_code, msg)
     elif isinstance(expected, PerDoc) or (
