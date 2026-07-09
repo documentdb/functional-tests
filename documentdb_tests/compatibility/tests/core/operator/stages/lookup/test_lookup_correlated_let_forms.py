@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Decimal128, Int64, MaxKey, MinKey
 
 from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.lookup_common import (
     FOREIGN,
@@ -22,16 +22,18 @@ from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.look
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import (
+    BSON_TYPE_SAMPLES,
+    DATE_Y2K,
+    OID_EPOCH,
+    TS_EPOCH,
+    BsonType,
+)
 
-# --- Section 1: Constant Literals as Let Values (additional BSON types) ---
-# Existing coverage: int, string, bool, double, null, array, document.
-# New coverage: Int64, Decimal128, ObjectId, Date, BinData, Timestamp, Regex, MinKey, MaxKey.
+# Property [Correlated Subquery — Let Forms]: let variables accept any BSON
+# type and aggregation expression as value; type and precision are preserved
+# through the sub-pipeline.
 
-_OID = ObjectId("aaaaaaaaaaaaaaaaaaaaaaaa")
-_DATE = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
-_BIN = Binary(b"\x01\x02\x03")
-_TS = Timestamp(1700000000, 1)
-_REGEX = Regex("^hello", "i")
 
 LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -86,7 +88,7 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
             {
                 "$lookup": {
                     "from": FOREIGN,
-                    "let": {"x": _OID},
+                    "let": {"x": OID_EPOCH},
                     "pipeline": [{"$addFields": {"val": "$$x", "t": {"$type": "$$x"}}}],
                     "as": "joined",
                 }
@@ -95,7 +97,7 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
         expected=[
             {
                 "_id": 1,
-                "joined": [{"_id": 10, "val": _OID, "t": "objectId"}],
+                "joined": [{"_id": 10, "val": OID_EPOCH, "t": "objectId"}],
             }
         ],
         msg="$lookup let with ObjectId constant should preserve objectId type",
@@ -108,7 +110,7 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
             {
                 "$lookup": {
                     "from": FOREIGN,
-                    "let": {"x": _DATE},
+                    "let": {"x": DATE_Y2K},
                     "pipeline": [{"$addFields": {"val": "$$x", "t": {"$type": "$$x"}}}],
                     "as": "joined",
                 }
@@ -117,7 +119,7 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
         expected=[
             {
                 "_id": 1,
-                "joined": [{"_id": 10, "val": _DATE, "t": "date"}],
+                "joined": [{"_id": 10, "val": DATE_Y2K, "t": "date"}],
             }
         ],
         msg="$lookup let with ISODate constant should preserve date type",
@@ -130,7 +132,7 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
             {
                 "$lookup": {
                     "from": FOREIGN,
-                    "let": {"x": _BIN},
+                    "let": {"x": BSON_TYPE_SAMPLES[BsonType.BIN_DATA]},
                     "pipeline": [{"$addFields": {"val": "$$x", "t": {"$type": "$$x"}}}],
                     "as": "joined",
                 }
@@ -139,7 +141,9 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
         expected=[
             {
                 "_id": 1,
-                "joined": [{"_id": 10, "val": b"\x01\x02\x03", "t": "binData"}],
+                "joined": [
+                    {"_id": 10, "val": BSON_TYPE_SAMPLES[BsonType.BIN_DATA], "t": "binData"}
+                ],
             }
         ],
         msg="$lookup let with BinData constant should preserve binData type",
@@ -152,7 +156,7 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
             {
                 "$lookup": {
                     "from": FOREIGN,
-                    "let": {"x": _TS},
+                    "let": {"x": TS_EPOCH},
                     "pipeline": [{"$addFields": {"val": "$$x", "t": {"$type": "$$x"}}}],
                     "as": "joined",
                 }
@@ -161,7 +165,7 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
         expected=[
             {
                 "_id": 1,
-                "joined": [{"_id": 10, "val": _TS, "t": "timestamp"}],
+                "joined": [{"_id": 10, "val": TS_EPOCH, "t": "timestamp"}],
             }
         ],
         msg="$lookup let with Timestamp constant should preserve timestamp type",
@@ -174,7 +178,7 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
             {
                 "$lookup": {
                     "from": FOREIGN,
-                    "let": {"x": _REGEX},
+                    "let": {"x": BSON_TYPE_SAMPLES[BsonType.REGEX]},
                     "pipeline": [{"$addFields": {"t": {"$type": "$$x"}}}],
                     "as": "joined",
                 }
@@ -234,9 +238,6 @@ LOOKUP_LET_CONSTANT_LITERAL_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 2: Field References as Let Values (advanced traversal) ---
-# Existing coverage: simple "$field", "$missing"
-# New coverage: nested paths, deep nesting, array field, dotted path through array-of-objects
 
 LOOKUP_LET_FIELD_REFERENCE_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -364,9 +365,6 @@ LOOKUP_LET_FIELD_REFERENCE_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 3: Aggregation Expressions as Let Values (beyond basic $add/$concat) ---
-# Existing coverage: $add, $concat
-# New coverage: $cond, $ifNull, $size, $toUpper, nested expressions, $type, $dateToString
 
 LOOKUP_LET_EXPRESSION_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -490,7 +488,7 @@ LOOKUP_LET_EXPRESSION_TESTS: list[LookupTestCase] = [
     ),
     LookupTestCase(
         "let_expr_dateToString",
-        docs=[{"_id": 1, "d": _DATE}],
+        docs=[{"_id": 1, "d": DATE_Y2K}],
         foreign_docs=[{"_id": 10}],
         pipeline=[
             {
@@ -502,14 +500,11 @@ LOOKUP_LET_EXPRESSION_TESTS: list[LookupTestCase] = [
                 }
             }
         ],
-        expected=[{"_id": 1, "d": _DATE, "joined": [{"_id": 10, "year": "2024"}]}],
+        expected=[{"_id": 1, "d": DATE_Y2K, "joined": [{"_id": 10, "year": "2000"}]}],
         msg="$lookup let with $dateToString expression should format date",
     ),
 ]
 
-# --- Section 4: Mixed Forms (multiple variables of different kinds) ---
-# Existing coverage: multiple BSON types in one let, expression + field ref
-# New coverage: constant + field ref + expression combo, system var + field ref,
 #               multiple expressions referencing same source field
 
 LOOKUP_LET_MIXED_FORMS_TESTS: list[LookupTestCase] = [
@@ -736,12 +731,133 @@ LOOKUP_LET_MIXED_FORMS_TESTS: list[LookupTestCase] = [
 ]
 
 
+LOOKUP_LET_ADDITIONAL_FORMS_TESTS: list[LookupTestCase] = [
+    LookupTestCase(
+        "literal_array_constant",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"carr": [1, 2, 3]},
+                    "pipeline": [{"$project": {"_id": 0, "ra": "$$carr"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "joined": [{"ra": [1, 2, 3]}]}],
+        msg="$lookup let should accept a literal array of constants as a value",
+    ),
+    LookupTestCase(
+        "literal_object_via_dollar_literal",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"cobj": {"$literal": {"k": 1}}},
+                    "pipeline": [{"$project": {"_id": 0, "robj": "$$cobj"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "joined": [{"robj": {"k": 1}}]}],
+        msg="$lookup let should accept an object forced via $literal as a value",
+    ),
+    LookupTestCase(
+        "expr_date_add_value",
+        docs=[{"_id": 1, "dt": datetime(2020, 1, 1, tzinfo=timezone.utc)}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {
+                        "d": {
+                            "$dateAdd": {
+                                "startDate": "$dt",
+                                "unit": "day",
+                                "amount": 1,
+                            }
+                        }
+                    },
+                    "pipeline": [{"$project": {"_id": 0, "rd": "$$d"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "dt": datetime(2020, 1, 1, tzinfo=timezone.utc),
+                "joined": [{"rd": datetime(2020, 1, 2, tzinfo=timezone.utc)}],
+            }
+        ],
+        msg=(
+            "$lookup let should accept a $dateAdd expression value"
+            " evaluated against the input document"
+        ),
+    ),
+    LookupTestCase(
+        "expr_map_value",
+        docs=[{"_id": 1, "vals": [1, 2, 3]}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {
+                        "arr": {
+                            "$map": {
+                                "input": "$vals",
+                                "as": "e",
+                                "in": {"$multiply": ["$$e", 2]},
+                            }
+                        }
+                    },
+                    "pipeline": [{"$project": {"_id": 0, "ra": "$$arr"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "vals": [1, 2, 3], "joined": [{"ra": [2, 4, 6]}]}],
+        msg=(
+            "$lookup let should accept a $map expression value"
+            " evaluated against the input document"
+        ),
+    ),
+    LookupTestCase(
+        "mixed_form_missing_field_and_literal_no_cross_contamination",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"c": 42, "m": "$absent"},
+                    "pipeline": [{"$project": {"_id": 0, "rc": "$$c", "rm": "$$m"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "joined": [{"rc": 42}]}],
+        msg=(
+            "$lookup mixed-form let with a missing field and a literal"
+            " should keep the literal and omit the missing field"
+        ),
+    ),
+]
+
+
 # --- Combine all tests ---
 LOOKUP_CORRELATED_LET_FORMS_ALL: list[LookupTestCase] = (
     LOOKUP_LET_CONSTANT_LITERAL_TESTS
     + LOOKUP_LET_FIELD_REFERENCE_TESTS
     + LOOKUP_LET_EXPRESSION_TESTS
     + LOOKUP_LET_MIXED_FORMS_TESTS
+    + LOOKUP_LET_ADDITIONAL_FORMS_TESTS
 )
 
 

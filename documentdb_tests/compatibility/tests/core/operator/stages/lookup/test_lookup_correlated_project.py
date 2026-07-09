@@ -22,7 +22,10 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# --- Section 1: Basic Direct Access in $addFields and $project ---
+# Property [Correlated Subquery — Non-Match Stages]: let variables are directly
+# accessible in $addFields, $project, $group, $redact, and $replaceRoot without
+# requiring $expr wrapping.
+
 
 LOOKUP_PROJECT_BASIC_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -110,7 +113,6 @@ LOOKUP_PROJECT_BASIC_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 2: Conditional Logic with Let Variables ---
 
 LOOKUP_PROJECT_CONDITIONAL_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -230,7 +232,6 @@ LOOKUP_PROJECT_CONDITIONAL_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 3: Array/String Manipulation with Let Variables ---
 
 LOOKUP_PROJECT_ARRAY_STRING_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -359,7 +360,6 @@ LOOKUP_PROJECT_ARRAY_STRING_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 4: Let Variables in $group Within Sub-Pipeline ---
 
 LOOKUP_PROJECT_GROUP_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -424,7 +424,6 @@ LOOKUP_PROJECT_GROUP_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 5: Let Variables in $redact ---
 
 LOOKUP_PROJECT_REDACT_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -469,7 +468,6 @@ LOOKUP_PROJECT_REDACT_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 6: Let Variables in $replaceRoot ---
 
 LOOKUP_PROJECT_REPLACEROOT_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -506,7 +504,6 @@ LOOKUP_PROJECT_REPLACEROOT_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 7: Type Preservation Through $addFields ---
 
 _OID = ObjectId("bbbbbbbbbbbbbbbbbbbbbbbb")
 _DATE = datetime(2024, 3, 15, 12, 0, 0, tzinfo=timezone.utc)
@@ -612,6 +609,63 @@ LOOKUP_PROJECT_TYPE_PRESERVATION_TESTS: list[LookupTestCase] = [
 ]
 
 
+LOOKUP_PROJECT_ADDITIONAL_TESTS: list[LookupTestCase] = [
+    LookupTestCase(
+        "addfields_let_var_flows_through_project",
+        docs=[{"_id": 1, "x": "outer"}],
+        foreign_docs=[{"_id": 10, "ff": "keep"}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"x": "$x"},
+                    "pipeline": [
+                        {"$addFields": {"fromOuter": "$$x"}},
+                        {"$project": {"_id": 1, "fromOuter": 1}},
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "x": "outer", "joined": [{"_id": 10, "fromOuter": "outer"}]}],
+        msg=(
+            "$lookup sub-pipeline $addFields of a let variable"
+            " should flow through a following $project"
+        ),
+    ),
+    LookupTestCase(
+        "project_reduce_seeded_from_let_var",
+        docs=[{"_id": 1, "n": 100}],
+        foreign_docs=[{"_id": 10, "farr": [1, 2, 3]}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"n": "$n"},
+                    "pipeline": [
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "reduced": {
+                                    "$reduce": {
+                                        "input": "$farr",
+                                        "initialValue": "$$n",
+                                        "in": {"$add": ["$$value", "$$this"]},
+                                    }
+                                },
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "n": 100, "joined": [{"reduced": 106}]}],
+        msg="$lookup sub-pipeline $reduce should seed its accumulator from a let variable",
+    ),
+]
+
+
 # --- Combine all tests ---
 LOOKUP_CORRELATED_PROJECT_ALL: list[LookupTestCase] = (
     LOOKUP_PROJECT_BASIC_TESTS
@@ -621,6 +675,7 @@ LOOKUP_CORRELATED_PROJECT_ALL: list[LookupTestCase] = (
     + LOOKUP_PROJECT_REDACT_TESTS
     + LOOKUP_PROJECT_REPLACEROOT_TESTS
     + LOOKUP_PROJECT_TYPE_PRESERVATION_TESTS
+    + LOOKUP_PROJECT_ADDITIONAL_TESTS
 )
 
 

@@ -16,12 +16,14 @@ from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.look
     setup_lookup,
 )
 from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.error_codes import LET_UNDEFINED_VARIABLE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# --- Section 1: Multi-Level Let Propagation ---
-# Existing coverage: basic propagation (1 level), basic shadow (1 level)
-# New coverage: 3-level propagation, outer+inner let coexistence, outer let in inner $match
+# Property [Correlated Subquery — Nested Scoping]: let variables propagate into
+# nested $lookup sub-pipelines and are correctly shadowed when an inner let
+# declares the same name; shadows do not leak to the outer scope.
+
 
 LOOKUP_NESTED_PROPAGATION_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -253,8 +255,6 @@ LOOKUP_NESTED_PROPAGATION_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 2: Let Shadowing in Nested Lookups ---
-# Existing coverage: basic inner shadow overwrites outer
 # New: partial shadow, shadow doesn't leak up, progressive shadow, type change in shadow
 
 LOOKUP_NESTED_SHADOW_TESTS: list[LookupTestCase] = [
@@ -463,7 +463,6 @@ LOOKUP_NESTED_SHADOW_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 3: Nested Lookup Structure and Edge Cases ---
 
 LOOKUP_NESTED_STRUCTURE_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -627,9 +626,165 @@ LOOKUP_NESTED_STRUCTURE_TESTS: list[LookupTestCase] = [
 ]
 
 
+LOOKUP_NESTED_ADDITIONAL_TESTS: list[LookupTestCase] = [
+    LookupTestCase(
+        "sibling_nested_lookups_isolate_same_named_var",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10, "tag": "p"}, {"_id": 11, "tag": "q"}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "pipeline": [
+                        {"$match": {"_id": 10}},
+                        {
+                            "$lookup": {
+                                "from": FOREIGN,
+                                "let": {"x": "p"},
+                                "pipeline": [{"$match": {"$expr": {"$eq": ["$tag", "$$x"]}}}],
+                                "as": "a",
+                            }
+                        },
+                        {
+                            "$lookup": {
+                                "from": FOREIGN,
+                                "let": {"x": "q"},
+                                "pipeline": [{"$match": {"$expr": {"$eq": ["$tag", "$$x"]}}}],
+                                "as": "b",
+                            }
+                        },
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "joined": [
+                    {
+                        "_id": 10,
+                        "tag": "p",
+                        "a": [{"_id": 10, "tag": "p"}],
+                        "b": [{"_id": 11, "tag": "q"}],
+                    }
+                ],
+            }
+        ],
+        msg=(
+            "$lookup sibling nested $lookups should isolate"
+            " a same-named let variable to each branch"
+        ),
+    ),
+    LookupTestCase(
+        "outer_correlated_inner_concise_references_outer_var",
+        docs=[{"_id": 1, "oval": "a"}],
+        foreign_docs=[
+            {"_id": 10, "lf": "a", "fval": "a"},
+            {"_id": 11, "lf": "a", "fval": "b"},
+            {"_id": 12, "lf": "c", "fval": "a"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"a": "$oval"},
+                    "pipeline": [
+                        {"$match": {"_id": 10}},
+                        {
+                            "$lookup": {
+                                "from": FOREIGN,
+                                "localField": "lf",
+                                "foreignField": "lf",
+                                "let": {"outer_a": "$$a"},
+                                "pipeline": [
+                                    {"$match": {"$expr": {"$eq": ["$fval", "$$outer_a"]}}}
+                                ],
+                                "as": "inner_joined",
+                            }
+                        },
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "oval": "a",
+                "joined": [
+                    {
+                        "_id": 10,
+                        "lf": "a",
+                        "fval": "a",
+                        "inner_joined": [{"_id": 10, "lf": "a", "fval": "a"}],
+                    }
+                ],
+            }
+        ],
+        msg=(
+            "$lookup outer correlated form should compose with an inner concise"
+            " form referencing the outer let variable"
+        ),
+    ),
+    LookupTestCase(
+        "missing_var_at_one_level_errors",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"o": "O"},
+                    "pipeline": [
+                        {
+                            "$lookup": {
+                                "from": FOREIGN,
+                                "pipeline": [
+                                    {
+                                        "$lookup": {
+                                            "from": FOREIGN,
+                                            "let": {"i": "I"},
+                                            "pipeline": [
+                                                {
+                                                    "$addFields": {
+                                                        "combined": {
+                                                            "$concat": [
+                                                                "$$o",
+                                                                "$$m",
+                                                                "$$i",
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "as": "lvl3",
+                                        }
+                                    }
+                                ],
+                                "as": "lvl2",
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        error_code=LET_UNDEFINED_VARIABLE_ERROR,
+        msg=(
+            "$lookup referencing a never-defined variable at a nesting level"
+            " should error (undefined variable)"
+        ),
+    ),
+]
+
+
 # --- Combine all tests ---
 LOOKUP_CORRELATED_NESTED_ALL: list[LookupTestCase] = (
-    LOOKUP_NESTED_PROPAGATION_TESTS + LOOKUP_NESTED_SHADOW_TESTS + LOOKUP_NESTED_STRUCTURE_TESTS
+    LOOKUP_NESTED_PROPAGATION_TESTS
+    + LOOKUP_NESTED_SHADOW_TESTS
+    + LOOKUP_NESTED_STRUCTURE_TESTS
+    + LOOKUP_NESTED_ADDITIONAL_TESTS
 )
 
 

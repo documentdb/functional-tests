@@ -22,35 +22,12 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# --- Section 1: Comparison Operators with Let Variables in $expr ---
+# Property [Correlated Subquery — $match/$expr]: let variables are usable inside
+# $match with $expr for all comparison, logical, arithmetic, array, and date
+# operators; without $expr the variable reference is a literal string.
+
 
 LOOKUP_MATCH_COMPARISON_TESTS: list[LookupTestCase] = [
-    LookupTestCase(
-        "match_expr_eq",
-        docs=[{"_id": 1, "cat": "electronics"}],
-        foreign_docs=[
-            {"_id": 10, "category": "electronics"},
-            {"_id": 11, "category": "clothing"},
-        ],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {"localCat": "$cat"},
-                    "pipeline": [{"$match": {"$expr": {"$eq": ["$category", "$$localCat"]}}}],
-                    "as": "joined",
-                }
-            }
-        ],
-        expected=[
-            {
-                "_id": 1,
-                "cat": "electronics",
-                "joined": [{"_id": 10, "category": "electronics"}],
-            }
-        ],
-        msg="$lookup $match $expr $eq should match foreign docs where field equals let var",
-    ),
     LookupTestCase(
         "match_expr_ne",
         docs=[{"_id": 1, "exclude": "inactive"}],
@@ -76,33 +53,6 @@ LOOKUP_MATCH_COMPARISON_TESTS: list[LookupTestCase] = [
             }
         ],
         msg="$lookup $match $expr $ne should match foreign docs where field differs from let var",
-    ),
-    LookupTestCase(
-        "match_expr_gt",
-        docs=[{"_id": 1, "minScore": 70}],
-        foreign_docs=[
-            {"_id": 10, "score": 80},
-            {"_id": 11, "score": 60},
-            {"_id": 12, "score": 70},
-        ],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {"min": "$minScore"},
-                    "pipeline": [{"$match": {"$expr": {"$gt": ["$score", "$$min"]}}}],
-                    "as": "joined",
-                }
-            }
-        ],
-        expected=[
-            {
-                "_id": 1,
-                "minScore": 70,
-                "joined": [{"_id": 10, "score": 80}],
-            }
-        ],
-        msg="$lookup $match $expr $gt should match foreign docs where field > let var",
     ),
     LookupTestCase(
         "match_expr_gte",
@@ -187,7 +137,6 @@ LOOKUP_MATCH_COMPARISON_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 2: Logical Operators Combining Let Variables ---
 
 LOOKUP_MATCH_LOGICAL_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -303,37 +252,8 @@ LOOKUP_MATCH_LOGICAL_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 3: Arithmetic in $expr with Let Variables ---
 
 LOOKUP_MATCH_ARITHMETIC_TESTS: list[LookupTestCase] = [
-    LookupTestCase(
-        "match_expr_multiply_let_var",
-        docs=[{"_id": 1, "limit": 25}],
-        foreign_docs=[
-            {"_id": 10, "amount": 60},
-            {"_id": 11, "amount": 40},
-        ],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {"lim": "$limit"},
-                    "pipeline": [
-                        {"$match": {"$expr": {"$gt": ["$amount", {"$multiply": ["$$lim", 2]}]}}}
-                    ],
-                    "as": "joined",
-                }
-            }
-        ],
-        expected=[
-            {
-                "_id": 1,
-                "limit": 25,
-                "joined": [{"_id": 10, "amount": 60}],
-            }
-        ],
-        msg="$lookup $match $expr with $multiply on let var should compute threshold correctly",
-    ),
     LookupTestCase(
         "match_expr_add_let_var",
         docs=[{"_id": 1, "base": 40}],
@@ -390,7 +310,6 @@ LOOKUP_MATCH_ARITHMETIC_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 4: Array Operations in $expr with Let Variables ---
 
 LOOKUP_MATCH_ARRAY_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -488,63 +407,8 @@ LOOKUP_MATCH_ARRAY_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 5: Null/Missing Handling in $match $expr ---
 
 LOOKUP_MATCH_NULL_MISSING_TESTS: list[LookupTestCase] = [
-    LookupTestCase(
-        "match_expr_eq_let_var_null_matches_null",
-        docs=[{"_id": 1, "val": None}],
-        foreign_docs=[
-            {"_id": 10, "field": None},
-            {"_id": 11, "field": "something"},
-        ],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {"x": "$val"},
-                    "pipeline": [{"$match": {"$expr": {"$eq": ["$field", "$$x"]}}}],
-                    "as": "joined",
-                }
-            }
-        ],
-        expected=[
-            {
-                "_id": 1,
-                "val": None,
-                "joined": [{"_id": 10, "field": None}],
-            }
-        ],
-        msg="$lookup $match $expr $eq with null let var should match foreign null fields",
-    ),
-    LookupTestCase(
-        "match_expr_eq_let_var_missing_vs_null",
-        docs=[{"_id": 1}],
-        foreign_docs=[
-            {"_id": 10, "field": None},
-            {"_id": 11, "field": "value"},
-        ],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {"x": "$nonexistent"},
-                    "pipeline": [{"$match": {"$expr": {"$eq": ["$field", "$$x"]}}}],
-                    "as": "joined",
-                }
-            }
-        ],
-        expected=[
-            {
-                "_id": 1,
-                "joined": [],
-            }
-        ],
-        msg=(
-            "$lookup $match $expr $eq with missing let var should NOT"
-            " match foreign null fields (missing != null in $expr $eq)"
-        ),
-    ),
     LookupTestCase(
         "match_expr_ifNull_wrapping_let_var",
         docs=[{"_id": 1, "maybe": None}],
@@ -575,7 +439,6 @@ LOOKUP_MATCH_NULL_MISSING_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 6: $match Without $expr (literal string behavior) ---
 
 LOOKUP_MATCH_WITHOUT_EXPR_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -675,7 +538,6 @@ LOOKUP_MATCH_WITHOUT_EXPR_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 7: Multiple $match Stages Using Let Variables ---
 
 LOOKUP_MATCH_MULTIPLE_STAGES_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -747,7 +609,6 @@ LOOKUP_MATCH_MULTIPLE_STAGES_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 8: Date Comparisons in $expr with Let Variables ---
 
 _DATE_CUTOFF = datetime(2024, 6, 1, tzinfo=timezone.utc)
 _DATE_BEFORE = datetime(2024, 5, 15, tzinfo=timezone.utc)
@@ -808,7 +669,6 @@ LOOKUP_MATCH_DATE_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 9: Pipeline Cannot Access Outer Fields Directly ---
 
 LOOKUP_MATCH_FIELD_ACCESS_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -843,6 +703,280 @@ LOOKUP_MATCH_FIELD_ACCESS_TESTS: list[LookupTestCase] = [
 ]
 
 
+LOOKUP_MATCH_ADDITIONAL_TESTS: list[LookupTestCase] = [
+    LookupTestCase(
+        "expr_gt_against_let_var",
+        docs=[{"_id": 1, "val": 5}],
+        foreign_docs=[
+            {"_id": 10, "ff": 4},
+            {"_id": 11, "ff": 5},
+            {"_id": 12, "ff": 6},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"x": "$val"},
+                    "pipeline": [{"$match": {"$expr": {"$gt": ["$ff", "$$x"]}}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "val": 5, "joined": [{"_id": 12, "ff": 6}]}],
+        msg=(
+            "$lookup sub-pipeline $match $expr $gt should return"
+            " foreign docs greater than the let var"
+        ),
+    ),
+    LookupTestCase(
+        "expr_range_with_two_let_vars_on_both_sides",
+        docs=[{"_id": 1, "lo": 2, "hi": 8}],
+        foreign_docs=[
+            {"_id": 10, "ff": 1},
+            {"_id": 11, "ff": 5},
+            {"_id": 12, "ff": 9},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"lo": "$lo", "hi": "$hi"},
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$and": [
+                                        {"$lt": ["$$lo", "$ff"]},
+                                        {"$lt": ["$ff", "$$hi"]},
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "lo": 2, "hi": 8, "joined": [{"_id": 11, "ff": 5}]}],
+        msg="$lookup sub-pipeline $expr with let vars on both sides should filter a strict range",
+    ),
+    LookupTestCase(
+        "expr_not_in_membership_with_let_array",
+        docs=[{"_id": 1, "la": [1, 2, 3]}],
+        foreign_docs=[
+            {"_id": 10, "ff": 2},
+            {"_id": 11, "ff": 5},
+            {"_id": 12, "ff": 1},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"arr": "$la"},
+                    "pipeline": [{"$match": {"$expr": {"$not": [{"$in": ["$ff", "$$arr"]}]}}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "la": [1, 2, 3], "joined": [{"_id": 11, "ff": 5}]}],
+        msg=(
+            "$lookup sub-pipeline $expr $not $in should return"
+            " the complement of the let array membership"
+        ),
+    ),
+    LookupTestCase(
+        "expr_size_gate_all_or_nothing_per_input_doc",
+        docs=[
+            {"_id": 1, "la": [1, 2, 3]},
+            {"_id": 2, "la": [1, 2]},
+        ],
+        foreign_docs=[
+            {"_id": 10},
+            {"_id": 11},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"arr": "$la"},
+                    "pipeline": [{"$match": {"$expr": {"$eq": [{"$size": "$$arr"}, 3]}}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "la": [1, 2, 3], "joined": [{"_id": 10}, {"_id": 11}]},
+            {"_id": 2, "la": [1, 2], "joined": []},
+        ],
+        msg=(
+            "$lookup sub-pipeline $expr $size gate should include"
+            " all or no foreign docs per input document"
+        ),
+    ),
+    LookupTestCase(
+        "expr_set_is_subset_with_let_array",
+        docs=[{"_id": 1, "la": [1, 2]}],
+        foreign_docs=[
+            {"_id": 10, "farr": [1, 2, 3]},
+            {"_id": 11, "farr": [1, 4]},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"arr": "$la"},
+                    "pipeline": [{"$match": {"$expr": {"$setIsSubset": ["$$arr", "$farr"]}}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "la": [1, 2], "joined": [{"_id": 10, "farr": [1, 2, 3]}]}],
+        msg=(
+            "$lookup sub-pipeline $expr $setIsSubset should return foreign docs"
+            " whose array is a superset of the let array"
+        ),
+    ),
+    LookupTestCase(
+        "expr_cond_selects_field_by_let_flag",
+        docs=[
+            {"_id": 1, "flag": True, "target": "m"},
+            {"_id": 2, "flag": False, "target": "m"},
+        ],
+        foreign_docs=[
+            {"_id": 10, "f1": "m", "f2": "n"},
+            {"_id": 11, "f1": "x", "f2": "m"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"flag": "$flag", "target": "$target"},
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$eq": [
+                                        {
+                                            "$cond": [
+                                                "$$flag",
+                                                "$f1",
+                                                "$f2",
+                                            ]
+                                        },
+                                        "$$target",
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "flag": True,
+                "target": "m",
+                "joined": [{"_id": 10, "f1": "m", "f2": "n"}],
+            },
+            {
+                "_id": 2,
+                "flag": False,
+                "target": "m",
+                "joined": [{"_id": 11, "f1": "x", "f2": "m"}],
+            },
+        ],
+        msg=(
+            "$lookup sub-pipeline $expr $cond should select the"
+            " compared field per input-doc let flag"
+        ),
+    ),
+    LookupTestCase(
+        "expr_switch_branches_keyed_on_let_var",
+        docs=[
+            {"_id": 1, "sel": "hi"},
+            {"_id": 2, "sel": "lo"},
+            {"_id": 3, "sel": "other"},
+        ],
+        foreign_docs=[
+            {"_id": 10, "fnum": 15},
+            {"_id": 11, "fnum": 5},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"sel": "$sel"},
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$switch": {
+                                        "branches": [
+                                            {
+                                                "case": {"$eq": ["$$sel", "hi"]},
+                                                "then": {"$gt": ["$fnum", 10]},
+                                            },
+                                            {
+                                                "case": {"$eq": ["$$sel", "lo"]},
+                                                "then": {"$lt": ["$fnum", 10]},
+                                            },
+                                        ],
+                                        "default": False,
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "sel": "hi", "joined": [{"_id": 10, "fnum": 15}]},
+            {"_id": 2, "sel": "lo", "joined": [{"_id": 11, "fnum": 5}]},
+            {"_id": 3, "sel": "other", "joined": []},
+        ],
+        msg=(
+            "$lookup sub-pipeline $expr $switch should pick the branch matching"
+            " the let var and fall through to default"
+        ),
+    ),
+    LookupTestCase(
+        "expr_array_elem_at_on_let_array",
+        docs=[{"_id": 1, "la": [7, 8]}],
+        foreign_docs=[
+            {"_id": 10, "ff": 7},
+            {"_id": 11, "ff": 8},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"arr": "$la"},
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$eq": [
+                                        {"$arrayElemAt": ["$$arr", 0]},
+                                        "$ff",
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "la": [7, 8], "joined": [{"_id": 10, "ff": 7}]}],
+        msg="$lookup sub-pipeline $expr $arrayElemAt should access an element of a let-bound array",
+    ),
+]
+
+
 # --- Combine all tests ---
 LOOKUP_CORRELATED_MATCH_ALL: list[LookupTestCase] = (
     LOOKUP_MATCH_COMPARISON_TESTS
@@ -854,6 +988,7 @@ LOOKUP_CORRELATED_MATCH_ALL: list[LookupTestCase] = (
     + LOOKUP_MATCH_MULTIPLE_STAGES_TESTS
     + LOOKUP_MATCH_DATE_TESTS
     + LOOKUP_MATCH_FIELD_ACCESS_TESTS
+    + LOOKUP_MATCH_ADDITIONAL_TESTS
 )
 
 

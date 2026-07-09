@@ -19,6 +19,9 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Correlated Subquery — Result Semantics]: the sub-pipeline re-runs
+# per outer document producing independent join results; result array cardinality
+# and order are controlled by sub-pipeline stages ($sort, $limit, $skip, $project).
 LOOKUP_RESULT_SEMANTICS_TESTS: list[LookupTestCase] = [
     LookupTestCase(
         "per_doc_variation_distinct_let_values",

@@ -1,4 +1,9 @@
-"""Tests for $lookup concise correlated subquery — localField + foreignField + pipeline."""
+"""Tests for $lookup concise correlated subquery — localField + foreignField + pipeline.
+
+Covers equality-match-then-pipeline, let combined with equality, null/empty-string
+field degradation to uncorrelated, empty-pipeline equivalence, no-match behavior,
+and array localField matching.
+"""
 
 from __future__ import annotations
 
@@ -210,6 +215,101 @@ LOOKUP_CONCISE_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
             "$lookup with empty string localField and foreignField plus"
             " pipeline should degrade to an uncorrelated subquery"
             " returning all foreign documents"
+        ),
+    ),
+    LookupTestCase(
+        "concise_empty_pipeline_same_as_simple_equality",
+        docs=[{"_id": 1, "x": "val"}],
+        foreign_docs=[
+            {"_id": 10, "y": "val"},
+            {"_id": 11, "y": "other"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "localField": "x",
+                    "foreignField": "y",
+                    "pipeline": [],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "x": "val",
+                "joined": [{"_id": 10, "y": "val"}],
+            }
+        ],
+        msg=(
+            "$lookup concise syntax with empty pipeline should be"
+            " equivalent to simple equality lookup"
+        ),
+    ),
+    LookupTestCase(
+        "concise_equality_no_match_pipeline_not_executed",
+        docs=[{"_id": 1, "x": "no_match"}],
+        foreign_docs=[
+            {"_id": 10, "y": "val1"},
+            {"_id": 11, "y": "val2"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "localField": "x",
+                    "foreignField": "y",
+                    "let": {"v": "$x"},
+                    "pipeline": [{"$addFields": {"src": "$$v"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "x": "no_match",
+                "joined": [],
+            }
+        ],
+        msg=(
+            "$lookup concise syntax with no equality matches should"
+            " result in empty array (pipeline never runs on empty set)"
+        ),
+    ),
+    LookupTestCase(
+        "concise_localField_array_matches_scalar",
+        docs=[{"_id": 1, "refs": [10, 20]}],
+        foreign_docs=[
+            {"_id": 10, "val": "a"},
+            {"_id": 20, "val": "b"},
+            {"_id": 30, "val": "c"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "localField": "refs",
+                    "foreignField": "_id",
+                    "pipeline": [],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "refs": [10, 20],
+                "joined": [
+                    {"_id": 10, "val": "a"},
+                    {"_id": 20, "val": "b"},
+                ],
+            }
+        ],
+        msg=(
+            "$lookup concise syntax with array localField should match"
+            " each element against scalar foreignField"
         ),
     ),
 ]

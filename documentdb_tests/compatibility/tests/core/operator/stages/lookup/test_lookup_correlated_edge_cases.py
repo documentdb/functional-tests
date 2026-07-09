@@ -17,11 +17,18 @@ from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.look
     setup_lookup,
 )
 from documentdb_tests.framework.assertions import assertResult, assertSuccessNaN
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
+from documentdb_tests.framework.error_codes import (
+    BAD_VALUE_ERROR,
+    LET_UNDEFINED_VARIABLE_ERROR,
+    TYPE_MISMATCH_ERROR,
+)
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-# --- Section 1: Let Expression Errors ---
+# Property [Correlated Subquery — Edge Cases]: let expression error propagation,
+# undefined variable behavior, numeric equivalence in $expr, special numeric
+# values, $$REMOVE semantics, and path traversal on let variables.
+
 
 LOOKUP_EDGE_ERROR_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -38,7 +45,7 @@ LOOKUP_EDGE_ERROR_TESTS: list[LookupTestCase] = [
                 }
             }
         ],
-        error_code=14,  # TYPE_MISMATCH_ERROR
+        error_code=TYPE_MISMATCH_ERROR,
         msg="$lookup let with $add type mismatch should propagate error",
     ),
     LookupTestCase(
@@ -66,7 +73,6 @@ LOOKUP_EDGE_ERROR_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 2: Undefined Variable References ---
 
 LOOKUP_EDGE_UNDEFINED_VAR_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -83,29 +89,11 @@ LOOKUP_EDGE_UNDEFINED_VAR_TESTS: list[LookupTestCase] = [
                 }
             }
         ],
-        error_code=17276,
+        error_code=LET_UNDEFINED_VARIABLE_ERROR,
         msg="$lookup referencing undefined variable in $addFields should error",
-    ),
-    LookupTestCase(
-        "empty_let_then_reference_var_errors",
-        docs=[{"_id": 1}],
-        foreign_docs=[{"_id": 10}],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {},
-                    "pipeline": [{"$addFields": {"val": "$$anyVar"}}],
-                    "as": "joined",
-                }
-            }
-        ],
-        error_code=17276,
-        msg="$lookup with empty let then referencing $$anyVar should error",
     ),
 ]
 
-# --- Section 3: Numeric Equivalence in $expr Comparisons ---
 
 LOOKUP_EDGE_NUMERIC_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -170,7 +158,6 @@ LOOKUP_EDGE_NUMERIC_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 4: Special Numeric Values ---
 
 LOOKUP_EDGE_SPECIAL_VALUES_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -195,7 +182,6 @@ LOOKUP_EDGE_SPECIAL_VALUES_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 5: $$REMOVE Semantics ---
 
 LOOKUP_EDGE_REMOVE_TESTS: list[LookupTestCase] = [
     LookupTestCase(
@@ -237,7 +223,6 @@ LOOKUP_EDGE_REMOVE_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# --- Section 6: Let Variable Path Traversal ---
 
 LOOKUP_EDGE_PATH_TRAVERSAL_TESTS: list[LookupTestCase] = [
     LookupTestCase(

@@ -18,6 +18,9 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Correlated Subquery — Stage Composition]: let variables remain
+# accessible when the sub-pipeline contains other aggregation stages between
+# the let binding and the $match or $addFields usage.
 LOOKUP_COMPOSITION_TESTS: list[LookupTestCase] = [
     LookupTestCase(
         "let_var_after_unwind",
@@ -92,7 +95,7 @@ LOOKUP_COMPOSITION_TESTS: list[LookupTestCase] = [
                     "let": {"tgt": "$target"},
                     "pipeline": [
                         {"$addFields": {"diff": {"$abs": {"$subtract": ["$score", "$$tgt"]}}}},
-                        {"$sort": {"diff": 1}},
+                        {"$sort": {"diff": 1, "_id": 1}},
                     ],
                     "as": "joined",
                 }

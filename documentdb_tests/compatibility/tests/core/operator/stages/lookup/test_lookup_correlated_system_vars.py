@@ -18,6 +18,9 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Correlated Subquery — System Variables]: inside the sub-pipeline
+# $$ROOT and $$CURRENT refer to the foreign document context; outer context must
+# be captured via let before the sub-pipeline executes.
 LOOKUP_SYSTEM_VARS_TESTS: list[LookupTestCase] = [
     LookupTestCase(
         "ROOT_inside_sub_pipeline_refers_to_foreign",
