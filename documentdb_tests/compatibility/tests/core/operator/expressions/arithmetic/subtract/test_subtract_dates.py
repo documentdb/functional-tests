@@ -99,7 +99,7 @@ DATE_DATE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Date rounding]: fractional ms operands are rounded using round-half-up.
+# Property [Date rounding]: fractional ms operands are rounded.
 DATE_ROUNDING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "date_decimal",
@@ -109,7 +109,7 @@ DATE_ROUNDING_TESTS: list[ExpressionTestCase] = [
         },
         expression={"$subtract": ["$a", "$b"]},
         expected=datetime(2026, 1, 1, 0, 0, 0, 998000, tzinfo=timezone.utc),
-        msg="$subtract should round Decimal128 1.5 ms up to 2 ms before subtracting",
+        msg="$subtract should round Decimal128 1.5 ms to 2 ms before subtracting",
     ),
     ExpressionTestCase(
         "date_double_round_up",
@@ -120,6 +120,16 @@ DATE_ROUNDING_TESTS: list[ExpressionTestCase] = [
         expression={"$subtract": ["$a", "$b"]},
         expected=datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         msg="$subtract should round double 2.5 ms up to 3 ms before subtracting",
+    ),
+    ExpressionTestCase(
+        "date_double_round_down_negative",
+        doc={
+            "a": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "b": -2.5,
+        },
+        expression={"$subtract": ["$a", "$b"]},
+        expected=datetime(2026, 1, 1, 0, 0, 0, 3000, tzinfo=timezone.utc),
+        msg="$subtract should round double -2.5 ms down to -3 ms before subtracting",
     ),
     ExpressionTestCase(
         "date_double_truncates",
