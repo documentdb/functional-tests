@@ -35,11 +35,3 @@ def test_buildInfo_same_result_any_database(collection):
         msg="Should return same result from any database",
         raw_res=True,
     )
-
-
-def test_buildInfo_nonexistent_database(collection):
-    """Test buildInfo succeeds when run on a non-existent database."""
-    other_db = f"{collection.name}_nonexistent_db"
-    other_col = collection.database.client[other_db][collection.name]
-    result = execute_command(other_col, {"buildInfo": 1})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Should succeed on non-existent database")

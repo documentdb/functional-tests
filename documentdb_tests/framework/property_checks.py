@@ -165,6 +165,25 @@ class Len(Check):
         return f"{type(self).__name__}({self.expected!r})"
 
 
+class LenGt(Check):
+    """Assert that the field is a list with length strictly greater than a minimum."""
+
+    def __init__(self, minimum: int) -> None:
+        self.minimum = minimum
+
+    def check(self, value: Any, path: str) -> str | None:
+        if value is _FIELD_ABSENT:
+            return f"expected '{path}' length > {self.minimum}, but field is missing"
+        if not isinstance(value, list):
+            return f"expected '{path}' to be a list, got {type(value).__name__}"
+        if len(value) <= self.minimum:
+            return f"expected '{path}' length > {self.minimum}, got {len(value)}"
+        return None
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.minimum!r})"
+
+
 class LenLte(Check):
     """Assert that the field is a list whose length is at most ``maximum``."""
 
