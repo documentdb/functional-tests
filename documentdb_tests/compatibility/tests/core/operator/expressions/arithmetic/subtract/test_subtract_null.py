@@ -13,9 +13,7 @@ from documentdb_tests.framework.test_constants import MISSING
 pytestmark = pytest.mark.aggregate
 
 # Property [Null propagation]: $subtract returns null when either operand is null or missing.
-# Property [Null short-circuit]: a null/missing operand short-circuits evaluation before type
-# checking.
-SUBTRACT_NULL_TESTS: list[ExpressionTestCase] = [
+NULL_PROPAGATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "null_subtrahend",
         doc={"a": 10, "b": None},
@@ -51,6 +49,11 @@ SUBTRACT_NULL_TESTS: list[ExpressionTestCase] = [
         expected=None,
         msg="$subtract should return null when the minuend field is missing",
     ),
+]
+
+# Property [Null short-circuit]: a null/missing operand short-circuits evaluation before type
+# checking.
+NULL_SHORT_CIRCUIT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "null_with_non_numeric",
         doc={"a": None},
@@ -66,6 +69,8 @@ SUBTRACT_NULL_TESTS: list[ExpressionTestCase] = [
         msg="$subtract should return null when a missing minuend short-circuits type checking",
     ),
 ]
+
+SUBTRACT_NULL_TESTS: list[ExpressionTestCase] = NULL_PROPAGATION_TESTS + NULL_SHORT_CIRCUIT_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUBTRACT_NULL_TESTS))

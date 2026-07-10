@@ -21,6 +21,7 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
     FLOAT_INFINITY,
     FLOAT_NAN,
+    INT32_ZERO,
 )
 
 pytestmark = pytest.mark.aggregate
@@ -28,12 +29,7 @@ pytestmark = pytest.mark.aggregate
 _FIXED_UUID = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
 
 # Property [Type rejection]: $subtract rejects non-numeric, non-date types with TYPE_MISMATCH_ERROR.
-# Property [Date constraint]: $subtract enforces date arithmetic type rules.
-# Property [Date NaN/Inf]: $subtract rejects NaN/Infinity as a date offset with
-# TYPE_MISMATCH_DATE_ERROR.
-# Property [Arity]: $subtract requires exactly two arguments.
-SUBTRACT_ERROR_TESTS: list[ExpressionTestCase] = [
-    # Invalid minuend types
+TYPE_REJECTION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "string_minuend",
         doc={"a": "string", "b": 5},
@@ -78,7 +74,7 @@ SUBTRACT_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "binary_minuend",
-        doc={"a": Binary(b"test", 0), "b": 5},
+        doc={"a": Binary(b"test", INT32_ZERO), "b": 5},
         expression={"$subtract": ["$a", "$b"]},
         error_code=TYPE_MISMATCH_ERROR,
         msg="$subtract should reject a binary minuend",
@@ -156,7 +152,7 @@ SUBTRACT_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "binary_subtrahend",
-        doc={"a": 10, "b": Binary(b"test", 0)},
+        doc={"a": 10, "b": Binary(b"test", INT32_ZERO)},
         expression={"$subtract": ["$a", "$b"]},
         error_code=TYPE_MISMATCH_ERROR,
         msg="$subtract should reject a binary subtrahend",
@@ -189,7 +185,10 @@ SUBTRACT_ERROR_TESTS: list[ExpressionTestCase] = [
         error_code=TYPE_MISMATCH_ERROR,
         msg="$subtract should reject a UUID subtrahend",
     ),
-    # Date arithmetic type errors
+]
+
+# Property [Date constraint]: $subtract enforces date arithmetic type rules.
+DATE_CONSTRAINT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "number_minus_date",
         doc={"a": 1, "b": datetime(2026, 1, 1, tzinfo=timezone.utc)},
@@ -218,7 +217,11 @@ SUBTRACT_ERROR_TESTS: list[ExpressionTestCase] = [
         error_code=TYPE_MISMATCH_ERROR,
         msg="$subtract should reject an array subtrahend when the minuend is a date",
     ),
-    # Date with NaN/Infinity (invalid date offset)
+]
+
+# Property [Date NaN/Inf]: $subtract rejects NaN/Infinity as a date offset with
+# TYPE_MISMATCH_DATE_ERROR.
+DATE_NAN_INF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "date_minus_nan",
         doc={"a": datetime(2026, 1, 1, tzinfo=timezone.utc), "b": FLOAT_NAN},
@@ -240,7 +243,10 @@ SUBTRACT_ERROR_TESTS: list[ExpressionTestCase] = [
         error_code=OVERFLOW_ERROR,
         msg="$subtract should reject Decimal128 NaN as a date millisecond offset",
     ),
-    # Arity errors
+]
+
+# Property [Arity]: $subtract requires exactly two arguments.
+ARITY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "zero_args",
         doc={},
@@ -263,6 +269,10 @@ SUBTRACT_ERROR_TESTS: list[ExpressionTestCase] = [
         msg="$subtract should reject three arguments",
     ),
 ]
+
+SUBTRACT_ERROR_TESTS: list[ExpressionTestCase] = (
+    TYPE_REJECTION_TESTS + DATE_CONSTRAINT_TESTS + DATE_NAN_INF_TESTS + ARITY_TESTS
+)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUBTRACT_ERROR_TESTS))

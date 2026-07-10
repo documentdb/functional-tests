@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 import pytest
-from bson import Decimal128, Int64
+from bson import Int64
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -11,16 +11,18 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_ONE_AND_HALF,
+    DOUBLE_NEGATIVE_ZERO,
+    DOUBLE_TWO_AND_HALF,
+    INT32_ZERO,
+)
 
 pytestmark = pytest.mark.aggregate
 
 # Property [Date - numeric]: $subtract returns a date when the minuend is a date and subtrahend
 # is numeric (milliseconds).
-# Property [Date - date]: $subtract returns the difference in milliseconds when both operands
-# are dates.
-# Property [Date rounding]: fractional ms in the subtrahend are rounded using round-half-to-even.
-SUBTRACT_DATE_TESTS: list[ExpressionTestCase] = [
-    # Date minus numeric types
+DATE_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "date_int32",
         doc={
@@ -41,36 +43,6 @@ SUBTRACT_DATE_TESTS: list[ExpressionTestCase] = [
         expected=datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         msg="$subtract should subtract int64 milliseconds from a date",
     ),
-    ExpressionTestCase(
-        "date_decimal",
-        doc={
-            "a": datetime(2026, 1, 1, 0, 0, 1, tzinfo=timezone.utc),
-            "b": Decimal128("1.5"),
-        },
-        expression={"$subtract": ["$a", "$b"]},
-        expected=datetime(2026, 1, 1, 0, 0, 0, 998000, tzinfo=timezone.utc),
-        msg="$subtract should round Decimal128 1.5 ms to 2 ms before subtracting from a date",
-    ),
-    ExpressionTestCase(
-        "date_double_round_up",
-        doc={
-            "a": datetime(2026, 1, 1, 0, 0, 0, 3000, tzinfo=timezone.utc),
-            "b": 2.5,
-        },
-        expression={"$subtract": ["$a", "$b"]},
-        expected=datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$subtract should round double 2.5 ms to 3 ms (round-half-to-even) before subtracting",
-    ),
-    ExpressionTestCase(
-        "date_double_truncates",
-        doc={
-            "a": datetime(2026, 1, 1, 0, 0, 0, 5000, tzinfo=timezone.utc),
-            "b": 4.4,
-        },
-        expression={"$subtract": ["$a", "$b"]},
-        expected=datetime(2026, 1, 1, 0, 0, 0, 1000, tzinfo=timezone.utc),
-        msg="$subtract should round double 4.4 ms to 4 ms before subtracting from a date",
-    ),
     # Date minus negative number (moves date forward)
     ExpressionTestCase(
         "date_negative",
@@ -86,7 +58,7 @@ SUBTRACT_DATE_TESTS: list[ExpressionTestCase] = [
         "date_zero",
         doc={
             "a": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-            "b": 0,
+            "b": INT32_ZERO,
         },
         expression={"$subtract": ["$a", "$b"]},
         expected=datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
@@ -96,13 +68,17 @@ SUBTRACT_DATE_TESTS: list[ExpressionTestCase] = [
         "date_negative_zero",
         doc={
             "a": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-            "b": -0.0,
+            "b": DOUBLE_NEGATIVE_ZERO,
         },
         expression={"$subtract": ["$a", "$b"]},
         expected=datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         msg="$subtract should return the same date when subtracting negative-zero milliseconds",
     ),
-    # Date minus date returns milliseconds
+]
+
+# Property [Date - date]: $subtract returns the difference in milliseconds when both operands
+# are dates.
+DATE_DATE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "two_dates",
         doc={
@@ -124,6 +100,44 @@ SUBTRACT_DATE_TESTS: list[ExpressionTestCase] = [
         msg="$subtract of two dates should return negative ms when the minuend date is earlier",
     ),
 ]
+
+# Property [Date rounding]: fractional ms in the subtrahend are rounded using round-half-to-even.
+DATE_ROUNDING_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "date_decimal",
+        doc={
+            "a": datetime(2026, 1, 1, 0, 0, 1, tzinfo=timezone.utc),
+            "b": DECIMAL128_ONE_AND_HALF,
+        },
+        expression={"$subtract": ["$a", "$b"]},
+        expected=datetime(2026, 1, 1, 0, 0, 0, 998000, tzinfo=timezone.utc),
+        msg="$subtract should round Decimal128 1.5 ms to 2 ms before subtracting from a date",
+    ),
+    ExpressionTestCase(
+        "date_double_round_up",
+        doc={
+            "a": datetime(2026, 1, 1, 0, 0, 0, 3000, tzinfo=timezone.utc),
+            "b": DOUBLE_TWO_AND_HALF,
+        },
+        expression={"$subtract": ["$a", "$b"]},
+        expected=datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+        msg="$subtract should round double 2.5 ms to 3 ms (round-half-to-even) before subtracting",
+    ),
+    ExpressionTestCase(
+        "date_double_truncates",
+        doc={
+            "a": datetime(2026, 1, 1, 0, 0, 0, 5000, tzinfo=timezone.utc),
+            "b": 4.4,
+        },
+        expression={"$subtract": ["$a", "$b"]},
+        expected=datetime(2026, 1, 1, 0, 0, 0, 1000, tzinfo=timezone.utc),
+        msg="$subtract should round double 4.4 ms to 4 ms before subtracting from a date",
+    ),
+]
+
+SUBTRACT_DATE_TESTS: list[ExpressionTestCase] = (
+    DATE_NUMERIC_TESTS + DATE_DATE_TESTS + DATE_ROUNDING_TESTS
+)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUBTRACT_DATE_TESTS))

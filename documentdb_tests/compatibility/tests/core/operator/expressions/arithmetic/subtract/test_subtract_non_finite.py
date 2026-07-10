@@ -14,18 +14,17 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DOUBLE_ONE_AND_HALF,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
+    INT32_ZERO,
 )
 
 pytestmark = pytest.mark.aggregate
 
 # Property [Infinity propagation]: $subtract propagates Infinity when one operand is infinite.
-# Property [NaN propagation]: $subtract propagates NaN when either operand is NaN.
-# Property [Inf - Inf = NaN]: subtracting equal signed infinities produces NaN.
-SUBTRACT_NON_FINITE_TESTS: list[ExpressionTestCase] = [
-    # Float Infinity
+INFINITY_PROPAGATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "infinity_minuend",
         doc={"a": FLOAT_INFINITY, "b": 1},
@@ -56,14 +55,14 @@ SUBTRACT_NON_FINITE_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "inf_minus_zero",
-        doc={"a": FLOAT_INFINITY, "b": 0},
+        doc={"a": FLOAT_INFINITY, "b": INT32_ZERO},
         expression={"$subtract": ["$a", "$b"]},
         expected=FLOAT_INFINITY,
         msg="$subtract of Infinity minus zero should return Infinity",
     ),
     ExpressionTestCase(
         "neg_inf_minus_zero",
-        doc={"a": FLOAT_NEGATIVE_INFINITY, "b": 0},
+        doc={"a": FLOAT_NEGATIVE_INFINITY, "b": INT32_ZERO},
         expression={"$subtract": ["$a", "$b"]},
         expected=FLOAT_NEGATIVE_INFINITY,
         msg="$subtract of -Infinity minus zero should return -Infinity",
@@ -104,7 +103,10 @@ SUBTRACT_NON_FINITE_TESTS: list[ExpressionTestCase] = [
         expected=DECIMAL128_NAN,
         msg="$subtract of Decimal128 Infinity minus Decimal128 Infinity should return Decimal128 NaN",  # noqa: E501
     ),
-    # Float NaN
+]
+
+# Property [NaN propagation]: $subtract propagates NaN when either operand is NaN.
+NAN_PROPAGATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "nan_minuend",
         doc={"a": FLOAT_NAN, "b": 1},
@@ -141,17 +143,20 @@ SUBTRACT_NON_FINITE_TESTS: list[ExpressionTestCase] = [
         expected=DECIMAL128_NAN,
         msg="$subtract with a Decimal128 NaN subtrahend should return Decimal128 NaN",
     ),
-    # Cross-type NaN and Infinity
+]
+
+# Property [Inf - Inf = NaN]: subtracting equal signed infinities produces NaN.
+INF_MINUS_INF_NAN_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "decimal_nan_minus_double",
-        doc={"a": DECIMAL128_NAN, "b": 1.5},
+        doc={"a": DECIMAL128_NAN, "b": DOUBLE_ONE_AND_HALF},
         expression={"$subtract": ["$a", "$b"]},
         expected=DECIMAL128_NAN,
         msg="$subtract of Decimal128 NaN minus a double should return Decimal128 NaN",
     ),
     ExpressionTestCase(
         "double_minus_decimal_nan",
-        doc={"a": 1.5, "b": DECIMAL128_NAN},
+        doc={"a": DOUBLE_ONE_AND_HALF, "b": DECIMAL128_NAN},
         expression={"$subtract": ["$a", "$b"]},
         expected=DECIMAL128_NAN,
         msg="$subtract of a double minus Decimal128 NaN should return Decimal128 NaN",
@@ -164,6 +169,10 @@ SUBTRACT_NON_FINITE_TESTS: list[ExpressionTestCase] = [
         msg="$subtract of an int minus Decimal128 Infinity should return Decimal128 -Infinity",
     ),
 ]
+
+SUBTRACT_NON_FINITE_TESTS: list[ExpressionTestCase] = (
+    INFINITY_PROPAGATION_TESTS + NAN_PROPAGATION_TESTS + INF_MINUS_INF_NAN_TESTS
+)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUBTRACT_NON_FINITE_TESTS))

@@ -9,16 +9,12 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.error_codes import EXPRESSION_TYPE_MISMATCH_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import INT32_ZERO
 
 pytestmark = pytest.mark.aggregate
 
 # Property [Nested expressions]: $subtract accepts other expressions as operands.
-# Property [Field path lookups]: $subtract resolves nested and deeply-nested field paths.
-# Property [Array element access]: $subtract works with $arrayElemAt expressions as operands.
-# Property [Composite array rejection]: $subtract rejects a composite array from $x.y on
-# an array-of-objects.
-SUBTRACT_INPUT_FORM_TESTS: list[ExpressionTestCase] = [
-    # Nested expressions
+NESTED_EXPRESSION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "nested_subtract_2",
         doc={},
@@ -33,7 +29,10 @@ SUBTRACT_INPUT_FORM_TESTS: list[ExpressionTestCase] = [
         expected=40,
         msg="$subtract should support three levels of nested $subtract expressions",
     ),
-    # Field path lookups
+]
+
+# Property [Field path lookups]: $subtract resolves nested and deeply-nested field paths.
+FIELD_PATH_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "nested_field",
         doc={"a": {"b": 10}, "c": 3},
@@ -49,25 +48,33 @@ SUBTRACT_INPUT_FORM_TESTS: list[ExpressionTestCase] = [
         msg="$subtract should return null when a field path resolves to a missing field",
     ),
     ExpressionTestCase(
-        "array_index",
-        doc={"arr": [10, 5, 2]},
-        expression={
-            "$subtract": [
-                {"$arrayElemAt": ["$arr", 0]},
-                {"$arrayElemAt": ["$arr", 1]},
-            ]
-        },
-        expected=5,
-        msg="$subtract should support $arrayElemAt expressions as operands",
-    ),
-    ExpressionTestCase(
         "deeply_nested_field",
         doc={"a": {"b": {"c": {"d": 20}}}},
         expression={"$subtract": ["$a.b.c.d", 8]},
         expected=12,
         msg="$subtract should resolve a deeply nested field path",
     ),
-    # Composite array rejection
+]
+
+# Property [Array element access]: $subtract works with $arrayElemAt expressions as operands.
+ARRAY_ELEMENT_ACCESS_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "array_index",
+        doc={"arr": [10, 5, 2]},
+        expression={
+            "$subtract": [
+                {"$arrayElemAt": ["$arr", INT32_ZERO]},
+                {"$arrayElemAt": ["$arr", 1]},
+            ]
+        },
+        expected=5,
+        msg="$subtract should support $arrayElemAt expressions as operands",
+    ),
+]
+
+# Property [Composite array rejection]: $subtract rejects a composite array from $x.y on
+# an array-of-objects.
+COMPOSITE_ARRAY_REJECTION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "composite_array_field",
         doc={"x": [{"y": 10}, {"y": 3}]},
@@ -76,6 +83,13 @@ SUBTRACT_INPUT_FORM_TESTS: list[ExpressionTestCase] = [
         msg="$subtract should reject a composite array produced by $x.y on an array-of-objects",
     ),
 ]
+
+SUBTRACT_INPUT_FORM_TESTS: list[ExpressionTestCase] = (
+    NESTED_EXPRESSION_TESTS
+    + FIELD_PATH_LOOKUP_TESTS
+    + ARRAY_ELEMENT_ACCESS_TESTS
+    + COMPOSITE_ARRAY_REJECTION_TESTS
+)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUBTRACT_INPUT_FORM_TESTS))

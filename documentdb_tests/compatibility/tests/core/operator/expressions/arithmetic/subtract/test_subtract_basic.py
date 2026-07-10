@@ -9,17 +9,19 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_TWO_AND_HALF,
+    DOUBLE_NEGATIVE_ZERO,
+    DOUBLE_TWO_AND_HALF,
+    DOUBLE_ZERO,
+    INT32_ZERO,
+)
 
 pytestmark = pytest.mark.aggregate
 
 # Property [Same-type arithmetic]: $subtract preserves the BSON type when both operands share
 # a type.
-# Property [Mixed-type promotion]: $subtract promotes the result to the wider of the two input
-# types.
-# Property [Sign handling]: $subtract correctly computes the sign of the result.
-# Property [Zero handling]: $subtract handles zero operands correctly.
-SUBTRACT_BASIC_TESTS: list[ExpressionTestCase] = [
-    # Same type operations
+SAME_TYPE_ARITHMETIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "same_type_int32",
         doc={"a": 10, "b": 3},
@@ -36,7 +38,7 @@ SUBTRACT_BASIC_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "same_type_double",
-        doc={"a": 10.5, "b": 2.5},
+        doc={"a": 10.5, "b": DOUBLE_TWO_AND_HALF},
         expression={"$subtract": ["$a", "$b"]},
         expected=8.0,
         msg="$subtract should return double for double - double",
@@ -48,7 +50,11 @@ SUBTRACT_BASIC_TESTS: list[ExpressionTestCase] = [
         expected=Decimal128("10.0"),
         msg="$subtract should return Decimal128 for Decimal128 - Decimal128",
     ),
-    # Mixed numeric type promotion
+]
+
+# Property [Mixed-type promotion]: $subtract promotes the result to the wider of the two input
+# types.
+MIXED_TYPE_PROMOTION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int32_int64",
         doc={"a": 10, "b": Int64(3)},
@@ -58,14 +64,14 @@ SUBTRACT_BASIC_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "int32_double",
-        doc={"a": 10, "b": 2.5},
+        doc={"a": 10, "b": DOUBLE_TWO_AND_HALF},
         expression={"$subtract": ["$a", "$b"]},
         expected=7.5,
         msg="$subtract should promote to double for int32 - double",
     ),
     ExpressionTestCase(
         "int32_decimal",
-        doc={"a": 10, "b": Decimal128("2.5")},
+        doc={"a": 10, "b": DECIMAL128_TWO_AND_HALF},
         expression={"$subtract": ["$a", "$b"]},
         expected=Decimal128("7.5"),
         msg="$subtract should promote to Decimal128 for int32 - Decimal128",
@@ -86,12 +92,15 @@ SUBTRACT_BASIC_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "double_decimal",
-        doc={"a": 10.5, "b": Decimal128("2.5")},
+        doc={"a": 10.5, "b": DECIMAL128_TWO_AND_HALF},
         expression={"$subtract": ["$a", "$b"]},
         expected=Decimal128("8.0000000000000"),
         msg="$subtract should promote to Decimal128 for double - Decimal128",
     ),
-    # Sign handling
+]
+
+# Property [Sign handling]: $subtract correctly computes the sign of the result.
+SIGN_HANDLING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "negative_positive",
         doc={"a": -10, "b": 3},
@@ -127,43 +136,53 @@ SUBTRACT_BASIC_TESTS: list[ExpressionTestCase] = [
         expected=-4.5,
         msg="$subtract should return negative double when minuend is smaller than subtrahend",
     ),
-    # Zero handling
+]
+
+# Property [Zero handling]: $subtract handles zero operands correctly.
+ZERO_HANDLING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "zero_minuend",
-        doc={"a": 0, "b": 5},
+        doc={"a": INT32_ZERO, "b": 5},
         expression={"$subtract": ["$a", "$b"]},
         expected=-5,
         msg="$subtract should return negated subtrahend when the minuend is zero",
     ),
     ExpressionTestCase(
         "zero_subtrahend",
-        doc={"a": 5, "b": 0},
+        doc={"a": 5, "b": INT32_ZERO},
         expression={"$subtract": ["$a", "$b"]},
         expected=5,
         msg="$subtract should return the minuend unchanged when the subtrahend is zero",
     ),
     ExpressionTestCase(
         "zeros",
-        doc={"a": 0, "b": 0},
+        doc={"a": INT32_ZERO, "b": INT32_ZERO},
         expression={"$subtract": ["$a", "$b"]},
-        expected=0,
+        expected=INT32_ZERO,
         msg="$subtract should return zero for zero - zero",
     ),
     ExpressionTestCase(
         "zero_negative_zero",
-        doc={"a": 0, "b": -0.0},
+        doc={"a": INT32_ZERO, "b": DOUBLE_NEGATIVE_ZERO},
         expression={"$subtract": ["$a", "$b"]},
-        expected=0.0,
+        expected=DOUBLE_ZERO,
         msg="$subtract of int32 zero minus double negative-zero should return double positive-zero",
     ),
     ExpressionTestCase(
         "negative_zero_zero",
-        doc={"a": -0.0, "b": 0},
+        doc={"a": DOUBLE_NEGATIVE_ZERO, "b": INT32_ZERO},
         expression={"$subtract": ["$a", "$b"]},
-        expected=-0.0,
+        expected=DOUBLE_NEGATIVE_ZERO,
         msg="$subtract of double negative-zero minus int32 zero should return double negative-zero",
     ),
 ]
+
+SUBTRACT_BASIC_TESTS: list[ExpressionTestCase] = (
+    SAME_TYPE_ARITHMETIC_TESTS
+    + MIXED_TYPE_PROMOTION_TESTS
+    + SIGN_HANDLING_TESTS
+    + ZERO_HANDLING_TESTS
+)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUBTRACT_BASIC_TESTS))
