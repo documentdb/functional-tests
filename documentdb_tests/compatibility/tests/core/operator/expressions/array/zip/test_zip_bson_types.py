@@ -15,7 +15,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
     assert_expression_result,
-    execute_expression,
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
@@ -390,10 +389,7 @@ ALL_BSON_TESTS = (
 @pytest.mark.parametrize("test", pytest_params(ALL_BSON_TESTS))
 def test_zip_bson_type_preservation(collection, test):
     """Test $zip preserves BSON types in zipped output arrays."""
-    if test.doc is None:
-        result = execute_expression(collection, test.expression)
-    else:
-        result = execute_expression_with_insert(collection, test.expression, test.doc)
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

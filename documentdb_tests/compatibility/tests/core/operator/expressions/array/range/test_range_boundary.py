@@ -11,7 +11,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
     assert_expression_result,
-    execute_expression,
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
@@ -82,10 +81,7 @@ INT32_BOUNDARY_TESTS: list[ExpressionTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(INT32_BOUNDARY_TESTS))
 def test_range_int32_boundary(collection, test):
     """Test $range with INT32 boundary values for start, end, step."""
-    if test.doc is None:
-        result = execute_expression(collection, test.expression)
-    else:
-        result = execute_expression_with_insert(collection, test.expression, test.doc)
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

@@ -15,7 +15,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
     assert_expression_result,
-    execute_expression,
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.error_codes import (
@@ -438,10 +437,7 @@ ALL_INPUT_ELEMENT_TESTS = (
 @pytest.mark.parametrize("test", pytest_params(ALL_INPUT_ELEMENT_TESTS))
 def test_zip_non_array_input_error(collection, test):
     """Test $zip rejects non-array inputs and invalid useLongestLength/defaults."""
-    if test.doc is None:
-        result = execute_expression(collection, test.expression)
-    else:
-        result = execute_expression_with_insert(collection, test.expression, test.doc)
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
