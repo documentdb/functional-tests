@@ -13,7 +13,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.error_codes import (
     EXPRESSION_TYPE_MISMATCH_ERROR,
-    TYPE_MISMATCH_DATE_ERROR,
+    OVERFLOW_ERROR,
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.parametrize import pytest_params
@@ -223,21 +223,21 @@ SUBTRACT_ERROR_TESTS: list[ExpressionTestCase] = [
         "date_minus_nan",
         doc={"a": datetime(2026, 1, 1, tzinfo=timezone.utc), "b": FLOAT_NAN},
         expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_DATE_ERROR,
+        error_code=OVERFLOW_ERROR,
         msg="$subtract should reject NaN as a date millisecond offset",
     ),
     ExpressionTestCase(
         "date_minus_infinity",
         doc={"a": datetime(2026, 1, 1, tzinfo=timezone.utc), "b": FLOAT_INFINITY},
         expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_DATE_ERROR,
+        error_code=OVERFLOW_ERROR,
         msg="$subtract should reject Infinity as a date millisecond offset",
     ),
     ExpressionTestCase(
         "date_minus_decimal_nan",
         doc={"a": datetime(2026, 1, 1, tzinfo=timezone.utc), "b": DECIMAL128_NAN},
         expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_DATE_ERROR,
+        error_code=OVERFLOW_ERROR,
         msg="$subtract should reject Decimal128 NaN as a date millisecond offset",
     ),
     # Arity errors

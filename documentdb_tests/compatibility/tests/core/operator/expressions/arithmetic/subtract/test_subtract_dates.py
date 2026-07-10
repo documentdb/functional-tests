@@ -110,7 +110,7 @@ SUBTRACT_DATE_TESTS: list[ExpressionTestCase] = [
             "b": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         },
         expression={"$subtract": ["$a", "$b"]},
-        expected=86400000,
+        expected=Int64(86400000),
         msg="$subtract of two dates should return the difference in milliseconds",
     ),
     ExpressionTestCase(
@@ -120,7 +120,7 @@ SUBTRACT_DATE_TESTS: list[ExpressionTestCase] = [
             "b": datetime(2026, 1, 2, 0, 0, 0, tzinfo=timezone.utc),
         },
         expression={"$subtract": ["$a", "$b"]},
-        expected=-86400000,
+        expected=Int64(-86400000),
         msg="$subtract of two dates should return negative ms when the minuend date is earlier",
     ),
 ]
