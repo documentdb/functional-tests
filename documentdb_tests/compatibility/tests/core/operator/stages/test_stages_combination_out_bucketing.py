@@ -6,9 +6,8 @@ extends that composition coverage to the bucketing and window family that the
 existing file does not touch: $bucket, $sortByCount, $setWindowFields, and
 $bucketAuto.
 
-$bucketAuto before $out is a tracked engine divergence: native MongoDB writes
-the auto-bucketed output, while the engine under test rejects the pipeline
-because the $bucketAuto plan is treated as a mutable function inside $out.
+$bucketAuto before $out writes the auto-bucketed output on native MongoDB,
+exercised by ``test_out_after_bucketauto``.
 
 Oracle: MongoDB 8.2.4 (functional-tests CI baseline).
 """
@@ -117,15 +116,6 @@ def test_out_window_bucket_composition(collection, test_case: OutTestCase):
     collection.database.drop_collection(target)
 
 
-@pytest.mark.engine_xfail(
-    engine="pgmongo",
-    reason=(
-        "$out after $bucketAuto fails with CommandNotSupported (115): the "
-        "$bucketAuto plan is treated as a mutable function inside $out, whereas "
-        "native MongoDB writes the auto-bucketed output. Tracked: ADO #5371312"
-    ),
-    raises=AssertionError,
-)
 def test_out_after_bucketauto(collection):
     """$out writes the auto-bucketed output produced by a preceding $bucketAuto."""
     collection.insert_many(

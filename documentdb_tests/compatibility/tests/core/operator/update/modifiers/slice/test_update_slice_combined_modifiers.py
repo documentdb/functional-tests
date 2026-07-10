@@ -6,9 +6,8 @@ is combined with $sort and $position in a single $push: the $each elements are
 appended (at $position when present), the whole array is reordered by $sort,
 and only then is it trimmed by $slice.
 
-A $slice of 0 combined with these modifiers is a tracked engine divergence:
-native MongoDB empties the array, while the engine under test leaves the array
-unchanged.
+A $slice of 0 combined with these modifiers empties the array on native
+MongoDB after $each and $sort are applied.
 
 Oracle: MongoDB 8.2.4 (functional-tests CI baseline).
 """
@@ -71,11 +70,7 @@ COMBINED_MODIFIER_TESTS: list[UpdateTestCase] = [
         id="sort_documents_then_slice_first_two",
         setup_docs=[{"_id": 1, "arr": [{"s": 5}, {"s": 4}]}],
         query={"_id": 1},
-        update={
-            "$push": {
-                "arr": {"$each": [{"s": 3}, {"s": 1}], "$sort": {"s": 1}, "$slice": 2}
-            }
-        },
+        update={"$push": {"arr": {"$each": [{"s": 3}, {"s": 1}], "$sort": {"s": 1}, "$slice": 2}}},
         expected=[{"_id": 1, "arr": [{"s": 1}, {"s": 3}]}],
         msg="$sort by subfield ascending then $slice keeps the two smallest documents.",
     ),
@@ -84,9 +79,7 @@ COMBINED_MODIFIER_TESTS: list[UpdateTestCase] = [
         setup_docs=[{"_id": 1, "arr": [{"s": 5}, {"s": 4}]}],
         query={"_id": 1},
         update={
-            "$push": {
-                "arr": {"$each": [{"s": 3}, {"s": 1}], "$sort": {"s": -1}, "$slice": -2}
-            }
+            "$push": {"arr": {"$each": [{"s": 3}, {"s": 1}], "$sort": {"s": -1}, "$slice": -2}}
         },
         expected=[{"_id": 1, "arr": [{"s": 3}, {"s": 1}]}],
         msg="$sort by subfield descending then negative $slice keeps the two smallest documents.",
@@ -106,17 +99,6 @@ COMBINED_MODIFIER_TESTS: list[UpdateTestCase] = [
         update={"$push": {"arr": {"$each": [3, 1, 2], "$sort": 1, "$slice": 0}}},
         expected=[{"_id": 1, "arr": []}],
         msg="$slice 0 empties the array after $each and $sort are applied.",
-        marks=(
-            pytest.mark.engine_xfail(
-                engine="pgmongo",
-                reason=(
-                    "$push with $slice 0 is a no-op on this engine (the array keeps its "
-                    "original contents), whereas native MongoDB empties the array. "
-                    "Tracked: ADO #5371311"
-                ),
-                raises=AssertionError,
-            ),
-        ),
     ),
 ]
 
