@@ -1,7 +1,7 @@
 """
 Error tests for $map 'as' parameter.
 
-Tests invalid 'as' types, invalid variable names, and reserved variable names.
+Tests that $map rejects non-string 'as' values (including empty string).
 """
 
 from datetime import datetime
