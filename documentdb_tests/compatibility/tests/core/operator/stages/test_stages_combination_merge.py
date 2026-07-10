@@ -9,7 +9,7 @@ key, $sort + $limit selects a top-k subset, $addFields enriches before a
 default whenMatched merge into an existing target, and $unwind + $group
 re-keys before writing.
 
-Oracle: MongoDB 7.0 (functional-tests CI baseline). The engine under test
+Oracle: MongoDB 8.2.4 (functional-tests CI baseline). The engine under test
 matches native behavior on every case; no engine divergences are tracked for
 this surface.
 """

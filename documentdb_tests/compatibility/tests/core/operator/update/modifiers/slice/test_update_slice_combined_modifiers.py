@@ -10,7 +10,7 @@ A $slice of 0 combined with these modifiers is a tracked engine divergence:
 native MongoDB empties the array, while the engine under test leaves the array
 unchanged.
 
-Oracle: MongoDB 7.0 (functional-tests CI baseline).
+Oracle: MongoDB 8.2.4 (functional-tests CI baseline).
 """
 
 import pytest

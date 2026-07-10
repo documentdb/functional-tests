@@ -6,7 +6,7 @@ distinct gateway code: the ``findAndModify`` command (with ``new`` pre/post
 image selection and ``upsert``) and a batched bulk write. The bitwise result
 and the response metadata must match the ``update`` command path.
 
-Oracle: MongoDB 7.0 (functional-tests CI baseline). The engine under test
+Oracle: MongoDB 8.2.4 (functional-tests CI baseline). The engine under test
 matches native behavior on every case; no engine divergences are tracked for
 this surface.
 """

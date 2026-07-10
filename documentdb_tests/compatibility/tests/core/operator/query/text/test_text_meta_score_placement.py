@@ -9,7 +9,7 @@ engine-specific score value), and requesting the score in a projection or a
 sort without any `$text` query in the filter is rejected with the documented
 metadata-not-available error.
 
-Oracle: MongoDB 7.0 (functional-tests CI baseline). The engine under test
+Oracle: MongoDB 8.2.4 (functional-tests CI baseline). The engine under test
 matches native behavior on every case; no engine divergences are tracked here.
 """
 

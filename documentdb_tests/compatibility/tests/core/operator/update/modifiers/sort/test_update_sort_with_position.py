@@ -7,7 +7,7 @@ the positional insert order irrelevant to the final result. Positional inserts
 without $sort establish the baseline insert semantics (head, middle, negative
 offset from the end, and an offset past the end).
 
-Oracle: MongoDB 7.0 (functional-tests CI baseline). The engine under test
+Oracle: MongoDB 8.2.4 (functional-tests CI baseline). The engine under test
 matches native behavior on every case in this file; no engine divergences are
 tracked here.
 """

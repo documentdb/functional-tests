@@ -9,7 +9,7 @@ equality, a `$ne`, an explicit `$and`, and a predicate that excludes every text
 match. In every case the result is the intersection of the text match and the
 scalar predicate.
 
-Oracle: MongoDB 7.0 (functional-tests CI baseline). The engine under test
+Oracle: MongoDB 8.2.4 (functional-tests CI baseline). The engine under test
 matches native behavior on every case; no engine divergences are tracked here.
 """
 

@@ -10,7 +10,7 @@ $bucketAuto before $out is a tracked engine divergence: native MongoDB writes
 the auto-bucketed output, while the engine under test rejects the pipeline
 because the $bucketAuto plan is treated as a mutable function inside $out.
 
-Oracle: MongoDB 7.0 (functional-tests CI baseline).
+Oracle: MongoDB 8.2.4 (functional-tests CI baseline).
 """
 
 from __future__ import annotations
