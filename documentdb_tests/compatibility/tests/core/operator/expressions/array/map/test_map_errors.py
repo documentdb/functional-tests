@@ -9,7 +9,7 @@ Note: $map propagates null — null input returns null (tested in core_behavior)
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -132,6 +132,13 @@ NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
         doc={"arr": Regex("x")},
         error_code=MAP_INPUT_NOT_ARRAY_ERROR,
         msg="$map should reject regex input",
+    ),
+    ExpressionTestCase(
+        "code_input",
+        expression={"$map": {"input": "$arr", "in": "$$this"}},
+        doc={"arr": Code("function(){}")},
+        error_code=MAP_INPUT_NOT_ARRAY_ERROR,
+        msg="$map should reject javascript code input",
     ),
     ExpressionTestCase(
         "maxkey_input",

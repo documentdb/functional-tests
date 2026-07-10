@@ -8,7 +8,7 @@ defaults without useLongestLength, and defaults length mismatch.
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -135,6 +135,13 @@ NOT_ARRAY_ELEMENT_TESTS: list[ExpressionTestCase] = [
         expression={"$zip": {"inputs": ["$arr0", "$arr1"]}},
         error_code=ZIP_REQUIRES_ARRAY_ELEMENT_ERROR,
         msg="$zip should reject regex input element",
+    ),
+    ExpressionTestCase(
+        "code_input",
+        doc={"arr0": Code("function(){}"), "arr1": [1]},
+        expression={"$zip": {"inputs": ["$arr0", "$arr1"]}},
+        error_code=ZIP_REQUIRES_ARRAY_ELEMENT_ERROR,
+        msg="$zip should reject javascript code input element",
     ),
     ExpressionTestCase(
         "maxkey_input",
