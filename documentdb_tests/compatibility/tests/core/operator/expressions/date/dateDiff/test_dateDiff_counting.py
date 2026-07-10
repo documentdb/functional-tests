@@ -1,4 +1,4 @@
-"""$dateDiff sign handling, unit boundary counting, quarter counting, and week counting."""
+"""$dateDiff boundary counting: unit boundaries crossed, quarters, and leap-year day counts."""
 
 from datetime import datetime, timezone
 
@@ -14,71 +14,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DATE_YEAR_1, INT64_ZERO
-
-# Property [Sign Handling]: the difference is positive when endDate follows startDate,
-# negative when it precedes, and zero when they are equal.
-DATEDIFF_SIGN_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "positive_diff",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2024, 1, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2024, 6, 1, tzinfo=timezone.utc),
-                "unit": "day",
-            }
-        },
-        expected=Int64(152),
-        msg="$dateDiff should return a positive difference when endDate follows startDate",
-    ),
-    ExpressionTestCase(
-        "negative_diff",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2024, 6, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2024, 1, 1, tzinfo=timezone.utc),
-                "unit": "day",
-            }
-        },
-        expected=Int64(-152),
-        msg="$dateDiff should return a negative difference when endDate precedes startDate",
-    ),
-    ExpressionTestCase(
-        "zero_diff",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2024, 1, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2024, 1, 1, tzinfo=timezone.utc),
-                "unit": "day",
-            }
-        },
-        expected=INT64_ZERO,
-        msg="$dateDiff should return zero when startDate equals endDate",
-    ),
-    ExpressionTestCase(
-        "negative_year",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2022, 1, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 1, 1, tzinfo=timezone.utc),
-                "unit": "year",
-            }
-        },
-        expected=Int64(-1),
-        msg="$dateDiff should return a negative year difference",
-    ),
-    ExpressionTestCase(
-        "negative_month",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 6, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 1, 1, tzinfo=timezone.utc),
-                "unit": "month",
-            }
-        },
-        expected=Int64(-5),
-        msg="$dateDiff should return a negative month difference",
-    ),
-]
 
 # Property [Boundary Counting]: the difference counts unit boundaries crossed, not elapsed
 # whole units, so sub-unit remainders do not change the count.
@@ -365,157 +300,90 @@ DATEDIFF_QUARTER_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Week Counting]: the difference counts week boundaries crossed relative to
-# startOfWeek, defaulting to Sunday.
-DATEDIFF_WEEK_TESTS: list[ExpressionTestCase] = [
+# Property [Leap Year]: day counting honors leap years, including the century leap rule.
+DATEDIFF_LEAP_YEAR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "jan_default_sun",
+        "leap_feb28_mar1",
         expression={
             "$dateDiff": {
-                "startDate": datetime(2021, 1, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 1, 31, tzinfo=timezone.utc),
-                "unit": "week",
-            }
-        },
-        expected=Int64(5),
-        msg="$dateDiff should count January weeks from the default Sunday start",
-    ),
-    ExpressionTestCase(
-        "jan_monday",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 1, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 1, 31, tzinfo=timezone.utc),
-                "unit": "week",
-                "startOfWeek": "monday",
-            }
-        },
-        expected=Int64(4),
-        msg="$dateDiff should count January weeks from a Monday start",
-    ),
-    ExpressionTestCase(
-        "jan_friday",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 1, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 1, 31, tzinfo=timezone.utc),
-                "unit": "week",
-                "startOfWeek": "fri",
-            }
-        },
-        expected=Int64(4),
-        msg="$dateDiff should count January weeks from a Friday start",
-    ),
-    ExpressionTestCase(
-        "feb_default_sun",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 2, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 2, 28, tzinfo=timezone.utc),
-                "unit": "week",
-            }
-        },
-        expected=Int64(4),
-        msg="$dateDiff should count February weeks from the default Sunday start",
-    ),
-    ExpressionTestCase(
-        "feb_monday",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 2, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 2, 28, tzinfo=timezone.utc),
-                "unit": "week",
-                "startOfWeek": "monday",
-            }
-        },
-        expected=Int64(3),
-        msg="$dateDiff should count February weeks from a Monday start",
-    ),
-    ExpressionTestCase(
-        "feb_friday",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 2, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 2, 28, tzinfo=timezone.utc),
-                "unit": "week",
-                "startOfWeek": "fri",
-            }
-        },
-        expected=Int64(4),
-        msg="$dateDiff should count February weeks from a Friday start",
-    ),
-    ExpressionTestCase(
-        "mar_default_sun",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 3, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 3, 31, tzinfo=timezone.utc),
-                "unit": "week",
-            }
-        },
-        expected=Int64(4),
-        msg="$dateDiff should count March weeks from the default Sunday start",
-    ),
-    ExpressionTestCase(
-        "mar_monday",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 3, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 3, 31, tzinfo=timezone.utc),
-                "unit": "week",
-                "startOfWeek": "monday",
-            }
-        },
-        expected=Int64(4),
-        msg="$dateDiff should count March weeks from a Monday start",
-    ),
-    ExpressionTestCase(
-        "mar_friday",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 3, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 3, 31, tzinfo=timezone.utc),
-                "unit": "week",
-                "startOfWeek": "fri",
-            }
-        },
-        expected=Int64(4),
-        msg="$dateDiff should count March weeks from a Friday start",
-    ),
-    ExpressionTestCase(
-        "cross_year_week",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2020, 12, 28, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 1, 4, tzinfo=timezone.utc),
-                "unit": "week",
-            }
-        },
-        expected=Int64(1),
-        msg="$dateDiff should count one week across the year boundary",
-    ),
-    ExpressionTestCase(
-        "cross_month_week",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 1, 25, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 2, 8, tzinfo=timezone.utc),
-                "unit": "week",
+                "startDate": datetime(2020, 2, 28, tzinfo=timezone.utc),
+                "endDate": datetime(2020, 3, 1, tzinfo=timezone.utc),
+                "unit": "day",
             }
         },
         expected=Int64(2),
-        msg="$dateDiff should count two weeks across the month boundary",
+        msg="$dateDiff should count two days across Feb 29 in a leap year",
+    ),
+    ExpressionTestCase(
+        "non_leap_feb28_mar1",
+        expression={
+            "$dateDiff": {
+                "startDate": datetime(2021, 2, 28, tzinfo=timezone.utc),
+                "endDate": datetime(2021, 3, 1, tzinfo=timezone.utc),
+                "unit": "day",
+            }
+        },
+        expected=Int64(1),
+        msg="$dateDiff should count one day from Feb 28 in a non-leap year",
+    ),
+    ExpressionTestCase(
+        "full_leap_year",
+        expression={
+            "$dateDiff": {
+                "startDate": datetime(2020, 1, 1, tzinfo=timezone.utc),
+                "endDate": datetime(2021, 1, 1, tzinfo=timezone.utc),
+                "unit": "day",
+            }
+        },
+        expected=Int64(366),
+        msg="$dateDiff should count 366 days across a full leap year",
+    ),
+    ExpressionTestCase(
+        "full_non_leap_year",
+        expression={
+            "$dateDiff": {
+                "startDate": datetime(2021, 1, 1, tzinfo=timezone.utc),
+                "endDate": datetime(2022, 1, 1, tzinfo=timezone.utc),
+                "unit": "day",
+            }
+        },
+        expected=Int64(365),
+        msg="$dateDiff should count 365 days across a full non-leap year",
+    ),
+    ExpressionTestCase(
+        "century_leap_2000",
+        expression={
+            "$dateDiff": {
+                "startDate": datetime(2000, 2, 28, tzinfo=timezone.utc),
+                "endDate": datetime(2000, 3, 1, tzinfo=timezone.utc),
+                "unit": "day",
+            }
+        },
+        expected=Int64(2),
+        msg="$dateDiff should treat 2000 as a leap century year",
+    ),
+    ExpressionTestCase(
+        "century_non_leap_1900",
+        expression={
+            "$dateDiff": {
+                "startDate": datetime(1900, 2, 28, tzinfo=timezone.utc),
+                "endDate": datetime(1900, 3, 1, tzinfo=timezone.utc),
+                "unit": "day",
+            }
+        },
+        expected=Int64(1),
+        msg="$dateDiff should treat 1900 as a non-leap century year",
     ),
 ]
 
-DATEDIFF_DATE_TESTS = (
-    DATEDIFF_SIGN_TESTS + DATEDIFF_BOUNDARY_TESTS + DATEDIFF_QUARTER_TESTS + DATEDIFF_WEEK_TESTS
+DATEDIFF_COUNTING_TESTS: list[ExpressionTestCase] = (
+    DATEDIFF_BOUNDARY_TESTS + DATEDIFF_QUARTER_TESTS + DATEDIFF_LEAP_YEAR_TESTS
 )
 
 
-@pytest.mark.parametrize("test_case", pytest_params(DATEDIFF_DATE_TESTS))
-def test_dateDiff_dates(collection, test_case: ExpressionTestCase):
-    """Test $dateDiff sign handling and unit boundary counting."""
+@pytest.mark.parametrize("test_case", pytest_params(DATEDIFF_COUNTING_TESTS))
+def test_dateDiff_counting(collection, test_case: ExpressionTestCase):
+    """Test $dateDiff counts unit boundaries crossed, including quarters and leap years."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
     assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg

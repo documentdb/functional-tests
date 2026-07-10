@@ -1,9 +1,9 @@
-"""$dateDiff timezone acceptance, DST behavior, startOfWeek values, and their type errors."""
+"""$dateDiff timezone handling: offsets, DST, startOfWeek values, and unit gating."""
 
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Int64
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils import (
     ExpressionTestCase,
@@ -11,12 +11,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils import
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
     execute_expression_with_insert,
-)
-from documentdb_tests.framework.error_codes import (
-    INVALID_STARTOFWEEK_ERROR,
-    INVALID_STARTOFWEEK_TYPE_ERROR,
-    INVALID_TIMEZONE_ERROR,
-    INVALID_TIMEZONE_TYPE_ERROR,
 )
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import INT64_ZERO
@@ -279,7 +273,7 @@ DATEDIFF_STARTOFWEEK_GATING_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-DATEDIFF_TIMEZONE_SUCCESS_TESTS = (
+DATEDIFF_TIMEZONE_TESTS: list[ExpressionTestCase] = (
     DATEDIFF_TIMEZONE_VALID_TESTS
     + DATEDIFF_TIMEZONE_BOUNDARY_TESTS
     + DATEDIFF_TIMEZONE_DST_TESTS
@@ -288,132 +282,10 @@ DATEDIFF_TIMEZONE_SUCCESS_TESTS = (
     + DATEDIFF_STARTOFWEEK_GATING_TESTS
 )
 
-# Property [Invalid Timezone]: an unrecognized or malformed timezone string is rejected.
-DATEDIFF_TIMEZONE_INVALID_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        f"tz_{tid}",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2024, 1, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2024, 6, 1, tzinfo=timezone.utc),
-                "unit": "day",
-                "timezone": tz,
-            }
-        },
-        error_code=INVALID_TIMEZONE_ERROR,
-        msg=f"$dateDiff should reject {desc}",
-    )
-    for tid, tz, desc in [
-        ("offset_3digit_hours", "+100:00", "a 3-digit hour offset"),
-        ("invalid_string", "NotATimezone", "an unrecognized Olson timezone"),
-        ("empty_string", "", "an empty string timezone"),
-        ("olson_wrong_case_lowercase", "america/new_york", "an all-lowercase Olson name"),
-        ("olson_wrong_case_uppercase", "AMERICA/NEW_YORK", "an all-uppercase Olson name"),
-    ]
-]
-
-# Property [Timezone Type]: a non-string timezone is rejected as an invalid type.
-DATEDIFF_TIMEZONE_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        f"tz_{tid}",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2021, 1, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2021, 1, 2, tzinfo=timezone.utc),
-                "unit": "day",
-                "timezone": val,
-            }
-        },
-        error_code=INVALID_TIMEZONE_TYPE_ERROR,
-        msg=f"$dateDiff should reject a {tid} timezone",
-    )
-    for tid, val in [
-        ("number", 5),
-        ("int64", Int64(5)),
-        ("double", 5.0),
-        ("decimal128", Decimal128("5")),
-        ("boolean", True),
-        ("array", ["UTC"]),
-        ("object", {"tz": "UTC"}),
-        ("datetime", datetime(2021, 1, 1, tzinfo=timezone.utc)),
-        ("objectid", ObjectId("600000000000000000000000")),
-        ("timestamp", Timestamp(1, 1)),
-        ("binary", Binary(b"\x01\x02\x03")),
-        ("regex", Regex("UTC")),
-        ("javascript", Code("function() {}")),
-        ("minkey", MinKey()),
-        ("maxkey", MaxKey()),
-    ]
-]
-
-# Property [Invalid StartOfWeek]: an unrecognized startOfWeek string is rejected.
-DATEDIFF_STARTOFWEEK_INVALID_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        f"sow_{tid}",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2024, 1, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2024, 1, 31, tzinfo=timezone.utc),
-                "unit": "week",
-                "startOfWeek": sow,
-            }
-        },
-        error_code=INVALID_STARTOFWEEK_ERROR,
-        msg=f"$dateDiff should reject {desc}",
-    )
-    for tid, sow, desc in [
-        ("invalid_string", "notaday", "an unrecognized startOfWeek string"),
-        ("empty_string", "", "an empty startOfWeek string"),
-    ]
-]
-
-# Property [StartOfWeek Type]: a non-string startOfWeek is rejected as an invalid type.
-DATEDIFF_STARTOFWEEK_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        f"sow_{tid}",
-        expression={
-            "$dateDiff": {
-                "startDate": datetime(2024, 1, 1, tzinfo=timezone.utc),
-                "endDate": datetime(2024, 1, 31, tzinfo=timezone.utc),
-                "unit": "week",
-                "startOfWeek": val,
-            }
-        },
-        error_code=INVALID_STARTOFWEEK_TYPE_ERROR,
-        msg=f"$dateDiff should reject a {tid} startOfWeek",
-    )
-    for tid, val in [
-        ("number", 1),
-        ("int64", Int64(1)),
-        ("double", 1.0),
-        ("decimal128", Decimal128("1")),
-        ("boolean", True),
-        ("array", ["monday"]),
-        ("object", {"day": "monday"}),
-        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
-        ("objectid", ObjectId("600000000000000000000000")),
-        ("timestamp", Timestamp(1, 1)),
-        ("binary", Binary(b"\x01\x02\x03")),
-        ("regex", Regex("monday")),
-        ("javascript", Code("function() {}")),
-        ("minkey", MinKey()),
-        ("maxkey", MaxKey()),
-    ]
-]
-
-DATEDIFF_TIMEZONE_ERROR_TESTS = (
-    DATEDIFF_TIMEZONE_INVALID_TESTS
-    + DATEDIFF_TIMEZONE_TYPE_ERROR_TESTS
-    + DATEDIFF_STARTOFWEEK_INVALID_TESTS
-    + DATEDIFF_STARTOFWEEK_TYPE_ERROR_TESTS
-)
-
-DATEDIFF_TIMEZONE_TESTS = DATEDIFF_TIMEZONE_SUCCESS_TESTS + DATEDIFF_TIMEZONE_ERROR_TESTS
-
 
 @pytest.mark.parametrize("test_case", pytest_params(DATEDIFF_TIMEZONE_TESTS))
 def test_dateDiff_timezone(collection, test_case: ExpressionTestCase):
-    """Test $dateDiff timezone and startOfWeek handling."""
+    """Test $dateDiff applies timezone and startOfWeek to the local wall clock."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
     assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg

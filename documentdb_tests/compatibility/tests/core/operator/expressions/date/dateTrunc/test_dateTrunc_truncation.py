@@ -1,4 +1,4 @@
-"""$dateTrunc truncation results by unit, binSize multiples, bin alignment, and week start."""
+"""$dateTrunc truncation semantics: unit periods, bin multiples, alignment, and idempotence."""
 
 from datetime import datetime, timezone
 
@@ -168,104 +168,96 @@ DATETRUNC_BIN_ALIGNMENT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Week Truncation]: the week unit truncates to the configured start of week, defaulting
-# to Sunday.
-DATETRUNC_WEEK_TESTS: list[ExpressionTestCase] = [
+# Property [Boundary Idempotence]: a date already at a unit boundary is returned unchanged.
+DATETRUNC_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "week_default_sun",
-        doc={"date": datetime(2021, 3, 20, 11, 30, 5, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "week"}},
-        expected=datetime(2021, 3, 14, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should default the week start to Sunday",
+        "year_at_boundary",
+        doc={"date": datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateTrunc": {"date": "$date", "unit": "year"}},
+        expected=datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+        msg="$dateTrunc should return the date unchanged at a year boundary",
     ),
     ExpressionTestCase(
-        "week_monday",
-        doc={"date": datetime(2021, 3, 20, 11, 30, 5, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "week", "startOfWeek": "monday"}},
-        expected=datetime(2021, 3, 15, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should truncate the week to Monday",
+        "month_at_boundary",
+        doc={"date": datetime(2021, 6, 1, 0, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateTrunc": {"date": "$date", "unit": "month"}},
+        expected=datetime(2021, 6, 1, 0, 0, 0, tzinfo=timezone.utc),
+        msg="$dateTrunc should return the date unchanged at a month boundary",
     ),
     ExpressionTestCase(
-        "week_friday",
-        doc={"date": datetime(2021, 3, 20, 11, 30, 5, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "week", "startOfWeek": "friday"}},
-        expected=datetime(2021, 3, 19, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should truncate the week to Friday",
-    ),
-    ExpressionTestCase(
-        "week_sunday",
-        doc={"date": datetime(2021, 6, 16, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "week", "startOfWeek": "sunday"}},
-        expected=datetime(2021, 6, 13, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should truncate the week to Sunday",
-    ),
-    ExpressionTestCase(
-        "week_tuesday",
-        doc={"date": datetime(2021, 6, 16, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "week", "startOfWeek": "tuesday"}},
+        "day_at_boundary",
+        doc={"date": datetime(2021, 6, 15, 0, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateTrunc": {"date": "$date", "unit": "day"}},
         expected=datetime(2021, 6, 15, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should truncate the week to Tuesday",
+        msg="$dateTrunc should return the date unchanged at a day boundary",
     ),
     ExpressionTestCase(
-        "week_wednesday",
-        doc={"date": datetime(2021, 6, 16, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "week", "startOfWeek": "wednesday"}},
-        expected=datetime(2021, 6, 16, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should truncate the week to Wednesday",
+        "hour_at_boundary",
+        doc={"date": datetime(2021, 6, 15, 10, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateTrunc": {"date": "$date", "unit": "hour"}},
+        expected=datetime(2021, 6, 15, 10, 0, 0, tzinfo=timezone.utc),
+        msg="$dateTrunc should return the date unchanged at an hour boundary",
     ),
     ExpressionTestCase(
-        "week_thursday",
-        doc={"date": datetime(2021, 6, 16, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "week", "startOfWeek": "thursday"}},
-        expected=datetime(2021, 6, 10, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should truncate the week to Thursday",
+        "minute_at_boundary",
+        doc={"date": datetime(2021, 6, 15, 10, 30, 0, tzinfo=timezone.utc)},
+        expression={"$dateTrunc": {"date": "$date", "unit": "minute"}},
+        expected=datetime(2021, 6, 15, 10, 30, 0, tzinfo=timezone.utc),
+        msg="$dateTrunc should return the date unchanged at a minute boundary",
     ),
     ExpressionTestCase(
-        "week_saturday",
-        doc={"date": datetime(2021, 6, 16, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "week", "startOfWeek": "saturday"}},
-        expected=datetime(2021, 6, 12, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should truncate the week to Saturday",
-    ),
-    ExpressionTestCase(
-        "week_mon_abbrev",
-        doc={"date": datetime(2021, 6, 16, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "week", "startOfWeek": "mon"}},
-        expected=datetime(2021, 6, 14, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should accept the mon abbreviation for startOfWeek",
-    ),
-    ExpressionTestCase(
-        "week_monday_mixed_case",
-        doc={"date": datetime(2021, 6, 16, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "week", "startOfWeek": "Monday"}},
-        expected=datetime(2021, 6, 14, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should accept a mixed-case Monday for startOfWeek",
+        "second_at_boundary",
+        doc={"date": datetime(2021, 6, 15, 10, 30, 45, tzinfo=timezone.utc)},
+        expression={"$dateTrunc": {"date": "$date", "unit": "second"}},
+        expected=datetime(2021, 6, 15, 10, 30, 45, tzinfo=timezone.utc),
+        msg="$dateTrunc should return the date unchanged at a second boundary",
     ),
 ]
 
-# Property [StartOfWeek Ignored]: startOfWeek has no effect for a non-week unit.
-DATETRUNC_SOW_IGNORED_TESTS: list[ExpressionTestCase] = [
+# Property [End Of Period]: a date at the end of a period truncates to that period's start.
+DATETRUNC_END_OF_PERIOD_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "sow_ignored_month",
-        doc={"date": datetime(2021, 3, 20, 11, 30, 5, tzinfo=timezone.utc)},
-        expression={"$dateTrunc": {"date": "$date", "unit": "month", "startOfWeek": "friday"}},
-        expected=datetime(2021, 3, 1, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateTrunc should ignore startOfWeek for the month unit",
+        "year_end",
+        doc={"date": datetime(2021, 12, 31, 23, 59, 59, 999000, tzinfo=timezone.utc)},
+        expression={"$dateTrunc": {"date": "$date", "unit": "year"}},
+        expected=datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+        msg="$dateTrunc should truncate the last millisecond of a year to the year start",
+    ),
+    ExpressionTestCase(
+        "quarter_end_q1",
+        doc={"date": datetime(2021, 3, 31, 23, 59, 59, tzinfo=timezone.utc)},
+        expression={"$dateTrunc": {"date": "$date", "unit": "quarter"}},
+        expected=datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+        msg="$dateTrunc should truncate the end of Q1 to the Q1 start",
+    ),
+    ExpressionTestCase(
+        "quarter_start_q2",
+        doc={"date": datetime(2021, 4, 1, 0, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateTrunc": {"date": "$date", "unit": "quarter"}},
+        expected=datetime(2021, 4, 1, 0, 0, 0, tzinfo=timezone.utc),
+        msg="$dateTrunc should return the Q2 start at the exact boundary",
+    ),
+    ExpressionTestCase(
+        "day_end",
+        doc={"date": datetime(2021, 6, 15, 23, 59, 59, 999000, tzinfo=timezone.utc)},
+        expression={"$dateTrunc": {"date": "$date", "unit": "day"}},
+        expected=datetime(2021, 6, 15, 0, 0, 0, tzinfo=timezone.utc),
+        msg="$dateTrunc should truncate the last millisecond of a day to the day start",
     ),
 ]
 
-DATETRUNC_DATE_TESTS: list[ExpressionTestCase] = (
+DATETRUNC_TRUNCATION_TESTS: list[ExpressionTestCase] = (
     DATETRUNC_UNIT_TESTS
     + DATETRUNC_BINSIZE_TESTS
     + DATETRUNC_BIN_ALIGNMENT_TESTS
-    + DATETRUNC_WEEK_TESTS
-    + DATETRUNC_SOW_IGNORED_TESTS
+    + DATETRUNC_BOUNDARY_TESTS
+    + DATETRUNC_END_OF_PERIOD_TESTS
 )
 
 
-@pytest.mark.parametrize("test_case", pytest_params(DATETRUNC_DATE_TESTS))
-def test_dateTrunc_dates(collection, test_case: ExpressionTestCase):
-    """Test $dateTrunc truncation results."""
+@pytest.mark.parametrize("test_case", pytest_params(DATETRUNC_TRUNCATION_TESTS))
+def test_dateTrunc_truncation(collection, test_case: ExpressionTestCase):
+    """Test $dateTrunc returns the start of the period, honoring binSize and alignment."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
     assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg

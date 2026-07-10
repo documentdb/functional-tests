@@ -1,4 +1,4 @@
-"""$dateTrunc literal and field-reference inputs, array-path rejection, and return type."""
+"""$dateTrunc operand evaluation: literal arguments and field-reference resolution."""
 
 from datetime import datetime, timezone
 
@@ -15,7 +15,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.error_codes import INVALID_DATE_VALUE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Literal Input]: $dateTrunc evaluates inline literal arguments.
@@ -98,73 +97,14 @@ DATETRUNC_MISSING_REF_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Array Path Rejection]: a field path resolving to an array is rejected as an invalid
-# date value.
-DATETRUNC_ARRAY_PATH_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "composite_array_path",
-        doc={
-            "a": [
-                {"b": datetime(2021, 6, 15, tzinfo=timezone.utc)},
-                {"b": datetime(2021, 7, 1, tzinfo=timezone.utc)},
-            ]
-        },
-        expression={"$dateTrunc": {"date": "$a.b", "unit": "day"}},
-        error_code=INVALID_DATE_VALUE_ERROR,
-        msg="$dateTrunc should reject a composite array field path",
-    ),
-    ExpressionTestCase(
-        "single_element_array_path",
-        doc={"a": [{"b": datetime(2021, 6, 15, 12, 30, 0, tzinfo=timezone.utc)}]},
-        expression={"$dateTrunc": {"date": "$a.b", "unit": "day"}},
-        error_code=INVALID_DATE_VALUE_ERROR,
-        msg="$dateTrunc should reject a single-element array field path",
-    ),
-]
-
-# Property [Return Type]: $dateTrunc returns the date type regardless of the input date type.
-DATETRUNC_RETURN_TYPE_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "return_type_date",
-        expression={
-            "$type": {
-                "$dateTrunc": {
-                    "date": datetime(2021, 3, 20, 11, 30, 5, tzinfo=timezone.utc),
-                    "unit": "day",
-                }
-            }
-        },
-        expected="date",
-        msg="$dateTrunc should return the date type for a Date input",
-    ),
-    ExpressionTestCase(
-        "return_type_from_timestamp",
-        doc={"ts": ts_from_args(2021, 3, 20, 11, 30, 5)},
-        expression={"$type": {"$dateTrunc": {"date": "$ts", "unit": "day"}}},
-        expected="date",
-        msg="$dateTrunc should return the date type for a Timestamp input",
-    ),
-    ExpressionTestCase(
-        "return_type_from_objectid",
-        doc={"oid": oid_from_args(2021, 3, 20, 11, 30, 5)},
-        expression={"$type": {"$dateTrunc": {"date": "$oid", "unit": "day"}}},
-        expected="date",
-        msg="$dateTrunc should return the date type for an ObjectId input",
-    ),
-]
-
 DATETRUNC_EXPRESSION_TESTS: list[ExpressionTestCase] = (
-    DATETRUNC_LITERAL_TESTS
-    + DATETRUNC_FIELD_REF_TESTS
-    + DATETRUNC_MISSING_REF_TESTS
-    + DATETRUNC_ARRAY_PATH_TESTS
-    + DATETRUNC_RETURN_TYPE_TESTS
+    DATETRUNC_LITERAL_TESTS + DATETRUNC_FIELD_REF_TESTS + DATETRUNC_MISSING_REF_TESTS
 )
 
 
 @pytest.mark.parametrize("test_case", pytest_params(DATETRUNC_EXPRESSION_TESTS))
 def test_dateTrunc_expressions(collection, test_case: ExpressionTestCase):
-    """Test $dateTrunc literal and field-reference handling."""
+    """Test $dateTrunc evaluates literal and field-reference operands."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
     assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg

@@ -1,4 +1,4 @@
-"""$dateSubtract basic operations, amount types, and boundaries."""
+"""$dateSubtract core arithmetic: unit application, sign, amount types, and unit equivalence."""
 
 from datetime import datetime, timezone
 
@@ -12,13 +12,9 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.error_codes import DATEADD_INVALID_AMOUNT_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_NEGATIVE_ZERO,
-    DECIMAL128_ONE_AND_HALF,
-    DOUBLE_MIN_SUBNORMAL,
-    DOUBLE_NEAR_MIN,
     DOUBLE_NEGATIVE_ZERO,
     INT32_MAX,
     INT32_MIN,
@@ -236,88 +232,58 @@ DATESUBTRACT_AMOUNT_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Amount Non-Integral]: a non-integral numeric amount is rejected.
-DATESUBTRACT_AMOUNT_ERROR_TESTS: list[ExpressionTestCase] = [
+# Property [Unit Equivalence]: a smaller unit times its multiple equals the larger unit.
+DATESUBTRACT_UNIT_EQUIVALENCE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "amount_non_integral_double_1_5",
-        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dateSubtract": {"startDate": "$date", "unit": "day", "amount": 1.5}},
-        error_code=DATEADD_INVALID_AMOUNT_ERROR,
-        msg="$dateSubtract should reject a non-integral double amount",
+        "millisecond_1000_equals_second_1",
+        doc={"date": datetime(2000, 1, 1, 12, 0, 1, tzinfo=timezone.utc)},
+        expression={"$dateSubtract": {"startDate": "$date", "unit": "millisecond", "amount": 1000}},
+        expected=datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+        msg="$dateSubtract of 1000 milliseconds should equal subtracting 1 second",
     ),
     ExpressionTestCase(
-        "amount_non_integral_double_5_9",
-        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dateSubtract": {"startDate": "$date", "unit": "day", "amount": 5.9}},
-        error_code=DATEADD_INVALID_AMOUNT_ERROR,
-        msg="$dateSubtract should reject a non-integral double amount close to an integer",
+        "millisecond_precision_1ms",
+        doc={"date": datetime(2000, 1, 1, 12, 0, 0, 1000, tzinfo=timezone.utc)},
+        expression={"$dateSubtract": {"startDate": "$date", "unit": "millisecond", "amount": 1}},
+        expected=datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+        msg="$dateSubtract should decrement by exactly 1 millisecond",
     ),
     ExpressionTestCase(
-        "amount_non_integral_double_negative",
-        doc={"date": datetime(2000, 1, 10, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dateSubtract": {"startDate": "$date", "unit": "day", "amount": -5.9}},
-        error_code=DATEADD_INVALID_AMOUNT_ERROR,
-        msg="$dateSubtract should reject a non-integral negative double amount",
+        "day_7_equals_week",
+        doc={"date": datetime(2000, 6, 8, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateSubtract": {"startDate": "$date", "unit": "day", "amount": 7}},
+        expected=datetime(2000, 6, 1, 12, 0, 0, tzinfo=timezone.utc),
+        msg="$dateSubtract of 7 days should equal subtracting 1 week",
     ),
     ExpressionTestCase(
-        "amount_non_integral_decimal128",
-        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={
-            "$dateSubtract": {
-                "startDate": "$date",
-                "unit": "day",
-                "amount": DECIMAL128_ONE_AND_HALF,
-            }
-        },
-        error_code=DATEADD_INVALID_AMOUNT_ERROR,
-        msg="$dateSubtract should reject a non-integral decimal128 amount",
+        "month_12_equals_year",
+        doc={"date": datetime(2001, 6, 15, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateSubtract": {"startDate": "$date", "unit": "month", "amount": 12}},
+        expected=datetime(2000, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
+        msg="$dateSubtract of 12 months should equal subtracting 1 year",
     ),
     ExpressionTestCase(
-        "amount_decimal128_non_integral_34th_digit",
-        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={
-            "$dateSubtract": {
-                "startDate": "$date",
-                "unit": "day",
-                "amount": Decimal128("3.000000000000000000000000000000001"),
-            }
-        },
-        error_code=DATEADD_INVALID_AMOUNT_ERROR,
-        msg="$dateSubtract should reject a decimal128 amount non-integral at the 34th digit",
-    ),
-    ExpressionTestCase(
-        "amount_double_near_min",
-        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={
-            "$dateSubtract": {"startDate": "$date", "unit": "day", "amount": DOUBLE_NEAR_MIN}
-        },
-        error_code=DATEADD_INVALID_AMOUNT_ERROR,
-        msg="$dateSubtract should reject a near-minimum double amount as non-integral",
-    ),
-    ExpressionTestCase(
-        "amount_double_min_subnormal",
-        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={
-            "$dateSubtract": {"startDate": "$date", "unit": "day", "amount": DOUBLE_MIN_SUBNORMAL}
-        },
-        error_code=DATEADD_INVALID_AMOUNT_ERROR,
-        msg="$dateSubtract should reject a minimum subnormal double amount as non-integral",
+        "month_3_equals_quarter",
+        doc={"date": datetime(2000, 9, 15, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateSubtract": {"startDate": "$date", "unit": "month", "amount": 3}},
+        expected=datetime(2000, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
+        msg="$dateSubtract of 3 months should equal subtracting 1 quarter",
     ),
 ]
 
-DATESUBTRACT_BASIC_TESTS: list[ExpressionTestCase] = (
+DATESUBTRACT_ARITHMETIC_TESTS: list[ExpressionTestCase] = (
     DATESUBTRACT_UNIT_TESTS
     + DATESUBTRACT_NEGATIVE_TESTS
     + DATESUBTRACT_ZERO_TESTS
     + DATESUBTRACT_AMOUNT_TYPE_TESTS
     + DATESUBTRACT_AMOUNT_BOUNDARY_TESTS
-    + DATESUBTRACT_AMOUNT_ERROR_TESTS
+    + DATESUBTRACT_UNIT_EQUIVALENCE_TESTS
 )
 
 
-@pytest.mark.parametrize("test_case", pytest_params(DATESUBTRACT_BASIC_TESTS))
-def test_dateSubtract_basic(collection, test_case: ExpressionTestCase):
-    """Test $dateSubtract basic operations."""
+@pytest.mark.parametrize("test_case", pytest_params(DATESUBTRACT_ARITHMETIC_TESTS))
+def test_dateSubtract_arithmetic(collection, test_case: ExpressionTestCase):
+    """Test $dateSubtract arithmetic across units, amount signs, and amount types."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
     assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg

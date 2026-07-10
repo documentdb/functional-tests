@@ -1,4 +1,4 @@
-"""$dateSubtract type validation: null/missing, invalid types, unit strings, argument shape."""
+"""$dateAdd rejection cases: invalid operand types/values, bad timezone, overflow, and shape."""
 
 from datetime import datetime, timezone
 
@@ -14,143 +14,99 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.error_codes import (
     DATEADD_INVALID_AMOUNT_ERROR,
+    DATEADD_INVALID_LARGE_VALUE_ERROR,
     DATEADD_INVALID_STARTDATE_ERROR,
     DATEADD_MISSING_FIELD_ERROR,
     DATEADD_UNKNOWN_FIELD_ERROR,
     FAILED_TO_PARSE_ERROR,
     INVALID_DATE_UNIT_ERROR,
+    INVALID_TIMEZONE_ERROR,
+    INVALID_TIMEZONE_TYPE_ERROR,
 )
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_ONE_AND_HALF,
+    DOUBLE_MIN_SUBNORMAL,
+    DOUBLE_NEAR_MIN,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
-    MISSING,
 )
 
-# Property [Null Handling]: a null literal for startDate, amount, or unit returns null.
-DATESUBTRACT_NULL_TESTS: list[ExpressionTestCase] = [
+# Property [Amount Non-Integral]: a non-integral numeric amount is rejected.
+DATEADD_AMOUNT_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "null_startDate",
-        doc={"date": None},
-        expression={"$dateSubtract": {"startDate": "$date", "unit": "day", "amount": 1}},
-        expected=None,
-        msg="$dateSubtract should return null for a null startDate",
+        "amount_non_integral_double_1_5",
+        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateAdd": {"startDate": "$date", "unit": "day", "amount": 1.5}},
+        error_code=DATEADD_INVALID_AMOUNT_ERROR,
+        msg="$dateAdd should reject a non-integral double amount",
     ),
     ExpressionTestCase(
-        "null_amount",
+        "amount_non_integral_double_5_9",
+        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateAdd": {"startDate": "$date", "unit": "day", "amount": 5.9}},
+        error_code=DATEADD_INVALID_AMOUNT_ERROR,
+        msg="$dateAdd should reject a non-integral double amount close to an integer",
+    ),
+    ExpressionTestCase(
+        "amount_non_integral_double_negative",
+        doc={"date": datetime(2000, 1, 10, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateAdd": {"startDate": "$date", "unit": "day", "amount": -5.9}},
+        error_code=DATEADD_INVALID_AMOUNT_ERROR,
+        msg="$dateAdd should reject a non-integral negative double amount",
+    ),
+    ExpressionTestCase(
+        "amount_non_integral_decimal128",
+        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
         expression={
-            "$dateSubtract": {
-                "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+            "$dateAdd": {"startDate": "$date", "unit": "day", "amount": DECIMAL128_ONE_AND_HALF}
+        },
+        error_code=DATEADD_INVALID_AMOUNT_ERROR,
+        msg="$dateAdd should reject a non-integral decimal128 amount",
+    ),
+    ExpressionTestCase(
+        "amount_decimal128_non_integral_34th_digit",
+        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={
+            "$dateAdd": {
+                "startDate": "$date",
                 "unit": "day",
-                "amount": None,
+                "amount": Decimal128("3.000000000000000000000000000000001"),
             }
         },
-        expected=None,
-        msg="$dateSubtract should return null for a null amount",
+        error_code=DATEADD_INVALID_AMOUNT_ERROR,
+        msg="$dateAdd should reject a decimal128 amount that is non-integral at the 34th digit",
     ),
     ExpressionTestCase(
-        "null_unit",
+        "amount_double_near_min",
+        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$dateAdd": {"startDate": "$date", "unit": "day", "amount": DOUBLE_NEAR_MIN}},
+        error_code=DATEADD_INVALID_AMOUNT_ERROR,
+        msg="$dateAdd should reject a near-minimum double amount as non-integral",
+    ),
+    ExpressionTestCase(
+        "amount_double_min_subnormal",
+        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
         expression={
-            "$dateSubtract": {
-                "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
-                "unit": None,
-                "amount": 1,
-            }
+            "$dateAdd": {"startDate": "$date", "unit": "day", "amount": DOUBLE_MIN_SUBNORMAL}
         },
-        expected=None,
-        msg="$dateSubtract should return null for a null unit",
-    ),
-    ExpressionTestCase(
-        "null_startDate_zero_amount",
-        doc={"date": None},
-        expression={"$dateSubtract": {"startDate": "$date", "unit": "day", "amount": 0}},
-        expected=None,
-        msg="$dateSubtract should return null for a null startDate even with a zero amount",
-    ),
-    ExpressionTestCase(
-        "all_null",
-        expression={"$dateSubtract": {"startDate": None, "unit": None, "amount": None}},
-        expected=None,
-        msg="$dateSubtract should return null when all inputs are null",
+        error_code=DATEADD_INVALID_AMOUNT_ERROR,
+        msg="$dateAdd should reject a minimum subnormal double amount as non-integral",
     ),
 ]
-
-# Property [Missing Field Reference]: a missing startDate, amount, unit, or timezone field
-# reference returns null.
-DATESUBTRACT_MISSING_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "missing_startDate",
-        expression={"$dateSubtract": {"startDate": MISSING, "unit": "day", "amount": 1}},
-        expected=None,
-        msg="$dateSubtract should return null for a missing startDate field reference",
-    ),
-    ExpressionTestCase(
-        "missing_amount",
-        expression={
-            "$dateSubtract": {
-                "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
-                "unit": "day",
-                "amount": MISSING,
-            }
-        },
-        expected=None,
-        msg="$dateSubtract should return null for a missing amount field reference",
-    ),
-    ExpressionTestCase(
-        "missing_unit",
-        expression={
-            "$dateSubtract": {
-                "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
-                "unit": MISSING,
-                "amount": 1,
-            }
-        },
-        expected=None,
-        msg="$dateSubtract should return null for a missing unit field reference",
-    ),
-    ExpressionTestCase(
-        "missing_startDate_zero_amount",
-        expression={"$dateSubtract": {"startDate": MISSING, "unit": "day", "amount": 0}},
-        expected=None,
-        msg="$dateSubtract should return null for a missing startDate reference and zero amount",
-    ),
-    ExpressionTestCase(
-        "missing_timezone",
-        expression={
-            "$dateSubtract": {
-                "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
-                "unit": "day",
-                "amount": 1,
-                "timezone": MISSING,
-            }
-        },
-        expected=None,
-        msg="$dateSubtract should return null for a missing timezone field reference",
-    ),
-    ExpressionTestCase(
-        "missing_startDate_with_tz",
-        expression={
-            "$dateSubtract": {"startDate": MISSING, "unit": "day", "amount": 1, "timezone": "UTC"}
-        },
-        expected=None,
-        msg="$dateSubtract should return null for a missing startDate even with a timezone",
-    ),
-]
-
-DATESUBTRACT_TYPE_SUCCESS_TESTS = DATESUBTRACT_NULL_TESTS + DATESUBTRACT_MISSING_TESTS
 
 # Property [StartDate Type]: a non-date, non-Timestamp, non-ObjectId startDate is rejected.
-DATESUBTRACT_STARTDATE_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
+DATEADD_STARTDATE_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         f"startDate_{tid}",
         doc={"date": val},
-        expression={"$dateSubtract": {"startDate": "$date", "unit": "day", "amount": 1}},
+        expression={"$dateAdd": {"startDate": "$date", "unit": "day", "amount": 1}},
         error_code=DATEADD_INVALID_STARTDATE_ERROR,
-        msg=f"$dateSubtract should reject a {tid} startDate",
+        msg=f"$dateAdd should reject a {tid} startDate",
     )
     for tid, val in [
         ("string", "2000-01-01"),
@@ -172,18 +128,18 @@ DATESUBTRACT_STARTDATE_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Amount Type]: a non-numeric amount is rejected.
-DATESUBTRACT_AMOUNT_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
+DATEADD_AMOUNT_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         f"amount_{tid}",
         expression={
-            "$dateSubtract": {
+            "$dateAdd": {
                 "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
                 "unit": "day",
                 "amount": val,
             }
         },
         error_code=DATEADD_INVALID_AMOUNT_ERROR,
-        msg=f"$dateSubtract should reject a {tid} amount",
+        msg=f"$dateAdd should reject a {tid} amount",
     )
     for tid, val in [
         ("string", "5"),
@@ -202,18 +158,18 @@ DATESUBTRACT_AMOUNT_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Amount Non-Finite]: a NaN or infinite numeric amount is rejected.
-DATESUBTRACT_AMOUNT_NONFINITE_ERROR_TESTS: list[ExpressionTestCase] = [
+DATEADD_AMOUNT_NONFINITE_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         f"amount_{tid}",
         expression={
-            "$dateSubtract": {
+            "$dateAdd": {
                 "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
                 "unit": "day",
                 "amount": val,
             }
         },
         error_code=DATEADD_INVALID_AMOUNT_ERROR,
-        msg=f"$dateSubtract should reject a {tid} amount",
+        msg=f"$dateAdd should reject a {tid} amount",
     )
     for tid, val in [
         ("nan", FLOAT_NAN),
@@ -226,18 +182,18 @@ DATESUBTRACT_AMOUNT_NONFINITE_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Unit Type]: a non-string unit is rejected as an invalid date unit.
-DATESUBTRACT_UNIT_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
+DATEADD_UNIT_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         f"unit_{tid}",
         expression={
-            "$dateSubtract": {
+            "$dateAdd": {
                 "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
                 "unit": val,
                 "amount": 5,
             }
         },
         error_code=INVALID_DATE_UNIT_ERROR,
-        msg=f"$dateSubtract should reject a {tid} unit",
+        msg=f"$dateAdd should reject a {tid} unit",
     )
     for tid, val in [
         ("number", 1),
@@ -260,18 +216,18 @@ DATESUBTRACT_UNIT_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
 
 # Property [Unit String]: an unrecognized unit string, including wrong case and plurals, is
 # rejected at parse time.
-DATESUBTRACT_UNIT_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
+DATEADD_UNIT_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         f"unit_{tid}",
         expression={
-            "$dateSubtract": {
+            "$dateAdd": {
                 "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
                 "unit": val,
                 "amount": 5,
             }
         },
         error_code=FAILED_TO_PARSE_ERROR,
-        msg=f"$dateSubtract should reject the {desc}",
+        msg=f"$dateAdd should reject the {desc}",
     )
     for tid, val, desc in [
         ("invalid_string", "invalid", "unrecognized unit string"),
@@ -307,54 +263,124 @@ DATESUBTRACT_UNIT_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
     ]
 ]
 
-DATESUBTRACT_TYPE_ERROR_TESTS = (
-    DATESUBTRACT_STARTDATE_TYPE_ERROR_TESTS
-    + DATESUBTRACT_AMOUNT_TYPE_ERROR_TESTS
-    + DATESUBTRACT_AMOUNT_NONFINITE_ERROR_TESTS
-    + DATESUBTRACT_UNIT_TYPE_ERROR_TESTS
-    + DATESUBTRACT_UNIT_STRING_ERROR_TESTS
-)
+# Property [Invalid Timezone]: an unrecognized or malformed timezone string is rejected.
+DATEADD_TIMEZONE_INVALID_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        f"timezone_{tid}",
+        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={
+            "$dateAdd": {"startDate": "$date", "unit": "hour", "amount": 5, "timezone": tz}
+        },
+        error_code=INVALID_TIMEZONE_ERROR,
+        msg=f"$dateAdd should reject {desc}",
+    )
+    for tid, tz, desc in [
+        ("offset_3digit_hours_invalid", "+100:00", "a 3-digit hour offset"),
+        ("invalid", "Invalid/Timezone", "an unrecognized Olson timezone"),
+        ("empty_string", "", "an empty string timezone"),
+        ("olson_wrong_case_lowercase", "america/new_york", "an all-lowercase Olson name"),
+        ("olson_wrong_case_uppercase", "AMERICA/NEW_YORK", "an all-uppercase Olson name"),
+        ("olson_wrong_case_mixed", "america/New_York", "a mixed-case Olson name"),
+    ]
+]
+
+# Property [Timezone Type]: a non-string timezone is rejected as an invalid type.
+DATEADD_TIMEZONE_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        f"timezone_{tid}",
+        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={
+            "$dateAdd": {"startDate": "$date", "unit": "hour", "amount": 5, "timezone": tz}
+        },
+        error_code=INVALID_TIMEZONE_TYPE_ERROR,
+        msg=f"$dateAdd should reject a {tid} timezone",
+    )
+    for tid, tz in [
+        ("number", 5),
+        ("boolean", True),
+        ("array", ["UTC"]),
+        ("object", {"tz": "UTC"}),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
+]
+
+# Property [Overflow]: an amount that pushes the result beyond the representable date range
+# is rejected.
+DATEADD_OVERFLOW_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "large_negative_month_overflow",
+        doc={"date": datetime(2020, 12, 31, 12, 10, 5, tzinfo=timezone.utc)},
+        expression={"$dateAdd": {"startDate": "$date", "unit": "month", "amount": -30_000_000_000}},
+        error_code=DATEADD_INVALID_LARGE_VALUE_ERROR,
+        msg="$dateAdd should reject a month amount that overflows the representable date range",
+    ),
+]
+
+# Property [Array-Resolving Path]: a startDate field path that resolves to an array is rejected
+# by the operator's startDate type contract.
+DATEADD_ARRAY_PATH_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "composite_array_path",
+        doc={
+            "a": [
+                {"b": datetime(2021, 6, 15, tzinfo=timezone.utc)},
+                {"b": datetime(2021, 7, 1, tzinfo=timezone.utc)},
+            ]
+        },
+        expression={"$dateAdd": {"startDate": "$a.b", "unit": "day", "amount": 1}},
+        error_code=DATEADD_INVALID_STARTDATE_ERROR,
+        msg="$dateAdd should reject a composite array field path as startDate",
+    ),
+    ExpressionTestCase(
+        "single_element_array_path",
+        doc={"a": [{"b": datetime(2021, 6, 15, tzinfo=timezone.utc)}]},
+        expression={"$dateAdd": {"startDate": "$a.b", "unit": "day", "amount": 1}},
+        error_code=DATEADD_INVALID_STARTDATE_ERROR,
+        msg="$dateAdd should reject a single-element array field path as startDate",
+    ),
+]
 
 # Property [Argument Shape]: a missing required field or an unknown field is rejected.
-DATESUBTRACT_ARGUMENT_TESTS: list[ExpressionTestCase] = [
+DATEADD_ARGUMENT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "arg_missing_startDate",
-        expression={"$dateSubtract": {"unit": "day", "amount": 1}},
+        expression={"$dateAdd": {"unit": "day", "amount": 1}},
         error_code=DATEADD_MISSING_FIELD_ERROR,
-        msg="$dateSubtract should error when startDate is missing",
+        msg="$dateAdd should error when startDate is missing",
     ),
     ExpressionTestCase(
         "arg_missing_unit",
         expression={
-            "$dateSubtract": {
+            "$dateAdd": {
                 "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
                 "amount": 1,
             }
         },
         error_code=DATEADD_MISSING_FIELD_ERROR,
-        msg="$dateSubtract should error when unit is missing",
+        msg="$dateAdd should error when unit is missing",
     ),
     ExpressionTestCase(
         "arg_missing_amount",
         expression={
-            "$dateSubtract": {
+            "$dateAdd": {
                 "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
                 "unit": "day",
             }
         },
         error_code=DATEADD_MISSING_FIELD_ERROR,
-        msg="$dateSubtract should error when amount is missing",
+        msg="$dateAdd should error when amount is missing",
     ),
     ExpressionTestCase(
         "arg_empty_object",
-        expression={"$dateSubtract": {}},
+        expression={"$dateAdd": {}},
         error_code=DATEADD_MISSING_FIELD_ERROR,
-        msg="$dateSubtract should error for an empty argument object",
+        msg="$dateAdd should error for an empty argument object",
     ),
     ExpressionTestCase(
         "arg_unknown_field",
         expression={
-            "$dateSubtract": {
+            "$dateAdd": {
                 "startDate": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
                 "unit": "day",
                 "amount": 1,
@@ -362,18 +388,28 @@ DATESUBTRACT_ARGUMENT_TESTS: list[ExpressionTestCase] = [
             }
         },
         error_code=DATEADD_UNKNOWN_FIELD_ERROR,
-        msg="$dateSubtract should error for an unknown field",
+        msg="$dateAdd should error for an unknown field",
     ),
 ]
 
-DATESUBTRACT_TYPE_TESTS: list[ExpressionTestCase] = (
-    DATESUBTRACT_TYPE_SUCCESS_TESTS + DATESUBTRACT_TYPE_ERROR_TESTS + DATESUBTRACT_ARGUMENT_TESTS
+DATEADD_ERROR_TESTS: list[ExpressionTestCase] = (
+    DATEADD_AMOUNT_ERROR_TESTS
+    + DATEADD_STARTDATE_TYPE_ERROR_TESTS
+    + DATEADD_AMOUNT_TYPE_ERROR_TESTS
+    + DATEADD_AMOUNT_NONFINITE_ERROR_TESTS
+    + DATEADD_UNIT_TYPE_ERROR_TESTS
+    + DATEADD_UNIT_STRING_ERROR_TESTS
+    + DATEADD_TIMEZONE_INVALID_TESTS
+    + DATEADD_TIMEZONE_TYPE_ERROR_TESTS
+    + DATEADD_OVERFLOW_ERROR_TESTS
+    + DATEADD_ARRAY_PATH_TESTS
+    + DATEADD_ARGUMENT_TESTS
 )
 
 
-@pytest.mark.parametrize("test_case", pytest_params(DATESUBTRACT_TYPE_TESTS))
-def test_dateSubtract_types(collection, test_case: ExpressionTestCase):
-    """Test $dateSubtract type validation and argument handling."""
+@pytest.mark.parametrize("test_case", pytest_params(DATEADD_ERROR_TESTS))
+def test_dateAdd_errors(collection, test_case: ExpressionTestCase):
+    """Test $dateAdd rejects invalid operands, timezones, overflow, and argument shapes."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
     assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg

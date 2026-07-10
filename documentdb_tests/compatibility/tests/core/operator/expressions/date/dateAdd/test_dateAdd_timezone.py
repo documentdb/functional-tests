@@ -1,9 +1,8 @@
-"""$dateAdd timezone: Olson IDs, UTC offsets, DST, null, and invalid values and types."""
+"""$dateAdd timezone handling: Olson ids, UTC offsets, DST transitions, and field references."""
 
 from datetime import datetime, timezone
 
 import pytest
-from bson import MaxKey, MinKey
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils import (
     ExpressionTestCase,
@@ -11,10 +10,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils import
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
     execute_expression_with_insert,
-)
-from documentdb_tests.framework.error_codes import (
-    INVALID_TIMEZONE_ERROR,
-    INVALID_TIMEZONE_TYPE_ERROR,
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -305,7 +300,7 @@ DATEADD_TIMEZONE_NULL_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-DATEADD_TIMEZONE_SUCCESS_TESTS = (
+DATEADD_TIMEZONE_TESTS: list[ExpressionTestCase] = (
     DATEADD_TIMEZONE_OLSON_TESTS
     + DATEADD_TIMEZONE_OFFSET_TESTS
     + DATEADD_TIMEZONE_DST_TESTS
@@ -313,56 +308,10 @@ DATEADD_TIMEZONE_SUCCESS_TESTS = (
     + DATEADD_TIMEZONE_NULL_TESTS
 )
 
-# Property [Invalid Timezone]: an unrecognized or malformed timezone string is rejected.
-DATEADD_TIMEZONE_INVALID_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        f"timezone_{tid}",
-        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={
-            "$dateAdd": {"startDate": "$date", "unit": "hour", "amount": 5, "timezone": tz}
-        },
-        error_code=INVALID_TIMEZONE_ERROR,
-        msg=f"$dateAdd should reject {desc}",
-    )
-    for tid, tz, desc in [
-        ("offset_3digit_hours_invalid", "+100:00", "a 3-digit hour offset"),
-        ("invalid", "Invalid/Timezone", "an unrecognized Olson timezone"),
-        ("empty_string", "", "an empty string timezone"),
-        ("olson_wrong_case_lowercase", "america/new_york", "an all-lowercase Olson name"),
-        ("olson_wrong_case_uppercase", "AMERICA/NEW_YORK", "an all-uppercase Olson name"),
-        ("olson_wrong_case_mixed", "america/New_York", "a mixed-case Olson name"),
-    ]
-]
-
-# Property [Timezone Type]: a non-string timezone is rejected as an invalid type.
-DATEADD_TIMEZONE_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        f"timezone_{tid}",
-        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={
-            "$dateAdd": {"startDate": "$date", "unit": "hour", "amount": 5, "timezone": tz}
-        },
-        error_code=INVALID_TIMEZONE_TYPE_ERROR,
-        msg=f"$dateAdd should reject a {tid} timezone",
-    )
-    for tid, tz in [
-        ("number", 5),
-        ("boolean", True),
-        ("array", ["UTC"]),
-        ("object", {"tz": "UTC"}),
-        ("minkey", MinKey()),
-        ("maxkey", MaxKey()),
-    ]
-]
-
-DATEADD_TIMEZONE_ERROR_TESTS = DATEADD_TIMEZONE_INVALID_TESTS + DATEADD_TIMEZONE_TYPE_ERROR_TESTS
-
-DATEADD_TIMEZONE_TESTS = DATEADD_TIMEZONE_SUCCESS_TESTS + DATEADD_TIMEZONE_ERROR_TESTS
-
 
 @pytest.mark.parametrize("test_case", pytest_params(DATEADD_TIMEZONE_TESTS))
 def test_dateAdd_timezone(collection, test_case: ExpressionTestCase):
-    """Test $dateAdd timezone handling."""
+    """Test $dateAdd applies the timezone operand for calendar-aware units."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
     assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg

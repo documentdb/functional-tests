@@ -1,9 +1,8 @@
-"""$dateSubtract expression inputs, array-resolving field paths, and Date return type."""
+"""$dateSubtract operand evaluation: literal operands and field-reference resolution."""
 
 from datetime import datetime, timezone
 
 import pytest
-from bson import ObjectId, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils import (
     ExpressionTestCase,
@@ -12,7 +11,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.error_codes import DATEADD_INVALID_STARTDATE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Literal Input]: $dateSubtract evaluates literal operands.
@@ -79,67 +77,14 @@ DATESUBTRACT_FIELD_REF_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Array-Resolving Path]: a startDate field path that resolves to an array is rejected
-# by the operator's startDate type contract.
-DATESUBTRACT_ARRAY_PATH_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "composite_array_path",
-        doc={
-            "a": [
-                {"b": datetime(2021, 6, 15, tzinfo=timezone.utc)},
-                {"b": datetime(2021, 7, 1, tzinfo=timezone.utc)},
-            ]
-        },
-        expression={"$dateSubtract": {"startDate": "$a.b", "unit": "day", "amount": 1}},
-        error_code=DATEADD_INVALID_STARTDATE_ERROR,
-        msg="$dateSubtract should reject a composite array field path as startDate",
-    ),
-    ExpressionTestCase(
-        "single_element_array_path",
-        doc={"a": [{"b": datetime(2021, 6, 15, tzinfo=timezone.utc)}]},
-        expression={"$dateSubtract": {"startDate": "$a.b", "unit": "day", "amount": 1}},
-        error_code=DATEADD_INVALID_STARTDATE_ERROR,
-        msg="$dateSubtract should reject a single-element array field path as startDate",
-    ),
-]
-
-# Property [Return Type]: $dateSubtract returns a Date regardless of the start date's date-like
-# type.
-DATESUBTRACT_RETURN_TYPE_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "return_type_from_date",
-        doc={"date": datetime(2021, 1, 1, tzinfo=timezone.utc)},
-        expression={"$type": {"$dateSubtract": {"startDate": "$date", "unit": "day", "amount": 1}}},
-        expected="date",
-        msg="$dateSubtract should return a Date from a Date start date",
-    ),
-    ExpressionTestCase(
-        "return_type_from_timestamp",
-        doc={"date": Timestamp(1609459200, 1)},
-        expression={"$type": {"$dateSubtract": {"startDate": "$date", "unit": "day", "amount": 1}}},
-        expected="date",
-        msg="$dateSubtract should return a Date from a Timestamp start date",
-    ),
-    ExpressionTestCase(
-        "return_type_from_objectid",
-        doc={"date": ObjectId("600000000000000000000000")},
-        expression={"$type": {"$dateSubtract": {"startDate": "$date", "unit": "day", "amount": 1}}},
-        expected="date",
-        msg="$dateSubtract should return a Date from an ObjectId start date",
-    ),
-]
-
 DATESUBTRACT_EXPRESSION_TESTS: list[ExpressionTestCase] = (
-    DATESUBTRACT_LITERAL_TESTS
-    + DATESUBTRACT_FIELD_REF_TESTS
-    + DATESUBTRACT_ARRAY_PATH_TESTS
-    + DATESUBTRACT_RETURN_TYPE_TESTS
+    DATESUBTRACT_LITERAL_TESTS + DATESUBTRACT_FIELD_REF_TESTS
 )
 
 
 @pytest.mark.parametrize("test_case", pytest_params(DATESUBTRACT_EXPRESSION_TESTS))
 def test_dateSubtract_expressions(collection, test_case: ExpressionTestCase):
-    """Test $dateSubtract expression inputs and return type."""
+    """Test $dateSubtract evaluates literal and field-reference operands."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
     assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg

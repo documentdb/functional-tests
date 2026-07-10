@@ -1,9 +1,8 @@
-"""$dateSubtract timezone: Olson IDs, UTC offsets, DST, null, and invalid values and types."""
+"""$dateSubtract timezone handling: Olson ids, UTC offsets, DST, and field references."""
 
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils import (
     ExpressionTestCase,
@@ -11,10 +10,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils import
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
     execute_expression_with_insert,
-)
-from documentdb_tests.framework.error_codes import (
-    INVALID_TIMEZONE_ERROR,
-    INVALID_TIMEZONE_TYPE_ERROR,
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -305,7 +300,7 @@ DATESUBTRACT_TIMEZONE_NULL_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-DATESUBTRACT_TIMEZONE_SUCCESS_TESTS = (
+DATESUBTRACT_TIMEZONE_TESTS: list[ExpressionTestCase] = (
     DATESUBTRACT_TIMEZONE_OLSON_TESTS
     + DATESUBTRACT_TIMEZONE_OFFSET_TESTS
     + DATESUBTRACT_TIMEZONE_DST_TESTS
@@ -313,69 +308,10 @@ DATESUBTRACT_TIMEZONE_SUCCESS_TESTS = (
     + DATESUBTRACT_TIMEZONE_NULL_TESTS
 )
 
-# Property [Invalid Timezone]: an unrecognized or malformed timezone string is rejected.
-DATESUBTRACT_TIMEZONE_INVALID_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        f"timezone_{tid}",
-        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={
-            "$dateSubtract": {"startDate": "$date", "unit": "hour", "amount": 5, "timezone": tz}
-        },
-        error_code=INVALID_TIMEZONE_ERROR,
-        msg=f"$dateSubtract should reject {desc}",
-    )
-    for tid, tz, desc in [
-        ("offset_3digit_hours_invalid", "+100:00", "a 3-digit hour offset"),
-        ("invalid", "Invalid/Timezone", "an unrecognized Olson timezone"),
-        ("empty_string", "", "an empty string timezone"),
-        ("olson_wrong_case_lowercase", "america/new_york", "an all-lowercase Olson name"),
-        ("olson_wrong_case_uppercase", "AMERICA/NEW_YORK", "an all-uppercase Olson name"),
-        ("olson_wrong_case_mixed", "america/New_York", "a mixed-case Olson name"),
-    ]
-]
-
-# Property [Timezone Type]: a non-string timezone is rejected as an invalid type.
-DATESUBTRACT_TIMEZONE_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        f"timezone_{tid}",
-        doc={"date": datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={
-            "$dateSubtract": {"startDate": "$date", "unit": "hour", "amount": 5, "timezone": tz}
-        },
-        error_code=INVALID_TIMEZONE_TYPE_ERROR,
-        msg=f"$dateSubtract should reject a {tid} timezone",
-    )
-    for tid, tz in [
-        ("int", 5),
-        ("int64", Int64(1)),
-        ("double", 1.0),
-        ("decimal128", Decimal128("1")),
-        ("boolean", True),
-        ("array", ["UTC"]),
-        ("object", {"tz": "UTC"}),
-        ("datetime", datetime(2000, 1, 1, tzinfo=timezone.utc)),
-        ("objectid", ObjectId("600000000000000000000000")),
-        ("timestamp", Timestamp(1, 1)),
-        ("binary", Binary(b"\x01\x02\x03")),
-        ("regex", Regex(".*")),
-        ("javascript", Code("function() {}")),
-        ("minkey", MinKey()),
-        ("maxkey", MaxKey()),
-    ]
-]
-
-DATESUBTRACT_TIMEZONE_ERROR_TESTS = (
-    DATESUBTRACT_TIMEZONE_INVALID_TESTS + DATESUBTRACT_TIMEZONE_TYPE_ERROR_TESTS
-)
-
-DATESUBTRACT_TIMEZONE_TESTS = (
-    DATESUBTRACT_TIMEZONE_SUCCESS_TESTS + DATESUBTRACT_TIMEZONE_ERROR_TESTS
-)
-
 
 @pytest.mark.parametrize("test_case", pytest_params(DATESUBTRACT_TIMEZONE_TESTS))
 def test_dateSubtract_timezone(collection, test_case: ExpressionTestCase):
-    """Test $dateSubtract timezone handling."""
+    """Test $dateSubtract applies the timezone operand for calendar-aware units."""
     result = execute_expression_with_insert(collection, test_case.expression, test_case.doc)
     assert_expression_result(
         result, expected=test_case.expected, error_code=test_case.error_code, msg=test_case.msg
