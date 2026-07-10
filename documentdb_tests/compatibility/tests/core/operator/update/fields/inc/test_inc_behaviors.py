@@ -334,7 +334,7 @@ def test_inc_errors_when_existing_field_is_string(collection):
 
 
 @pytest.mark.engine_xfail(
-    engine="documentdb",
+    engine="pgmongo",
     reason=(
         "$inc against a bool-typed field: native MongoDB rejects with code 14 "
         "('non-numeric type bool'); documentdb coerces the bool to 0/1 and "
@@ -770,7 +770,7 @@ def test_inc_via_findAndModify_returns_updated_doc(collection):
 
 
 @pytest.mark.engine_xfail(
-    engine="documentdb",
+    engine="pgmongo",
     reason=(
         "$inc by 0 against an existing numeric field: native MongoDB reports "
         "n=1 / nModified=0 (recognises the no-op); documentdb reports "
