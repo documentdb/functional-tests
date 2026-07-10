@@ -120,10 +120,8 @@ INVALID_AS_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-ALL_AS_TESTS = INVALID_AS_TYPE_TESTS
 
-
-@pytest.mark.parametrize("test", pytest_params(ALL_AS_TESTS))
+@pytest.mark.parametrize("test", pytest_params(INVALID_AS_TYPE_TESTS))
 def test_map_invalid_as(collection, test):
     """Test $map with invalid 'as' parameter values."""
     result = execute_expression(collection, test.expression)

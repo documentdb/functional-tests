@@ -78,10 +78,8 @@ INT32_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-ALL_BOUNDARY_TESTS = INT32_BOUNDARY_TESTS
 
-
-@pytest.mark.parametrize("test", pytest_params(ALL_BOUNDARY_TESTS))
+@pytest.mark.parametrize("test", pytest_params(INT32_BOUNDARY_TESTS))
 def test_range_int32_boundary(collection, test):
     """Test $range with INT32 boundary values for start, end, step."""
     if test.doc is None:
