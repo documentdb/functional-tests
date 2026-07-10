@@ -69,8 +69,8 @@ def test_setWindowFields_partitionBy_resets_per_partition(collection):
     collection.insert_many(
         [
             {"_id": 1, "p": "x", "v": 1},
-            {"_id": 2, "p": "x", "v": 1},
-            {"_id": 3, "p": "y", "v": 1},
+            {"_id": 2, "p": "x", "v": 2},
+            {"_id": 3, "p": "y", "v": 3},
         ]
     )
     result = execute_command(
@@ -93,9 +93,9 @@ def test_setWindowFields_partitionBy_resets_per_partition(collection):
     assertSuccess(
         result,
         [
-            {"_id": 1, "p": "x", "v": 1, "unique": [1]},
-            {"_id": 2, "p": "x", "v": 1, "unique": [1]},
-            {"_id": 3, "p": "y", "v": 1, "unique": [1]},
+            {"_id": 1, "p": "x", "v": 1, "unique": [1, 2]},
+            {"_id": 2, "p": "x", "v": 2, "unique": [1, 2]},
+            {"_id": 3, "p": "y", "v": 3, "unique": [3]},
         ],
         ignore_order_in=["unique"],
         msg="Each partition computes its own window independently",
