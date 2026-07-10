@@ -22,14 +22,13 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_TWO_AND_HALF,
     DOUBLE_NEGATIVE_ZERO,
+    DOUBLE_TWO_AND_HALF,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
     MISSING,
     STRING_SIZE_LIMIT_BYTES,
 )
-
-from .utils.toDouble_utils import _DOC_EXPR_FORMS, _EXPR_FORMS, ToDoubleTest
 
 # ---------------------------------------------------------------------------
 # Arity tests (literal array arguments to $toDouble).
@@ -90,7 +89,7 @@ TODOUBLE_FIELD_REF_TESTS = [
     ("int_field", "$v", {"v": 42}, 42.0),
     ("int64_field", "$v", {"v": Int64(86400000)}, 86400000.0),
     ("double_field", "$v", {"v": 3.14}, 3.14),
-    ("string_field", "$v", {"v": "2.5"}, 2.5),
+    ("string_field", "$v", {"v": "2.5"}, DOUBLE_TWO_AND_HALF),
     ("bool_field", "$v", {"v": True}, 1.0),
     ("nested_field", "$doc.v", {"doc": {"v": 100}}, 100.0),
     ("missing_nested", "$doc.missing", {"doc": {"x": 1}}, None),
@@ -98,24 +97,22 @@ TODOUBLE_FIELD_REF_TESTS = [
 ]
 
 
-@pytest.mark.parametrize("expr_fn", _DOC_EXPR_FORMS)
 @pytest.mark.parametrize(
-    "name,expr,doc,expected",
+    "name,field_path,doc,expected",
     TODOUBLE_FIELD_REF_TESTS,
     ids=[t[0] for t in TODOUBLE_FIELD_REF_TESTS],
 )
-def test_toDouble_field_ref(collection, name, expr, doc, expected, expr_fn):
+def test_toDouble_field_ref(collection, name, field_path, doc, expected):
     """$toDouble resolves field paths and nested paths from inserted documents."""
-    result = execute_expression_with_insert(collection, expr_fn(expr), doc)
+    result = execute_expression_with_insert(collection, {"$toDouble": field_path}, doc)
     assert_expression_result(result, expected=expected)
 
 
-@pytest.mark.parametrize("expr_fn", _DOC_EXPR_FORMS)
-def test_toDouble_composite_array_path(collection, expr_fn):
+def test_toDouble_composite_array_path(collection):
     """$toDouble on a composite array path (array of objects) is a conversion failure."""
     result = execute_expression_with_insert(
         collection,
-        expr_fn("$a.b"),
+        {"$toDouble": "$a.b"},
         {"a": [{"b": 1.0}, {"b": 2.0}]},
     )
     assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
@@ -134,14 +131,12 @@ def test_toDouble_bare_dollar_field_path(collection):
     )
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_double_dollar_field_path(collection, expr_fn):
+def test_toDouble_double_dollar_field_path(collection):
     """'$$' is an empty variable name and produces a parse error."""
-    test = ToDoubleTest(
-        "fieldpath_double_dollar", value="$$", msg="$$ is rejected as empty variable name"
+    result = execute_expression(collection, {"$toDouble": "$$"})
+    assert_expression_result(
+        result, error_code=FAILED_TO_PARSE_ERROR, msg="$$ is rejected as empty variable name"
     )
-    result = execute_expression(collection, expr_fn(test))
-    assert_expression_result(result, error_code=FAILED_TO_PARSE_ERROR, msg=test.msg)
 
 
 # ---------------------------------------------------------------------------
@@ -149,40 +144,28 @@ def test_toDouble_double_dollar_field_path(collection, expr_fn):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_expression_as_input_add(collection, expr_fn):
+def test_toDouble_expression_as_input_add(collection):
     """$toDouble accepts an arithmetic expression operator as input."""
-    test = ToDoubleTest(
-        "expr_add",
-        value={"$add": [10, 20]},
-        msg="$toDouble should convert integer expression result",
+    result = execute_expression(collection, {"$toDouble": {"$add": [10, 20]}})
+    assert_expression_result(
+        result, expected=30.0, msg="$toDouble should convert integer expression result"
     )
-    result = execute_expression(collection, expr_fn(test))
-    assert_expression_result(result, expected=30.0, msg=test.msg)
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_expression_as_input_concat(collection, expr_fn):
+def test_toDouble_expression_as_input_concat(collection):
     """$toDouble accepts a $concat string expression as input."""
-    test = ToDoubleTest(
-        "expr_concat",
-        value={"$concat": ["3", ".", "14"]},
-        msg="$toDouble should convert string expression result",
+    result = execute_expression(collection, {"$toDouble": {"$concat": ["3", ".", "14"]}})
+    assert_expression_result(
+        result, expected=3.14, msg="$toDouble should convert string expression result"
     )
-    result = execute_expression(collection, expr_fn(test))
-    assert_expression_result(result, expected=3.14, msg=test.msg)
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_expression_as_input_nested_conversion(collection, expr_fn):
+def test_toDouble_expression_as_input_nested_conversion(collection):
     """$toDouble accepts the result of a nested type-conversion expression."""
-    test = ToDoubleTest(
-        "expr_nested",
-        value={"$toDecimal": 42},
-        msg="$toDouble should convert result of nested type conversion",
+    result = execute_expression(collection, {"$toDouble": {"$toDecimal": 42}})
+    assert_expression_result(
+        result, expected=42.0, msg="$toDouble should convert result of nested type conversion"
     )
-    result = execute_expression(collection, expr_fn(test))
-    assert_expression_result(result, expected=42.0, msg=test.msg)
 
 
 # ---------------------------------------------------------------------------
@@ -190,64 +173,58 @@ def test_toDouble_expression_as_input_nested_conversion(collection, expr_fn):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_string_under_limit_numeric(collection, expr_fn):
+def test_toDouble_string_under_limit_numeric(collection):
     """A valid numeric string one byte under the limit converts successfully."""
-    test = ToDoubleTest(
-        "str_one_under_valid",
-        value="0" * (STRING_SIZE_LIMIT_BYTES - 2) + "1",
-        msg="Valid numeric string one byte under limit should succeed",
+    result = execute_expression(
+        collection, {"$toDouble": "0" * (STRING_SIZE_LIMIT_BYTES - 2) + "1"}
     )
-    result = execute_expression(collection, expr_fn(test))
-    assert_expression_result(result, expected=1.0, msg=test.msg)
+    assert_expression_result(
+        result, expected=1.0, msg="Valid numeric string one byte under limit should succeed"
+    )
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_string_under_limit_hex(collection, expr_fn):
+def test_toDouble_string_under_limit_hex(collection):
     """A valid hex string one byte under the limit converts successfully."""
-    test = ToDoubleTest(
-        "str_one_under_hex",
-        value="0X" + "0" * (STRING_SIZE_LIMIT_BYTES - 4) + "F",
+    result = execute_expression(
+        collection, {"$toDouble": "0X" + "0" * (STRING_SIZE_LIMIT_BYTES - 4) + "F"}
+    )
+    assert_expression_result(
+        result,
+        expected=15.0,
         msg="Valid hex string one byte under limit should succeed with value 15.0",
     )
-    result = execute_expression(collection, expr_fn(test))
-    assert_expression_result(result, expected=15.0, msg=test.msg)
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_string_non_numeric_under_limit(collection, expr_fn):
+def test_toDouble_string_non_numeric_under_limit(collection):
     """A non-numeric string one byte under the limit passes the size check but fails conversion."""
-    test = ToDoubleTest(
-        "str_non_numeric_under_limit",
-        value="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+    result = execute_expression(collection, {"$toDouble": "a" * (STRING_SIZE_LIMIT_BYTES - 1)})
+    assert_expression_result(
+        result,
+        error_code=CONVERSION_FAILURE_ERROR,
         msg="Non-numeric string just under limit: CONVERSION_FAILURE, not STRING_SIZE_LIMIT",
     )
-    result = execute_expression(collection, expr_fn(test))
-    assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR, msg=test.msg)
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_string_at_size_limit(collection, expr_fn):
+def test_toDouble_string_at_size_limit(collection):
     """A string at exactly STRING_SIZE_LIMIT_BYTES is rejected with STRING_SIZE_LIMIT_ERROR."""
-    test = ToDoubleTest(
-        "str_at_limit",
-        value="a" * STRING_SIZE_LIMIT_BYTES,
+    result = execute_expression(collection, {"$toDouble": "a" * STRING_SIZE_LIMIT_BYTES})
+    assert_expression_result(
+        result,
+        error_code=STRING_SIZE_LIMIT_ERROR,
         msg="String at STRING_SIZE_LIMIT_BYTES should be rejected",
     )
-    result = execute_expression(collection, expr_fn(test))
-    assert_expression_result(result, error_code=STRING_SIZE_LIMIT_ERROR, msg=test.msg)
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_string_four_byte_chars_at_limit(collection, expr_fn):
+def test_toDouble_string_four_byte_chars_at_limit(collection):
     """A string of 4-byte characters reaching STRING_SIZE_LIMIT_BYTES is rejected."""
-    test = ToDoubleTest(
-        "str_4byte_at_limit",
-        value="\U0001f600" * (STRING_SIZE_LIMIT_BYTES // 4),
+    result = execute_expression(
+        collection, {"$toDouble": "\U0001f600" * (STRING_SIZE_LIMIT_BYTES // 4)}
+    )
+    assert_expression_result(
+        result,
+        error_code=STRING_SIZE_LIMIT_ERROR,
         msg="4-byte character string reaching the size limit should be rejected",
     )
-    result = execute_expression(collection, expr_fn(test))
-    assert_expression_result(result, error_code=STRING_SIZE_LIMIT_ERROR, msg=test.msg)
 
 
 # ---------------------------------------------------------------------------
@@ -271,39 +248,33 @@ _RETURN_TYPE_DOUBLE_CASES = [
 ]
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
 @pytest.mark.parametrize(
     "name,value,label",
     _RETURN_TYPE_DOUBLE_CASES,
     ids=[t[0] for t in _RETURN_TYPE_DOUBLE_CASES],
 )
-def test_toDouble_return_type_is_double(collection, name, value, label, expr_fn):
+def test_toDouble_return_type_is_double(collection, name, value, label):
     """$toDouble always returns BSON type 'double' for a successful conversion."""
-    test = ToDoubleTest(
-        name, value=value, msg=f"$toDouble should return double type for {label} input"
+    result = execute_expression(collection, {"$type": {"$toDouble": value}})
+    assert_expression_result(
+        result, expected="double", msg=f"$toDouble should return double type for {label} input"
     )
-    result = execute_expression(collection, {"$type": expr_fn(test)})
-    assert_expression_result(result, expected="double", msg=test.msg)
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_return_type_null_for_null(collection, expr_fn):
+def test_toDouble_return_type_null_for_null(collection):
     """$toDouble returns BSON type 'null' for a null input."""
-    test = ToDoubleTest(
-        "return_type_null", value=None, msg="$toDouble of null should return null type"
+    result = execute_expression(collection, {"$type": {"$toDouble": None}})
+    assert_expression_result(
+        result, expected="null", msg="$toDouble of null should return null type"
     )
-    result = execute_expression(collection, {"$type": expr_fn(test)})
-    assert_expression_result(result, expected="null", msg=test.msg)
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
-def test_toDouble_return_type_null_for_missing(collection, expr_fn):
+def test_toDouble_return_type_null_for_missing(collection):
     """$toDouble returns BSON type 'null' for a missing input."""
-    test = ToDoubleTest(
-        "return_type_missing", value=MISSING, msg="$toDouble of missing should return null type"
+    result = execute_expression(collection, {"$type": {"$toDouble": MISSING}})
+    assert_expression_result(
+        result, expected="null", msg="$toDouble of missing should return null type"
     )
-    result = execute_expression(collection, {"$type": expr_fn(test)})
-    assert_expression_result(result, expected="null", msg=test.msg)
 
 
 # ---------------------------------------------------------------------------
@@ -316,33 +287,29 @@ _IDEMPOTENCY_CASES = [
     ("idempotent_double", 3.14, 3.14),
     ("idempotent_int32", 42, 42.0),
     ("idempotent_int64", Int64(99), 99.0),
-    ("idempotent_decimal128", DECIMAL128_TWO_AND_HALF, 2.5),
+    ("idempotent_decimal128", DECIMAL128_TWO_AND_HALF, DOUBLE_TWO_AND_HALF),
     ("idempotent_string", "7.5", 7.5),
     ("idempotent_datetime", datetime(2024, 1, 1, tzinfo=timezone.utc), 1_704_067_200_000.0),
     ("idempotent_binary_8byte", Binary(struct.pack("<d", 5.0)), 5.0),
 ]
 
 
-@pytest.mark.parametrize("expr_fn", _EXPR_FORMS)
 @pytest.mark.parametrize(
     "name,value,expected",
     _IDEMPOTENCY_CASES,
     ids=[t[0] for t in _IDEMPOTENCY_CASES],
 )
-def test_toDouble_idempotency(collection, name, value, expected, expr_fn):
+def test_toDouble_idempotency(collection, name, value, expected):
     """Applying $toDouble twice produces the same result as applying it once."""
-    once_test = ToDoubleTest(name, value=value)
-    twice_test = ToDoubleTest(f"{name}_twice", value=expr_fn(once_test))
-    result = execute_expression(collection, expr_fn(twice_test))
+    result = execute_expression(collection, {"$toDouble": {"$toDouble": value}})
     assert_expression_result(
         result, expected=expected, msg=f"$toDouble should be idempotent for {name}"
     )
 
 
-@pytest.mark.parametrize("expr_fn", _DOC_EXPR_FORMS)
-def test_toDouble_neg_zero_from_field(collection, expr_fn):
+def test_toDouble_neg_zero_from_field(collection):
     """$toDouble preserves -0.0 sign when reading from a document field."""
-    result = execute_expression_with_insert(collection, expr_fn("$v"), {"v": -0.0})
-    assert_expression_result(
-        result, expected=DOUBLE_NEGATIVE_ZERO, msg="Field -0.0 value preserves sign"
+    result = execute_expression_with_insert(
+        collection, {"$toDouble": "$v"}, {"v": DOUBLE_NEGATIVE_ZERO}
     )
+    assert_expression_result(result, expected=DOUBLE_NEGATIVE_ZERO)
