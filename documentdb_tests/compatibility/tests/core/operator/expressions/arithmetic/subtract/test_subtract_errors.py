@@ -1,8 +1,6 @@
-import uuid
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, MaxKey, MinKey, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -21,171 +19,7 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
     FLOAT_INFINITY,
     FLOAT_NAN,
-    INT32_ZERO,
 )
-
-pytestmark = pytest.mark.aggregate
-
-_FIXED_UUID = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
-
-# Property [Type rejection]: $subtract rejects non-numeric, non-date types with TYPE_MISMATCH_ERROR.
-TYPE_REJECTION_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "string_minuend",
-        doc={"a": "string", "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a string minuend",
-    ),
-    ExpressionTestCase(
-        "boolean_minuend",
-        doc={"a": True, "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a boolean minuend",
-    ),
-    ExpressionTestCase(
-        "array_minuend",
-        doc={"a": [2, 3], "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject an array minuend",
-    ),
-    ExpressionTestCase(
-        "object_minuend",
-        doc={"a": {"x": 2}, "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject an object minuend",
-    ),
-    ExpressionTestCase(
-        "empty_array_minuend",
-        doc={"a": [], "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject an empty array minuend",
-    ),
-    ExpressionTestCase(
-        "empty_object_minuend",
-        doc={"a": {}, "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject an empty object minuend",
-    ),
-    ExpressionTestCase(
-        "binary_minuend",
-        doc={"a": Binary(b"test", INT32_ZERO), "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a binary minuend",
-    ),
-    ExpressionTestCase(
-        "timestamp_minuend",
-        doc={"a": Timestamp(1234567890, 1), "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a Timestamp minuend",
-    ),
-    ExpressionTestCase(
-        "maxkey_minuend",
-        doc={"a": MaxKey(), "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a MaxKey minuend",
-    ),
-    ExpressionTestCase(
-        "minkey_minuend",
-        doc={"a": MinKey(), "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a MinKey minuend",
-    ),
-    ExpressionTestCase(
-        "uuid_minuend",
-        doc={"a": Binary.from_uuid(_FIXED_UUID), "b": 5},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a UUID minuend",
-    ),
-    # Invalid subtrahend types
-    ExpressionTestCase(
-        "string_subtrahend",
-        doc={"a": 10, "b": "string"},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a string subtrahend",
-    ),
-    ExpressionTestCase(
-        "boolean_subtrahend",
-        doc={"a": 10, "b": True},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a boolean subtrahend",
-    ),
-    ExpressionTestCase(
-        "array_subtrahend",
-        doc={"a": 10, "b": [2, 3]},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject an array subtrahend",
-    ),
-    ExpressionTestCase(
-        "object_subtrahend",
-        doc={"a": 10, "b": {"x": 2}},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject an object subtrahend",
-    ),
-    ExpressionTestCase(
-        "empty_array_subtrahend",
-        doc={"a": 10, "b": []},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject an empty array subtrahend",
-    ),
-    ExpressionTestCase(
-        "empty_object_subtrahend",
-        doc={"a": 10, "b": {}},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject an empty object subtrahend",
-    ),
-    ExpressionTestCase(
-        "binary_subtrahend",
-        doc={"a": 10, "b": Binary(b"test", INT32_ZERO)},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a binary subtrahend",
-    ),
-    ExpressionTestCase(
-        "timestamp_subtrahend",
-        doc={"a": 10, "b": Timestamp(1234567890, 1)},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a Timestamp subtrahend",
-    ),
-    ExpressionTestCase(
-        "maxkey_subtrahend",
-        doc={"a": 10, "b": MaxKey()},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a MaxKey subtrahend",
-    ),
-    ExpressionTestCase(
-        "minkey_subtrahend",
-        doc={"a": 10, "b": MinKey()},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a MinKey subtrahend",
-    ),
-    ExpressionTestCase(
-        "uuid_subtrahend",
-        doc={"a": 10, "b": Binary.from_uuid(_FIXED_UUID)},
-        expression={"$subtract": ["$a", "$b"]},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$subtract should reject a UUID subtrahend",
-    ),
-]
 
 # Property [Date constraint]: $subtract enforces date arithmetic type rules.
 DATE_CONSTRAINT_TESTS: list[ExpressionTestCase] = [
@@ -271,7 +105,7 @@ ARITY_TESTS: list[ExpressionTestCase] = [
 ]
 
 SUBTRACT_ERROR_TESTS: list[ExpressionTestCase] = (
-    TYPE_REJECTION_TESTS + DATE_CONSTRAINT_TESTS + DATE_NAN_INF_TESTS + ARITY_TESTS
+    DATE_CONSTRAINT_TESTS + DATE_NAN_INF_TESTS + ARITY_TESTS
 )
 
 

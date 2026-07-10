@@ -11,8 +11,6 @@ from documentdb_tests.framework.error_codes import EXPRESSION_TYPE_MISMATCH_ERRO
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import INT32_ZERO
 
-pytestmark = pytest.mark.aggregate
-
 # Property [Nested expressions]: $subtract accepts other expressions as operands.
 NESTED_EXPRESSION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

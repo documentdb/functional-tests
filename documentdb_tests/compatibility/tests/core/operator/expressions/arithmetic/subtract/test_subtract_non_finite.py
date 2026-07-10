@@ -21,8 +21,6 @@ from documentdb_tests.framework.test_constants import (
     INT32_ZERO,
 )
 
-pytestmark = pytest.mark.aggregate
-
 # Property [Infinity propagation]: $subtract propagates Infinity when one operand is infinite.
 INFINITY_PROPAGATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

@@ -12,16 +12,19 @@ from documentdb_tests.framework.bson_type_validator import (
     generate_bson_rejection_test_cases,
 )
 
-pytestmark = pytest.mark.aggregate
-
-_NUMERIC_TYPES = [BsonType.DOUBLE, BsonType.INT, BsonType.LONG, BsonType.DECIMAL]
-
 # Property [Minuend type acceptance]: $subtract accepts numeric and date types as minuend.
 # Property [Minuend type rejection]: $subtract rejects all other BSON types as minuend.
 SUBTRACT_MINUEND_SPEC = BsonTypeTestCase(
     id="subtract_minuend",
     msg="$subtract minuend type",
-    valid_types=_NUMERIC_TYPES + [BsonType.DATE, BsonType.NULL],
+    valid_types=[
+        BsonType.DOUBLE,
+        BsonType.INT,
+        BsonType.LONG,
+        BsonType.DECIMAL,
+        BsonType.DATE,
+        BsonType.NULL,
+    ],
 )
 
 # Property [Subtrahend type acceptance]: $subtract accepts numeric types as subtrahend.
@@ -30,7 +33,7 @@ SUBTRACT_MINUEND_SPEC = BsonTypeTestCase(
 SUBTRACT_SUBTRAHEND_SPEC = BsonTypeTestCase(
     id="subtract_subtrahend",
     msg="$subtract subtrahend type",
-    valid_types=_NUMERIC_TYPES + [BsonType.NULL],
+    valid_types=[BsonType.DOUBLE, BsonType.INT, BsonType.LONG, BsonType.DECIMAL, BsonType.NULL],
 )
 
 MINUEND_REJECTION_CASES = generate_bson_rejection_test_cases([SUBTRACT_MINUEND_SPEC])

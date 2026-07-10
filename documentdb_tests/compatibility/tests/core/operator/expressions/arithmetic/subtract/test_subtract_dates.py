@@ -18,8 +18,6 @@ from documentdb_tests.framework.test_constants import (
     INT32_ZERO,
 )
 
-pytestmark = pytest.mark.aggregate
-
 # Property [Date - numeric]: $subtract returns a date when the minuend is a date and subtrahend
 # is numeric (milliseconds).
 DATE_NUMERIC_TESTS: list[ExpressionTestCase] = [
@@ -101,7 +99,7 @@ DATE_DATE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Date rounding]: fractional ms in the subtrahend are rounded using round-half-to-even.
+# Property [Date rounding]: fractional ms operands are rounded using round-half-up.
 DATE_ROUNDING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "date_decimal",
@@ -111,7 +109,7 @@ DATE_ROUNDING_TESTS: list[ExpressionTestCase] = [
         },
         expression={"$subtract": ["$a", "$b"]},
         expected=datetime(2026, 1, 1, 0, 0, 0, 998000, tzinfo=timezone.utc),
-        msg="$subtract should round Decimal128 1.5 ms to 2 ms before subtracting from a date",
+        msg="$subtract should round Decimal128 1.5 ms up to 2 ms before subtracting",
     ),
     ExpressionTestCase(
         "date_double_round_up",
@@ -121,7 +119,7 @@ DATE_ROUNDING_TESTS: list[ExpressionTestCase] = [
         },
         expression={"$subtract": ["$a", "$b"]},
         expected=datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$subtract should round double 2.5 ms to 3 ms (round-half-to-even) before subtracting",
+        msg="$subtract should round double 2.5 ms up to 3 ms before subtracting",
     ),
     ExpressionTestCase(
         "date_double_truncates",

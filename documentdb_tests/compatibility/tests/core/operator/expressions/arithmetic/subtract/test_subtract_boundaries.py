@@ -51,8 +51,6 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN_PLUS_1,
 )
 
-pytestmark = pytest.mark.aggregate
-
 # Property [Int32 overflow]: $subtract promotes int32 results to int64 on overflow/underflow.
 INT32_OVERFLOW_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

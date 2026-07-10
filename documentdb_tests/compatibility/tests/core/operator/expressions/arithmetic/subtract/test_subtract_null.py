@@ -10,8 +10,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
 
-pytestmark = pytest.mark.aggregate
-
 # Property [Null propagation]: $subtract returns null when either operand is null or missing.
 NULL_PROPAGATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(

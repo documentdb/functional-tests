@@ -17,8 +17,6 @@ from documentdb_tests.framework.test_constants import (
     INT32_ZERO,
 )
 
-pytestmark = pytest.mark.aggregate
-
 # Property [Same-type arithmetic]: $subtract preserves the BSON type when both operands share
 # a type.
 SAME_TYPE_ARITHMETIC_TESTS: list[ExpressionTestCase] = [
