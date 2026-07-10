@@ -1,20 +1,26 @@
 """
-Behavior coverage for the $addToSet window operator inside $setWindowFields.
+Validates $setWindowFields frame (window-bounds) semantics using $addToSet as a
+representative window operator. Frame semantics are assumed spec-consistent
+across all window operators, so they are not re-tested per operator.
 
-Oracle: MongoDB 7.0. The accumulator returns the set of distinct values seen
-inside the window; tests assert set equality (not array order) for engine
-agnosticism.
+Covers bounded/unbounded document windows, self-only windows, range-based
+windows, per-partition resets, and the shared window-bounds error cases.
+
+Oracle: MongoDB 8.2.4 (functional-tests CI baseline). $addToSet returns the set
+of distinct values seen inside the window; tests assert set equality (not array
+order) for engine agnosticism.
 """
 
 import pytest
 
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
+from documentdb_tests.framework.error_codes import FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.aggregate
 
 
-def test_window_addToSet_bounded_documents_window(collection):
+def test_setWindowFields_bounded_documents_window(collection):
     """Sliding [-1, 0] window yields the distinct values from current + prior doc."""
     collection.insert_many(
         [
@@ -54,11 +60,11 @@ def test_window_addToSet_bounded_documents_window(collection):
             {"_id": 4, "t": 4, "v": 30, "unique": [10, 30]},
         ],
         ignore_order_in=["unique"],
-        msg="Bounded window $addToSet must yield distinct values per window",
+        msg="Bounded window must yield distinct values per window",
     )
 
 
-def test_window_addToSet_partitionBy_resets_per_partition(collection):
+def test_setWindowFields_partitionBy_resets_per_partition(collection):
     """partitionBy restricts the window to documents within the same partition."""
     collection.insert_many(
         [
@@ -92,16 +98,11 @@ def test_window_addToSet_partitionBy_resets_per_partition(collection):
             {"_id": 3, "p": "y", "v": 1, "unique": [1]},
         ],
         ignore_order_in=["unique"],
-        msg="Each partition computes its own set independently",
+        msg="Each partition computes its own window independently",
     )
 
 
-# ---------------------------------------------------------------------------
-# Window-bounds variants
-# ---------------------------------------------------------------------------
-
-
-def test_window_addToSet_unbounded_window_collects_full_partition(collection):
+def test_setWindowFields_unbounded_window_collects_full_partition(collection):
     """An unbounded window yields the union of all values in the partition for every row."""
     collection.insert_many(
         [
@@ -143,11 +144,9 @@ def test_window_addToSet_unbounded_window_collects_full_partition(collection):
     )
 
 
-def test_window_addToSet_self_only_window_yields_single_element(collection):
-    """`documents: [0, 0]` yields a single-element set per row (the row's own value)."""
-    collection.insert_many(
-        [{"_id": 1, "v": 10}, {"_id": 2, "v": 20}]
-    )
+def test_setWindowFields_self_only_window_yields_single_element(collection):
+    """`documents: [0, 0]` yields a single-element window per row (the row's own value)."""
+    collection.insert_many([{"_id": 1, "v": 10}, {"_id": 2, "v": 20}])
     result = execute_command(
         collection,
         {
@@ -180,7 +179,7 @@ def test_window_addToSet_self_only_window_yields_single_element(collection):
     )
 
 
-def test_window_addToSet_range_based_window(collection):
+def test_setWindowFields_range_based_window(collection):
     """A range-based window includes documents whose sort-key value is within [-1, 1]."""
     collection.insert_many(
         [
@@ -222,12 +221,7 @@ def test_window_addToSet_range_based_window(collection):
     )
 
 
-# ---------------------------------------------------------------------------
-# Shared-error cases (must fail with the same code on native and on documentdb)
-# ---------------------------------------------------------------------------
-
-
-def test_window_addToSet_errors_when_documents_and_unit_both_set(collection):
+def test_setWindowFields_errors_when_documents_and_unit_both_set(collection):
     """Window bounds combining `documents` and `unit` must fail with FailedToParse (9)."""
     collection.insert_one({"_id": 1, "t": 0, "v": 10})
     result = execute_command(
@@ -255,12 +249,12 @@ def test_window_addToSet_errors_when_documents_and_unit_both_set(collection):
     )
     assertFailureCode(
         result,
-        9,
+        FAILED_TO_PARSE_ERROR,
         msg="`documents` and `unit` set together must fail with FailedToParse (9)",
     )
 
 
-def test_window_addToSet_errors_when_no_sortBy_for_documents_window(collection):
+def test_setWindowFields_errors_when_no_sortBy_for_documents_window(collection):
     """A document-based window without sortBy must fail with code 5339901."""
     collection.insert_one({"_id": 1, "v": 10})
     result = execute_command(

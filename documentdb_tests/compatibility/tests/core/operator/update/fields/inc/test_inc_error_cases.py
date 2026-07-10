@@ -14,6 +14,7 @@ from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
     CONFLICTING_UPDATE_OPERATORS_ERROR,
     DOLLAR_PREFIXED_FIELD_NAME_ERROR,
+    FAILED_TO_PARSE_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -103,7 +104,53 @@ INT64_OVERFLOW_ERROR_TESTS: list[UpdateTestCase] = [
     ),
 ]
 
-ALL_ERROR_TESTS = CONFLICT_TESTS + DOLLAR_PREFIX_TESTS + INT64_OVERFLOW_ERROR_TESTS
+# Property [Operand Type]: $inc requires a document operand; non-document operands fail to parse.
+OPERAND_TYPE_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        "operand_null",
+        setup_docs=[{"_id": 1}],
+        query={"_id": 1},
+        update={"$inc": None},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$inc should fail to parse when operand is null",
+    ),
+    UpdateTestCase(
+        "operand_array",
+        setup_docs=[{"_id": 1}],
+        query={"_id": 1},
+        update={"$inc": [1, 2]},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$inc should fail to parse when operand is an array",
+    ),
+    UpdateTestCase(
+        "operand_string",
+        setup_docs=[{"_id": 1}],
+        query={"_id": 1},
+        update={"$inc": "5"},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$inc should fail to parse when operand is a string",
+    ),
+    UpdateTestCase(
+        "operand_bool",
+        setup_docs=[{"_id": 1}],
+        query={"_id": 1},
+        update={"$inc": True},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$inc should fail to parse when operand is a bool",
+    ),
+    UpdateTestCase(
+        "operand_integer",
+        setup_docs=[{"_id": 1}],
+        query={"_id": 1},
+        update={"$inc": 42},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$inc should fail to parse when operand is an integer",
+    ),
+]
+
+ALL_ERROR_TESTS = (
+    CONFLICT_TESTS + DOLLAR_PREFIX_TESTS + INT64_OVERFLOW_ERROR_TESTS + OPERAND_TYPE_TESTS
+)
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_ERROR_TESTS))
