@@ -1,7 +1,7 @@
 """
 Boundary value tests for $range expression.
 
-Tests INT32 boundary values and negative zero handling for start, end, step.
+Tests INT32 boundary value handling for start, end, step.
 """
 
 import pytest
@@ -24,28 +24,28 @@ INT32_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         doc={"start": INT32_MAX, "end": INT32_MAX},
         expression={"$range": ["$start", "$end"]},
         expected=[],
-        msg="$range iNT32_MAX == INT32_MAX should be empty",
+        msg="$range INT32_MAX == INT32_MAX should be empty",
     ),
     ExpressionTestCase(
         "int32_min_eq",
         doc={"start": INT32_MIN, "end": INT32_MIN},
         expression={"$range": ["$start", "$end"]},
         expected=[],
-        msg="$range iNT32_MIN == INT32_MIN should be empty",
+        msg="$range INT32_MIN == INT32_MIN should be empty",
     ),
     ExpressionTestCase(
         "int32_max_minus1",
         doc={"start": INT32_MAX_MINUS_1, "end": INT32_MAX},
         expression={"$range": ["$start", "$end"]},
         expected=[INT32_MAX_MINUS_1],
-        msg="$range iNT32_MAX-1 to INT32_MAX should produce single element",
+        msg="$range INT32_MAX-1 to INT32_MAX should produce single element",
     ),
     ExpressionTestCase(
         "int32_min_to_plus3",
         doc={"start": INT32_MIN, "end": INT32_MIN + 3},
         expression={"$range": ["$start", "$end"]},
         expected=[INT32_MIN, INT32_MIN + 1, INT32_MIN + 2],
-        msg="$range iNT32_MIN to INT32_MIN+3",
+        msg="$range INT32_MIN to INT32_MIN+3",
     ),
     ExpressionTestCase(
         "step_int32_max",
