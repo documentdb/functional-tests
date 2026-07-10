@@ -7,7 +7,8 @@ engine-agnostic contract is "same set of values," not "same array order".
 """
 
 import pytest
-from bson import Decimal128
+from bson import Decimal128, ObjectId
+from datetime import datetime, timezone
 
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.executor import execute_command
@@ -243,4 +244,204 @@ def test_accumulator_addToSet_rejects_multi_arg_array(collection):
         result,
         40237,
         msg="$addToSet must reject multi-argument array form (40237)",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Type-specific dedup
+# ---------------------------------------------------------------------------
+
+
+def test_accumulator_addToSet_dedups_objectid(collection):
+    """Equal ObjectIds across documents collapse to a single element."""
+    oid = ObjectId("64b5e4f0a1b2c3d4e5f60001")
+    collection.insert_many(
+        [
+            {"_id": 1, "g": "A", "v": oid},
+            {"_id": 2, "g": "A", "v": oid},
+        ]
+    )
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$group": {"_id": "$g", "vals": {"$addToSet": "$v"}}},
+                {"$sort": {"_id": 1}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [{"_id": "A", "vals": [oid]}],
+        ignore_order_in=["vals"],
+        msg="Equal ObjectIds must collapse to a single element",
+    )
+
+
+def test_accumulator_addToSet_dedups_date(collection):
+    """Equal Date values across documents collapse to a single element."""
+    d = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    collection.insert_many(
+        [
+            {"_id": 1, "g": "A", "v": d},
+            {"_id": 2, "g": "A", "v": d},
+        ]
+    )
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$group": {"_id": "$g", "vals": {"$addToSet": "$v"}}},
+                {"$sort": {"_id": 1}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [{"_id": "A", "vals": [d]}],
+        ignore_order_in=["vals"],
+        msg="Equal Date values must collapse to a single element",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Literal and expression arguments
+# ---------------------------------------------------------------------------
+
+
+def test_accumulator_addToSet_literal_value_collapses_to_single_element(collection):
+    """A literal scalar argument produces a single-element set regardless of input row count."""
+    collection.insert_many(
+        [{"_id": 1, "g": "A"}, {"_id": 2, "g": "A"}, {"_id": 3, "g": "A"}]
+    )
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$group": {"_id": "$g", "vals": {"$addToSet": "constant"}}},
+                {"$sort": {"_id": 1}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [{"_id": "A", "vals": ["constant"]}],
+        ignore_order_in=["vals"],
+        msg="Literal-arg $addToSet must produce a single-element set",
+    )
+
+
+def test_accumulator_addToSet_dedups_after_expression_transform(collection):
+    """The accumulator dedups on the expression result, not on the raw field."""
+    collection.insert_many(
+        [
+            {"_id": 1, "g": "A", "v": "abc"},
+            {"_id": 2, "g": "A", "v": "ABC"},
+            {"_id": 3, "g": "A", "v": "aBc"},
+        ]
+    )
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {
+                    "$group": {
+                        "_id": "$g",
+                        "vals": {"$addToSet": {"$toUpper": "$v"}},
+                    }
+                },
+                {"$sort": {"_id": 1}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [{"_id": "A", "vals": ["ABC"]}],
+        ignore_order_in=["vals"],
+        msg="Equality is measured on the expression result, not the raw input",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Group key edge cases
+# ---------------------------------------------------------------------------
+
+
+def test_accumulator_addToSet_with_id_null_groups_all_documents(collection):
+    """`_id: null` produces a single global group containing the union of values."""
+    collection.insert_many(
+        [{"_id": 1, "v": 1}, {"_id": 2, "v": 2}, {"_id": 3, "v": 1}]
+    )
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$group": {"_id": None, "vals": {"$addToSet": "$v"}}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [{"_id": None, "vals": [1, 2]}],
+        ignore_order_in=["vals"],
+        msg="`_id: null` must group all documents into a single set",
+    )
+
+
+def test_accumulator_addToSet_treats_reordered_subdocument_keys_as_distinct(
+    collection,
+):
+    """Subdocument elements with reordered keys are kept as distinct set elements."""
+    collection.insert_many(
+        [
+            {"_id": 1, "g": "A", "doc": {"a": 1, "b": 2}},
+            {"_id": 2, "g": "A", "doc": {"b": 2, "a": 1}},
+        ]
+    )
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$group": {"_id": "$g", "vals": {"$addToSet": "$doc"}}},
+                {"$sort": {"_id": 1}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [{"_id": "A", "vals": [{"a": 1, "b": 2}, {"b": 2, "a": 1}]}],
+        ignore_order_in=["vals"],
+        msg="Field ordering must matter for subdocument set equality",
+    )
+
+
+def test_accumulator_addToSet_empty_input_produces_no_groups(collection):
+    """Aggregating an empty collection yields no group rows (not an empty set)."""
+    # collection fixture is already empty; do not insert.
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$group": {"_id": "$g", "vals": {"$addToSet": "$v"}}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [],
+        msg="Empty input must yield zero group rows",
     )
