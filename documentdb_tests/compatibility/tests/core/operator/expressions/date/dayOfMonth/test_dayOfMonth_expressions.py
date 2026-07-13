@@ -19,6 +19,16 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Literal Input]: an inline literal date computes the correct day of the month.
+DAYOFMONTH_LITERAL_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "literal_date",
+        expression={"$dayOfMonth": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)},
+        expected=15,
+        msg="$dayOfMonth should return the day of the month for a literal date operand",
+    ),
+]
+
 # Property [Argument Forms]: the document form requires exactly a date field, and the
 # operand-array form accepts only a single element.
 DAYOFMONTH_ARGUMENT_TESTS: list[ExpressionTestCase] = [
@@ -126,14 +136,18 @@ DAYOFMONTH_FIELD_PATH_TESTS: list[ExpressionTestCase] = [
 DAYOFMONTH_RETURN_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "return_type",
-        expression={"$type": {"$dayOfMonth": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)}},
+        doc={"date": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$type": {"$dayOfMonth": "$date"}},
         expected="int",
         msg="$dayOfMonth should return an int",
     ),
 ]
 
 DAYOFMONTH_EXPRESSION_TESTS: list[ExpressionTestCase] = (
-    DAYOFMONTH_ARGUMENT_TESTS + DAYOFMONTH_FIELD_PATH_TESTS + DAYOFMONTH_RETURN_TYPE_TESTS
+    DAYOFMONTH_LITERAL_TESTS
+    + DAYOFMONTH_ARGUMENT_TESTS
+    + DAYOFMONTH_FIELD_PATH_TESTS
+    + DAYOFMONTH_RETURN_TYPE_TESTS
 )
 
 

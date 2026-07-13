@@ -19,6 +19,16 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Literal Input]: an inline literal date computes the correct day of the week.
+DAYOFWEEK_LITERAL_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "literal_date",
+        expression={"$dayOfWeek": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)},
+        expected=7,
+        msg="$dayOfWeek should return the day of the week for a literal date operand",
+    ),
+]
+
 # Property [Argument Forms]: the document form requires exactly a date field, and the
 # operand-array form accepts only a single element.
 DAYOFWEEK_ARGUMENT_TESTS: list[ExpressionTestCase] = [
@@ -126,14 +136,18 @@ DAYOFWEEK_FIELD_PATH_TESTS: list[ExpressionTestCase] = [
 DAYOFWEEK_RETURN_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "return_type",
-        expression={"$type": {"$dayOfWeek": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)}},
+        doc={"date": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$type": {"$dayOfWeek": "$date"}},
         expected="int",
         msg="$dayOfWeek should return an int",
     ),
 ]
 
 DAYOFWEEK_EXPRESSION_TESTS: list[ExpressionTestCase] = (
-    DAYOFWEEK_ARGUMENT_TESTS + DAYOFWEEK_FIELD_PATH_TESTS + DAYOFWEEK_RETURN_TYPE_TESTS
+    DAYOFWEEK_LITERAL_TESTS
+    + DAYOFWEEK_ARGUMENT_TESTS
+    + DAYOFWEEK_FIELD_PATH_TESTS
+    + DAYOFWEEK_RETURN_TYPE_TESTS
 )
 
 

@@ -19,6 +19,16 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Literal Input]: an inline literal date computes the correct day of the year.
+DAYOFYEAR_LITERAL_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "literal_date",
+        expression={"$dayOfYear": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)},
+        expected=167,
+        msg="$dayOfYear should return the day of the year for a literal date operand",
+    ),
+]
+
 # Property [Argument Forms]: the document form requires exactly a date field, and the
 # operand-array form accepts only a single element.
 DAYOFYEAR_ARGUMENT_TESTS: list[ExpressionTestCase] = [
@@ -126,14 +136,18 @@ DAYOFYEAR_FIELD_PATH_TESTS: list[ExpressionTestCase] = [
 DAYOFYEAR_RETURN_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "return_type",
-        expression={"$type": {"$dayOfYear": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)}},
+        doc={"date": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$type": {"$dayOfYear": "$date"}},
         expected="int",
         msg="$dayOfYear should return an int",
     ),
 ]
 
 DAYOFYEAR_EXPRESSION_TESTS: list[ExpressionTestCase] = (
-    DAYOFYEAR_ARGUMENT_TESTS + DAYOFYEAR_FIELD_PATH_TESTS + DAYOFYEAR_RETURN_TYPE_TESTS
+    DAYOFYEAR_LITERAL_TESTS
+    + DAYOFYEAR_ARGUMENT_TESTS
+    + DAYOFYEAR_FIELD_PATH_TESTS
+    + DAYOFYEAR_RETURN_TYPE_TESTS
 )
 
 
