@@ -95,10 +95,20 @@ def _build_command(spec, sample_value, *, is_rejection):
 
 def _restore_default(collection, spec):
     """Restore a parameter to its default value after an acceptance test."""
-    if spec.keyword in _DEFAULTS:
+    if spec.keyword == "setClusterParameter":
         execute_admin_command(
-            collection, {"setClusterParameter": {spec.keyword: _DEFAULTS[spec.keyword]}}
+            collection,
+            {
+                "setClusterParameter": {
+                    "changeStreamOptions": {"preAndPostImages": {"expireAfterSeconds": "off"}}
+                }
+            },
         )
+    else:
+        if spec.keyword in _DEFAULTS:
+            execute_admin_command(
+                collection, {"setClusterParameter": {spec.keyword: _DEFAULTS[spec.keyword]}}
+            )
 
 
 @pytest.mark.parametrize("bson_type,sample_value,spec", ALL_REJECTIONS)
