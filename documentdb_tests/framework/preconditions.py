@@ -57,6 +57,7 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
     "unforced_compact": "compact succeeds without force",
     "reindex": "reIndex is permitted",
     "local_rename": "renaming into the unreplicated local database is permitted",
+    "search": "search and vector search surfaces are available",
     "replication": "replication commands are available (applyOps, oplog access)",
     "validate_repair": (
         "validate with repair/fixMultikey is permitted and background validation "
@@ -67,6 +68,10 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
 # The capabilities each (engine, topology) target has. To add an engine or
 # topology, add an entry here; every test then gates correctly.
 _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
+    # A replica set, wired to a mongot search sidecar so it also serves the
+    # search surfaces (see dev/compose.yaml). mongot is transparent to all other
+    # behavior, so this is a replica set that additionally has the search
+    # capability, not a distinct topology.
     ("mongodb", "replica_set"): frozenset(
         {
             "change_streams",
@@ -76,6 +81,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "cluster_time",
             "cluster_read_concern",
             "quorum_write_concern",
+            "search",
             "oplog",
             "replication",
         }

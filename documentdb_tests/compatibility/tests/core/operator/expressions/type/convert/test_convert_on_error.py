@@ -11,6 +11,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
@@ -99,7 +100,7 @@ CONVERT_ON_ERROR_TESTS: list[ConvertTest] = [
     ),
     ConvertTest(
         "on_error_catches_string_size_limit",
-        input=Binary(b"A" * (STRING_SIZE_LIMIT_BYTES // 2)),
+        input=lazy(lambda: Binary(b"A" * (STRING_SIZE_LIMIT_BYTES // 2))),
         to="string",
         format="hex",
         on_error="caught",
