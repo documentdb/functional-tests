@@ -1,4 +1,3 @@
-import math
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -37,8 +36,6 @@ DOUBLE_MAX_SAFE_INTEGER = 9007199254740992
 DOUBLE_PRECISION_LOSS = 9007199254740993
 DOUBLE_FROM_INT64_MAX = 9.223372036854776e18
 DOUBLE_MAX_FITTING_INT64 = 9223372036854774784.0
-# First IEEE 754 double strictly below int64 min (used to test underflow rejection)
-DOUBLE_BELOW_INT64_MIN = math.nextafter(-float(2**63), float("-inf"))
 
 # Double rounding tests
 DOUBLE_HALF = 0.5

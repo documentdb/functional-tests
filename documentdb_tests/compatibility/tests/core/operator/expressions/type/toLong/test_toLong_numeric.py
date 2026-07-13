@@ -1,5 +1,7 @@
 """$toLong numeric type tests: null/missing, boolean, int32, int64 identity, and double."""
 
+import math
+
 import pytest
 from bson import Int64
 
@@ -13,7 +15,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
-    DOUBLE_BELOW_INT64_MIN,
     DOUBLE_FROM_INT64_MAX,
     DOUBLE_HALF,
     DOUBLE_MAX_FITTING_INT64,
@@ -241,7 +242,7 @@ _TOLONG_DOUBLE_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_err_underflow_below_int64_min",
         msg="First double below int64 min is a conversion failure",
-        expression={"$toLong": DOUBLE_BELOW_INT64_MIN},
+        expression={"$toLong": math.nextafter(-float(2**63), FLOAT_NEGATIVE_INFINITY)},
         error_code=CONVERSION_FAILURE_ERROR,
     ),
     ExpressionTestCase(
