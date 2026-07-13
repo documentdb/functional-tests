@@ -1,9 +1,9 @@
 """
 Error tests for $slice expression.
 
-Tests non-array first argument, non-numeric/non-integral n and position,
-non-positive n in 3-arg form, wrong arity errors, and a field path resolving
-to an invalid-type value used as an argument.
+Tests non-array first argument, non-numeric/non-integral n, non-positive n
+in 3-arg form, wrong arity errors, and a field path resolving to an
+invalid-type n. Position-argument errors are in test_expression_slice_position_errors.py.
 """
 
 from datetime import datetime, timezone
@@ -351,152 +351,6 @@ N_NOT_INTEGRAL_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Numeric Position]: a non-numeric position is rejected for every BSON type.
-POS_NOT_NUMERIC_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "pos_string",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": "1", "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject string position",
-    ),
-    ExpressionTestCase(
-        "pos_bool",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": True, "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject bool position",
-    ),
-    ExpressionTestCase(
-        "pos_array",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": [1], "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject array position",
-    ),
-    ExpressionTestCase(
-        "pos_object",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": {"a": 1}, "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject object position",
-    ),
-    ExpressionTestCase(
-        "pos_datetime",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": datetime(2024, 1, 1, tzinfo=timezone.utc), "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject datetime position",
-    ),
-    ExpressionTestCase(
-        "pos_objectid",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": ObjectId(), "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject objectid position",
-    ),
-    ExpressionTestCase(
-        "pos_binary",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": Binary(b"x", 0), "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject binary position",
-    ),
-    ExpressionTestCase(
-        "pos_regex",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": Regex("x"), "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject regex position",
-    ),
-    ExpressionTestCase(
-        "pos_javascript",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": Code("x"), "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject JavaScript code position",
-    ),
-    ExpressionTestCase(
-        "pos_timestamp",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": Timestamp(0, 0), "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject timestamp position",
-    ),
-    ExpressionTestCase(
-        "pos_minkey",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": MinKey(), "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject minkey position",
-    ),
-    ExpressionTestCase(
-        "pos_maxkey",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": MaxKey(), "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_NUMERIC_ERROR,
-        msg="$slice should reject maxkey position",
-    ),
-]
-
-# Property [32-bit Representability]: position must be a whole number representable as
-# a signed 32-bit integer; fractional values, NaN/Infinity, and integral values outside
-# the int32 range are all rejected with the same error.
-POS_NOT_INTEGRAL_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "pos_fractional",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": 1.5, "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_INTEGRAL_ERROR,
-        msg="$slice should reject a fractional position",
-    ),
-    ExpressionTestCase(
-        "pos_nan",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": FLOAT_NAN, "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_INTEGRAL_ERROR,
-        msg="$slice should reject NaN position",
-    ),
-    ExpressionTestCase(
-        "pos_inf",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": FLOAT_INFINITY, "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_INTEGRAL_ERROR,
-        msg="$slice should reject infinity position",
-    ),
-    ExpressionTestCase(
-        "pos_neg_inf",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": FLOAT_NEGATIVE_INFINITY, "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_INTEGRAL_ERROR,
-        msg="$slice should reject -infinity position",
-    ),
-    ExpressionTestCase(
-        "pos_decimal128_nan",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": DECIMAL128_NAN, "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_INTEGRAL_ERROR,
-        msg="$slice should reject decimal128 NaN position",
-    ),
-    ExpressionTestCase(
-        "pos_decimal128_inf",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": DECIMAL128_INFINITY, "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_INTEGRAL_ERROR,
-        msg="$slice should reject decimal128 infinity position",
-    ),
-    ExpressionTestCase(
-        "pos_int64_max",
-        expression={"$slice": ["$arr", "$pos", "$n"]},
-        doc={"arr": [1, 2, 3], "pos": INT64_MAX, "n": 2},
-        error_code=EXPRESSION_SLICE_ARG_NOT_INTEGRAL_ERROR,
-        msg=(
-            "$slice should reject a position that is a whole number outside the "
-            "32-bit integer range"
-        ),
-    ),
-]
-
 # Property [Field Expression n]: a field path that resolves to a non-numeric n is rejected.
 FIELD_EXPR_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -513,8 +367,6 @@ ALL_TESTS = (
     + NOT_ARRAY_ERROR_TESTS
     + N_NOT_NUMERIC_TESTS
     + N_NOT_INTEGRAL_TESTS
-    + POS_NOT_NUMERIC_TESTS
-    + POS_NOT_INTEGRAL_TESTS
     + FIELD_EXPR_ERROR_TESTS
 )
 

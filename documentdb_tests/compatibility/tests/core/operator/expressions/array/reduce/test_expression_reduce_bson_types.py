@@ -222,10 +222,7 @@ MIXED_BSON_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Special Numeric Elements]: $reduce preserves Infinity, NaN, INT32/INT64
-# boundary values, and negative-zero elements. Python float NaN != NaN under plain
-# equality, so float_nan_values compares via pytest.approx(..., nan_ok=True) instead
-# (the same NaN-aware comparison technique used elsewhere in this test suite, e.g.
-# elem_float_nan in test_expression_slice_element_types.py).
+# boundary values, and negative-zero elements.
 SPECIAL_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "float_nan_values",
