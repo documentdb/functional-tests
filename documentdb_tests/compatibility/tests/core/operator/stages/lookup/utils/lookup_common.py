@@ -10,6 +10,7 @@ from typing import Any
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
 )
+from documentdb_tests.framework.lazy_payload import materialize
 
 FOREIGN = object()
 
@@ -38,13 +39,13 @@ def setup_lookup(
     if test_case.docs is not None:
         db.create_collection(collection.name)
         if test_case.docs:
-            collection.insert_many(test_case.docs)
+            collection.insert_many(materialize(test_case.docs))
 
     # Set up foreign collection
     if test_case.foreign_docs is not None:
         db.create_collection(foreign_name)
         if test_case.foreign_docs:
-            db[foreign_name].insert_many(test_case.foreign_docs)
+            db[foreign_name].insert_many(materialize(test_case.foreign_docs))
     if test_case.foreign_indexes:
         db[foreign_name].create_indexes(test_case.foreign_indexes)
 
