@@ -49,7 +49,7 @@ DAYOFYEAR_EXTRACTION_TESTS: list[ExpressionTestCase] = [
         doc={"date": datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)},
         expression={"$dayOfYear": "$date"},
         expected=366,
-        msg="$dayOfYear should return 366 for Dec 31 in a leap year",
+        msg="$dayOfYear should return 366, the maximum ordinal day, for Dec 31 in a leap year",
     ),
 ]
 
@@ -62,13 +62,6 @@ DAYOFYEAR_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         expression={"$dayOfYear": "$date"},
         expected=1,
         msg="$dayOfYear should return 1 for the first moment of the year",
-    ),
-    ExpressionTestCase(
-        "last_moment_of_year",
-        doc={"date": datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)},
-        expression={"$dayOfYear": "$date"},
-        expected=366,
-        msg="$dayOfYear should return 366 for the last moment of a leap year",
     ),
     ExpressionTestCase(
         "non_leap_year_feb_28",
