@@ -10,6 +10,7 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
@@ -32,49 +33,49 @@ from documentdb_tests.framework.test_constants import (
 WRITE_CONCERN_WTIMEOUT_ACCEPTED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": True}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:bool true should be accepted",
         id="wtimeout_bool_true",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": False}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:bool false should be accepted",
         id="wtimeout_bool_false",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": 2.5}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:double should be accepted",
         id="wtimeout_double",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": Int64(42)}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:Int64 should be accepted",
         id="wtimeout_int64",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": Decimal128("99")}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:Decimal128 should be accepted",
         id="wtimeout_decimal128",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": 5}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:int32 should be accepted",
         id="wtimeout_int32",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": "hello"}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:string should be accepted",
         id="wtimeout_string",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": None}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:null should be treated as omitted and succeed",
         id="wtimeout_null",
     ),
@@ -86,7 +87,7 @@ WRITE_CONCERN_WTIMEOUT_ACCEPTED_TESTS: list[CommandTestCase] = [
 WRITE_CONCERN_WTIMEOUT_SPECIAL_VALUES_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": INT32_MAX}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:max int32 should be accepted",
         id="wtimeout_max_int32",
     ),
@@ -95,58 +96,55 @@ WRITE_CONCERN_WTIMEOUT_SPECIAL_VALUES_TESTS: list[CommandTestCase] = [
             "dropDatabase": 1,
             "writeConcern": {"wtimeout": INT64_MIN},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:Int64 min should be accepted",
-        marks=(pytest.mark.requires(quorum_write_concern=False),),
         id="wtimeout_int64_min",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": FLOAT_NAN}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:NaN should be accepted",
         id="wtimeout_float_nan",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": FLOAT_NEGATIVE_NAN}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:negative NaN should be accepted",
         id="wtimeout_float_neg_nan",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": FLOAT_NEGATIVE_INFINITY}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:-Infinity should be accepted",
-        marks=(pytest.mark.requires(quorum_write_concern=False),),
         id="wtimeout_float_neg_infinity",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": DECIMAL128_NAN}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:Decimal128('NaN') should be accepted",
         id="wtimeout_decimal128_nan",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": DECIMAL128_NEGATIVE_NAN}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:Decimal128 negative NaN should be accepted",
         id="wtimeout_decimal128_neg_nan",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": DECIMAL128_NEGATIVE_INFINITY}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:Decimal128('-Infinity') should be accepted",
-        marks=(pytest.mark.requires(quorum_write_concern=False),),
         id="wtimeout_decimal128_neg_infinity",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": DOUBLE_NEGATIVE_ZERO}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:float -0.0 should be accepted",
         id="wtimeout_float_neg_zero",
     ),
     CommandTestCase(
         command={"dropDatabase": 1, "writeConcern": {"wtimeout": DECIMAL128_NEGATIVE_ZERO}},
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout:Decimal128 -0 should be accepted",
         id="wtimeout_decimal128_neg_zero",
     ),
