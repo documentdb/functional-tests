@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -192,49 +192,15 @@ _TOLONG_BINARY_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Unsupported Types]: $toLong fails with a conversion error for BSON types it
-# cannot convert (object, ObjectId, regex, timestamp, code, MinKey, MaxKey, array).
+# Property [Unsupported Types — literal-wrapped]: OBJECT and ARRAY must be wrapped in
+# $literal to prevent MongoDB from interpreting them as expression syntax. The remaining
+# unsupported BSON types (ObjectId, Regex, Timestamp, Code, MinKey, MaxKey) are covered
+# by generate_bson_rejection_test_cases() in test_toLong_return_type.py.
 _TOLONG_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "type_object",
         msg="Object BSON type is a conversion failure",
         expression={"$toLong": {"$literal": {"key": "val"}}},
-        error_code=CONVERSION_FAILURE_ERROR,
-    ),
-    ExpressionTestCase(
-        "type_objectid",
-        msg="ObjectId BSON type is a conversion failure",
-        expression={"$toLong": ObjectId("507f1f77bcf86cd799439011")},
-        error_code=CONVERSION_FAILURE_ERROR,
-    ),
-    ExpressionTestCase(
-        "type_regex",
-        msg="Regex BSON type is a conversion failure",
-        expression={"$toLong": Regex("abc")},
-        error_code=CONVERSION_FAILURE_ERROR,
-    ),
-    ExpressionTestCase(
-        "type_timestamp",
-        msg="Timestamp BSON type is a conversion failure",
-        expression={"$toLong": Timestamp(1, 1)},
-        error_code=CONVERSION_FAILURE_ERROR,
-    ),
-    ExpressionTestCase(
-        "type_code",
-        msg="Code BSON type is a conversion failure",
-        expression={"$toLong": Code("x")},
-        error_code=CONVERSION_FAILURE_ERROR,
-    ),
-    ExpressionTestCase(
-        "type_minkey",
-        msg="MinKey BSON type is a conversion failure",
-        expression={"$toLong": MinKey()},
-        error_code=CONVERSION_FAILURE_ERROR,
-    ),
-    ExpressionTestCase(
-        "type_maxkey",
-        msg="MaxKey BSON type is a conversion failure",
-        expression={"$toLong": MaxKey()},
         error_code=CONVERSION_FAILURE_ERROR,
     ),
     ExpressionTestCase(

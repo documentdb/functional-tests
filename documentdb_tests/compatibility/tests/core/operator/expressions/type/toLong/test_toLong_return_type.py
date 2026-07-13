@@ -16,7 +16,9 @@ from documentdb_tests.framework.bson_type_validator import (
     BsonType,
     BsonTypeTestCase,
     generate_bson_acceptance_test_cases,
+    generate_bson_rejection_test_cases,
 )
+from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     MISSING,
@@ -24,6 +26,9 @@ from documentdb_tests.framework.test_constants import (
 
 # Property [Return Type]: $toLong always returns BSON type long for successful conversions
 # and null for null or missing inputs.
+# NULL is skipped from rejection because $toLong(null) returns null (not an error).
+# OBJECT and ARRAY are skipped because they need $literal wrapping to avoid being parsed
+# as MongoDB expressions — their rejection is verified in test_toLong_datetime_binary.py.
 _RETURN_TYPE_LONG_SPEC = [
     BsonTypeTestCase(
         id="toLong_return_type",
@@ -38,6 +43,12 @@ _RETURN_TYPE_LONG_SPEC = [
             BsonType.DATE,
             BsonType.BIN_DATA,
         ],
+        skip_rejection_types=[
+            BsonType.NULL,
+            BsonType.OBJECT,
+            BsonType.ARRAY,
+        ],
+        default_error_code=CONVERSION_FAILURE_ERROR,
         valid_inputs={
             BsonType.STRING: "42",
             BsonType.BIN_DATA: Binary(b"\x05"),
@@ -46,6 +57,7 @@ _RETURN_TYPE_LONG_SPEC = [
 ]
 
 _RETURN_TYPE_LONG_CASES = generate_bson_acceptance_test_cases(_RETURN_TYPE_LONG_SPEC)
+_REJECTION_LONG_CASES = generate_bson_rejection_test_cases(_RETURN_TYPE_LONG_SPEC)
 
 
 @pytest.mark.parametrize("bson_type,sample_value,spec", _RETURN_TYPE_LONG_CASES)
@@ -53,6 +65,17 @@ def test_toLong_return_type_is_long(collection, bson_type, sample_value, spec):
     """$toLong always returns BSON type 'long' for a successful conversion."""
     result = execute_expression(collection, {"$type": {"$toLong": sample_value}})
     assert_expression_result(result, expected="long", msg=f"{spec.msg} ({bson_type.value} input)")
+
+
+@pytest.mark.parametrize("bson_type,sample_value,spec", _REJECTION_LONG_CASES)
+def test_toLong_rejects_unsupported_type(collection, bson_type, sample_value, spec):
+    """$toLong rejects BSON types it cannot convert with a conversion failure."""
+    result = execute_expression(collection, {"$toLong": sample_value})
+    assert_expression_result(
+        result,
+        error_code=spec.expected_code(bson_type),
+        msg=f"$toLong should reject {bson_type.value} input",
+    )
 
 
 # Property [Return Type — Null]: $toLong returns BSON type null for null or missing inputs.
