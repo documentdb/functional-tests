@@ -1,4 +1,5 @@
-"""Error-case tests for setDefaultRWConcern."""
+"""Failure-case tests for setDefaultRWConcern: input rejections, atomic-failure
+behavior, and rejection outside the admin database."""
 
 import pytest
 
@@ -17,6 +18,7 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
 
 pytestmark = [pytest.mark.admin, pytest.mark.no_parallel, pytest.mark.requires(cluster_admin=True)]
 
@@ -221,6 +223,64 @@ def test_setDefaultRWConcern_errors(collection, test):
         execute_admin_command(collection, setup)
     result = execute_admin_command(collection, test.command)
     assertResult(result, error_code=test.error_code, msg=test.msg)
+
+
+STATE_INTACT_TESTS: list[AdminTestCase] = [
+    AdminTestCase(
+        "rejected_read_keeps_write_concern",
+        setup_commands=(
+            {
+                "setDefaultRWConcern": 1,
+                "defaultReadConcern": {"level": "local"},
+                "defaultWriteConcern": {"w": "majority"},
+            },
+        ),
+        command={
+            "setDefaultRWConcern": 1,
+            "defaultReadConcern": {"level": "snapshot"},
+            "defaultWriteConcern": {"w": 1},
+        },
+        msg="Invalid read concern must not persist the valid write concern",
+    ),
+    AdminTestCase(
+        "rejected_write_keeps_read_concern",
+        setup_commands=(
+            {
+                "setDefaultRWConcern": 1,
+                "defaultReadConcern": {"level": "local"},
+                "defaultWriteConcern": {"w": "majority"},
+            },
+        ),
+        command={
+            "setDefaultRWConcern": 1,
+            "defaultReadConcern": {"level": "majority"},
+            "defaultWriteConcern": {"w": 0},
+        },
+        msg="Invalid write concern must not persist the valid read concern",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(STATE_INTACT_TESTS))
+def test_setDefaultRWConcern_failed_set_leaves_defaults_unchanged(collection, test):
+    """A rejected setDefaultRWConcern must not persist the valid half sent with it."""
+    for setup in test.setup_commands:
+        execute_admin_command(collection, setup)
+    before = execute_admin_command(collection, {"getDefaultRWConcern": 1})
+
+    execute_admin_command(collection, test.command)
+
+    after = execute_admin_command(collection, {"getDefaultRWConcern": 1})
+    assertResult(
+        after,
+        expected={
+            "defaultReadConcern": Eq(before["defaultReadConcern"]),
+            "defaultWriteConcern": Eq(before["defaultWriteConcern"]),
+            "updateOpTime": Eq(before["updateOpTime"]),
+        },
+        raw_res=True,
+        msg=test.msg,
+    )
 
 
 def test_setDefaultRWConcern_non_admin_database_rejected(collection):
