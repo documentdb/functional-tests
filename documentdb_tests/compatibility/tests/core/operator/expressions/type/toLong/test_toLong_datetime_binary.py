@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Int64
+from bson import Binary, Code, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -196,6 +196,12 @@ _TOLONG_BINARY_ERROR_TESTS: list[ExpressionTestCase] = [
 # $literal to prevent MongoDB from interpreting them as expression syntax. The remaining
 # unsupported BSON types (ObjectId, Regex, Timestamp, Code, MinKey, MaxKey) are covered
 # by generate_bson_rejection_test_cases() in test_toLong_return_type.py.
+#
+# CodeWithScope (BSON type 0x0f) is distinct from JavaScript/Code (0x0d) and is not
+# represented in BsonType samples, so it is tested explicitly here.
+#
+# The nested-array case wraps its value in $literal so the outer single-element array
+# can be unwrapped by the arity rule, leaving the inner array as the actual argument.
 _TOLONG_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "type_object",
@@ -207,6 +213,18 @@ _TOLONG_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
         "type_array",
         msg="Array value (from $literal) is a conversion failure",
         expression={"$toLong": {"$literal": [1, 2]}},
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
+    ExpressionTestCase(
+        "type_code_with_scope",
+        msg="CodeWithScope (BSON 0x0f) is a conversion failure",
+        expression={"$toLong": Code("x", {})},
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
+    ExpressionTestCase(
+        "type_nested_array",
+        msg="Outer single-element array unwraps at parse time; inner array arg is a conversion failure",  # noqa: E501
+        expression={"$toLong": [["42"]]},
         error_code=CONVERSION_FAILURE_ERROR,
     ),
 ]
