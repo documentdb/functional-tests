@@ -10,6 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accum
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy, materialize
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_NEGATIVE_ZERO,
@@ -158,7 +159,7 @@ SUM_INTEGER_BOUNDARY_TESTS: list[AccumulatorTestCase] = [
 SUM_LARGE_GROUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "large_group_10k_int1",
-        docs=[{"v": 1} for _ in range(10_000)],
+        docs=lazy(lambda: [{"v": 1} for _ in range(10_000)]),
         pipeline=[
             {"$group": {"_id": None, "result": {"$sum": "$v"}}},
             {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
@@ -175,7 +176,7 @@ SUM_BOUNDARY_AND_LARGE_GROUP_TESTS = SUM_INTEGER_BOUNDARY_TESTS + SUM_LARGE_GROU
 def test_accumulator_sum_boundary(collection, test_case: AccumulatorTestCase):
     """Test $sum integer boundary values and large group accumulation."""
     if test_case.docs:
-        collection.insert_many(test_case.docs)
+        collection.insert_many(materialize(test_case.docs))
     result = execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
@@ -237,7 +238,7 @@ SUM_NEGATIVE_ZERO_TESTS: list[AccumulatorTestCase] = [
 def test_accumulator_sum_negative_zero(collection, test_case: AccumulatorTestCase):
     """Test $sum negative zero normalization."""
     if test_case.docs:
-        collection.insert_many(test_case.docs)
+        collection.insert_many(materialize(test_case.docs))
     result = execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},

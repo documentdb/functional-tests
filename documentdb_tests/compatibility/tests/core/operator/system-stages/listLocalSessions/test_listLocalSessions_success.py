@@ -10,6 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 
@@ -161,13 +162,15 @@ LISTLOCALSESSIONS_USERS_ELEMENT_TESTS: list[StageTestCase] = [
     ),
     StageTestCase(
         "users_large_array_10000",
-        pipeline=[
-            {
-                "$listLocalSessions": {
-                    "users": [{"user": f"u{i}", "db": "admin"} for i in range(10_000)]
+        pipeline=lazy(
+            lambda: [
+                {
+                    "$listLocalSessions": {
+                        "users": [{"user": f"u{i}", "db": "admin"} for i in range(10_000)]
+                    }
                 }
-            }
-        ],
+            ]
+        ),
         expected={"ok": Eq(1.0), "cursor": {"firstBatch": Eq([])}},
         msg="$listLocalSessions should accept a large users array",
     ),
@@ -217,7 +220,9 @@ LISTLOCALSESSIONS_USER_CONTENT_TESTS: list[StageTestCase] = [
     ),
     StageTestCase(
         "user_long",
-        pipeline=[{"$listLocalSessions": {"users": [{"user": "x" * 10_000, "db": "admin"}]}}],
+        pipeline=lazy(
+            lambda: [{"$listLocalSessions": {"users": [{"user": "x" * 10_000, "db": "admin"}]}}]
+        ),
         expected={"ok": Eq(1.0), "cursor": {"firstBatch": Eq([])}},
         msg="$listLocalSessions should accept a very long user with no "
         "operator-specific length limit",

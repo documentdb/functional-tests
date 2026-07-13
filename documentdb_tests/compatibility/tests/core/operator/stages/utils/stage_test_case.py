@@ -11,6 +11,7 @@ from typing import Any
 from pymongo.collection import Collection
 from pymongo.operations import IndexModel
 
+from documentdb_tests.framework.lazy_payload import materialize
 from documentdb_tests.framework.target_collection import TargetCollection
 from documentdb_tests.framework.test_case import BaseTestCase
 
@@ -48,7 +49,7 @@ def populate_collection(collection: Collection, test_case: StageTestCase) -> Col
 
     writable = test_case.target_collection.writable(collection, coll)
     if test_case.docs:
-        writable.insert_many(test_case.docs)
+        writable.insert_many(materialize(test_case.docs))
     if test_case.indexes:
         writable.create_indexes(test_case.indexes)
     return coll

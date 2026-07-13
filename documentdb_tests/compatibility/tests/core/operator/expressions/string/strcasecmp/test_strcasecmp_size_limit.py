@@ -7,6 +7,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -20,14 +21,14 @@ from .utils.strcasecmp_common import (
 STRCASECMP_SIZE_LIMIT_SUCCESS_TESTS: list[StrcasecmpTest] = [
     StrcasecmpTest(
         "size_both_half_limit_equal",
-        string1="a" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2),
-        string2="a" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2),
+        string1=lazy(lambda: "a" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2)),
+        string2=lazy(lambda: "a" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2)),
         expected=0,
         msg="$strcasecmp should return 0 for identical large strings",
     ),
     StrcasecmpTest(
         "size_one_under_vs_short",
-        string1="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        string1=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         string2="a",
         expected=1,
         msg="$strcasecmp should detect length difference with one string near the size limit",
@@ -38,7 +39,7 @@ STRCASECMP_SIZE_LIMIT_SUCCESS_TESTS: list[StrcasecmpTest] = [
 STRCASECMP_SIZE_LIMIT_ERROR_TESTS: list[StrcasecmpTest] = [
     StrcasecmpTest(
         "size_at_limit",
-        string1="a" * STRING_SIZE_LIMIT_BYTES,
+        string1=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         string2="a",
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$strcasecmp should reject a string at the size limit",

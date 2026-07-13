@@ -16,6 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.query.utils.query_test_c
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 
 SCALAR_MATCHING_TESTS: list[QueryTestCase] = [
@@ -388,9 +389,9 @@ def test_all_null_and_missing(collection, test):
 LARGE_ARRAY_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="10000_elements_match",
-        filter={"a": {"$all": list(range(10000))}},
+        filter=lazy(lambda: {"a": {"$all": list(range(10000))}}),
         doc=[{"_id": 1, "a": list(range(10000))}],
-        expected=[{"_id": 1, "a": list(range(10000))}],
+        expected=lazy(lambda: [{"_id": 1, "a": list(range(10000))}]),
         msg="$all with 10000 elements should match field with 10000 matching elements",
     ),
     QueryTestCase(
