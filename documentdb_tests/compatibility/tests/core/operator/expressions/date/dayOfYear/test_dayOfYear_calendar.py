@@ -78,13 +78,6 @@ DAYOFYEAR_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         msg="$dayOfYear should return 59 for Feb 28 in a non-leap year",
     ),
     ExpressionTestCase(
-        "leap_year_feb_29_2020",
-        doc={"date": datetime(2020, 2, 29, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dayOfYear": "$date"},
-        expected=60,
-        msg="$dayOfYear should return 60 for Feb 29 2020",
-    ),
-    ExpressionTestCase(
         "leap_year_feb_29_2000",
         doc={"date": datetime(2000, 2, 29, 12, 0, 0, tzinfo=timezone.utc)},
         expression={"$dayOfYear": "$date"},

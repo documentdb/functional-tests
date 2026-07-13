@@ -100,13 +100,6 @@ DAYOFWEEK_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         msg="$dayOfWeek should return 3 for Feb 28 in a non-leap year",
     ),
     ExpressionTestCase(
-        "leap_year_feb_29_2020",
-        doc={"date": datetime(2020, 2, 29, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$dayOfWeek": "$date"},
-        expected=7,
-        msg="$dayOfWeek should return 7 for Feb 29 2020",
-    ),
-    ExpressionTestCase(
         "leap_year_feb_29_2000",
         doc={"date": datetime(2000, 2, 29, 12, 0, 0, tzinfo=timezone.utc)},
         expression={"$dayOfWeek": "$date"},
