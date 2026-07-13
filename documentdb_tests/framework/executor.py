@@ -8,6 +8,8 @@ from typing import Any, Dict
 
 from bson.codec_options import CodecOptions
 
+from documentdb_tests.framework.lazy_payload import materialize
+
 TZ_AWARE_CODEC: CodecOptions = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
 
 
@@ -27,7 +29,7 @@ def execute_command(collection, command: Dict, codec_options=TZ_AWARE_CODEC, ses
     """
     try:
         db = collection.database
-        result = db.command(command, codec_options=codec_options, session=session)
+        result = db.command(materialize(command), codec_options=codec_options, session=session)
         return result
     except Exception as e:
         return e
@@ -47,7 +49,7 @@ def execute_admin_command(collection, command: Dict, session=None) -> Any:
     """
     try:
         db = collection.database.client.admin
-        result = db.command(command, session=session)
+        result = db.command(materialize(command), session=session)
         return result
     except Exception as e:
         return e
