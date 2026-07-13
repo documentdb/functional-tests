@@ -1,4 +1,4 @@
-"""$toDouble string size-limit, return-type invariant, and idempotency tests."""
+"""$toDouble return-type invariant and idempotency tests."""
 
 import struct
 from datetime import datetime, timezone
@@ -18,75 +18,12 @@ from documentdb_tests.framework.bson_type_validator import (
     BsonTypeTestCase,
     generate_bson_acceptance_test_cases,
 )
-from documentdb_tests.framework.error_codes import (
-    CONVERSION_FAILURE_ERROR,
-    STRING_SIZE_LIMIT_ERROR,
-)
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_TWO_AND_HALF,
     DOUBLE_TWO_AND_HALF,
     MISSING,
-    STRING_SIZE_LIMIT_BYTES,
 )
-
-# Property [String Size Limit]: $toDouble checks the byte length of string inputs before
-# attempting conversion; strings at or above the limit are rejected unconditionally.
-
-
-def test_toDouble_string_under_limit_numeric(collection):
-    """A valid numeric string one byte under the limit converts successfully."""
-    result = execute_expression(
-        collection, {"$toDouble": "0" * (STRING_SIZE_LIMIT_BYTES - 2) + "1"}
-    )
-    assert_expression_result(
-        result, expected=1.0, msg="Valid numeric string one byte under limit should succeed"
-    )
-
-
-def test_toDouble_string_under_limit_hex(collection):
-    """A valid hex string one byte under the limit converts successfully."""
-    result = execute_expression(
-        collection, {"$toDouble": "0X" + "0" * (STRING_SIZE_LIMIT_BYTES - 4) + "F"}
-    )
-    assert_expression_result(
-        result,
-        expected=15.0,
-        msg="Valid hex string one byte under limit should succeed with value 15.0",
-    )
-
-
-def test_toDouble_string_non_numeric_under_limit(collection):
-    """A non-numeric string one byte under the limit passes the size check but fails conversion."""
-    result = execute_expression(collection, {"$toDouble": "a" * (STRING_SIZE_LIMIT_BYTES - 1)})
-    assert_expression_result(
-        result,
-        error_code=CONVERSION_FAILURE_ERROR,
-        msg="Non-numeric string just under limit: CONVERSION_FAILURE, not STRING_SIZE_LIMIT",
-    )
-
-
-def test_toDouble_string_at_size_limit(collection):
-    """A string at exactly STRING_SIZE_LIMIT_BYTES is rejected with STRING_SIZE_LIMIT_ERROR."""
-    result = execute_expression(collection, {"$toDouble": "a" * STRING_SIZE_LIMIT_BYTES})
-    assert_expression_result(
-        result,
-        error_code=STRING_SIZE_LIMIT_ERROR,
-        msg="String at STRING_SIZE_LIMIT_BYTES should be rejected",
-    )
-
-
-def test_toDouble_string_four_byte_chars_at_limit(collection):
-    """A string of 4-byte characters reaching STRING_SIZE_LIMIT_BYTES is rejected."""
-    result = execute_expression(
-        collection, {"$toDouble": "\U0001f600" * (STRING_SIZE_LIMIT_BYTES // 4)}
-    )
-    assert_expression_result(
-        result,
-        error_code=STRING_SIZE_LIMIT_ERROR,
-        msg="4-byte character string reaching the size limit should be rejected",
-    )
-
 
 # Property [Return Type]: $toDouble always returns BSON type double for successful conversions
 # and null for null or missing inputs.

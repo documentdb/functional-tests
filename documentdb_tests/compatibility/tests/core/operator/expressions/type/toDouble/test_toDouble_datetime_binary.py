@@ -35,11 +35,7 @@ _f64_neg_one = Binary(struct.pack("<d", -1.0))
 _f64_1_5 = Binary(struct.pack("<d", DOUBLE_ONE_AND_HALF))
 
 # Property [Datetime]: $toDouble converts datetime to milliseconds since Unix epoch as double.
-# Property [Binary]: $toDouble interprets 4-byte binary as IEEE 754 float32 and 8-byte binary
-# as IEEE 754 float64; other lengths are conversion failures.
-# Property [Unsupported Types]: $toDouble fails with a conversion error for BSON types it
-# cannot convert (object, ObjectId, regex, timestamp, code, MinKey, MaxKey, array).
-TODOUBLE_DATETIME_BINARY_TESTS: list[ExpressionTestCase] = [
+_TODOUBLE_DATETIME_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "datetime_epoch",
         msg="Epoch datetime converts to 0.0 ms",
@@ -64,6 +60,11 @@ TODOUBLE_DATETIME_BINARY_TESTS: list[ExpressionTestCase] = [
         expression={"$toDouble": datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)},
         expected=1704067200000.0,
     ),
+]
+
+# Property [Binary]: $toDouble interprets 4-byte binary as IEEE 754 float32 and 8-byte binary
+# as IEEE 754 float64; other lengths are conversion failures.
+_TODOUBLE_BINARY_VALID_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "binary_f32_zero",
         msg="4-byte float32 zero binary converts to 0.0",
@@ -112,6 +113,9 @@ TODOUBLE_DATETIME_BINARY_TESTS: list[ExpressionTestCase] = [
         expression={"$toDouble": _f64_1_5},
         expected=DOUBLE_ONE_AND_HALF,
     ),
+]
+
+_TODOUBLE_BINARY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "binary_empty",
         msg="0-byte binary is a conversion failure",
@@ -136,6 +140,11 @@ TODOUBLE_DATETIME_BINARY_TESTS: list[ExpressionTestCase] = [
         expression={"$toDouble": Binary(b"\x00\x00\x00\x00\x00")},
         error_code=CONVERSION_FAILURE_ERROR,
     ),
+]
+
+# Property [Unsupported Types]: $toDouble fails with a conversion error for BSON types it
+# cannot convert (object, ObjectId, regex, timestamp, code, MinKey, MaxKey, array).
+_TODOUBLE_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "type_object",
         msg="Object BSON type is a conversion failure",
@@ -185,6 +194,13 @@ TODOUBLE_DATETIME_BINARY_TESTS: list[ExpressionTestCase] = [
         error_code=CONVERSION_FAILURE_ERROR,
     ),
 ]
+
+TODOUBLE_DATETIME_BINARY_TESTS = (
+    _TODOUBLE_DATETIME_TESTS
+    + _TODOUBLE_BINARY_VALID_TESTS
+    + _TODOUBLE_BINARY_ERROR_TESTS
+    + _TODOUBLE_UNSUPPORTED_TYPE_TESTS
+)
 
 
 @pytest.mark.parametrize("test", pytest_params(TODOUBLE_DATETIME_BINARY_TESTS))

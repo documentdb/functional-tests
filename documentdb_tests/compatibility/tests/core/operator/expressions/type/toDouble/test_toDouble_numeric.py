@@ -35,11 +35,7 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [Null and Missing]: $toDouble returns null for null and missing inputs.
-# Property [Boolean]: $toDouble converts true to 1.0 and false to +0.0.
-# Property [Int32]: $toDouble converts int32 values to their exact double equivalents.
-# Property [Int64]: $toDouble converts int64 values, with precision loss above 2^53.
-# Property [Double Identity]: $toDouble is the identity function for double inputs.
-TODOUBLE_NUMERIC_TESTS: list[ExpressionTestCase] = [
+_TODOUBLE_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "null", msg="Should return null for null", expression={"$toDouble": None}, expected=None
     ),
@@ -49,6 +45,10 @@ TODOUBLE_NUMERIC_TESTS: list[ExpressionTestCase] = [
         expression={"$toDouble": MISSING},
         expected=None,
     ),
+]
+
+# Property [Boolean]: $toDouble converts true to 1.0 and false to +0.0.
+_TODOUBLE_BOOL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "bool_true", msg="True converts to 1.0", expression={"$toDouble": True}, expected=1.0
     ),
@@ -58,6 +58,10 @@ TODOUBLE_NUMERIC_TESTS: list[ExpressionTestCase] = [
         expression={"$toDouble": False},
         expected=DOUBLE_ZERO,
     ),
+]
+
+# Property [Int32]: $toDouble converts int32 values to their exact double equivalents.
+_TODOUBLE_INT32_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int32_zero",
         msg="int32 zero converts to 0.0",
@@ -88,6 +92,10 @@ TODOUBLE_NUMERIC_TESTS: list[ExpressionTestCase] = [
         expression={"$toDouble": INT32_MIN},
         expected=-2147483648.0,
     ),
+]
+
+# Property [Int64]: $toDouble converts int64 values, with precision loss above 2^53.
+_TODOUBLE_INT64_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int64_zero",
         msg="int64 zero converts to 0.0",
@@ -133,6 +141,10 @@ TODOUBLE_NUMERIC_TESTS: list[ExpressionTestCase] = [
         expression={"$toDouble": INT64_MIN},
         expected=-DOUBLE_FROM_INT64_MAX,
     ),
+]
+
+# Property [Double Identity]: $toDouble is the identity function for double inputs.
+_TODOUBLE_DOUBLE_IDENTITY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_zero",
         msg="0.0 passes through unchanged",
@@ -188,6 +200,14 @@ TODOUBLE_NUMERIC_TESTS: list[ExpressionTestCase] = [
         expected=DOUBLE_MIN_NEGATIVE_SUBNORMAL,
     ),
 ]
+
+TODOUBLE_NUMERIC_TESTS = (
+    _TODOUBLE_NULL_MISSING_TESTS
+    + _TODOUBLE_BOOL_TESTS
+    + _TODOUBLE_INT32_TESTS
+    + _TODOUBLE_INT64_TESTS
+    + _TODOUBLE_DOUBLE_IDENTITY_TESTS
+)
 
 # NaN tests are kept separate because NaN != NaN under IEEE 754,
 # so they require assertSuccessNaN rather than assert_expression_result.
