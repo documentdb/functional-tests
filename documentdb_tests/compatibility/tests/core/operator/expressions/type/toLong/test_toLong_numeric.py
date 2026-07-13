@@ -16,16 +16,19 @@ from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DOUBLE_FROM_INT64_MAX,
+    DOUBLE_HALF,
     DOUBLE_MAX_FITTING_INT64,
     DOUBLE_MIN_SUBNORMAL,
     DOUBLE_NEAR_MAX,
     DOUBLE_NEAR_MIN,
+    DOUBLE_NEGATIVE_HALF,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NAN,
     FLOAT_NEGATIVE_INFINITY,
     INT32_MAX,
     INT32_MIN,
+    INT32_ZERO,
     INT64_MAX,
     INT64_MAX_MINUS_1,
     INT64_MIN,
@@ -68,7 +71,7 @@ _TOLONG_INT32_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int32_zero",
         msg="int32 zero widens to Int64(0)",
-        expression={"$toLong": 0},
+        expression={"$toLong": INT32_ZERO},
         expected=INT64_ZERO,
     ),
     ExpressionTestCase(
@@ -167,13 +170,13 @@ _TOLONG_DOUBLE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_half_positive",
         msg="0.5 is truncated toward zero to Int64(0)",
-        expression={"$toLong": 0.5},
+        expression={"$toLong": DOUBLE_HALF},
         expected=INT64_ZERO,
     ),
     ExpressionTestCase(
         "double_half_negative",
         msg="-0.5 is truncated toward zero to Int64(0)",
-        expression={"$toLong": -0.5},
+        expression={"$toLong": DOUBLE_NEGATIVE_HALF},
         expected=INT64_ZERO,
     ),
     ExpressionTestCase(
