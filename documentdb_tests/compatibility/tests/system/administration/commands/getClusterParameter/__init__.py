@@ -1,0 +1,1 @@
+"""getClusterParameter command tests."""
