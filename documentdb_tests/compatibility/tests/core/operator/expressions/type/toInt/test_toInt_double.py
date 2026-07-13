@@ -12,6 +12,8 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
+    DOUBLE_HALF,
+    DOUBLE_NEGATIVE_HALF,
     DOUBLE_NEGATIVE_ZERO,
     DOUBLE_ZERO,
     FLOAT_INFINITY,
@@ -19,6 +21,7 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NEGATIVE_INFINITY,
     INT32_MAX,
     INT32_MIN,
+    INT32_ZERO,
 )
 
 # Property [Double Truncation]: $toInt truncates the fractional part toward zero.
@@ -27,13 +30,13 @@ _TOINT_DOUBLE_TRUNCATION_TESTS: list[ExpressionTestCase] = [
         "double_zero",
         msg="0.0 converts to 0",
         expression={"$toInt": DOUBLE_ZERO},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "double_neg_zero",
         msg="-0.0 converts to 0",
         expression={"$toInt": DOUBLE_NEGATIVE_ZERO},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "double_one",
@@ -62,14 +65,14 @@ _TOINT_DOUBLE_TRUNCATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_half",
         msg="0.5 is truncated toward zero to 0",
-        expression={"$toInt": 0.5},
-        expected=0,
+        expression={"$toInt": DOUBLE_HALF},
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "double_neg_half",
         msg="-0.5 is truncated toward zero to 0",
-        expression={"$toInt": -0.5},
-        expected=0,
+        expression={"$toInt": DOUBLE_NEGATIVE_HALF},
+        expected=INT32_ZERO,
     ),
 ]
 

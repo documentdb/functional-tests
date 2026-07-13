@@ -14,7 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import INT32_MAX, INT32_MIN
+from documentdb_tests.framework.test_constants import INT32_MAX, INT32_MIN, INT32_ZERO
 
 # Property [Binary Conversion]: Binary values of exactly 1, 2, or 4 bytes are
 # interpreted as signed little-endian integers, regardless of subtype (except subtype 2,
@@ -24,7 +24,7 @@ _TOINT_BINARY_VALID_TESTS: list[ExpressionTestCase] = [
         "binary_1byte_zero",
         msg="1-byte Binary 0x00 converts to 0",
         expression={"$toInt": Binary(b"\x00", 0)},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "binary_1byte_max",
@@ -72,7 +72,7 @@ _TOINT_BINARY_VALID_TESTS: list[ExpressionTestCase] = [
         "binary_subtype_2_empty_payload",
         msg="Subtype 2 empty payload (4-byte length header only on wire) converts to 0",
         expression={"$toInt": Binary(b"", 2)},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "binary_subtype_3",

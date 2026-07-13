@@ -17,9 +17,11 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_TRAILING_ZERO,
     DECIMAL128_ZERO,
     INT32_MAX,
     INT32_MIN,
+    INT32_ZERO,
 )
 
 # Property [Decimal128 Truncation]: $toInt truncates Decimal128 toward zero.
@@ -28,13 +30,13 @@ _TOINT_DECIMAL128_TRUNCATION_TESTS: list[ExpressionTestCase] = [
         "dec128_zero",
         msg="Decimal128 zero converts to 0",
         expression={"$toInt": DECIMAL128_ZERO},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "dec128_neg_zero",
         msg="Decimal128 -0 converts to 0",
         expression={"$toInt": DECIMAL128_NEGATIVE_ZERO},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "dec128_one",
@@ -63,7 +65,7 @@ _TOINT_DECIMAL128_TRUNCATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "dec128_trailing_zero",
         msg="Decimal128 1.0 (trailing zero) converts to 1",
-        expression={"$toInt": Decimal128("1.0")},
+        expression={"$toInt": DECIMAL128_TRAILING_ZERO},
         expected=1,
     ),
 ]

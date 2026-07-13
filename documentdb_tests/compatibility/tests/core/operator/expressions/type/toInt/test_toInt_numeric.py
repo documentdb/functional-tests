@@ -41,7 +41,7 @@ _TOINT_BOOL_TESTS: list[ExpressionTestCase] = [
         "bool_true", msg="True converts to 1", expression={"$toInt": True}, expected=1
     ),
     ExpressionTestCase(
-        "bool_false", msg="False converts to 0", expression={"$toInt": False}, expected=0
+        "bool_false", msg="False converts to 0", expression={"$toInt": False}, expected=INT32_ZERO
     ),
 ]
 
@@ -51,7 +51,7 @@ _TOINT_INT32_TESTS: list[ExpressionTestCase] = [
         "int32_zero",
         msg="int32 zero passes through unchanged",
         expression={"$toInt": INT32_ZERO},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "int32_one",
@@ -85,7 +85,7 @@ _TOINT_INT64_TESTS: list[ExpressionTestCase] = [
         "int64_zero",
         msg="int64 zero converts to int32 0",
         expression={"$toInt": INT64_ZERO},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "int64_one",

@@ -10,8 +10,14 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR, STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import INT32_MAX, INT32_MIN, STRING_SIZE_LIMIT_BYTES
+from documentdb_tests.framework.test_constants import (
+    INT32_MAX,
+    INT32_MIN,
+    INT32_ZERO,
+    STRING_SIZE_LIMIT_BYTES,
+)
 
 # Property [String Conversion]: a base-10 integer string within int32 range converts to the
 # corresponding int32 value; leading zeros, a leading '+', and a leading '-' are accepted.
@@ -20,7 +26,7 @@ _TOINT_STRING_VALID_TESTS: list[ExpressionTestCase] = [
         "str_zero",
         msg="'0' converts to 0",
         expression={"$toInt": "0"},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "str_positive",
@@ -68,13 +74,13 @@ _TOINT_STRING_VALID_TESTS: list[ExpressionTestCase] = [
         "str_minus_zero",
         msg="'-0' converts to 0",
         expression={"$toInt": "-0"},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "str_plus_zero",
         msg="'+0' converts to 0",
         expression={"$toInt": "+0"},
-        expected=0,
+        expected=INT32_ZERO,
     ),
     ExpressionTestCase(
         "str_int32_max",
@@ -439,43 +445,38 @@ def test_toInt_string(collection, test: ExpressionTestCase):
 
 # Property [String Size Limit]: $toInt checks the byte length of string inputs before
 # attempting conversion; strings at or above the limit are rejected unconditionally.
-
-
-def test_toInt_string_under_limit_valid(collection):
-    """A valid integer string one byte under the limit converts successfully."""
-    result = execute_expression(collection, {"$toInt": "0" * (STRING_SIZE_LIMIT_BYTES - 2) + "1"})
-    assert_expression_result(
-        result, expected=1, msg="Valid integer string one byte under limit should succeed"
-    )
-
-
-def test_toInt_string_non_numeric_under_limit(collection):
-    """A non-numeric string one byte under the limit passes the size check but fails conversion."""
-    result = execute_expression(collection, {"$toInt": "a" * (STRING_SIZE_LIMIT_BYTES - 1)})
-    assert_expression_result(
-        result,
+TOINT_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "size_one_under_valid",
+        msg="Valid integer string one byte under limit converts successfully",
+        expression=lazy(lambda: {"$toInt": "0" * (STRING_SIZE_LIMIT_BYTES - 2) + "1"}),
+        expected=1,
+    ),
+    ExpressionTestCase(
+        "size_one_under_non_numeric",
+        msg="Non-numeric string one byte under limit passes size check but fails conversion",
+        expression=lazy(lambda: {"$toInt": "a" * (STRING_SIZE_LIMIT_BYTES - 1)}),
         error_code=CONVERSION_FAILURE_ERROR,
-        msg="Non-numeric string just under limit: CONVERSION_FAILURE, not STRING_SIZE_LIMIT",
-    )
-
-
-def test_toInt_string_at_size_limit(collection):
-    """A string at exactly STRING_SIZE_LIMIT_BYTES is rejected with STRING_SIZE_LIMIT_ERROR."""
-    result = execute_expression(collection, {"$toInt": "a" * STRING_SIZE_LIMIT_BYTES})
-    assert_expression_result(
-        result,
+    ),
+    ExpressionTestCase(
+        "size_at_limit",
+        msg="String at STRING_SIZE_LIMIT_BYTES is rejected with STRING_SIZE_LIMIT_ERROR",
+        expression=lazy(lambda: {"$toInt": "a" * STRING_SIZE_LIMIT_BYTES}),
         error_code=STRING_SIZE_LIMIT_ERROR,
-        msg="String at STRING_SIZE_LIMIT_BYTES should be rejected",
-    )
-
-
-def test_toInt_string_four_byte_chars_at_limit(collection):
-    """A string of 4-byte characters reaching STRING_SIZE_LIMIT_BYTES is rejected."""
-    result = execute_expression(
-        collection, {"$toInt": "\U0001f600" * (STRING_SIZE_LIMIT_BYTES // 4)}
-    )
-    assert_expression_result(
-        result,
+    ),
+    ExpressionTestCase(
+        "size_at_limit_four_byte",
+        msg="4-byte character string reaching STRING_SIZE_LIMIT_BYTES is rejected",
+        expression=lazy(lambda: {"$toInt": "\U0001f600" * (STRING_SIZE_LIMIT_BYTES // 4)}),
         error_code=STRING_SIZE_LIMIT_ERROR,
-        msg="4-byte character string reaching the size limit should be rejected",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(TOINT_STRING_SIZE_LIMIT_TESTS))
+def test_toInt_string_size_limit(collection, test: ExpressionTestCase):
+    """$toInt validates string byte length before conversion."""
+    result = execute_expression(collection, test.expression)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

@@ -10,6 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR, STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DOUBLE_HALF,
@@ -267,57 +268,44 @@ def test_toDouble_string(collection, test: ExpressionTestCase):
 
 # Property [String Size Limit]: $toDouble checks the byte length of string inputs before
 # attempting conversion; strings at or above the limit are rejected unconditionally.
-
-
-def test_toDouble_string_under_limit_numeric(collection):
-    """A valid numeric string one byte under the limit converts successfully."""
-    result = execute_expression(
-        collection, {"$toDouble": "0" * (STRING_SIZE_LIMIT_BYTES - 2) + "1"}
-    )
-    assert_expression_result(
-        result, expected=1.0, msg="Valid numeric string one byte under limit should succeed"
-    )
-
-
-def test_toDouble_string_under_limit_hex(collection):
-    """A valid hex string one byte under the limit converts successfully."""
-    result = execute_expression(
-        collection, {"$toDouble": "0X" + "0" * (STRING_SIZE_LIMIT_BYTES - 4) + "F"}
-    )
-    assert_expression_result(
-        result,
+TODOUBLE_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "size_one_under_valid",
+        msg="Valid numeric string one byte under limit converts successfully",
+        expression=lazy(lambda: {"$toDouble": "0" * (STRING_SIZE_LIMIT_BYTES - 2) + "1"}),
+        expected=1.0,
+    ),
+    ExpressionTestCase(
+        "size_one_under_hex",
+        msg="Valid hex string one byte under limit converts successfully",
+        expression=lazy(lambda: {"$toDouble": "0X" + "0" * (STRING_SIZE_LIMIT_BYTES - 4) + "F"}),
         expected=15.0,
-        msg="Valid hex string one byte under limit should succeed with value 15.0",
-    )
-
-
-def test_toDouble_string_non_numeric_under_limit(collection):
-    """A non-numeric string one byte under the limit passes the size check but fails conversion."""
-    result = execute_expression(collection, {"$toDouble": "a" * (STRING_SIZE_LIMIT_BYTES - 1)})
-    assert_expression_result(
-        result,
+    ),
+    ExpressionTestCase(
+        "size_one_under_non_numeric",
+        msg="Non-numeric string one byte under limit passes size check but fails conversion",
+        expression=lazy(lambda: {"$toDouble": "a" * (STRING_SIZE_LIMIT_BYTES - 1)}),
         error_code=CONVERSION_FAILURE_ERROR,
-        msg="Non-numeric string just under limit: CONVERSION_FAILURE, not STRING_SIZE_LIMIT",
-    )
-
-
-def test_toDouble_string_at_size_limit(collection):
-    """A string at exactly STRING_SIZE_LIMIT_BYTES is rejected with STRING_SIZE_LIMIT_ERROR."""
-    result = execute_expression(collection, {"$toDouble": "a" * STRING_SIZE_LIMIT_BYTES})
-    assert_expression_result(
-        result,
+    ),
+    ExpressionTestCase(
+        "size_at_limit",
+        msg="String at STRING_SIZE_LIMIT_BYTES is rejected with STRING_SIZE_LIMIT_ERROR",
+        expression=lazy(lambda: {"$toDouble": "a" * STRING_SIZE_LIMIT_BYTES}),
         error_code=STRING_SIZE_LIMIT_ERROR,
-        msg="String at STRING_SIZE_LIMIT_BYTES should be rejected",
-    )
-
-
-def test_toDouble_string_four_byte_chars_at_limit(collection):
-    """A string of 4-byte characters reaching STRING_SIZE_LIMIT_BYTES is rejected."""
-    result = execute_expression(
-        collection, {"$toDouble": "\U0001f600" * (STRING_SIZE_LIMIT_BYTES // 4)}
-    )
-    assert_expression_result(
-        result,
+    ),
+    ExpressionTestCase(
+        "size_at_limit_four_byte",
+        msg="4-byte character string reaching STRING_SIZE_LIMIT_BYTES is rejected",
+        expression=lazy(lambda: {"$toDouble": "\U0001f600" * (STRING_SIZE_LIMIT_BYTES // 4)}),
         error_code=STRING_SIZE_LIMIT_ERROR,
-        msg="4-byte character string reaching the size limit should be rejected",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(TODOUBLE_STRING_SIZE_LIMIT_TESTS))
+def test_toDouble_string_size_limit(collection, test: ExpressionTestCase):
+    """$toDouble validates string byte length before conversion."""
+    result = execute_expression(collection, test.expression)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

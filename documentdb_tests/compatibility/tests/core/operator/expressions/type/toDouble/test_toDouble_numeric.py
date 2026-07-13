@@ -27,6 +27,7 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NEGATIVE_INFINITY,
     INT32_MAX,
     INT32_MIN,
+    INT32_ZERO,
     INT64_MAX,
     INT64_MAX_MINUS_1,
     INT64_MIN,
@@ -65,7 +66,7 @@ _TODOUBLE_INT32_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int32_zero",
         msg="int32 zero converts to 0.0",
-        expression={"$toDouble": 0},
+        expression={"$toDouble": INT32_ZERO},
         expected=DOUBLE_ZERO,
     ),
     ExpressionTestCase(
