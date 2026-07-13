@@ -14,6 +14,16 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.error_codes import DATEFROMPARTS_INVALID_TYPE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Literal Input]: inline literal operands compute the correct value.
+DATEFROMPARTS_LITERAL_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "literal_parts",
+        expression={"$dateFromParts": {"year": 2021, "month": 1, "day": 1}},
+        expected=datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+        msg="$dateFromParts should build the correct date from inline literal parts",
+    ),
+]
+
 # Property [Field References]: field values may be supplied through field-path references.
 DATEFROMPARTS_FIELD_REF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -77,14 +87,16 @@ DATEFROMPARTS_EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
 DATEFROMPARTS_RETURN_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "return_type_date",
-        expression={"$type": {"$dateFromParts": {"year": 2021, "month": 1, "day": 1}}},
+        doc={"y": 2021, "m": 1, "d": 1},
+        expression={"$type": {"$dateFromParts": {"year": "$y", "month": "$m", "day": "$d"}}},
         expected="date",
         msg="$dateFromParts should return a date",
     ),
 ]
 
 DATEFROMPARTS_EXPRESSIONS_TESTS: list[ExpressionTestCase] = (
-    DATEFROMPARTS_FIELD_REF_TESTS
+    DATEFROMPARTS_LITERAL_TESTS
+    + DATEFROMPARTS_FIELD_REF_TESTS
     + DATEFROMPARTS_ARRAY_PATH_TESTS
     + DATEFROMPARTS_EXPRESSION_INPUT_TESTS
     + DATEFROMPARTS_RETURN_TYPE_TESTS

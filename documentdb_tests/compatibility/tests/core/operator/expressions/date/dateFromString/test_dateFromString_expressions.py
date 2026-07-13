@@ -15,6 +15,16 @@ from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DATE_EPOCH
 
+# Property [Literal Input]: an inline literal dateString parses to the correct date.
+DATEFROMSTRING_LITERAL_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "literal_dateString",
+        expression={"$dateFromString": {"dateString": "2024-06-15"}},
+        expected=datetime(2024, 6, 15, 0, 0, 0, tzinfo=timezone.utc),
+        msg="$dateFromString should parse the correct date from an inline literal dateString",
+    ),
+]
+
 # Property [Field References]: each argument may be supplied through a field-path reference.
 DATEFROMSTRING_FIELD_REF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -120,14 +130,16 @@ DATEFROMSTRING_ARRAY_PATH_TESTS: list[ExpressionTestCase] = [
 DATEFROMSTRING_RETURN_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "return_type_date",
-        expression={"$type": {"$dateFromString": {"dateString": "2024-06-15"}}},
+        doc={"ds": "2024-06-15"},
+        expression={"$type": {"$dateFromString": {"dateString": "$ds"}}},
         expected="date",
         msg="$dateFromString should return a date",
     ),
 ]
 
 DATEFROMSTRING_EXPRESSIONS_TESTS: list[ExpressionTestCase] = (
-    DATEFROMSTRING_FIELD_REF_TESTS
+    DATEFROMSTRING_LITERAL_TESTS
+    + DATEFROMSTRING_FIELD_REF_TESTS
     + DATEFROMSTRING_MISSING_FIELD_TESTS
     + DATEFROMSTRING_EXPRESSION_INPUT_TESTS
     + DATEFROMSTRING_ARRAY_PATH_TESTS

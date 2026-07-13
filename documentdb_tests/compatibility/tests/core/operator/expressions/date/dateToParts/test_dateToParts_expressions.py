@@ -18,6 +18,24 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.error_codes import TYPE_MISMATCH_DATE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Literal Input]: an inline literal date yields the correct parts.
+DATETOPARTS_LITERAL_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "literal_date",
+        expression={"$dateToParts": {"date": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)}},
+        expected={
+            "year": 2024,
+            "month": 6,
+            "day": 15,
+            "hour": 12,
+            "minute": 0,
+            "second": 0,
+            "millisecond": 0,
+        },
+        msg="$dateToParts should return the correct parts for an inline literal date",
+    ),
+]
+
 # Property [Field References]: the date and timezone may be supplied through field-path references.
 DATETOPARTS_FIELD_REF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -144,18 +162,16 @@ DATETOPARTS_EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
 DATETOPARTS_RETURN_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "return_type",
-        expression={
-            "$type": {
-                "$dateToParts": {"date": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)}
-            }
-        },
+        doc={"date": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)},
+        expression={"$type": {"$dateToParts": {"date": "$date"}}},
         expected="object",
         msg="$dateToParts should return an object",
     ),
 ]
 
 DATETOPARTS_EXPRESSIONS_TESTS: list[ExpressionTestCase] = (
-    DATETOPARTS_FIELD_REF_TESTS
+    DATETOPARTS_LITERAL_TESTS
+    + DATETOPARTS_FIELD_REF_TESTS
     + DATETOPARTS_ARRAY_PATH_TESTS
     + DATETOPARTS_EXPRESSION_INPUT_TESTS
     + DATETOPARTS_RETURN_TYPE_TESTS
