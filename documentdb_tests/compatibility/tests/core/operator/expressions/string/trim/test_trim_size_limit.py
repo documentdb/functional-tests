@@ -7,6 +7,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -19,22 +20,24 @@ from .utils.trim_common import (
 TRIM_SIZE_LIMIT_SUCCESS_TESTS: list[TrimTest] = [
     TrimTest(
         "size_one_under",
-        input="a" * (STRING_SIZE_LIMIT_BYTES - 1),
-        expected="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        input=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
+        expected=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         msg="$trim should accept input one byte under the size limit",
     ),
     TrimTest(
         "size_one_under_2byte",
-        input="\u00e9" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2) + "a",
-        expected="\u00e9" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2) + "a",
+        input=lazy(lambda: "\u00e9" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2) + "a"),
+        expected=lazy(lambda: "\u00e9" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2) + "a"),
         msg="$trim should accept 2-byte character input one byte under the size limit",
     ),
     # Large input with many leading and trailing trim characters, just under the limit.
     TrimTest(
         "size_trim_both_sides",
-        input="a" * ((STRING_SIZE_LIMIT_BYTES - 6) // 2)
-        + "hello"
-        + "a" * ((STRING_SIZE_LIMIT_BYTES - 6) // 2),
+        input=lazy(
+            lambda: "a" * ((STRING_SIZE_LIMIT_BYTES - 6) // 2)
+            + "hello"
+            + "a" * ((STRING_SIZE_LIMIT_BYTES - 6) // 2)
+        ),
         chars="a",
         expected="hello",
         msg="$trim should trim many characters from both sides near the size limit",
@@ -46,13 +49,13 @@ TRIM_SIZE_LIMIT_SUCCESS_TESTS: list[TrimTest] = [
 TRIM_SIZE_LIMIT_ERROR_TESTS: list[TrimTest] = [
     TrimTest(
         "size_at_limit",
-        input="a" * STRING_SIZE_LIMIT_BYTES,
+        input=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$trim should reject input at the BSON string byte limit",
     ),
     TrimTest(
         "size_at_limit_2byte",
-        input="\u00e9" * (STRING_SIZE_LIMIT_BYTES // 2),
+        input=lazy(lambda: "\u00e9" * (STRING_SIZE_LIMIT_BYTES // 2)),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$trim should reject 2-byte character input at the BSON string byte limit",
     ),
