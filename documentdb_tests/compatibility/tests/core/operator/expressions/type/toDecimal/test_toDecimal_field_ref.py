@@ -102,6 +102,13 @@ TODECIMAL_FIELD_REF_TESTS: list[ExpressionTestCase] = [
         doc={"v": INT32_ZERO},
         expected=DECIMAL128_ZERO,
     ),
+    ExpressionTestCase(
+        "composite_array_path",
+        msg="$toDecimal fails when field path resolves to a composite array",
+        expression={"$toDecimal": "$a.b"},
+        doc={"a": [{"b": 1}, {"b": 2}]},
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
 ]
 
 # Property [Expression Input]: $toDecimal evaluates a nested expression before converting.
@@ -134,16 +141,6 @@ def test_toDecimal_field_ref(collection, test: ExpressionTestCase):
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
-
-
-def test_toDecimal_composite_array_path(collection):
-    """$toDecimal on a composite array path (array of objects) is a conversion failure."""
-    result = execute_expression_with_insert(
-        collection,
-        {"$toDecimal": "$a.b"},
-        {"a": [{"b": 1}, {"b": 2}]},
-    )
-    assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
 
 
 @pytest.mark.parametrize("test", pytest_params(TODECIMAL_EXPRESSION_INPUT_TESTS))

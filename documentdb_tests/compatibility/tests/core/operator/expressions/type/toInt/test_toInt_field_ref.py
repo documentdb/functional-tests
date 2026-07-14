@@ -87,6 +87,13 @@ TOINT_FIELD_REF_TESTS: list[ExpressionTestCase] = [
         doc={},
         expected=None,
     ),
+    ExpressionTestCase(
+        "composite_array_path",
+        msg="$toInt fails when field path resolves to a composite array",
+        expression={"$toInt": "$a.b"},
+        doc={"a": [{"b": 1}, {"b": 2}]},
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
 ]
 
 
@@ -97,16 +104,6 @@ def test_toInt_field_ref(collection, test: ExpressionTestCase):
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
-
-
-def test_toInt_composite_array_path(collection):
-    """$toInt on a composite array path (array of objects) is a conversion failure."""
-    result = execute_expression_with_insert(
-        collection,
-        {"$toInt": "$a.b"},
-        {"a": [{"b": 1}, {"b": 2}]},
-    )
-    assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
 
 
 # Property [Expression Input]: $toInt evaluates a nested expression before converting.

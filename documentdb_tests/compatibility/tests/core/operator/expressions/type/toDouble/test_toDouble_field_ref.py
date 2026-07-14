@@ -84,6 +84,13 @@ TODOUBLE_FIELD_REF_TESTS: list[ExpressionTestCase] = [
         doc={"v": DOUBLE_NEGATIVE_ZERO},
         expected=DOUBLE_NEGATIVE_ZERO,
     ),
+    ExpressionTestCase(
+        "composite_array_path",
+        msg="$toDouble fails when field path resolves to a composite array",
+        expression={"$toDouble": "$a.b"},
+        doc={"a": [{"b": 1.0}, {"b": 2.0}]},
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
 ]
 
 # Property [Expression Input]: $toDouble evaluates a nested expression before converting.
@@ -116,16 +123,6 @@ def test_toDouble_field_ref(collection, test: ExpressionTestCase):
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
-
-
-def test_toDouble_composite_array_path(collection):
-    """$toDouble on a composite array path (array of objects) is a conversion failure."""
-    result = execute_expression_with_insert(
-        collection,
-        {"$toDouble": "$a.b"},
-        {"a": [{"b": 1.0}, {"b": 2.0}]},
-    )
-    assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
 
 
 @pytest.mark.parametrize("test", pytest_params(TODOUBLE_EXPRESSION_INPUT_TESTS))

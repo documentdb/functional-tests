@@ -97,6 +97,13 @@ TOLONG_FIELD_REF_TESTS: list[ExpressionTestCase] = [
         doc={"v": INT64_MAX},
         expected=INT64_MAX,
     ),
+    ExpressionTestCase(
+        "composite_array_path",
+        msg="$toLong fails when field path resolves to a composite array",
+        expression={"$toLong": "$a.b"},
+        doc={"a": [{"b": 1}, {"b": 2}]},
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
 ]
 
 # Property [Expression Input]: $toLong evaluates a nested expression before converting.
@@ -129,16 +136,6 @@ def test_toLong_field_ref(collection, test: ExpressionTestCase):
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
-
-
-def test_toLong_composite_array_path(collection):
-    """$toLong on a composite array path (array of objects) is a conversion failure."""
-    result = execute_expression_with_insert(
-        collection,
-        {"$toLong": "$a.b"},
-        {"a": [{"b": 1}, {"b": 2}]},
-    )
-    assert_expression_result(result, error_code=CONVERSION_FAILURE_ERROR)
 
 
 @pytest.mark.parametrize("test", pytest_params(TOLONG_EXPRESSION_INPUT_TESTS))
