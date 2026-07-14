@@ -71,13 +71,6 @@ DATEFROMSTRING_FIELD_REF_TESTS: list[ExpressionTestCase] = [
         expected=datetime(2024, 6, 15, 0, 0, 0, tzinfo=timezone.utc),
         msg="$dateFromString should accept a dateString from a nested-object path",
     ),
-    ExpressionTestCase(
-        "nested_field_path",
-        doc={"a": {"b": "2024-06-15"}},
-        expression={"$dateFromString": {"dateString": "$a.b"}},
-        expected=datetime(2024, 6, 15, 0, 0, 0, tzinfo=timezone.utc),
-        msg="$dateFromString should accept a dateString from a distinct nested-object path",
-    ),
 ]
 
 # Property [Missing Field References]: a reference to an absent field resolves to null.
