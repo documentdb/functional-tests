@@ -27,7 +27,7 @@ from documentdb_tests.framework.test_constants import (
 
 # Property [Return Type]: $toDouble always returns BSON type double for successful conversions
 # and null for null or missing inputs.
-_RETURN_TYPE_DOUBLE_SPEC = [
+RETURN_TYPE_DOUBLE_SPEC = [
     BsonTypeTestCase(
         id="toDouble_return_type",
         msg="$toDouble always returns BSON type double for a successful conversion",
@@ -48,10 +48,10 @@ _RETURN_TYPE_DOUBLE_SPEC = [
     ),
 ]
 
-_RETURN_TYPE_DOUBLE_CASES = generate_bson_acceptance_test_cases(_RETURN_TYPE_DOUBLE_SPEC)
+RETURN_TYPE_DOUBLE_CASES = generate_bson_acceptance_test_cases(RETURN_TYPE_DOUBLE_SPEC)
 
 
-@pytest.mark.parametrize("bson_type,sample_value,spec", _RETURN_TYPE_DOUBLE_CASES)
+@pytest.mark.parametrize("bson_type,sample_value,spec", RETURN_TYPE_DOUBLE_CASES)
 def test_toDouble_return_type_is_double(collection, bson_type, sample_value, spec):
     """$toDouble always returns BSON type 'double' for a successful conversion."""
     result = execute_expression(collection, {"$type": {"$toDouble": sample_value}})
@@ -73,13 +73,6 @@ TODOUBLE_RETURN_TYPE_NULL_TESTS: list[ExpressionTestCase] = [
         expected="null",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(TODOUBLE_RETURN_TYPE_NULL_TESTS))
-def test_toDouble_return_type_null(collection, test: ExpressionTestCase):
-    """$toDouble returns BSON type 'null' for null or missing input."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(result, expected=test.expected, msg=test.msg)
 
 
 # Property [Idempotency]: applying $toDouble twice produces the same result as applying it once.
@@ -135,9 +128,11 @@ TODOUBLE_IDEMPOTENCY_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODOUBLE_IDEMPOTENCY_TESTS))
-def test_toDouble_idempotency(collection, test: ExpressionTestCase):
-    """Applying $toDouble twice produces the same result as applying it once."""
+@pytest.mark.parametrize(
+    "test", pytest_params(TODOUBLE_RETURN_TYPE_NULL_TESTS + TODOUBLE_IDEMPOTENCY_TESTS)
+)
+def test_toDouble_return_type_null(collection, test: ExpressionTestCase):
+    """$toDouble returns BSON type 'null' for null or missing input."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

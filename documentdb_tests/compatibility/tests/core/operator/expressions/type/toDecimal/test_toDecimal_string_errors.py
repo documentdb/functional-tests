@@ -193,15 +193,6 @@ TODECIMAL_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_STRING_ERROR_TESTS))
-def test_toDecimal_string_errors(collection, test: ExpressionTestCase):
-    """$toDecimal rejects malformed and out-of-range string inputs."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
 # Property [String Size Limit — Errors]: strings at or above the size limit are rejected with
 # STRING_SIZE_LIMIT_ERROR; non-numeric strings just under the limit fail with CONVERSION_FAILURE.
 TODECIMAL_STRING_SIZE_LIMIT_ERROR_TESTS: list[ExpressionTestCase] = [
@@ -226,9 +217,11 @@ TODECIMAL_STRING_SIZE_LIMIT_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_STRING_SIZE_LIMIT_ERROR_TESTS))
-def test_toDecimal_string_size_limit(collection, test: ExpressionTestCase):
-    """$toDecimal rejects strings at or above the byte size limit."""
+@pytest.mark.parametrize(
+    "test", pytest_params(TODECIMAL_STRING_ERROR_TESTS + TODECIMAL_STRING_SIZE_LIMIT_ERROR_TESTS)
+)
+def test_toDecimal_string_errors(collection, test: ExpressionTestCase):
+    """$toDecimal rejects malformed and out-of-range string inputs."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

@@ -19,7 +19,7 @@ from documentdb_tests.framework.test_constants import INT32_MAX, INT32_MIN, INT3
 # Property [Binary Conversion]: Binary values of exactly 1, 2, or 4 bytes are
 # interpreted as signed little-endian integers, regardless of subtype (except subtype 2,
 # which prepends a 4-byte length header on the wire).
-_TOINT_BINARY_VALID_TESTS: list[ExpressionTestCase] = [
+TOINT_BINARY_VALID_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "binary_1byte_zero",
         msg="1-byte Binary 0x00 converts to 0",
@@ -102,7 +102,7 @@ _TOINT_BINARY_VALID_TESTS: list[ExpressionTestCase] = [
 
 # Property [Binary Conversion Errors]: Binary values with lengths other than 1, 2, or 4
 # bytes produce a conversion failure.
-_TOINT_BINARY_ERROR_TESTS: list[ExpressionTestCase] = [
+TOINT_BINARY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "binary_0byte",
         msg="0-byte binary is a conversion failure",
@@ -149,7 +149,7 @@ _TOINT_BINARY_ERROR_TESTS: list[ExpressionTestCase] = [
 
 # Property [Unsupported Types]: $toInt fails with a conversion error for BSON types it
 # cannot convert (datetime, ObjectId, regex, timestamp, code, MinKey, MaxKey, object, array).
-_TOINT_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
+TOINT_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "type_object",
         msg="Object BSON type is a conversion failure",
@@ -207,7 +207,7 @@ _TOINT_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
 ]
 
 TOINT_BINARY_TESTS = (
-    _TOINT_BINARY_VALID_TESTS + _TOINT_BINARY_ERROR_TESTS + _TOINT_UNSUPPORTED_TYPE_TESTS
+    TOINT_BINARY_VALID_TESTS + TOINT_BINARY_ERROR_TESTS + TOINT_UNSUPPORTED_TYPE_TESTS
 )
 
 

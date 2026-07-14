@@ -25,7 +25,7 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [Double Truncation]: $toInt truncates the fractional part toward zero.
-_TOINT_DOUBLE_TRUNCATION_TESTS: list[ExpressionTestCase] = [
+TOINT_DOUBLE_TRUNCATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_zero",
         msg="0.0 converts to 0",
@@ -78,7 +78,7 @@ _TOINT_DOUBLE_TRUNCATION_TESTS: list[ExpressionTestCase] = [
 
 # Property [Double Boundary]: $toInt accepts doubles in the int32 range;
 # rejects NaN, infinity, and out-of-range values.
-_TOINT_DOUBLE_BOUNDARY_TESTS: list[ExpressionTestCase] = [
+TOINT_DOUBLE_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_int32_max",
         msg="double equal to int32 max converts exactly",
@@ -135,7 +135,7 @@ _TOINT_DOUBLE_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOINT_DOUBLE_TESTS = _TOINT_DOUBLE_TRUNCATION_TESTS + _TOINT_DOUBLE_BOUNDARY_TESTS
+TOINT_DOUBLE_TESTS = TOINT_DOUBLE_TRUNCATION_TESTS + TOINT_DOUBLE_BOUNDARY_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(TOINT_DOUBLE_TESTS))

@@ -21,7 +21,7 @@ from documentdb_tests.framework.test_constants import (
 
 # Property [String Conversion]: a base-10 integer string within int32 range converts to the
 # corresponding int32 value; leading zeros, a leading '+', and a leading '-' are accepted.
-_TOINT_STRING_VALID_TESTS: list[ExpressionTestCase] = [
+TOINT_STRING_VALID_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "str_zero",
         msg="'0' converts to 0",
@@ -98,7 +98,7 @@ _TOINT_STRING_VALID_TESTS: list[ExpressionTestCase] = [
 
 # Property [String Errors]: strings that are not valid base-10 integers within int32 range
 # produce a conversion failure.
-_TOINT_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
+TOINT_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "str_err_empty",
         msg="Empty string is a conversion failure",
@@ -431,16 +431,7 @@ _TOINT_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOINT_STRING_TESTS = _TOINT_STRING_VALID_TESTS + _TOINT_STRING_ERROR_TESTS
-
-
-@pytest.mark.parametrize("test", pytest_params(TOINT_STRING_TESTS))
-def test_toInt_string(collection, test: ExpressionTestCase):
-    """$toInt parses valid base-10 integer strings and rejects malformed or out-of-range ones."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
+TOINT_STRING_TESTS = TOINT_STRING_VALID_TESTS + TOINT_STRING_ERROR_TESTS
 
 
 # Property [String Size Limit]: $toInt checks the byte length of string inputs before
@@ -473,9 +464,9 @@ TOINT_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOINT_STRING_SIZE_LIMIT_TESTS))
-def test_toInt_string_size_limit(collection, test: ExpressionTestCase):
-    """$toInt validates string byte length before conversion."""
+@pytest.mark.parametrize("test", pytest_params(TOINT_STRING_TESTS + TOINT_STRING_SIZE_LIMIT_TESTS))
+def test_toInt_string(collection, test: ExpressionTestCase):
+    """$toInt parses valid base-10 integer strings and rejects malformed or out-of-range ones."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

@@ -203,15 +203,6 @@ TODECIMAL_STRING_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_STRING_TESTS))
-def test_toDecimal_string(collection, test: ExpressionTestCase):
-    """$toDecimal parses valid numeric strings including scientific notation and special values."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
 # Property [String Size Limit — Valid]: a valid numeric string one byte under the limit converts.
 TODECIMAL_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
@@ -223,9 +214,11 @@ TODECIMAL_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_STRING_SIZE_LIMIT_TESTS))
-def test_toDecimal_string_size_limit_valid(collection, test: ExpressionTestCase):
-    """$toDecimal validates string byte length; strings under the limit convert normally."""
+@pytest.mark.parametrize(
+    "test", pytest_params(TODECIMAL_STRING_TESTS + TODECIMAL_STRING_SIZE_LIMIT_TESTS)
+)
+def test_toDecimal_string(collection, test: ExpressionTestCase):
+    """$toDecimal parses valid numeric strings including scientific notation and special values."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

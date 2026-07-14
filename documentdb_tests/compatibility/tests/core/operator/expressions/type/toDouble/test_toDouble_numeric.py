@@ -10,7 +10,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
-from documentdb_tests.framework.assertions import assertSuccessNaN
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
@@ -36,7 +35,7 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [Null and Missing]: $toDouble returns null for null and missing inputs.
-_TODOUBLE_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "null", msg="Should return null for null", expression={"$toDouble": None}, expected=None
     ),
@@ -49,7 +48,7 @@ _TODOUBLE_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Boolean]: $toDouble converts true to 1.0 and false to +0.0.
-_TODOUBLE_BOOL_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_BOOL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "bool_true", msg="True converts to 1.0", expression={"$toDouble": True}, expected=1.0
     ),
@@ -62,7 +61,7 @@ _TODOUBLE_BOOL_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Int32]: $toDouble converts int32 values to their exact double equivalents.
-_TODOUBLE_INT32_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_INT32_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int32_zero",
         msg="int32 zero converts to 0.0",
@@ -96,7 +95,7 @@ _TODOUBLE_INT32_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Int64]: $toDouble converts int64 values, with precision loss above 2^53.
-_TODOUBLE_INT64_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_INT64_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int64_zero",
         msg="int64 zero converts to 0.0",
@@ -145,7 +144,7 @@ _TODOUBLE_INT64_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Double Identity]: $toDouble is the identity function for double inputs.
-_TODOUBLE_DOUBLE_IDENTITY_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_DOUBLE_IDENTITY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_zero",
         msg="0.0 passes through unchanged",
@@ -202,45 +201,48 @@ _TODOUBLE_DOUBLE_IDENTITY_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TODOUBLE_NUMERIC_TESTS = (
-    _TODOUBLE_NULL_MISSING_TESTS
-    + _TODOUBLE_BOOL_TESTS
-    + _TODOUBLE_INT32_TESTS
-    + _TODOUBLE_INT64_TESTS
-    + _TODOUBLE_DOUBLE_IDENTITY_TESTS
-)
-
-# NaN tests are kept separate because NaN != NaN under IEEE 754,
-# so they require assertSuccessNaN rather than assert_expression_result.
+# Property [NaN]: $toDouble preserves NaN inputs as double NaN.
 TODOUBLE_NAN_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "double_nan", msg="double NaN passes through as NaN", expression={"$toDouble": FLOAT_NAN}
+        "double_nan",
+        msg="double NaN passes through as NaN",
+        expression={"$toDouble": FLOAT_NAN},
+        expected=pytest.approx(FLOAT_NAN, nan_ok=True),
     ),
     ExpressionTestCase(
         "dec128_nan",
         msg="Decimal128 nan converts to double NaN",
         expression={"$toDouble": DECIMAL128_NAN},
+        expected=pytest.approx(FLOAT_NAN, nan_ok=True),
     ),
     ExpressionTestCase(
-        "str_nan", msg="'NaN' string converts to double NaN", expression={"$toDouble": "NaN"}
+        "str_nan",
+        msg="'NaN' string converts to double NaN",
+        expression={"$toDouble": "NaN"},
+        expected=pytest.approx(FLOAT_NAN, nan_ok=True),
     ),
     ExpressionTestCase(
-        "str_nan_lower", msg="'nan' string converts to double NaN", expression={"$toDouble": "nan"}
+        "str_nan_lower",
+        msg="'nan' string converts to double NaN",
+        expression={"$toDouble": "nan"},
+        expected=pytest.approx(FLOAT_NAN, nan_ok=True),
     ),
 ]
+
+TODOUBLE_NUMERIC_TESTS = (
+    TODOUBLE_NULL_MISSING_TESTS
+    + TODOUBLE_BOOL_TESTS
+    + TODOUBLE_INT32_TESTS
+    + TODOUBLE_INT64_TESTS
+    + TODOUBLE_DOUBLE_IDENTITY_TESTS
+    + TODOUBLE_NAN_TESTS
+)
 
 
 @pytest.mark.parametrize("test", pytest_params(TODOUBLE_NUMERIC_TESTS))
 def test_toDouble_numeric(collection, test: ExpressionTestCase):
-    """$toDouble converts null, bool, int32, int64, and double inputs."""
+    """$toDouble converts null, bool, int32, int64, double, and NaN inputs."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
-
-
-@pytest.mark.parametrize("test", pytest_params(TODOUBLE_NAN_TESTS))
-def test_toDouble_nan(collection, test: ExpressionTestCase):
-    """$toDouble produces NaN for NaN-valued inputs across all convertible types."""
-    result = execute_expression(collection, test.expression)
-    assertSuccessNaN(result, [{"result": FLOAT_NAN}], msg=test.msg)

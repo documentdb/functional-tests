@@ -69,18 +69,11 @@ TOLONG_INVALID_FIELD_PATH_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOLONG_ARITY_TESTS))
+@pytest.mark.parametrize(
+    "test", pytest_params(TOLONG_ARITY_TESTS + TOLONG_INVALID_FIELD_PATH_TESTS)
+)
 def test_toLong_arity(collection, test: ExpressionTestCase):
     """$toLong literal array arguments are unwrapped or rejected based on arity."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(TOLONG_INVALID_FIELD_PATH_TESTS))
-def test_toLong_invalid_field_path(collection, test: ExpressionTestCase):
-    """$toLong rejects invalid field path syntax."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

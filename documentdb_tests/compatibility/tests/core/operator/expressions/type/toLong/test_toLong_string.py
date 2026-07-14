@@ -22,7 +22,7 @@ from documentdb_tests.framework.test_constants import (
 
 # Property [String Conversion]: base-10 integer strings with optional leading sign and leading
 # zeros convert to the corresponding Int64 value.
-_TOLONG_STRING_NUMERIC_TESTS: list[ExpressionTestCase] = [
+TOLONG_STRING_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "str_positive",
         msg="Positive integer string converts to Int64",
@@ -94,7 +94,7 @@ _TOLONG_STRING_NUMERIC_TESTS: list[ExpressionTestCase] = [
 # Property [String Conversion Errors]: non-integer string formats, decimal points, scientific
 # notation, hex, whitespace, Unicode non-ASCII digits, control characters, special characters,
 # sign-only strings, separator characters, and overflow strings produce a conversion error.
-_TOLONG_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
+TOLONG_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "str_err_empty",
         msg="Empty string is a conversion failure",
@@ -324,21 +324,14 @@ TOLONG_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOLONG_STRING_TESTS = _TOLONG_STRING_NUMERIC_TESTS + _TOLONG_STRING_ERROR_TESTS
+TOLONG_STRING_TESTS = TOLONG_STRING_NUMERIC_TESTS + TOLONG_STRING_ERROR_TESTS
 
 
-@pytest.mark.parametrize("test", pytest_params(TOLONG_STRING_TESTS))
+@pytest.mark.parametrize(
+    "test", pytest_params(TOLONG_STRING_TESTS + TOLONG_STRING_SIZE_LIMIT_TESTS)
+)
 def test_toLong_string(collection, test: ExpressionTestCase):
     """$toLong parses valid integer strings and rejects non-integer or malformed ones."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(TOLONG_STRING_SIZE_LIMIT_TESTS))
-def test_toLong_string_size_limit(collection, test: ExpressionTestCase):
-    """$toLong validates string byte length before conversion."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

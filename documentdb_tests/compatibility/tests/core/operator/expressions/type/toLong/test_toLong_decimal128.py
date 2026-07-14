@@ -34,7 +34,7 @@ from documentdb_tests.framework.test_constants import (
 # Property [Decimal128 Conversion]: whole-number Decimal128 values convert exactly,
 # fractional values are truncated toward zero, and boundary values at the edges of
 # int64 range are accepted.
-_TOLONG_DECIMAL128_TESTS: list[ExpressionTestCase] = [
+TOLONG_DECIMAL128_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "decimal_whole",
         msg="Whole-number Decimal128 converts to Int64",
@@ -111,7 +111,7 @@ _TOLONG_DECIMAL128_TESTS: list[ExpressionTestCase] = [
 
 # Property [Decimal128 Conversion Errors]: Decimal128 NaN, infinities, and values outside
 # int64 range produce a conversion error.
-_TOLONG_DECIMAL128_ERROR_TESTS: list[ExpressionTestCase] = [
+TOLONG_DECIMAL128_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "decimal_err_nan",
         msg="Decimal128 NaN is a conversion failure",
@@ -162,7 +162,7 @@ _TOLONG_DECIMAL128_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOLONG_DECIMAL128_TESTS = _TOLONG_DECIMAL128_TESTS + _TOLONG_DECIMAL128_ERROR_TESTS
+TOLONG_DECIMAL128_TESTS = TOLONG_DECIMAL128_TESTS + TOLONG_DECIMAL128_ERROR_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(TOLONG_DECIMAL128_TESTS))

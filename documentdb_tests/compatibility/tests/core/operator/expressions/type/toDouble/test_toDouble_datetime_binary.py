@@ -35,7 +35,7 @@ _f64_neg_one = Binary(struct.pack("<d", -1.0))
 _f64_1_5 = Binary(struct.pack("<d", DOUBLE_ONE_AND_HALF))
 
 # Property [Datetime]: $toDouble converts datetime to milliseconds since Unix epoch as double.
-_TODOUBLE_DATETIME_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_DATETIME_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "datetime_epoch",
         msg="Epoch datetime converts to 0.0 ms",
@@ -64,7 +64,7 @@ _TODOUBLE_DATETIME_TESTS: list[ExpressionTestCase] = [
 
 # Property [Binary]: $toDouble interprets 4-byte binary as IEEE 754 float32 and 8-byte binary
 # as IEEE 754 float64; other lengths are conversion failures.
-_TODOUBLE_BINARY_VALID_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_BINARY_VALID_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "binary_f32_zero",
         msg="4-byte float32 zero binary converts to 0.0",
@@ -115,7 +115,7 @@ _TODOUBLE_BINARY_VALID_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-_TODOUBLE_BINARY_ERROR_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_BINARY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "binary_empty",
         msg="0-byte binary is a conversion failure",
@@ -144,7 +144,7 @@ _TODOUBLE_BINARY_ERROR_TESTS: list[ExpressionTestCase] = [
 
 # Property [Unsupported Types]: $toDouble fails with a conversion error for BSON types it
 # cannot convert (object, ObjectId, regex, timestamp, code, MinKey, MaxKey, array).
-_TODOUBLE_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "type_object",
         msg="Object BSON type is a conversion failure",
@@ -196,10 +196,10 @@ _TODOUBLE_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
 ]
 
 TODOUBLE_DATETIME_BINARY_TESTS = (
-    _TODOUBLE_DATETIME_TESTS
-    + _TODOUBLE_BINARY_VALID_TESTS
-    + _TODOUBLE_BINARY_ERROR_TESTS
-    + _TODOUBLE_UNSUPPORTED_TYPE_TESTS
+    TODOUBLE_DATETIME_TESTS
+    + TODOUBLE_BINARY_VALID_TESTS
+    + TODOUBLE_BINARY_ERROR_TESTS
+    + TODOUBLE_UNSUPPORTED_TYPE_TESTS
 )
 
 

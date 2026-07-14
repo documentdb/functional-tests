@@ -30,7 +30,7 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [Null and Missing]: $toDecimal returns null for null and missing inputs.
-_TODECIMAL_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
+TODECIMAL_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "null",
         msg="Should return null for null",
@@ -46,7 +46,7 @@ _TODECIMAL_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Boolean]: $toDecimal converts true to Decimal128("1") and false to Decimal128("0").
-_TODECIMAL_BOOL_TESTS: list[ExpressionTestCase] = [
+TODECIMAL_BOOL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "bool_true",
         msg="True converts to Decimal128('1')",
@@ -62,7 +62,7 @@ _TODECIMAL_BOOL_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Int32]: $toDecimal converts int32 values to exact Decimal128 with no trailing zeros.
-_TODECIMAL_INT32_TESTS: list[ExpressionTestCase] = [
+TODECIMAL_INT32_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int32_zero",
         msg="int32 zero converts to Decimal128('0')",
@@ -108,7 +108,7 @@ _TODECIMAL_INT32_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Int64]: $toDecimal converts int64 values to exact Decimal128 with no trailing zeros.
-_TODECIMAL_INT64_TESTS: list[ExpressionTestCase] = [
+TODECIMAL_INT64_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int64_zero",
         msg="int64 zero converts to Decimal128('0')",
@@ -166,10 +166,10 @@ _TODECIMAL_INT64_TESTS: list[ExpressionTestCase] = [
 ]
 
 TODECIMAL_NUMERIC_TESTS = (
-    _TODECIMAL_NULL_MISSING_TESTS
-    + _TODECIMAL_BOOL_TESTS
-    + _TODECIMAL_INT32_TESTS
-    + _TODECIMAL_INT64_TESTS
+    TODECIMAL_NULL_MISSING_TESTS
+    + TODECIMAL_BOOL_TESTS
+    + TODECIMAL_INT32_TESTS
+    + TODECIMAL_INT64_TESTS
 )
 
 

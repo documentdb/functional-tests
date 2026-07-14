@@ -39,7 +39,7 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [Null and Missing]: $toLong returns null for null and missing inputs.
-_TOLONG_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
+TOLONG_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "null", msg="Should return null for null", expression={"$toLong": None}, expected=None
     ),
@@ -52,7 +52,7 @@ _TOLONG_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Boolean]: $toLong converts false to Int64(0) and true to Int64(1).
-_TOLONG_BOOL_TESTS: list[ExpressionTestCase] = [
+TOLONG_BOOL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "bool_false",
         msg="False converts to Int64(0)",
@@ -68,7 +68,7 @@ _TOLONG_BOOL_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Int32]: $toLong widens int32 values to their exact Int64 equivalents.
-_TOLONG_INT32_TESTS: list[ExpressionTestCase] = [
+TOLONG_INT32_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int32_zero",
         msg="int32 zero widens to Int64(0)",
@@ -102,7 +102,7 @@ _TOLONG_INT32_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Int64 Identity]: $toLong passes Int64 values through unchanged.
-_TOLONG_INT64_IDENTITY_TESTS: list[ExpressionTestCase] = [
+TOLONG_INT64_IDENTITY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int64_zero",
         msg="Int64(0) passes through unchanged",
@@ -137,7 +137,7 @@ _TOLONG_INT64_IDENTITY_TESTS: list[ExpressionTestCase] = [
 
 # Property [Double Conversion]: $toLong truncates doubles toward zero; whole-number doubles
 # convert exactly, and boundary values at the edges of int64 range are accepted.
-_TOLONG_DOUBLE_TESTS: list[ExpressionTestCase] = [
+TOLONG_DOUBLE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_whole",
         msg="Whole-number double converts to Int64",
@@ -208,7 +208,7 @@ _TOLONG_DOUBLE_TESTS: list[ExpressionTestCase] = [
 
 # Property [Double Conversion Errors]: NaN, infinities, and doubles outside int64 range
 # produce a conversion error.
-_TOLONG_DOUBLE_ERROR_TESTS: list[ExpressionTestCase] = [
+TOLONG_DOUBLE_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_err_nan",
         msg="NaN is a conversion failure",
@@ -254,12 +254,12 @@ _TOLONG_DOUBLE_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 TOLONG_NUMERIC_TESTS = (
-    _TOLONG_NULL_MISSING_TESTS
-    + _TOLONG_BOOL_TESTS
-    + _TOLONG_INT32_TESTS
-    + _TOLONG_INT64_IDENTITY_TESTS
-    + _TOLONG_DOUBLE_TESTS
-    + _TOLONG_DOUBLE_ERROR_TESTS
+    TOLONG_NULL_MISSING_TESTS
+    + TOLONG_BOOL_TESTS
+    + TOLONG_INT32_TESTS
+    + TOLONG_INT64_IDENTITY_TESTS
+    + TOLONG_DOUBLE_TESTS
+    + TOLONG_DOUBLE_ERROR_TESTS
 )
 
 

@@ -29,7 +29,7 @@ from documentdb_tests.framework.test_constants import (
 # NULL is skipped from rejection because $toLong(null) returns null (not an error).
 # OBJECT and ARRAY are skipped because they need $literal wrapping to avoid being parsed
 # as MongoDB expressions — their rejection is verified in test_toLong_datetime_binary.py.
-_RETURN_TYPE_LONG_SPEC = [
+RETURN_TYPE_LONG_SPEC = [
     BsonTypeTestCase(
         id="toLong_return_type",
         msg="$toLong always returns BSON type long for a successful conversion",
@@ -56,18 +56,18 @@ _RETURN_TYPE_LONG_SPEC = [
     ),
 ]
 
-_RETURN_TYPE_LONG_CASES = generate_bson_acceptance_test_cases(_RETURN_TYPE_LONG_SPEC)
-_REJECTION_LONG_CASES = generate_bson_rejection_test_cases(_RETURN_TYPE_LONG_SPEC)
+RETURN_TYPE_LONG_CASES = generate_bson_acceptance_test_cases(RETURN_TYPE_LONG_SPEC)
+REJECTION_LONG_CASES = generate_bson_rejection_test_cases(RETURN_TYPE_LONG_SPEC)
 
 
-@pytest.mark.parametrize("bson_type,sample_value,spec", _RETURN_TYPE_LONG_CASES)
+@pytest.mark.parametrize("bson_type,sample_value,spec", RETURN_TYPE_LONG_CASES)
 def test_toLong_return_type_is_long(collection, bson_type, sample_value, spec):
     """$toLong always returns BSON type 'long' for a successful conversion."""
     result = execute_expression(collection, {"$type": {"$toLong": sample_value}})
     assert_expression_result(result, expected="long", msg=f"{spec.msg} ({bson_type.value} input)")
 
 
-@pytest.mark.parametrize("bson_type,sample_value,spec", _REJECTION_LONG_CASES)
+@pytest.mark.parametrize("bson_type,sample_value,spec", REJECTION_LONG_CASES)
 def test_toLong_rejects_unsupported_type(collection, bson_type, sample_value, spec):
     """$toLong rejects BSON types it cannot convert with a conversion failure."""
     result = execute_expression(collection, {"$toLong": sample_value})
@@ -93,13 +93,6 @@ TOLONG_RETURN_TYPE_NULL_TESTS: list[ExpressionTestCase] = [
         expected="null",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(TOLONG_RETURN_TYPE_NULL_TESTS))
-def test_toLong_return_type_null(collection, test: ExpressionTestCase):
-    """$toLong returns BSON type 'null' for null or missing input."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(result, expected=test.expected, msg=test.msg)
 
 
 # Property [Idempotency]: applying $toLong twice produces the same result as applying it once.
@@ -155,9 +148,11 @@ TOLONG_IDEMPOTENCY_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOLONG_IDEMPOTENCY_TESTS))
-def test_toLong_idempotency(collection, test: ExpressionTestCase):
-    """Applying $toLong twice produces the same result as applying it once."""
+@pytest.mark.parametrize(
+    "test", pytest_params(TOLONG_RETURN_TYPE_NULL_TESTS + TOLONG_IDEMPOTENCY_TESTS)
+)
+def test_toLong_return_type_null(collection, test: ExpressionTestCase):
+    """$toLong returns BSON type 'null' for null or missing input."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

@@ -74,18 +74,11 @@ TODOUBLE_INVALID_FIELD_PATH_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODOUBLE_ARITY_TESTS))
+@pytest.mark.parametrize(
+    "test", pytest_params(TODOUBLE_ARITY_TESTS + TODOUBLE_INVALID_FIELD_PATH_TESTS)
+)
 def test_toDouble_arity(collection, test: ExpressionTestCase):
     """$toDouble literal array arguments are unwrapped or rejected based on arity."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(TODOUBLE_INVALID_FIELD_PATH_TESTS))
-def test_toDouble_invalid_field_path(collection, test: ExpressionTestCase):
-    """$toDouble rejects invalid field path syntax."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

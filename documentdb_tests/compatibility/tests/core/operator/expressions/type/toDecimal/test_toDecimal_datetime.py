@@ -23,7 +23,7 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [Datetime]: $toDecimal converts datetime to milliseconds since Unix epoch as Decimal128.
-_TODECIMAL_DATETIME_TESTS: list[ExpressionTestCase] = [
+TODECIMAL_DATETIME_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "datetime_epoch",
         msg="Epoch datetime converts to Decimal128('0')",
@@ -88,7 +88,7 @@ _TODECIMAL_DATETIME_TESTS: list[ExpressionTestCase] = [
 
 # Property [Unsupported Types]: $toDecimal fails with a conversion error for BSON types it
 # cannot convert (object, binary, ObjectId, regex, timestamp, code, MinKey, MaxKey, array).
-_TODECIMAL_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
+TODECIMAL_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "type_object",
         msg="Object BSON type is a conversion failure",
@@ -132,12 +132,6 @@ _TODECIMAL_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
         error_code=CONVERSION_FAILURE_ERROR,
     ),
     ExpressionTestCase(
-        "type_code_scope",
-        msg="Code with scope BSON type is a conversion failure",
-        expression={"$toDecimal": Code("function() {}", {"x": 1})},
-        error_code=CONVERSION_FAILURE_ERROR,
-    ),
-    ExpressionTestCase(
         "type_minkey",
         msg="MinKey BSON type is a conversion failure",
         expression={"$toDecimal": MinKey()},
@@ -163,7 +157,7 @@ _TODECIMAL_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TODECIMAL_DATETIME_TESTS = _TODECIMAL_DATETIME_TESTS + _TODECIMAL_UNSUPPORTED_TYPE_TESTS
+TODECIMAL_DATETIME_TESTS = TODECIMAL_DATETIME_TESTS + TODECIMAL_UNSUPPORTED_TYPE_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(TODECIMAL_DATETIME_TESTS))

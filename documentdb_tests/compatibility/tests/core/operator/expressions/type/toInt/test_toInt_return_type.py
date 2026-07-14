@@ -20,7 +20,7 @@ from documentdb_tests.framework.test_constants import MISSING
 
 # Property [Return Type]: $toInt always returns BSON type int for successful conversions
 # and null for null or missing inputs.
-_RETURN_TYPE_INT_SPEC = [
+RETURN_TYPE_INT_SPEC = [
     BsonTypeTestCase(
         id="toInt_return_type",
         msg="$toInt always returns BSON type int for a successful conversion",
@@ -41,10 +41,10 @@ _RETURN_TYPE_INT_SPEC = [
     ),
 ]
 
-_RETURN_TYPE_INT_CASES = generate_bson_acceptance_test_cases(_RETURN_TYPE_INT_SPEC)
+RETURN_TYPE_INT_CASES = generate_bson_acceptance_test_cases(RETURN_TYPE_INT_SPEC)
 
 
-@pytest.mark.parametrize("bson_type,sample_value,spec", _RETURN_TYPE_INT_CASES)
+@pytest.mark.parametrize("bson_type,sample_value,spec", RETURN_TYPE_INT_CASES)
 def test_toInt_return_type_is_int(collection, bson_type, sample_value, spec):
     """$toInt always returns BSON type 'int' for a successful conversion."""
     result = execute_expression(collection, {"$type": {"$toInt": sample_value}})
@@ -66,13 +66,6 @@ TOINT_RETURN_TYPE_NULL_TESTS: list[ExpressionTestCase] = [
         expected="null",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(TOINT_RETURN_TYPE_NULL_TESTS))
-def test_toInt_return_type_null(collection, test: ExpressionTestCase):
-    """$toInt returns BSON type 'null' for null or missing input."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(result, expected=test.expected, msg=test.msg)
 
 
 # Property [Idempotency]: applying $toInt twice produces the same result as applying it once.
@@ -122,9 +115,11 @@ TOINT_IDEMPOTENCY_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOINT_IDEMPOTENCY_TESTS))
-def test_toInt_idempotency(collection, test: ExpressionTestCase):
-    """Applying $toInt twice produces the same result as applying it once."""
+@pytest.mark.parametrize(
+    "test", pytest_params(TOINT_RETURN_TYPE_NULL_TESTS + TOINT_IDEMPOTENCY_TESTS)
+)
+def test_toInt_return_type_null(collection, test: ExpressionTestCase):
+    """$toInt returns BSON type 'null' for null or missing input."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

@@ -18,6 +18,7 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NEGATIVE_ZERO,
     DECIMAL128_ZERO,
     DOUBLE_MAX,
+    DOUBLE_MAX_SAFE_INTEGER,
     DOUBLE_MIN,
     DOUBLE_MIN_NEGATIVE_SUBNORMAL,
     DOUBLE_MIN_SUBNORMAL,
@@ -107,7 +108,7 @@ TODECIMAL_DOUBLE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_max_safe_int",
         msg="Max safe integer (2^53) converts with 15 significant digits",
-        expression={"$toDecimal": float(2**53)},
+        expression={"$toDecimal": float(DOUBLE_MAX_SAFE_INTEGER)},
         expected=Decimal128("9.00719925474099E+15"),
     ),
     ExpressionTestCase(

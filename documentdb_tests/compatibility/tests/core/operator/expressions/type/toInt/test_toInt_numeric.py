@@ -23,7 +23,7 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [Null and Missing]: $toInt returns null for null and missing inputs.
-_TOINT_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
+TOINT_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "null", msg="Should return null for null", expression={"$toInt": None}, expected=None
     ),
@@ -36,7 +36,7 @@ _TOINT_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Boolean]: $toInt converts true to 1 and false to 0.
-_TOINT_BOOL_TESTS: list[ExpressionTestCase] = [
+TOINT_BOOL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "bool_true", msg="True converts to 1", expression={"$toInt": True}, expected=1
     ),
@@ -46,7 +46,7 @@ _TOINT_BOOL_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Int32 Identity]: $toInt is the identity function for int32 inputs.
-_TOINT_INT32_TESTS: list[ExpressionTestCase] = [
+TOINT_INT32_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int32_zero",
         msg="int32 zero passes through unchanged",
@@ -80,7 +80,7 @@ _TOINT_INT32_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Int64]: $toInt converts int64 values within int32 range; rejects out-of-range values.
-_TOINT_INT64_TESTS: list[ExpressionTestCase] = [
+TOINT_INT64_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int64_zero",
         msg="int64 zero converts to int32 0",
@@ -138,7 +138,7 @@ _TOINT_INT64_TESTS: list[ExpressionTestCase] = [
 ]
 
 TOINT_NUMERIC_TESTS = (
-    _TOINT_NULL_MISSING_TESTS + _TOINT_BOOL_TESTS + _TOINT_INT32_TESTS + _TOINT_INT64_TESTS
+    TOINT_NULL_MISSING_TESTS + TOINT_BOOL_TESTS + TOINT_INT32_TESTS + TOINT_INT64_TESTS
 )
 
 

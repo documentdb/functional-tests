@@ -129,19 +129,15 @@ TOLONG_EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOLONG_FIELD_REF_TESTS))
+@pytest.mark.parametrize(
+    "test", pytest_params(TOLONG_FIELD_REF_TESTS + TOLONG_EXPRESSION_INPUT_TESTS)
+)
 def test_toLong_field_ref(collection, test: ExpressionTestCase):
     """$toLong resolves field paths and nested paths from inserted documents."""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(TOLONG_EXPRESSION_INPUT_TESTS))
-def test_toLong_expression_as_input(collection, test: ExpressionTestCase):
-    """$toLong accepts any expression as its argument."""
-    result = execute_expression(collection, test.expression)
+    if test.doc is not None:
+        result = execute_expression_with_insert(collection, test.expression, test.doc)
+    else:
+        result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

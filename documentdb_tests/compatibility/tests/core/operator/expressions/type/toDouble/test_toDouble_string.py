@@ -23,7 +23,7 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [String Numeric]: $toDouble parses decimal, scientific-notation, and infinity strings.
-_TODOUBLE_STRING_NUMERIC_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_STRING_NUMERIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "str_zero", msg="'0' converts to 0.0", expression={"$toDouble": "0"}, expected=DOUBLE_ZERO
     ),
@@ -106,7 +106,7 @@ _TODOUBLE_STRING_NUMERIC_TESTS: list[ExpressionTestCase] = [
 
 # Property [String Hex]: $toDouble parses hexadecimal float literals (requires a leading sign for
 # lowercase inputs).
-_TODOUBLE_STRING_HEX_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_STRING_HEX_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "str_hex_zero",
         msg="'+0x0p0' converts to 0.0",
@@ -201,7 +201,7 @@ _TODOUBLE_STRING_HEX_TESTS: list[ExpressionTestCase] = [
 
 # Property [String Errors]: $toDouble rejects malformed, whitespace-padded, and out-of-range
 # strings with a conversion failure.
-_TODOUBLE_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
+TODOUBLE_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "str_alpha",
         msg="Alphabetic string is a conversion failure",
@@ -253,17 +253,8 @@ _TODOUBLE_STRING_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 TODOUBLE_STRING_TESTS = (
-    _TODOUBLE_STRING_NUMERIC_TESTS + _TODOUBLE_STRING_HEX_TESTS + _TODOUBLE_STRING_ERROR_TESTS
+    TODOUBLE_STRING_NUMERIC_TESTS + TODOUBLE_STRING_HEX_TESTS + TODOUBLE_STRING_ERROR_TESTS
 )
-
-
-@pytest.mark.parametrize("test", pytest_params(TODOUBLE_STRING_TESTS))
-def test_toDouble_string(collection, test: ExpressionTestCase):
-    """$toDouble parses valid numeric strings and rejects malformed ones."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
 
 
 # Property [String Size Limit]: $toDouble checks the byte length of string inputs before
@@ -302,9 +293,11 @@ TODOUBLE_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODOUBLE_STRING_SIZE_LIMIT_TESTS))
-def test_toDouble_string_size_limit(collection, test: ExpressionTestCase):
-    """$toDouble validates string byte length before conversion."""
+@pytest.mark.parametrize(
+    "test", pytest_params(TODOUBLE_STRING_TESTS + TODOUBLE_STRING_SIZE_LIMIT_TESTS)
+)
+def test_toDouble_string(collection, test: ExpressionTestCase):
+    """$toDouble parses valid numeric strings and rejects malformed ones."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

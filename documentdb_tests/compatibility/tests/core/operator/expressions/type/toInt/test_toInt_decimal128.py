@@ -25,7 +25,7 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [Decimal128 Truncation]: $toInt truncates Decimal128 toward zero.
-_TOINT_DECIMAL128_TRUNCATION_TESTS: list[ExpressionTestCase] = [
+TOINT_DECIMAL128_TRUNCATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "dec128_zero",
         msg="Decimal128 zero converts to 0",
@@ -72,7 +72,7 @@ _TOINT_DECIMAL128_TRUNCATION_TESTS: list[ExpressionTestCase] = [
 
 # Property [Decimal128 Boundary]: $toInt accepts Decimal128 values in the int32 range;
 # rejects NaN, infinity, and out-of-range values.
-_TOINT_DECIMAL128_BOUNDARY_TESTS: list[ExpressionTestCase] = [
+TOINT_DECIMAL128_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "dec128_int32_max",
         msg="Decimal128 equal to int32 max converts exactly",
@@ -117,7 +117,7 @@ _TOINT_DECIMAL128_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOINT_DECIMAL128_TESTS = _TOINT_DECIMAL128_TRUNCATION_TESTS + _TOINT_DECIMAL128_BOUNDARY_TESTS
+TOINT_DECIMAL128_TESTS = TOINT_DECIMAL128_TRUNCATION_TESTS + TOINT_DECIMAL128_BOUNDARY_TESTS
 
 
 @pytest.mark.parametrize("test", pytest_params(TOINT_DECIMAL128_TESTS))

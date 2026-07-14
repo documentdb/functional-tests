@@ -25,7 +25,7 @@ from documentdb_tests.framework.test_constants import (
 
 # Property [Return Type]: $toDecimal always returns BSON type 'decimal' for successful
 # conversions and null for null or missing inputs.
-_RETURN_TYPE_DECIMAL_SPEC = [
+RETURN_TYPE_DECIMAL_SPEC = [
     BsonTypeTestCase(
         id="toDecimal_return_type",
         msg="$toDecimal always returns BSON type decimal for a successful conversion",
@@ -44,10 +44,10 @@ _RETURN_TYPE_DECIMAL_SPEC = [
     ),
 ]
 
-_RETURN_TYPE_DECIMAL_CASES = generate_bson_acceptance_test_cases(_RETURN_TYPE_DECIMAL_SPEC)
+RETURN_TYPE_DECIMAL_CASES = generate_bson_acceptance_test_cases(RETURN_TYPE_DECIMAL_SPEC)
 
 
-@pytest.mark.parametrize("bson_type,sample_value,spec", _RETURN_TYPE_DECIMAL_CASES)
+@pytest.mark.parametrize("bson_type,sample_value,spec", RETURN_TYPE_DECIMAL_CASES)
 def test_toDecimal_return_type_is_decimal(collection, bson_type, sample_value, spec):
     """$toDecimal always returns BSON type 'decimal' for a successful conversion."""
     result = execute_expression(collection, {"$type": {"$toDecimal": sample_value}})
@@ -71,13 +71,6 @@ TODECIMAL_RETURN_TYPE_NULL_TESTS: list[ExpressionTestCase] = [
         expected="null",
     ),
 ]
-
-
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_RETURN_TYPE_NULL_TESTS))
-def test_toDecimal_return_type_null(collection, test: ExpressionTestCase):
-    """$toDecimal returns BSON type 'null' for null or missing input."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(result, expected=test.expected, msg=test.msg)
 
 
 # Property [Idempotency]: applying $toDecimal twice produces the same result as once.
@@ -127,9 +120,11 @@ TODECIMAL_IDEMPOTENCY_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_IDEMPOTENCY_TESTS))
-def test_toDecimal_idempotency(collection, test: ExpressionTestCase):
-    """Applying $toDecimal twice produces the same result as applying it once."""
+@pytest.mark.parametrize(
+    "test", pytest_params(TODECIMAL_RETURN_TYPE_NULL_TESTS + TODECIMAL_IDEMPOTENCY_TESTS)
+)
+def test_toDecimal_return_type_null(collection, test: ExpressionTestCase):
+    """$toDecimal returns BSON type 'null' for null or missing input."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

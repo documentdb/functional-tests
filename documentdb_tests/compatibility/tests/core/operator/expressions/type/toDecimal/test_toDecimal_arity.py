@@ -69,18 +69,11 @@ TODECIMAL_INVALID_FIELD_PATH_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_ARITY_TESTS))
+@pytest.mark.parametrize(
+    "test", pytest_params(TODECIMAL_ARITY_TESTS + TODECIMAL_INVALID_FIELD_PATH_TESTS)
+)
 def test_toDecimal_arity(collection, test: ExpressionTestCase):
     """$toDecimal literal array arguments are unwrapped or rejected based on arity."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_INVALID_FIELD_PATH_TESTS))
-def test_toDecimal_invalid_field_path(collection, test: ExpressionTestCase):
-    """$toDecimal rejects invalid field path syntax."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
