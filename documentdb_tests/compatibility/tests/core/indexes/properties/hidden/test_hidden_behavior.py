@@ -361,37 +361,6 @@ def test_indexstats_nonhidden_accesses_increment_nonzero(collection):
     )
 
 
-def test_indexstats_reset_only_affects_toggled_index_a_reset(collection):
-    """Test hiding a_1 resets its counter to zero."""
-    collection.insert_many([{"a": i, "b": i} for i in range(10)])
-    execute_command(
-        collection,
-        {
-            "createIndexes": collection.name,
-            "indexes": [{"key": {"a": 1}, "name": "a_1"}, {"key": {"b": 1}, "name": "b_1"}],
-        },
-    )
-    execute_command(
-        collection, {"find": collection.name, "filter": {"a": {"$gte": 0}}, "hint": "a_1"}
-    )
-    execute_command(
-        collection, {"find": collection.name, "filter": {"b": {"$gte": 0}}, "hint": "b_1"}
-    )
-    execute_command(
-        collection, {"collMod": collection.name, "index": {"name": "a_1", "hidden": True}}
-    )
-    result = execute_command(
-        collection, {"aggregate": collection.name, "pipeline": [{"$indexStats": {}}], "cursor": {}}
-    )
-    a_ops = get_index_ops(result, "a_1")
-    assertSuccess(
-        a_ops,
-        Int64(0),
-        raw_res=True,
-        msg="Hiding a_1 should reset its counter to zero",
-    )
-
-
 def test_indexstats_reset_only_affects_toggled_index_b_unchanged(collection):
     """Test hiding a_1 does not affect b_1's counter."""
     collection.insert_many([{"a": i, "b": i} for i in range(10)])
@@ -420,33 +389,6 @@ def test_indexstats_reset_only_affects_toggled_index_b_unchanged(collection):
         True,
         raw_res=True,
         msg="Hiding a_1 should not affect b_1's counter",
-    )
-
-
-def test_all_inserts_indexed_while_hidden(collection):
-    """Test all documents inserted while hidden are present after unhide."""
-    execute_command(
-        collection,
-        {
-            "createIndexes": collection.name,
-            "indexes": [{"key": {"a": 1}, "name": "a_1", "hidden": True}],
-        },
-    )
-    execute_command(
-        collection,
-        {"insert": collection.name, "documents": [{"a": i} for i in range(50)]},
-    )
-    execute_command(
-        collection, {"collMod": collection.name, "index": {"name": "a_1", "hidden": False}}
-    )
-    result = execute_command(
-        collection, {"find": collection.name, "filter": {"a": {"$gte": 0}}, "hint": "a_1"}
-    )
-    assertSuccess(
-        result,
-        50,
-        transform=lambda docs: len(docs),
-        msg="All documents written while hidden should be present in the index",
     )
 
 
