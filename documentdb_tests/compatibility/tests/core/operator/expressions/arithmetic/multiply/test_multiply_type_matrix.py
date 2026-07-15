@@ -1,3 +1,10 @@
+"""
+Numeric type matrix tests for $multiply expression.
+
+Covers $multiply across every same-type and cross-type pairing of the four
+numeric BSON types (int32, int64, double, decimal128), plus a three-type mix.
+"""
+
 import pytest
 from bson import (
     Decimal128,
@@ -84,7 +91,7 @@ MULTIPLY_LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
+MULTIPLY_FIELD_REF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "same_type_int32",
         expression={"$multiply": ["$val0", "$val1"]},
@@ -162,82 +169,78 @@ MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
         expected=Decimal128("9.00000000000000"),
         msg="Should return correct result for three mixed types",
     ),
-]
-
-
-MULTIPLY_MIXED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "same_type_int32",
+        "same_type_int32_mixed",
         expression={"$multiply": ["$val0", 3]},
         doc={"val0": 2},
         expected=6,
         msg="Should handle same type int32",
     ),
     ExpressionTestCase(
-        "same_type_int64",
+        "same_type_int64_mixed",
         expression={"$multiply": ["$val0", Int64(20)]},
         doc={"val0": Int64(10)},
         expected=Int64(200),
         msg="Should handle same type int64",
     ),
     ExpressionTestCase(
-        "same_type_double",
+        "same_type_double_mixed",
         expression={"$multiply": ["$val0", 2.0]},
         doc={"val0": 1.5},
         expected=3.0,
         msg="Should handle same type double",
     ),
     ExpressionTestCase(
-        "same_type_decimal",
+        "same_type_decimal_mixed",
         expression={"$multiply": ["$val0", Decimal128("2")]},
         doc={"val0": Decimal128("10.5")},
         expected=Decimal128("21.0"),
         msg="Should compute $multiply of decimal values",
     ),
     ExpressionTestCase(
-        "int32_int64",
+        "int32_int64_mixed",
         expression={"$multiply": ["$val0", Int64(20)]},
         doc={"val0": 2},
         expected=Int64(40),
         msg="Should handle int32 int64",
     ),
     ExpressionTestCase(
-        "int32_double",
+        "int32_double_mixed",
         expression={"$multiply": ["$val0", 2.5]},
         doc={"val0": 2},
         expected=5.0,
         msg="Should handle int32 double",
     ),
     ExpressionTestCase(
-        "int32_decimal",
+        "int32_decimal_mixed",
         expression={"$multiply": ["$val0", Decimal128("2.5")]},
         doc={"val0": 2},
         expected=Decimal128("5.0"),
         msg="Should handle int32 decimal",
     ),
     ExpressionTestCase(
-        "int64_double",
+        "int64_double_mixed",
         expression={"$multiply": ["$val0", 2.5]},
         doc={"val0": Int64(10)},
         expected=25.0,
         msg="Should handle int64 double",
     ),
     ExpressionTestCase(
-        "int64_decimal",
+        "int64_decimal_mixed",
         expression={"$multiply": ["$val0", Decimal128("2.5")]},
         doc={"val0": Int64(10)},
         expected=Decimal128("25.0"),
         msg="Should handle int64 decimal",
     ),
     ExpressionTestCase(
-        "double_decimal",
+        "double_decimal_mixed",
         expression={"$multiply": ["$val0", Decimal128("2.0")]},
         doc={"val0": 1.5},
         expected=Decimal128("3.000000000000000"),
         msg="Should handle double decimal",
     ),
     ExpressionTestCase(
-        "three_mixed_types",
+        "three_mixed_types_mixed",
         expression={"$multiply": ["$val0", 1.5, Int64(3)]},
         doc={"val0": Decimal128("2")},
         expected=Decimal128("9.00000000000000"),
@@ -255,18 +258,10 @@ def test_multiply_literal(collection, test):
     )
 
 
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_INSERT_TESTS))
-def test_multiply_insert(collection, test):
-    """Test $multiply from documents"""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_MIXED_TESTS))
-def test_multiply_mixed(collection, test):
-    """Test $multiply mixed literal and document"""
+@pytest.mark.parametrize("test", pytest_params(MULTIPLY_FIELD_REF_TESTS))
+def test_multiply_field_ref(collection, test):
+    """Test $multiply from documents, using all-field-reference and mixed
+    literal/field-reference operand forms."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

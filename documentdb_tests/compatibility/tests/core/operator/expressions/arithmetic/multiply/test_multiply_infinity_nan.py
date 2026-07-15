@@ -1,3 +1,10 @@
+"""
+NaN and Infinity tests for $multiply expression.
+
+Covers every combination of NaN, Infinity, and -Infinity as operands, for
+both double and Decimal128.
+"""
+
 import math
 
 import pytest
@@ -133,7 +140,7 @@ MULTIPLY_LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
+MULTIPLY_FIELD_REF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "infinity",
         expression={"$multiply": ["$val0", "$val1"]},
@@ -253,117 +260,113 @@ MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
         expected=DECIMAL128_NAN,
         msg="Should handle decimal inf times zero",
     ),
-]
-
-
-MULTIPLY_MIXED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "infinity",
+        "infinity_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": FLOAT_INFINITY},
         expected=float("inf"),
         msg="Should handle infinity",
     ),
     ExpressionTestCase(
-        "negative_infinity",
+        "negative_infinity_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": FLOAT_NEGATIVE_INFINITY},
         expected=float("-inf"),
         msg="Should handle negative infinity",
     ),
     ExpressionTestCase(
-        "decimal_infinity",
+        "decimal_infinity_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DECIMAL128_INFINITY},
         expected=Decimal128("Infinity"),
         msg="Should handle decimal infinity",
     ),
     ExpressionTestCase(
-        "decimal_negative_infinity",
+        "decimal_negative_infinity_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DECIMAL128_NEGATIVE_INFINITY},
         expected=Decimal128("-Infinity"),
         msg="Should handle decimal negative infinity",
     ),
     ExpressionTestCase(
-        "inf_times_inf",
+        "inf_times_inf_mixed",
         expression={"$multiply": ["$val0", FLOAT_INFINITY]},
         doc={"val0": FLOAT_INFINITY},
         expected=float("inf"),
         msg="Should handle inf times inf",
     ),
     ExpressionTestCase(
-        "neg_inf_times_neg_inf",
+        "neg_inf_times_neg_inf_mixed",
         expression={"$multiply": ["$val0", FLOAT_NEGATIVE_INFINITY]},
         doc={"val0": FLOAT_NEGATIVE_INFINITY},
         expected=float("inf"),
         msg="Should handle neg inf times neg inf",
     ),
     ExpressionTestCase(
-        "inf_times_negative",
+        "inf_times_negative_mixed",
         expression={"$multiply": ["$val0", -1]},
         doc={"val0": FLOAT_INFINITY},
         expected=float("-inf"),
         msg="Should handle inf times negative",
     ),
     ExpressionTestCase(
-        "neg_inf_times_negative",
+        "neg_inf_times_negative_mixed",
         expression={"$multiply": ["$val0", -1]},
         doc={"val0": FLOAT_NEGATIVE_INFINITY},
         expected=float("inf"),
         msg="Should handle neg inf times negative",
     ),
     ExpressionTestCase(
-        "nan_multiply_two",
+        "nan_multiply_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": FLOAT_NAN},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN for nan multiply two",
     ),
     ExpressionTestCase(
-        "inf_times_zero",
+        "inf_times_zero_mixed",
         expression={"$multiply": ["$val0", 0]},
         doc={"val0": FLOAT_INFINITY},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should handle inf times zero",
     ),
     ExpressionTestCase(
-        "neg_inf_times_zero",
+        "neg_inf_times_zero_mixed",
         expression={"$multiply": ["$val0", 0]},
         doc={"val0": FLOAT_NEGATIVE_INFINITY},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should handle neg inf times zero",
     ),
     ExpressionTestCase(
-        "nan_times_nan",
+        "nan_times_nan_mixed",
         expression={"$multiply": ["$val0", FLOAT_NAN]},
         doc={"val0": FLOAT_NAN},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN for nan times nan",
     ),
     ExpressionTestCase(
-        "decimal_nan_times_nan",
+        "decimal_nan_times_nan_mixed",
         expression={"$multiply": ["$val0", DECIMAL128_NAN]},
         doc={"val0": DECIMAL128_NAN},
         expected=DECIMAL128_NAN,
         msg="Should return NaN for decimal nan times nan",
     ),
     ExpressionTestCase(
-        "nan_times_inf",
+        "nan_times_inf_mixed",
         expression={"$multiply": ["$val0", FLOAT_INFINITY]},
         doc={"val0": FLOAT_NAN},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN for nan times inf",
     ),
     ExpressionTestCase(
-        "decimal_nan",
+        "decimal_nan_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DECIMAL128_NAN},
         expected=DECIMAL128_NAN,
         msg="Should return NaN for decimal nan",
     ),
     ExpressionTestCase(
-        "decimal_inf_times_zero",
+        "decimal_inf_times_zero_mixed",
         expression={"$multiply": ["$val0", 0]},
         doc={"val0": DECIMAL128_INFINITY},
         expected=DECIMAL128_NAN,
@@ -381,18 +384,10 @@ def test_multiply_literal(collection, test):
     )
 
 
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_INSERT_TESTS))
-def test_multiply_insert(collection, test):
-    """Test $multiply from documents"""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_MIXED_TESTS))
-def test_multiply_mixed(collection, test):
-    """Test $multiply mixed literal and document"""
+@pytest.mark.parametrize("test", pytest_params(MULTIPLY_FIELD_REF_TESTS))
+def test_multiply_field_ref(collection, test):
+    """Test $multiply from documents, using all-field-reference and mixed
+    literal/field-reference operand forms."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

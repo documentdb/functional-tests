@@ -1,14 +1,9 @@
 """
 BSON type validation tests for $pow expression.
 
-Verifies that $pow rejects invalid BSON types for its base and exponent input
-positions and accepts valid numeric types. Systematically covers every BSON type
-per position via the shared bson_type_validator harness. The base and exponent
-positions report distinct error codes.
-
-Arithmetic correctness for the accepted types lives in
-test_pow_core_arithmetic.py and test_pow_boundaries_precision.py;
-this file only asserts type acceptance (no error) vs. type rejection (error code).
+Verifies that $pow rejects invalid BSON types for its base and exponent
+input positions and accepts valid numeric types, via the shared
+bson_type_validator harness. Base and exponent report distinct error codes.
 """
 
 import pytest

@@ -1,61 +1,58 @@
-from dataclasses import dataclass
-from typing import Any
+"""
+Null and missing operand tests for $mod expression.
+
+Covers null/missing short-circuiting to a null result in each operand
+position, independent of the other operand's value.
+"""
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
+    ExpressionTestCase,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
     MISSING,
 )
 
-
-@dataclass(frozen=True)
-class ModTest(BaseTestCase):
-    """Test case for $mod operator."""
-
-    dividend: Any = None
-    divisor: Any = None
-
-
-MOD_NULL_MISSING_TESTS: list[ModTest] = [
-    ModTest(
+MOD_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         "null_divisor",
-        dividend=10,
-        divisor=None,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": None},
         expected=None,
         msg="Should return null when divisor is null",
     ),
-    ModTest(
+    ExpressionTestCase(
         "null_dividend",
-        dividend=None,
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": None, "divisor": 3},
         expected=None,
         msg="Should return null when dividend is null",
     ),
-    ModTest(
+    ExpressionTestCase(
         "missing_dividend",
-        dividend=MISSING,
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": MISSING, "divisor": 3},
         expected=None,
         msg="Should return null when dividend is missing",
     ),
-    ModTest(
+    ExpressionTestCase(
         "missing_divisor",
-        dividend=10,
-        divisor=MISSING,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": MISSING},
         expected=None,
         msg="Should return null when divisor is missing",
     ),
-    ModTest(
+    ExpressionTestCase(
         "both_null",
-        dividend=None,
-        divisor=None,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": None, "divisor": None},
         expected=None,
         msg="Should return null when both are null",
     ),
@@ -65,7 +62,7 @@ MOD_NULL_MISSING_TESTS: list[ModTest] = [
 @pytest.mark.parametrize("test", pytest_params(MOD_NULL_MISSING_TESTS))
 def test_mod_literal(collection, test):
     """Test $mod from literals"""
-    result = execute_expression(collection, {"$mod": [test.dividend, test.divisor]})
+    result = execute_expression(collection, {"$mod": [test.doc["dividend"], test.doc["divisor"]]})
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
@@ -79,11 +76,11 @@ def test_mod_insert(collection, test):
     inserted document entirely, rather than inserting a MISSING sentinel value.
     """
     doc = {}
-    if test.dividend != MISSING:
-        doc["dividend"] = test.dividend
-    if test.divisor != MISSING:
-        doc["divisor"] = test.divisor
-    result = execute_expression_with_insert(collection, {"$mod": ["$dividend", "$divisor"]}, doc)
+    if test.doc["dividend"] != MISSING:
+        doc["dividend"] = test.doc["dividend"]
+    if test.doc["divisor"] != MISSING:
+        doc["divisor"] = test.doc["divisor"]
+    result = execute_expression_with_insert(collection, test.expression, doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

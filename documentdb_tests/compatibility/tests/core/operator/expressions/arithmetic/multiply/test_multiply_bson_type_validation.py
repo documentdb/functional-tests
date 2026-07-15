@@ -1,13 +1,8 @@
 """
 BSON type validation tests for $multiply expression.
 
-Verifies that $multiply rejects invalid BSON types for its numeric operands and
-accepts valid numeric types. Systematically covers every BSON type via the
-shared bson_type_validator harness.
-
-Arithmetic correctness for the accepted types lives in
-test_operator_multiply_type_matrix.py; this file only asserts type acceptance
-(no error) vs. type rejection (error code).
+Verifies that $multiply rejects invalid BSON types for its numeric operands
+and accepts valid numeric types, via the shared bson_type_validator harness.
 """
 
 import pytest
@@ -25,9 +20,6 @@ from documentdb_tests.framework.bson_type_validator import (
 )
 from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
 
-# $multiply accepts the four numeric types in every operand position. null is
-# not a type error — it propagates to a null result — so it is treated as
-# accepted. Every other BSON type is rejected with TYPE_MISMATCH_ERROR.
 NUMERIC_AND_NULL = [
     BsonType.DOUBLE,
     BsonType.INT,

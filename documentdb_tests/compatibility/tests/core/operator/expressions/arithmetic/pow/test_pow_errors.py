@@ -1,3 +1,11 @@
+"""
+Error tests for $pow expression.
+
+Covers non-numeric base/exponent rejection (empty array, empty object),
+zero-base-with-negative-exponent rejection, and argument-count/
+argument-shape errors.
+"""
+
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501

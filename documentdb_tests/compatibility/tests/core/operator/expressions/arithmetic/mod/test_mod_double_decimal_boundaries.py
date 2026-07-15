@@ -1,16 +1,23 @@
-from dataclasses import dataclass
-from typing import Any
+"""
+Double and Decimal128 boundary tests for $mod expression.
+
+Covers negative zero sign preservation, infinity divisors, near-max and
+min-subnormal doubles, and Decimal128 precision/boundary values (max, min,
+large/small exponent) as the dividend.
+"""
 
 import pytest
 from bson import Decimal128
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
+    ExpressionTestCase,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_LARGE_EXPONENT,
     DECIMAL128_MAX,
@@ -23,83 +30,74 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_INFINITY,
 )
 
-
-@dataclass(frozen=True)
-class ModTest(BaseTestCase):
-    """Test case for $mod operator."""
-
-    dividend: Any = None
-    divisor: Any = None
-
-
-MOD_DOUBLE_DECIMAL_BOUNDARY_TESTS: list[ModTest] = [
-    ModTest(
+MOD_DOUBLE_DECIMAL_BOUNDARY_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         "negative_zero_double_dividend",
-        dividend=DOUBLE_NEGATIVE_ZERO,
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DOUBLE_NEGATIVE_ZERO, "divisor": 3},
         expected=DOUBLE_NEGATIVE_ZERO,
         msg="Should preserve sign for negative zero double dividend",
     ),
-    ModTest(
+    ExpressionTestCase(
         "negative_zero_decimal_dividend",
-        dividend=DECIMAL128_NEGATIVE_ZERO,
-        divisor=Decimal128("3"),
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DECIMAL128_NEGATIVE_ZERO, "divisor": Decimal128("3")},
         expected=DECIMAL128_NEGATIVE_ZERO,
         msg="Should preserve sign for negative zero decimal128 dividend",
     ),
-    ModTest(
+    ExpressionTestCase(
         "inf_divisor",
-        dividend=10,
-        divisor=FLOAT_INFINITY,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": FLOAT_INFINITY},
         expected=10.0,
         msg="Should return dividend when divisor is infinity",
     ),
-    ModTest(
+    ExpressionTestCase(
         "huge_modulo",
-        dividend=DOUBLE_NEAR_MAX,
-        divisor=7,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DOUBLE_NEAR_MAX, "divisor": 7},
         expected=3.0,
         msg="Should handle near-max double as dividend",
     ),
-    ModTest(
+    ExpressionTestCase(
         "min_subnormal_modulo",
-        dividend=DOUBLE_MIN_SUBNORMAL,
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DOUBLE_MIN_SUBNORMAL, "divisor": 3},
         expected=DOUBLE_MIN_SUBNORMAL,
         msg="Should handle min subnormal double as dividend",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_precision",
-        dividend=Decimal128("10.5"),
-        divisor=Decimal128("3.2"),
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": Decimal128("10.5"), "divisor": Decimal128("3.2")},
         expected=Decimal128("0.9"),
         msg="Should preserve decimal128 precision",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_max_dividend",
-        dividend=DECIMAL128_MAX,
-        divisor=Decimal128("3"),
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DECIMAL128_MAX, "divisor": Decimal128("3")},
         expected=Decimal128("0"),
         msg="Should handle Decimal128 max value as dividend",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_min_dividend",
-        dividend=DECIMAL128_MIN,
-        divisor=Decimal128("3"),
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DECIMAL128_MIN, "divisor": Decimal128("3")},
         expected=Decimal128("-0"),
         msg="Should handle Decimal128 min value as dividend",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_large_exponent_dividend",
-        dividend=DECIMAL128_LARGE_EXPONENT,
-        divisor=Decimal128("3"),
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DECIMAL128_LARGE_EXPONENT, "divisor": Decimal128("3")},
         expected=Decimal128("1"),
         msg="Should handle Decimal128 large exponent as dividend",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_small_exponent_dividend",
-        dividend=DECIMAL128_SMALL_EXPONENT,
-        divisor=Decimal128("3"),
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DECIMAL128_SMALL_EXPONENT, "divisor": Decimal128("3")},
         expected=DECIMAL128_SMALL_EXPONENT,
         msg="Should handle Decimal128 small exponent as dividend",
     ),
@@ -109,7 +107,7 @@ MOD_DOUBLE_DECIMAL_BOUNDARY_TESTS: list[ModTest] = [
 @pytest.mark.parametrize("test", pytest_params(MOD_DOUBLE_DECIMAL_BOUNDARY_TESTS))
 def test_mod_literal(collection, test):
     """Test $mod from literals"""
-    result = execute_expression(collection, {"$mod": [test.dividend, test.divisor]})
+    result = execute_expression(collection, {"$mod": [test.doc["dividend"], test.doc["divisor"]]})
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
@@ -118,11 +116,7 @@ def test_mod_literal(collection, test):
 @pytest.mark.parametrize("test", pytest_params(MOD_DOUBLE_DECIMAL_BOUNDARY_TESTS))
 def test_mod_insert(collection, test):
     """Test $mod from documents"""
-    result = execute_expression_with_insert(
-        collection,
-        {"$mod": ["$dividend", "$divisor"]},
-        {"dividend": test.dividend, "divisor": test.divisor},
-    )
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

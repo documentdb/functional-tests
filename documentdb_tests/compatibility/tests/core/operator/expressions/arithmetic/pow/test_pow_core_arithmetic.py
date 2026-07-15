@@ -1,3 +1,10 @@
+"""
+Core arithmetic tests for $pow expression.
+
+Covers $pow across every same-type and cross-type pairing of the four
+numeric BSON types (int32, int64, double, decimal128).
+"""
+
 import pytest
 from bson import (
     Decimal128,

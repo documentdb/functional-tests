@@ -2,13 +2,8 @@
 BSON type validation tests for $mod expression.
 
 Verifies that $mod rejects invalid BSON types for its dividend and divisor
-input positions, and accepts valid numeric types. Systematically covers every
-BSON type per position via the shared bson_type_validator harness.
-
-Arithmetic correctness for the accepted types lives across the other
-test_operator_mod_*.py files in this folder (e.g. test_operator_mod_type_matrix.py,
-test_operator_mod_basic_sign.py); this file only asserts type acceptance (no
-error) vs. type rejection (error code).
+input positions, and accepts valid numeric types, via the shared
+bson_type_validator harness.
 """
 
 import pytest

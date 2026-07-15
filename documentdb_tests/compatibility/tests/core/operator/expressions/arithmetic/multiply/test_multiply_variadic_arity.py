@@ -1,3 +1,11 @@
+"""
+Variadic arity tests for $multiply expression.
+
+Covers arity 0 (empty array to multiplicative identity), 1, 2, 3, 5, 10, 15,
+and 20 operands, plus the non-array single-operand shorthand and the
+self-nesting equivalence case.
+"""
+
 import pytest
 from bson import (
     Decimal128,
@@ -108,7 +116,7 @@ MULTIPLY_LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
+MULTIPLY_FIELD_REF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "multiple_int32",
         expression={"$multiply": ["$val0", "$val1", "$val2"]},
@@ -309,61 +317,57 @@ MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
         expected=24,
         msg="Should handle $multiply nested inside $multiply",
     ),
-]
-
-
-MULTIPLY_MIXED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "multiple_int32",
+        "multiple_int32_mixed",
         expression={"$multiply": ["$val0", 3, 4]},
         doc={"val0": 2},
         expected=24,
         msg="Should handle multiple int32",
     ),
     ExpressionTestCase(
-        "multiple_int64",
+        "multiple_int64_mixed",
         expression={"$multiply": ["$val0", Int64(3), Int64(4)]},
         doc={"val0": Int64(2)},
         expected=Int64(24),
         msg="Should handle multiple int64",
     ),
     ExpressionTestCase(
-        "multiple_double",
+        "multiple_double_mixed",
         expression={"$multiply": ["$val0", 2.0, 3.0]},
         doc={"val0": 1.5},
         expected=pytest.approx(9.0),
         msg="Should handle multiple double",
     ),
     ExpressionTestCase(
-        "five_operands",
+        "five_operands_mixed",
         expression={"$multiply": ["$val0", 2, 3, 4, 5]},
         doc={"val0": 1},
         expected=120,
         msg="Should return correct result for five operands",
     ),
     ExpressionTestCase(
-        "ten_operands",
+        "ten_operands_mixed",
         expression={"$multiply": ["$val0", 2, 3, 4, 5, 6, 7, 8, 9, 10]},
         doc={"val0": 1},
         expected=3628800,
         msg="Should return correct result for ten operands",
     ),
     ExpressionTestCase(
-        "multiple_decimal",
+        "multiple_decimal_mixed",
         expression={"$multiply": ["$val0", Decimal128("3"), Decimal128("4")]},
         doc={"val0": Decimal128("2")},
         expected=Decimal128("24"),
         msg="Should return correct result for multiple decimal",
     ),
     ExpressionTestCase(
-        "fifteen_operands",
+        "fifteen_operands_mixed",
         expression={"$multiply": ["$val0", 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]},
         doc={"val0": 1},
         expected=Int64(1307674368000),
         msg="Should return correct result for fifteen operands",
     ),
     ExpressionTestCase(
-        "twenty_operands",
+        "twenty_operands_mixed",
         expression={
             "$multiply": ["$val0", 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
         },
@@ -372,7 +376,7 @@ MULTIPLY_MIXED_TESTS: list[ExpressionTestCase] = [
         msg="Should return correct result for twenty operands",
     ),
     ExpressionTestCase(
-        "self_nesting",
+        "self_nesting_mixed",
         expression={"$multiply": [{"$multiply": ["$val0", 3]}, 4]},
         doc={"val0": 2},
         expected=24,
@@ -390,18 +394,10 @@ def test_multiply_literal(collection, test):
     )
 
 
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_INSERT_TESTS))
-def test_multiply_insert(collection, test):
-    """Test $multiply from documents"""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_MIXED_TESTS))
-def test_multiply_mixed(collection, test):
-    """Test $multiply mixed literal and document"""
+@pytest.mark.parametrize("test", pytest_params(MULTIPLY_FIELD_REF_TESTS))
+def test_multiply_field_ref(collection, test):
+    """Test $multiply from documents, using all-field-reference and mixed
+    literal/field-reference operand forms."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

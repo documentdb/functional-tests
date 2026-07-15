@@ -1,3 +1,10 @@
+"""
+Field-reference wiring tests for $pow expression.
+
+Confirms field-path resolution feeds correctly into $pow (one type-combo,
+one boundary, one null); full matrices are covered as literals elsewhere.
+"""
+
 import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
@@ -13,12 +20,6 @@ from documentdb_tests.framework.test_constants import (
     MISSING,
 )
 
-# Field-ref wiring smoke: confirms field-path resolution feeds correctly into
-# $pow (one type-combo, one boundary, one null). Full type/boundary/overflow/
-# null matrices are already covered as literals in test_pow_core_arithmetic.py,
-# test_pow_boundaries_precision.py, and test_pow_null_missing_infinity.py.
-# missing_base / missing_exponent are kept in full as they carry unique,
-# field-only signal (field-absence semantics have no literal equivalent).
 POW_INSERT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "same_type_int32",

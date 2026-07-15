@@ -1,5 +1,10 @@
-from dataclasses import dataclass
-from typing import Any
+"""
+Error tests for $mod expression.
+
+Covers non-numeric operand rejection (array/object), zero-divisor rejection
+(int, double, int64, Decimal128, including negative zero), and
+argument-count/argument-shape errors.
+"""
 
 import pytest
 from bson import Decimal128, Int64
@@ -19,103 +24,93 @@ from documentdb_tests.framework.error_codes import (
     MODULO_ZERO_REMAINDER_ERROR,
 )
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_NEGATIVE_ZERO,
     DOUBLE_NEGATIVE_ZERO,
 )
 
-
-@dataclass(frozen=True)
-class ModTest(BaseTestCase):
-    """Test case for $mod operator dividend/divisor error cases."""
-
-    dividend: Any = None
-    divisor: Any = None
-
-
-MOD_ERROR_TESTS: list[ModTest] = [
-    ModTest(
+MOD_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         "empty_array_dividend",
-        dividend=[],
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": [], "divisor": 3},
         error_code=MODULO_NON_NUMERIC_ERROR,
         msg="Should reject empty array dividend",
     ),
-    ModTest(
+    ExpressionTestCase(
         "empty_object_dividend",
-        dividend={},
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": {}, "divisor": 3},
         error_code=MODULO_NON_NUMERIC_ERROR,
         msg="Should reject empty object dividend",
     ),
-    ModTest(
+    ExpressionTestCase(
         "empty_array_divisor",
-        dividend=10,
-        divisor=[],
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": []},
         error_code=MODULO_NON_NUMERIC_ERROR,
         msg="Should reject empty array divisor",
     ),
-    ModTest(
+    ExpressionTestCase(
         "empty_object_divisor",
-        dividend=10,
-        divisor={},
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": {}},
         error_code=MODULO_NON_NUMERIC_ERROR,
         msg="Should reject empty object divisor",
     ),
-    ModTest(
+    ExpressionTestCase(
         "zero_divisor",
-        dividend=10,
-        divisor=0,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": 0},
         error_code=MODULO_ZERO_REMAINDER_ERROR,
         msg="Should reject modulo by zero int",
     ),
-    ModTest(
+    ExpressionTestCase(
         "zero_divisor_double",
-        dividend=10,
-        divisor=0.0,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": 0.0},
         error_code=MODULO_ZERO_REMAINDER_ERROR,
         msg="Should reject modulo by zero double",
     ),
-    ModTest(
+    ExpressionTestCase(
         "zero_divisor_int64",
-        dividend=10,
-        divisor=Int64(0),
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": Int64(0)},
         error_code=MODULO_ZERO_REMAINDER_ERROR,
         msg="Should reject modulo by zero int64",
     ),
-    ModTest(
+    ExpressionTestCase(
         "zero_dividend_zero_divisor",
-        dividend=0,
-        divisor=0,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 0, "divisor": 0},
         error_code=MODULO_ZERO_REMAINDER_ERROR,
         msg="Should reject 0 mod 0",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_zero_divisor",
-        dividend=10,
-        divisor=Decimal128("0"),
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": Decimal128("0")},
         error_code=MODULO_DECIMAL128_ZERO_REMAINDER_ERROR,
         msg="Should reject modulo by zero decimal128",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_zero_dividend_zero_divisor",
-        dividend=Decimal128("0"),
-        divisor=Decimal128("0"),
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": Decimal128("0"), "divisor": Decimal128("0")},
         error_code=MODULO_DECIMAL128_ZERO_REMAINDER_ERROR,
         msg="Should reject decimal 0 mod 0",
     ),
-    ModTest(
+    ExpressionTestCase(
         "negative_zero_double_divisor",
-        dividend=10,
-        divisor=DOUBLE_NEGATIVE_ZERO,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": DOUBLE_NEGATIVE_ZERO},
         error_code=MODULO_ZERO_REMAINDER_ERROR,
         msg="Should reject modulo by negative zero double",
     ),
-    ModTest(
+    ExpressionTestCase(
         "negative_zero_decimal_divisor",
-        dividend=10,
-        divisor=DECIMAL128_NEGATIVE_ZERO,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": DECIMAL128_NEGATIVE_ZERO},
         error_code=MODULO_DECIMAL128_ZERO_REMAINDER_ERROR,
         msg="Should reject modulo by negative zero decimal128",
     ),
@@ -155,7 +150,7 @@ MOD_ARITY_TESTS: list[ExpressionTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(MOD_ERROR_TESTS))
 def test_mod_literal(collection, test):
     """Test $mod from literals"""
-    result = execute_expression(collection, {"$mod": [test.dividend, test.divisor]})
+    result = execute_expression(collection, {"$mod": [test.doc["dividend"], test.doc["divisor"]]})
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
@@ -164,11 +159,7 @@ def test_mod_literal(collection, test):
 @pytest.mark.parametrize("test", pytest_params(MOD_ERROR_TESTS))
 def test_mod_insert(collection, test):
     """Test $mod from documents"""
-    result = execute_expression_with_insert(
-        collection,
-        {"$mod": ["$dividend", "$divisor"]},
-        {"dividend": test.dividend, "divisor": test.divisor},
-    )
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

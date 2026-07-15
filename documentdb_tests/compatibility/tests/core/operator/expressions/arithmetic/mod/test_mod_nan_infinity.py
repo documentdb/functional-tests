@@ -1,17 +1,24 @@
+"""
+NaN and Infinity tests for $mod expression.
+
+Covers every combination of NaN, Infinity, and -Infinity as the dividend
+and/or divisor, for both double and Decimal128.
+"""
+
 import math
-from dataclasses import dataclass
-from typing import Any
 
 import pytest
 from bson import Decimal128
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
+    ExpressionTestCase,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
     execute_expression,
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
@@ -21,132 +28,126 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_NEGATIVE_INFINITY,
 )
 
-
-@dataclass(frozen=True)
-class ModTest(BaseTestCase):
-    """Test case for $mod operator."""
-
-    dividend: Any = None
-    divisor: Any = None
-
-
-MOD_NAN_INFINITY_TESTS: list[ModTest] = [
-    ModTest(
+MOD_NAN_INFINITY_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
         "neg_inf_divisor",
-        dividend=10,
-        divisor=FLOAT_NEGATIVE_INFINITY,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": FLOAT_NEGATIVE_INFINITY},
         expected=10.0,
         msg="Should return dividend when divisor is -infinity",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_neg_inf_divisor",
-        dividend=10,
-        divisor=DECIMAL128_NEGATIVE_INFINITY,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": DECIMAL128_NEGATIVE_INFINITY},
         expected=Decimal128("10"),
         msg="Should return dividend when divisor is decimal -infinity",
     ),
-    ModTest(
+    ExpressionTestCase(
         "nan_dividend",
-        dividend=FLOAT_NAN,
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": FLOAT_NAN, "divisor": 3},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN when dividend is NaN",
     ),
-    ModTest(
+    ExpressionTestCase(
         "nan_divisor",
-        dividend=10,
-        divisor=FLOAT_NAN,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": FLOAT_NAN},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN when divisor is NaN",
     ),
-    ModTest(
+    ExpressionTestCase(
         "both_nan",
-        dividend=FLOAT_NAN,
-        divisor=FLOAT_NAN,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": FLOAT_NAN, "divisor": FLOAT_NAN},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN when both are NaN",
     ),
-    ModTest(
+    ExpressionTestCase(
         "inf_dividend",
-        dividend=FLOAT_INFINITY,
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": FLOAT_INFINITY, "divisor": 3},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN for infinity mod finite",
     ),
-    ModTest(
+    ExpressionTestCase(
         "neg_inf_dividend",
-        dividend=FLOAT_NEGATIVE_INFINITY,
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": FLOAT_NEGATIVE_INFINITY, "divisor": 3},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN for -infinity mod finite",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_nan_dividend",
-        dividend=DECIMAL128_NAN,
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DECIMAL128_NAN, "divisor": 3},
         expected=DECIMAL128_NAN,
         msg="Should return decimal NaN when dividend is decimal NaN",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_nan_divisor",
-        dividend=10,
-        divisor=DECIMAL128_NAN,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": 10, "divisor": DECIMAL128_NAN},
         expected=DECIMAL128_NAN,
         msg="Should return decimal NaN when divisor is decimal NaN",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_inf_dividend",
-        dividend=DECIMAL128_INFINITY,
-        divisor=3,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DECIMAL128_INFINITY, "divisor": 3},
         expected=DECIMAL128_NAN,
         msg="Should return decimal NaN for decimal infinity mod finite",
     ),
-    ModTest(
+    ExpressionTestCase(
         "inf_mod_inf",
-        dividend=FLOAT_INFINITY,
-        divisor=FLOAT_INFINITY,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": FLOAT_INFINITY, "divisor": FLOAT_INFINITY},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN for infinity mod infinity",
     ),
-    ModTest(
+    ExpressionTestCase(
         "neg_inf_mod_neg_inf",
-        dividend=FLOAT_NEGATIVE_INFINITY,
-        divisor=FLOAT_NEGATIVE_INFINITY,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": FLOAT_NEGATIVE_INFINITY, "divisor": FLOAT_NEGATIVE_INFINITY},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN for -infinity mod -infinity",
     ),
-    ModTest(
+    ExpressionTestCase(
         "inf_mod_neg_inf",
-        dividend=FLOAT_INFINITY,
-        divisor=FLOAT_NEGATIVE_INFINITY,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": FLOAT_INFINITY, "divisor": FLOAT_NEGATIVE_INFINITY},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN for infinity mod -infinity",
     ),
-    ModTest(
+    ExpressionTestCase(
         "neg_inf_mod_inf",
-        dividend=FLOAT_NEGATIVE_INFINITY,
-        divisor=FLOAT_INFINITY,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": FLOAT_NEGATIVE_INFINITY, "divisor": FLOAT_INFINITY},
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="Should return NaN for -infinity mod infinity",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_inf_mod_inf",
-        dividend=DECIMAL128_INFINITY,
-        divisor=DECIMAL128_INFINITY,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DECIMAL128_INFINITY, "divisor": DECIMAL128_INFINITY},
         expected=DECIMAL128_NAN,
         msg="Should return decimal NaN for decimal infinity mod decimal infinity",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_neg_inf_mod_neg_inf",
-        dividend=DECIMAL128_NEGATIVE_INFINITY,
-        divisor=DECIMAL128_NEGATIVE_INFINITY,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={
+            "dividend": DECIMAL128_NEGATIVE_INFINITY,
+            "divisor": DECIMAL128_NEGATIVE_INFINITY,
+        },
         expected=DECIMAL128_NAN,
         msg="Should return decimal NaN for decimal -infinity mod decimal -infinity",
     ),
-    ModTest(
+    ExpressionTestCase(
         "decimal_inf_mod_neg_inf",
-        dividend=DECIMAL128_INFINITY,
-        divisor=DECIMAL128_NEGATIVE_INFINITY,
+        expression={"$mod": ["$dividend", "$divisor"]},
+        doc={"dividend": DECIMAL128_INFINITY, "divisor": DECIMAL128_NEGATIVE_INFINITY},
         expected=DECIMAL128_NAN,
         msg="Should return decimal NaN for decimal infinity mod decimal -infinity",
     ),
@@ -156,7 +157,7 @@ MOD_NAN_INFINITY_TESTS: list[ModTest] = [
 @pytest.mark.parametrize("test", pytest_params(MOD_NAN_INFINITY_TESTS))
 def test_mod_literal(collection, test):
     """Test $mod from literals"""
-    result = execute_expression(collection, {"$mod": [test.dividend, test.divisor]})
+    result = execute_expression(collection, {"$mod": [test.doc["dividend"], test.doc["divisor"]]})
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
@@ -165,11 +166,7 @@ def test_mod_literal(collection, test):
 @pytest.mark.parametrize("test", pytest_params(MOD_NAN_INFINITY_TESTS))
 def test_mod_insert(collection, test):
     """Test $mod from documents"""
-    result = execute_expression_with_insert(
-        collection,
-        {"$mod": ["$dividend", "$divisor"]},
-        {"dividend": test.dividend, "divisor": test.divisor},
-    )
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

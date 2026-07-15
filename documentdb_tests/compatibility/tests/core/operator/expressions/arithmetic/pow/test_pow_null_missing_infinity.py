@@ -1,3 +1,11 @@
+"""
+Null, missing, and Infinity tests for $pow expression.
+
+Covers null/missing short-circuiting for the base and exponent, plus every
+combination of NaN, Infinity, and -Infinity as the base and/or exponent for
+double and Decimal128.
+"""
+
 import math
 
 import pytest

@@ -1,3 +1,11 @@
+"""
+Null, missing, sign, and zero tests for $multiply expression.
+
+Covers null/missing short-circuiting in any operand position, sign
+combinations (positive/negative), zero, and negative-zero handling for
+both double and Decimal128.
+"""
+
 import pytest
 from bson import Decimal128
 
@@ -127,7 +135,7 @@ MULTIPLY_LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
+MULTIPLY_FIELD_REF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "single_null",
         expression={"$multiply": ["$val0"]},
@@ -219,12 +227,8 @@ MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
         expected=0,
         msg="Should handle zero in middle",
     ),
-]
-
-
-MULTIPLY_MIXED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "null_operand",
+        "null_operand_mixed",
         expression={"$multiply": ["$val0", None]},
         doc={"val0": 2},
         expected=None,
@@ -238,70 +242,70 @@ MULTIPLY_MIXED_TESTS: list[ExpressionTestCase] = [
         msg="Should return null for missing field",
     ),
     ExpressionTestCase(
-        "null_with_multiple",
+        "null_with_multiple_mixed",
         expression={"$multiply": ["$val0", 3, None]},
         doc={"val0": 2},
         expected=None,
         msg="Should return null for null with multiple",
     ),
     ExpressionTestCase(
-        "null_in_middle",
+        "null_in_middle_mixed",
         expression={"$multiply": ["$val0", 3, 4, None, 5]},
         doc={"val0": 2},
         expected=None,
         msg="Should return null for null in middle",
     ),
     ExpressionTestCase(
-        "null_and_string",
+        "null_and_string_mixed",
         expression={"$multiply": ["$val0", "string"]},
         doc={"val0": None},
         expected=None,
         msg="Should return null for null and string",
     ),
     ExpressionTestCase(
-        "two_nulls",
+        "two_nulls_mixed",
         expression={"$multiply": ["$val0", None]},
         doc={"val0": None},
         expected=None,
         msg="Should return null for two nulls",
     ),
     ExpressionTestCase(
-        "null_with_invalid",
+        "null_with_invalid_mixed",
         expression={"$multiply": ["$val0", None, "string"]},
         doc={"val0": 2},
         expected=None,
         msg="Should return null for null with invalid",
     ),
     ExpressionTestCase(
-        "negative_positive",
+        "negative_positive_mixed",
         expression={"$multiply": ["$val0", 3]},
         doc={"val0": -5},
         expected=-15,
         msg="Should handle negative positive",
     ),
     ExpressionTestCase(
-        "both_negative",
+        "both_negative_mixed",
         expression={"$multiply": ["$val0", -20]},
         doc={"val0": -10},
         expected=200,
         msg="Should handle both negative",
     ),
     ExpressionTestCase(
-        "zero_multiply",
+        "zero_multiply_mixed",
         expression={"$multiply": ["$val0", 5]},
         doc={"val0": 0},
         expected=0,
         msg="Should handle zero multiply",
     ),
     ExpressionTestCase(
-        "zero_negative_zero",
+        "zero_negative_zero_mixed",
         expression={"$multiply": ["$val0", -0.0]},
         doc={"val0": 0},
         expected=-0.0,
         msg="Should handle zero negative zero",
     ),
     ExpressionTestCase(
-        "zero_in_middle",
+        "zero_in_middle_mixed",
         expression={"$multiply": ["$val0", 0, 10]},
         doc={"val0": 5},
         expected=0,
@@ -319,18 +323,10 @@ def test_multiply_literal(collection, test):
     )
 
 
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_INSERT_TESTS))
-def test_multiply_insert(collection, test):
-    """Test $multiply from documents"""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_MIXED_TESTS))
-def test_multiply_mixed(collection, test):
-    """Test $multiply mixed literal and document"""
+@pytest.mark.parametrize("test", pytest_params(MULTIPLY_FIELD_REF_TESTS))
+def test_multiply_field_ref(collection, test):
+    """Test $multiply from documents, using all-field-reference and mixed
+    literal/field-reference operand forms."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

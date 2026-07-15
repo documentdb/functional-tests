@@ -1,3 +1,12 @@
+"""
+Overflow and boundary tests for $multiply expression.
+
+Covers INT32/INT64 max/min (and adjacent) values through the
+int32->int64->double promotion chain, double overflow/underflow near the
+double range limits (including subnormals), and Decimal128
+precision/overflow at its boundary values.
+"""
+
 import pytest
 from bson import (
     Decimal128,
@@ -158,7 +167,7 @@ MULTIPLY_LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
+MULTIPLY_FIELD_REF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "int32_overflow",
         expression={"$multiply": ["$val0", "$val1"]},
@@ -250,96 +259,92 @@ MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
         expected=Decimal128("9999999999999999800000000000000001"),
         msg="Should preserve precision for decimal large precision",
     ),
-]
-
-
-MULTIPLY_MIXED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "int32_overflow",
+        "int32_overflow_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": INT32_MAX},
         expected=Int64(4294967294),
         msg="Should handle int32 overflow",
     ),
     ExpressionTestCase(
-        "int32_max_minus_1_times_2",
+        "int32_max_minus_1_times_2_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": INT32_MAX_MINUS_1},
         expected=Int64(4294967292),
         msg="Should handle int32 max minus 1 times 2",
     ),
     ExpressionTestCase(
-        "int32_underflow",
+        "int32_underflow_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": INT32_MIN},
         expected=Int64(-4294967296),
         msg="Should handle int32 underflow",
     ),
     ExpressionTestCase(
-        "int32_min_plus_1_times_2",
+        "int32_min_plus_1_times_2_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": INT32_MIN_PLUS_1},
         expected=Int64(-4294967294),
         msg="Should handle int32 min plus 1 times 2",
     ),
     ExpressionTestCase(
-        "int64_overflow",
+        "int64_overflow_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": INT64_MAX},
         expected=pytest.approx(1.8446744073709552e19),
         msg="Should handle int64 overflow",
     ),
     ExpressionTestCase(
-        "int64_max_minus_1_times_2",
+        "int64_max_minus_1_times_2_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": INT64_MAX_MINUS_1},
         expected=pytest.approx(1.8446744073709552e19),
         msg="Should handle int64 max minus 1 times 2",
     ),
     ExpressionTestCase(
-        "int64_underflow",
+        "int64_underflow_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": INT64_MIN},
         expected=pytest.approx(-1.8446744073709552e19),
         msg="Should handle int64 underflow",
     ),
     ExpressionTestCase(
-        "int64_min_plus_1_times_2",
+        "int64_min_plus_1_times_2_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": INT64_MIN_PLUS_1},
         expected=pytest.approx(-1.8446744073709552e19),
         msg="Should handle int64 min plus 1 times 2",
     ),
     ExpressionTestCase(
-        "double_overflow",
+        "double_overflow_mixed",
         expression={"$multiply": ["$val0", 10]},
         doc={"val0": DOUBLE_NEAR_MAX},
         expected=float("inf"),
         msg="Should handle double overflow",
     ),
     ExpressionTestCase(
-        "double_underflow",
+        "double_underflow_mixed",
         expression={"$multiply": ["$val0", 10]},
         doc={"val0": -DOUBLE_NEAR_MAX},
         expected=float("-inf"),
         msg="Should handle double underflow",
     ),
     ExpressionTestCase(
-        "decimal_precision",
+        "decimal_precision_mixed",
         expression={"$multiply": ["$val0", Decimal128("2.5")]},
         doc={"val0": Decimal128("1.5")},
         expected=Decimal128("3.75"),
         msg="Should preserve precision for decimal precision",
     ),
     ExpressionTestCase(
-        "decimal_precision_small",
+        "decimal_precision_small_mixed",
         expression={"$multiply": ["$val0", Decimal128("0.2")]},
         doc={"val0": Decimal128("0.1")},
         expected=Decimal128("0.02"),
         msg="Should preserve precision for decimal precision small",
     ),
     ExpressionTestCase(
-        "decimal_large_precision",
+        "decimal_large_precision_mixed",
         expression={"$multiply": ["$val0", Decimal128("99999999999999999")]},
         doc={"val0": Decimal128("99999999999999999")},
         expected=Decimal128("9999999999999999800000000000000001"),
@@ -357,18 +362,10 @@ def test_multiply_literal(collection, test):
     )
 
 
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_INSERT_TESTS))
-def test_multiply_insert(collection, test):
-    """Test $multiply from documents"""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_MIXED_TESTS))
-def test_multiply_mixed(collection, test):
-    """Test $multiply mixed literal and document"""
+@pytest.mark.parametrize("test", pytest_params(MULTIPLY_FIELD_REF_TESTS))
+def test_multiply_field_ref(collection, test):
+    """Test $multiply from documents, using all-field-reference and mixed
+    literal/field-reference operand forms."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

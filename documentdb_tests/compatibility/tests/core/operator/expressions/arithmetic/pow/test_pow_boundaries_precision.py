@@ -1,3 +1,12 @@
+"""
+Boundary and precision tests for $pow expression.
+
+Covers INT32/INT64 max/min (and adjacent) values through the promotion
+chain, double overflow/underflow near the double range limits (including
+subnormals), and Decimal128 precision/boundary values, plus rounding
+near half values for double and Decimal128.
+"""
+
 import pytest
 from bson import (
     Decimal128,

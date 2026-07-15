@@ -1,3 +1,10 @@
+"""
+Rounding-precision tests for $multiply expression near half values.
+
+Covers half, one-and-a-half, and two-and-a-half operands for double and
+Decimal128, including values just below and just above a half boundary.
+"""
+
 import pytest
 from bson import Decimal128
 
@@ -126,7 +133,7 @@ MULTIPLY_LITERAL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
+MULTIPLY_FIELD_REF_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "double_half_times_two",
         expression={"$multiply": ["$val0", "$val1"]},
@@ -239,117 +246,113 @@ MULTIPLY_INSERT_TESTS: list[ExpressionTestCase] = [
         expected=Decimal128("0.25"),
         msg="Should return correct result for decimal half times half",
     ),
-]
-
-
-MULTIPLY_MIXED_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
-        "double_half_times_two",
+        "double_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DOUBLE_HALF},
         expected=1.0,
         msg="Should handle double half times two",
     ),
     ExpressionTestCase(
-        "double_one_and_half_times_two",
+        "double_one_and_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DOUBLE_ONE_AND_HALF},
         expected=3.0,
         msg="Should handle double one and half times two",
     ),
     ExpressionTestCase(
-        "double_negative_half_times_two",
+        "double_negative_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DOUBLE_NEGATIVE_HALF},
         expected=-1.0,
         msg="Should handle double negative half times two",
     ),
     ExpressionTestCase(
-        "double_negative_one_and_half_times_two",
+        "double_negative_one_and_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DOUBLE_NEGATIVE_ONE_AND_HALF},
         expected=-3.0,
         msg="Should handle double negative one and half times two",
     ),
     ExpressionTestCase(
-        "double_just_below_half_times_two",
+        "double_just_below_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DOUBLE_JUST_BELOW_HALF},
         expected=pytest.approx(0.9999999999999988),
         msg="Should handle double just below half times two",
     ),
     ExpressionTestCase(
-        "double_just_above_half_times_two",
+        "double_just_above_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DOUBLE_JUST_ABOVE_HALF},
         expected=pytest.approx(1.000000002),
         msg="Should handle double just above half times two",
     ),
     ExpressionTestCase(
-        "double_half_times_half",
+        "double_half_times_half_mixed",
         expression={"$multiply": ["$val0", DOUBLE_HALF]},
         doc={"val0": DOUBLE_HALF},
         expected=0.25,
         msg="Should handle double half times half",
     ),
     ExpressionTestCase(
-        "double_one_and_half_times_one_and_half",
+        "double_one_and_half_times_one_and_half_mixed",
         expression={"$multiply": ["$val0", DOUBLE_ONE_AND_HALF]},
         doc={"val0": DOUBLE_ONE_AND_HALF},
         expected=2.25,
         msg="Should handle double one and half times one and half",
     ),
     ExpressionTestCase(
-        "decimal_half_times_two",
+        "decimal_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DECIMAL128_HALF},
         expected=Decimal128("1.0"),
         msg="Should return correct result for decimal half times two",
     ),
     ExpressionTestCase(
-        "decimal_one_and_half_times_two",
+        "decimal_one_and_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DECIMAL128_ONE_AND_HALF},
         expected=Decimal128("3.0"),
         msg="Should return correct result for decimal one and half times two",
     ),
     ExpressionTestCase(
-        "decimal_two_and_half_times_two",
+        "decimal_two_and_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DECIMAL128_TWO_AND_HALF},
         expected=Decimal128("5.0"),
         msg="Should return correct result for decimal two and half times two",
     ),
     ExpressionTestCase(
-        "decimal_negative_half_times_two",
+        "decimal_negative_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DECIMAL128_NEGATIVE_HALF},
         expected=Decimal128("-1.0"),
         msg="Should handle decimal negative half times two",
     ),
     ExpressionTestCase(
-        "decimal_negative_one_and_half_times_two",
+        "decimal_negative_one_and_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DECIMAL128_NEGATIVE_ONE_AND_HALF},
         expected=Decimal128("-3.0"),
         msg="Should handle decimal negative one and half times two",
     ),
     ExpressionTestCase(
-        "decimal_just_below_half_times_two",
+        "decimal_just_below_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DECIMAL128_JUST_BELOW_HALF},
         expected=Decimal128("0.9999999999999999999999999999999998"),
         msg="Should return correct result for decimal just below half times two",
     ),
     ExpressionTestCase(
-        "decimal_just_above_half_times_two",
+        "decimal_just_above_half_times_two_mixed",
         expression={"$multiply": ["$val0", 2]},
         doc={"val0": DECIMAL128_JUST_ABOVE_HALF},
         expected=Decimal128("1.000000000000000000000000000000000"),
         msg="Should return correct result for decimal just above half times two",
     ),
     ExpressionTestCase(
-        "decimal_half_times_half",
+        "decimal_half_times_half_mixed",
         expression={"$multiply": ["$val0", DECIMAL128_HALF]},
         doc={"val0": DECIMAL128_HALF},
         expected=Decimal128("0.25"),
@@ -367,18 +370,10 @@ def test_multiply_literal(collection, test):
     )
 
 
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_INSERT_TESTS))
-def test_multiply_insert(collection, test):
-    """Test $multiply from documents"""
-    result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-@pytest.mark.parametrize("test", pytest_params(MULTIPLY_MIXED_TESTS))
-def test_multiply_mixed(collection, test):
-    """Test $multiply mixed literal and document"""
+@pytest.mark.parametrize("test", pytest_params(MULTIPLY_FIELD_REF_TESTS))
+def test_multiply_field_ref(collection, test):
+    """Test $multiply from documents, using all-field-reference and mixed
+    literal/field-reference operand forms."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
