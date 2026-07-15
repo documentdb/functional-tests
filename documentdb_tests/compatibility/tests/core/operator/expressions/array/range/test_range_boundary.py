@@ -1,0 +1,87 @@
+"""
+Boundary value tests for $range expression.
+
+Tests INT32 boundary value handling for start, end, step.
+"""
+
+import pytest
+
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
+    ExpressionTestCase,
+)
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
+    assert_expression_result,
+    execute_expression_with_insert,
+)
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import INT32_MAX, INT32_MAX_MINUS_1, INT32_MIN
+
+# Property [INT32 Boundaries]: $range works at INT32 boundary values.
+INT32_BOUNDARY_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "int32_max_eq",
+        doc={"start": INT32_MAX, "end": INT32_MAX},
+        expression={"$range": ["$start", "$end"]},
+        expected=[],
+        msg="$range INT32_MAX == INT32_MAX should be empty",
+    ),
+    ExpressionTestCase(
+        "int32_min_eq",
+        doc={"start": INT32_MIN, "end": INT32_MIN},
+        expression={"$range": ["$start", "$end"]},
+        expected=[],
+        msg="$range INT32_MIN == INT32_MIN should be empty",
+    ),
+    ExpressionTestCase(
+        "int32_max_minus1",
+        doc={"start": INT32_MAX_MINUS_1, "end": INT32_MAX},
+        expression={"$range": ["$start", "$end"]},
+        expected=[INT32_MAX_MINUS_1],
+        msg="$range INT32_MAX-1 to INT32_MAX should produce single element",
+    ),
+    ExpressionTestCase(
+        "int32_min_to_plus3",
+        doc={"start": INT32_MIN, "end": INT32_MIN + 3},
+        expression={"$range": ["$start", "$end"]},
+        expected=[INT32_MIN, INT32_MIN + 1, INT32_MIN + 2],
+        msg="$range INT32_MIN to INT32_MIN+3",
+    ),
+    ExpressionTestCase(
+        "step_int32_max",
+        doc={"start": 0, "end": INT32_MAX, "step": INT32_MAX},
+        expression={"$range": ["$start", "$end", "$step"]},
+        expected=[0],
+        msg="$range step INT32_MAX should produce single element",
+    ),
+    ExpressionTestCase(
+        "near_int32_max",
+        doc={"start": INT32_MAX - 7, "end": INT32_MAX},
+        expression={"$range": ["$start", "$end"]},
+        expected=[
+            INT32_MAX - 7,
+            INT32_MAX - 6,
+            INT32_MAX - 5,
+            INT32_MAX - 4,
+            INT32_MAX - 3,
+            INT32_MAX - 2,
+            INT32_MAX - 1,
+        ],
+        msg="$range near INT32_MAX range",
+    ),
+    ExpressionTestCase(
+        "cross_int32_boundary",
+        doc={"start": INT32_MIN + 1, "end": INT32_MAX, "step": INT32_MAX},
+        expression={"$range": ["$start", "$end", "$step"]},
+        expected=[INT32_MIN + 1, 0],
+        msg="$range cross INT32 boundary with large step",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(INT32_BOUNDARY_TESTS))
+def test_range_int32_boundary(collection, test):
+    """Test $range with INT32 boundary values for start, end, step."""
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
+    assert_expression_result(
+        result, expected=test.expected, error_code=test.error_code, msg=test.msg
+    )
