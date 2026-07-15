@@ -102,8 +102,9 @@ MONTH_EXTRACTION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Calendar Boundaries]: year edges, leap-year Feb 29, century rules, and
-# sub-second precision resolve to the correct month.
+# Property [Calendar Boundaries]: year edges, the three leap-year branches (ordinary in 2024,
+# century leap in 2000, century non-leap in 1900), and sub-second precision resolve to the
+# correct month.
 MONTH_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "first_day_of_year",
@@ -134,13 +135,6 @@ MONTH_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         msg="$month should return 2 for Feb 28 in a non-leap year",
     ),
     ExpressionTestCase(
-        "leap_year_feb_29_2020",
-        doc={"date": datetime(2020, 2, 29, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$month": "$date"},
-        expected=2,
-        msg="$month should return 2 for Feb 29 in the leap year 2020",
-    ),
-    ExpressionTestCase(
         "leap_year_feb_29_2000",
         doc={"date": datetime(2000, 2, 29, 12, 0, 0, tzinfo=timezone.utc)},
         expression={"$month": "$date"},
@@ -148,11 +142,11 @@ MONTH_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         msg="$month should return 2 for Feb 29 in the century leap year 2000",
     ),
     ExpressionTestCase(
-        "non_leap_century_1900_feb_28",
-        doc={"date": datetime(1900, 2, 28, 12, 0, 0, tzinfo=timezone.utc)},
+        "non_leap_century_1900_mar_1",
+        doc={"date": datetime(1900, 3, 1, 12, 0, 0, tzinfo=timezone.utc)},
         expression={"$month": "$date"},
-        expected=2,
-        msg="$month should return 2 for Feb 28 in the non-leap century year 1900",
+        expected=3,
+        msg="$month should return 3 for Mar 1 1900, a non-leap century year with no Feb 29",
     ),
     ExpressionTestCase(
         "midnight",

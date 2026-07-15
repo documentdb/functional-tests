@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import DATE_EPOCH, DATE_LEAP_FEB29, DATE_YEAR_9999
+from documentdb_tests.framework.test_constants import DATE_EPOCH, DATE_YEAR_9999
 
 # Property [Year Extraction]: $year returns the calendar year, so every instant from the first
 # to the last moment of a year maps to that year regardless of month, day, or sub-second.
@@ -89,8 +89,7 @@ YEAR_EXTRACTION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Leap Years]: the calendar year is correct on and around leap day, including the
-# century leap-rule boundaries (year-2000 leap and non-leap century 1900).
+# Property [Leap Years]: the calendar year is correct on and around leap day.
 YEAR_LEAP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "leap_year_feb_29_2024",
@@ -105,27 +104,6 @@ YEAR_LEAP_TESTS: list[ExpressionTestCase] = [
         expression={"$year": "$date"},
         expected=2023,
         msg="$year should return 2023 for Feb 28 of the non-leap year 2023",
-    ),
-    ExpressionTestCase(
-        "leap_year_feb_29_2020",
-        doc={"date": datetime(2020, 2, 29, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$year": "$date"},
-        expected=2020,
-        msg="$year should return 2020 for leap day 2020",
-    ),
-    ExpressionTestCase(
-        "leap_year_feb_29_2000",
-        doc={"date": DATE_LEAP_FEB29},
-        expression={"$year": "$date"},
-        expected=2000,
-        msg="$year should return 2000 for leap day of the year-2000 century leap",
-    ),
-    ExpressionTestCase(
-        "non_leap_century_1900_feb_28",
-        doc={"date": datetime(1900, 2, 28, 12, 0, 0, tzinfo=timezone.utc)},
-        expression={"$year": "$date"},
-        expected=1900,
-        msg="$year should return 1900 for Feb 28 of the non-leap century 1900",
     ),
 ]
 

@@ -97,7 +97,8 @@ WEEK_NUMBERING_TESTS: list[ExpressionTestCase] = [
 ]
 
 # Property [Leap Years]: leap and non-leap February dates map to the correct Sunday-based week,
-# including century leap-year rules.
+# including the century leap-year rules, which shift the day-of-year and produce different week
+# numbers (week 8 versus week 9).
 WEEK_LEAP_YEAR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "leap_year_feb_29_2024",

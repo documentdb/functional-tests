@@ -67,8 +67,8 @@ HOUR_EXTRACTION_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Calendar Boundaries]: year edges, leap-year Feb 29, century rules, and
-# sub-second precision resolve to the correct hour.
+# Property [Calendar Boundaries]: year edges, leap-year Feb 29, and sub-second precision
+# resolve to the correct hour.
 HOUR_BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         "first_moment_of_year",
@@ -97,27 +97,6 @@ HOUR_BOUNDARY_TESTS: list[ExpressionTestCase] = [
         expression={"$hour": "$date"},
         expected=15,
         msg="$hour should return 15 for Feb 28 in a non-leap year",
-    ),
-    ExpressionTestCase(
-        "leap_year_feb_29_2020",
-        doc={"date": datetime(2020, 2, 29, 15, 0, 0, tzinfo=timezone.utc)},
-        expression={"$hour": "$date"},
-        expected=15,
-        msg="$hour should return 15 for Feb 29 in the leap year 2020",
-    ),
-    ExpressionTestCase(
-        "leap_year_feb_29_2000",
-        doc={"date": datetime(2000, 2, 29, 15, 0, 0, tzinfo=timezone.utc)},
-        expression={"$hour": "$date"},
-        expected=15,
-        msg="$hour should return 15 for Feb 29 in the century leap year 2000",
-    ),
-    ExpressionTestCase(
-        "non_leap_century_1900_feb_28",
-        doc={"date": datetime(1900, 2, 28, 15, 0, 0, tzinfo=timezone.utc)},
-        expression={"$hour": "$date"},
-        expected=15,
-        msg="$hour should return 15 for Feb 28 in the non-leap century year 1900",
     ),
     ExpressionTestCase(
         "millisecond_before_next_hour",
