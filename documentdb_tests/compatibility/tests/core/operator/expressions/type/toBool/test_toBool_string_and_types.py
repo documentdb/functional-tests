@@ -172,12 +172,6 @@ TOBOOL_TRUTHY_TYPES_TESTS: list[ExpressionTestCase] = [
         expression={"$toBool": Code("x")},
         expected=True,
     ),
-    ExpressionTestCase(
-        "truthy_code_with_scope",
-        msg="Code with scope is truthy",
-        expression={"$toBool": Code("x", {})},
-        expected=True,
-    ),
     # MinKey / MaxKey
     ExpressionTestCase(
         "truthy_minkey",

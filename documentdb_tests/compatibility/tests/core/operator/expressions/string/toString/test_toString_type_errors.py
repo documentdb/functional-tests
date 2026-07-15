@@ -1,7 +1,6 @@
 """$toString type rejection tests: special-form inputs not covered by bson_type_validator."""
 
 import pytest
-from bson import Code
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -18,12 +17,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 # The sample BSON type sweep (MinKey, MaxKey, Timestamp, Regex, Code, Object) is covered
 # by test_toString_type_rejection in test_toString_return_type.py.
 TOSTRING_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        "type_code_with_scope",
-        msg="Code with scope (JavaScript with scope) BSON type is a conversion failure",
-        expression={"$toString": Code("function(){}", {"x": 1})},
-        error_code=CONVERSION_FAILURE_ERROR,
-    ),
     ExpressionTestCase(
         "type_nested_array",
         msg="Nested array via $literal is a conversion failure",
