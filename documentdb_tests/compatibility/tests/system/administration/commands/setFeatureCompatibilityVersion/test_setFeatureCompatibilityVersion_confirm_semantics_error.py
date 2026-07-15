@@ -86,4 +86,3 @@ def test_setFeatureCompatibilityVersion_upgrade_without_confirm(database_client,
         msg=test.msg,
         raw_res=True,
     )
-    execute_admin_command(collection, {"setFeatureCompatibilityVersion": original, "confirm": True})
