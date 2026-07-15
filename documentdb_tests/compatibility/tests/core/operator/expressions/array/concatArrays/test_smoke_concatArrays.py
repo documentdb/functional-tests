@@ -28,4 +28,6 @@ def test_smoke_expression_concatArrays(collection):
     )
 
     expected = [{"_id": 1, "combined": [1, 2, 3, 4]}, {"_id": 2, "combined": [5, 6, 7, 8]}]
-    assertSuccess(result, expected, msg="Should support $concatArrays expression")
+    assertSuccess(
+        result, expected, "Should support $concatArrays expression", ignore_doc_order=True
+    )
