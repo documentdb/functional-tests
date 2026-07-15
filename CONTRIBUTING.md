@@ -223,7 +223,7 @@ Functional tests require a running database instance:
 pytest --connection-string mongodb://localhost:27017 --engine-name documentdb
 
 # Run a specific test file
-pytest documentdb_tests/compatibility/tests/core/query-and-write/commands/find/test_find_basic_queries.py
+pytest documentdb_tests/compatibility/tests/core/query_and_write/commands/find/test_find_basic_queries.py
 
 # Run tests by marker
 pytest -m find

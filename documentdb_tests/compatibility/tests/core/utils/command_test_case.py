@@ -1,4 +1,4 @@
-"""Shared test case for collection command tests."""
+"""Shared test case for collection and admin command tests."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pymongo import IndexModel
 from pymongo.collection import Collection
 from pymongo.database import Database
 
+from documentdb_tests.framework.lazy_payload import materialize
 from documentdb_tests.framework.target_collection import (
     SiblingCollection,
     TargetCollection,
@@ -26,12 +27,16 @@ class CommandContext:
         database: The resolved database name.
         namespace: The full namespace string (``database.collection``).
         uuids: Mapping of collection names to their server-assigned UUIDs.
+        setup_results: Results from setup commands, populated by the runner.
+            Mutable even in a frozen dataclass so runners can append after
+            construction.
     """
 
     collection: str
     database: str
     namespace: str
     uuids: dict[str, Any] = field(default_factory=dict)
+    setup_results: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def from_collection(cls, collection: Collection) -> CommandContext:
@@ -62,6 +67,8 @@ class CommandTestCase(BaseTestCase):
         indexes: Indexes to create before executing the command. Each
             entry is passed to create_index.
         docs: Documents to insert before executing the command.
+        setup: Optional callable ``(collection) -> None`` invoked after
+            ``prepare`` to perform additional imperative setup.
         command: A callable (CommandContext -> dict) for commands that
             need fixture values, or a plain dict.
         expected: A callable (CommandContext -> dict) for results that
@@ -75,6 +82,7 @@ class CommandTestCase(BaseTestCase):
     siblings: list[SiblingCollection] | None = None
     indexes: list[IndexModel] | None = None
     docs: list[dict[str, Any]] | None = None
+    setup: Callable[..., Any] | None = None
     command: dict[str, Any] | Callable[..., dict[str, Any]] | None = None
     expected: dict[str, Any] | list[dict[str, Any]] | Callable[..., dict[str, Any]] | None = None
     ignore_order_in: list[str] | None = None
@@ -99,7 +107,7 @@ class CommandTestCase(BaseTestCase):
             if target.name not in target.database.list_collection_names():
                 target.database.create_collection(target.name)
             if self.docs:
-                target.insert_many(self.docs)
+                target.insert_many(materialize(self.docs))
         if self.siblings:
             for sibling in self.siblings:
                 sibling.create(db, resolved)

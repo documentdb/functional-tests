@@ -17,6 +17,8 @@
 └── test_unwind_combined_options.py               # multiple options together
 ```
 
+8. **Non-test files in a test folder** — a test folder may contain a few non-test Python files, which the structure validator exempts from the `test_`-prefix and parent-name naming rules: `__init__.py`, `conftest.py`, and any module under a `utils/` or `fixtures/` subfolder. Shared *logic and test data* live in `utils/`; `conftest.py` holds shared pytest *fixtures* scoped to that directory (e.g. an autouse baseline, or package-scoped setup).
+
 ## Decision Tree
 
 **Step 1: Cross-cutting feature?** (rbac, transactions, collation, geospatial, text_search, validation, ttl)
@@ -32,6 +34,8 @@
 **Container features** ($expr, $match, $lookup): under the container's directory, only test that sub-features work inside it — one test case per sub-feature, no edge cases. Edge cases belong in each sub-feature's own directory.
 - `$expr/` → one test per operator usable inside $expr
 - `$lookup/` → 1-2 cases per pipeline sub-stage
+
+See `TEST_COVERAGE.md` §11 for expression-operator containers and §21 for query-operator containers.
 
 **Step 4: Interaction between multiple same-level features?**
 → YES: parent folder (e.g., `{$add: [{$subtract: ...}]}` tests expression nesting, not `$add` itself — goes in `expressions/`, not `add/`)
