@@ -26,4 +26,4 @@ def test_smoke_expression_arrayElemAt(collection):
     )
 
     expected = [{"_id": 1, "element": 20}, {"_id": 2, "element": 15}]
-    assertSuccess(result, expected, msg="Should support $arrayElemAt expression")
+    assertSuccess(result, expected, "Should support $arrayElemAt expression", ignore_doc_order=True)
