@@ -21,6 +21,7 @@ from documentdb_tests.framework.test_constants import (
     DATE_MS_MAX,
     DATE_MS_MIN,
     DATE_MS_YEAR_10000,
+    INT32_MAX,
     OID_MAX_SIGNED32,
     OID_MAX_UNSIGNED32,
     OID_MIN_SIGNED32,
@@ -75,7 +76,7 @@ MILLISECOND_TIMESTAMP_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "timestamp_inc_max32",
-        doc={"date": Timestamp(1718451000, 2**31 - 1)},
+        doc={"date": Timestamp(1718451000, INT32_MAX)},
         expression={"$millisecond": "$date"},
         expected=0,
         msg="$millisecond should ignore the maximum signed 32-bit increment and return 0",
