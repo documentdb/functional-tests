@@ -50,11 +50,17 @@ RETURN_TYPE_DOUBLE_SPEC = [
 
 RETURN_TYPE_DOUBLE_CASES = generate_bson_acceptance_test_cases(RETURN_TYPE_DOUBLE_SPEC)
 
+_DOUBLE_EXPR_FORMS = [
+    pytest.param(lambda v: {"$toDouble": v}, id="toDouble"),
+    pytest.param(lambda v: {"$convert": {"input": v, "to": "double"}}, id="convert"),
+]
 
+
+@pytest.mark.parametrize("expr_fn", _DOUBLE_EXPR_FORMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", RETURN_TYPE_DOUBLE_CASES)
-def test_toDouble_return_type_is_double(collection, bson_type, sample_value, spec):
-    """$toDouble always returns BSON type 'double' for a successful conversion."""
-    result = execute_expression(collection, {"$type": {"$toDouble": sample_value}})
+def test_toDouble_return_type_is_double(collection, bson_type, sample_value, spec, expr_fn):
+    """$toDouble and $convert to double always return BSON type 'double'."""
+    result = execute_expression(collection, {"$type": expr_fn(sample_value)})
     assert_expression_result(result, expected="double", msg=f"{spec.msg} ({bson_type.value} input)")
 
 

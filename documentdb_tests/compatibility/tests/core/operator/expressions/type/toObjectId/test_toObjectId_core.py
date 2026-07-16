@@ -14,6 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
     execute_expression_with_insert,
 )
+from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Core Conversions]: a 24-character hex string is converted to the corresponding
@@ -120,6 +121,13 @@ TOOBJECTID_FIELD_REF_TESTS: list[ExpressionTestCase] = [
         expression={"$toObjectId": "$doc.missing"},
         doc={"doc": {"x": 1}},
         expected=None,
+    ),
+    ExpressionTestCase(
+        "composite_array_path",
+        msg="Field path resolving to a composite array is a conversion failure",
+        expression={"$toObjectId": "$a.b"},
+        doc={"a": [{"b": "507f1f77bcf86cd799439011"}, {"b": "aaaaaaaaaaaaaaaaaaaaaaaa"}]},
+        error_code=CONVERSION_FAILURE_ERROR,
     ),
 ]
 

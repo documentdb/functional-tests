@@ -43,11 +43,17 @@ RETURN_TYPE_INT_SPEC = [
 
 RETURN_TYPE_INT_CASES = generate_bson_acceptance_test_cases(RETURN_TYPE_INT_SPEC)
 
+_INT_EXPR_FORMS = [
+    pytest.param(lambda v: {"$toInt": v}, id="toInt"),
+    pytest.param(lambda v: {"$convert": {"input": v, "to": "int"}}, id="convert"),
+]
 
+
+@pytest.mark.parametrize("expr_fn", _INT_EXPR_FORMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", RETURN_TYPE_INT_CASES)
-def test_toInt_return_type_is_int(collection, bson_type, sample_value, spec):
-    """$toInt always returns BSON type 'int' for a successful conversion."""
-    result = execute_expression(collection, {"$type": {"$toInt": sample_value}})
+def test_toInt_return_type_is_int(collection, bson_type, sample_value, spec, expr_fn):
+    """$toInt and $convert to int always return BSON type 'int'."""
+    result = execute_expression(collection, {"$type": expr_fn(sample_value)})
     assert_expression_result(result, expected="int", msg=f"{spec.msg} ({bson_type.value} input)")
 
 

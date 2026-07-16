@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Decimal128, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -160,7 +163,10 @@ TODECIMAL_UNSUPPORTED_TYPE_TESTS: list[ExpressionTestCase] = [
 TODECIMAL_DATETIME_TESTS = TODECIMAL_DATETIME_TESTS + TODECIMAL_UNSUPPORTED_TYPE_TESTS
 
 
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_DATETIME_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TODECIMAL_DATETIME_TESTS, "$toDecimal", "decimal")),
+)
 def test_toDecimal_datetime(collection, test: ExpressionTestCase):
     """$toDecimal converts datetime to ms-since-epoch Decimal128; rejects unsupported types."""
     result = execute_expression(collection, test.expression)

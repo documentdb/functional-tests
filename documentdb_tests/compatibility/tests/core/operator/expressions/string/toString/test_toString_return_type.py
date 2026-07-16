@@ -186,6 +186,13 @@ TOSTRING_FIELD_REF_TESTS: list[ExpressionTestCase] = [
         doc={"doc": {"x": 1}},
         expected=None,
     ),
+    ExpressionTestCase(
+        "composite_array_path",
+        msg="Field path resolving to a composite array is a conversion failure",
+        expression={"$toString": "$a.b"},
+        doc={"a": [{"b": 1}, {"b": 2}]},
+        error_code=CONVERSION_FAILURE_ERROR,
+    ),
 ]
 
 

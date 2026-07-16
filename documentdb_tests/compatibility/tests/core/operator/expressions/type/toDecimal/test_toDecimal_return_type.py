@@ -46,11 +46,17 @@ RETURN_TYPE_DECIMAL_SPEC = [
 
 RETURN_TYPE_DECIMAL_CASES = generate_bson_acceptance_test_cases(RETURN_TYPE_DECIMAL_SPEC)
 
+_DECIMAL_EXPR_FORMS = [
+    pytest.param(lambda v: {"$toDecimal": v}, id="toDecimal"),
+    pytest.param(lambda v: {"$convert": {"input": v, "to": "decimal"}}, id="convert"),
+]
 
+
+@pytest.mark.parametrize("expr_fn", _DECIMAL_EXPR_FORMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", RETURN_TYPE_DECIMAL_CASES)
-def test_toDecimal_return_type_is_decimal(collection, bson_type, sample_value, spec):
-    """$toDecimal always returns BSON type 'decimal' for a successful conversion."""
-    result = execute_expression(collection, {"$type": {"$toDecimal": sample_value}})
+def test_toDecimal_return_type_is_decimal(collection, bson_type, sample_value, spec, expr_fn):
+    """$toDecimal and $convert to decimal always return BSON type 'decimal'."""
+    result = execute_expression(collection, {"$type": expr_fn(sample_value)})
     assert_expression_result(
         result, expected="decimal", msg=f"{spec.msg} ({bson_type.value} input)"
     )
