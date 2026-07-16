@@ -336,6 +336,7 @@ For each invalid_type in [string, object, array, ...]:
 - Don't need to add for every operator in `find()` computed projection: (should have same behavior with aggregation)
 - Don't need to add for every operator in `core/operator/aggregation/stages/set`: (alias for `$addFields`, separate code path)
 - Don't need to add for every operator in `$lookup` and `$facet` pipeline: (too deep nesting)
+- Don't need to add for window-only operators in `$setWindowFields`
 
 **Example**: generating `$add` tests adds test cases in these files:
 - `stages/project/test_operators_in_project.py`
@@ -564,6 +565,72 @@ For each invalid_type in [string, object, array, ...]:
 **Rule**: Containers that accept a query expression (`$pull` condition, `arrayFilters`, positional `$`) test one case per query operator they accept (`$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$exists`, `$type`, `$regex`, `$mod`, `$all`, `$size`, `$or`, `$not`, `$and`, plus implicit-and).
 
 Same shape as §11, applied to a different axis: §11 covers expression operators in pipeline stages; §21 covers query operators in update/find features that take a query expression. Container-specific contracts (rejections, no-ops, shape constraints) live in the container's own test files alongside its other behavior.
+
+---
+
+### 22. Window Operator Coverage
+
+**Rule**: Each window operator is tested for its computation correctness across different frame shapes, while shared `$setWindowFields` stage mechanics (frame parsing, partitionBy, sortBy validation, error codes) are tested once at the stage level.
+
+**Per-operator tests** (under `tests/core/operator/window/$operator/`):
+- **Documents-mode frame computation**: operator's computed result under whole-partition ["unbounded", "unbounded"], cumulative ["unbounded", "current"], reverse-cumulative ["current","unbounded"], and sliding frame shapes [-1,1] — verifies the operator produces correct values *given* a set of documents in the frame. This is distinct from stage-level frame boundary tests which verify that the correct documents are *selected into* the frame.
+- **Field paths**: operator handles nested fields (`"a.b.c"`), missing fields, field exists with `null` value (distinct from missing), array fields, arrays at intermediate path level (`"arr.nested.value"` where `arr` is an array of objects), and numeric path components (`"arr.0.field"`)
+- **Numeric precision**: type mixing (Int32/Int64/Double/Decimal128), overflow, catastrophic cancellation
+- **Special floats**: NaN/Infinity propagation in removable vs non-removable windows
+- **Non-numeric handling**: null, missing, string, boolean, date, object, array values in the expression field
+- **Argument validation**: operator rejects invalid input shapes — unknown keys in the operator spec, wrong argument type (e.g. string where object expected), missing required parameters, and extra parameters. Each operator defines its accepted shape (empty object for rank operators, expression for accumulators, named params for $shift/$expMovingAvg/etc.); anything outside that shape must error with the correct code.
+
+**Tested at the stage level** (under `tests/core/operator/stages/setWindowFields/`):
+- Frame validation errors (documents, range, time-range): invalid bound types, malformed arrays, conflicting modes — these are operator-agnostic
+- Stage-level parameter validation: verify the `$setWindowFields` stage document structure per the spec. For each parameter below, test both valid inputs (succeeds) and invalid inputs (errors with correct code):
+  - `partitionBy`: optional. Valid: expression (`"$field"`), literal value, omitted (entire collection = one partition). Invalid: test is not needed — any expression is accepted.
+  - `sortBy`: optional in some cases, required in others. Valid: object with field-direction pairs (`{"field": 1}`, `{"a": 1, "b": -1}`), omitted when using unbounded `["unbounded", "unbounded"]` documents-mode window with a non-rank operator. Invalid/errors: omitted when using (1) rank/order operators (`$rank`, `$denseRank`, `$documentNumber`), (2) bounded documents-mode windows (e.g., `[-1, 1]`, `["unbounded", "current"]`, `["current", "unbounded"]`), (3) `$linearFill` operator, (4) range-mode or time-range-mode windows. Also invalid: non-object type, empty object, direction values other than 1/-1.
+  - `output`: required. Valid: document with one or more output fields, each containing a window operator and optional `window` key; dotted field names create embedded documents (same semantics as `$addFields`/`$set`). Invalid: omitted, non-document type, empty document, output field with no recognized window operator.
+  - `window`: optional per output field (omitting defaults to unbounded whole-partition). Valid: document with exactly one of `documents` or `range`. Invalid: empty document, both `documents` and `range` specified, unknown keys inside `window`, non-document type.
+  - `window.documents`: valid: two-element array where each element is `"current"`, `"unbounded"`, or an integer; lower bound ≤ upper bound. Invalid: non-array, array with fewer or more than 2 elements, non-integer numeric bounds (e.g., 1.5), string values other than `"current"`/`"unbounded"`, lower bound > upper bound.
+  - `window.range`: valid: two-element array where each element is `"current"`, `"unbounded"`, or a number; lower bound ≤ upper bound; requires `sortBy` on a single field. Invalid: non-array, array with fewer or more than 2 elements, string values other than `"current"`/`"unbounded"`, lower bound > upper bound, `sortBy` with multiple fields.
+  - `window.unit`: optional; when specified, converts `range` window to time-based. Valid: `"year"`, `"quarter"`, `"month"`, `"week"`, `"day"`, `"hour"`, `"minute"`, `"second"`, `"millisecond"`. Invalid: unrecognized string, non-string type, used with `documents` mode (should be rejected or ignored — verify behavior).
+  - Unknown top-level keys in the `$setWindowFields` stage document are rejected with an error.
+- Documents-mode frame boundaries: using `$sum` as a sample operator, verify that document-based frame boundary specifications (centered, trailing, leading, non-overlapping) correctly control which documents are selected into the window. Edge cases: empty frame, single-element frame, and frame wider than the partition.
+- Range-mode frame boundaries: using `$sum` as a sample operator, verify that numeric range-based frame bounds correctly define the window of documents selected for computation.
+- Time-range-mode frame boundaries: using `$sum` as a sample operator, verify that time-based range frame bounds correctly define the window of documents selected for computation.
+- Partitioning: using `$sum` as a sample operator, verify that the stage correctly isolates computation within each partition when data spans multiple partitions.
+- Sort interaction: using `$sum` as a sample operator, verify that the stage respects the specified sort order and that changing sort order produces correspondingly different results.
+- Pipeline stage composition: using `$sum` as a sample operator, verify that the stage composes correctly with preceding and following pipeline stages (e.g., `$match` before, `$project` after).
+- Multiple window fields with different operators and different window specifications: verify that a single `$setWindowFields` stage correctly computes results when the `output` document contains multiple fields, each using a different window operator (e.g., `$sum`, `$avg`, `$max`) with a different `window` specification (e.g., one with documents-mode `[-1, 1]`, another with `["unbounded", "current"]`, another with range-mode bounds). Each operator must independently respect its own frame without cross-contamination.
+- Default window when `window` key is omitted: using `$sum` as a sample operator, verify that omitting the `window` key from an output field defaults to unbounded-to-unbounded (whole partition) regardless of whether `sortBy` is present. Frameless operators have implicit behavior that is tested in their own folders.
+
+**Why per-operator frame tests are NOT duplicated stage-level tests**: Stage-level frame tests (with a representative operator like `$sum`) verify that the correct documents are selected into the frame. Per-operator frame tests for whole-partition ["unbounded", "unbounded"], cumulative ["unbounded", "current"], reverse-cumulative ["current","unbounded"], and sliding frame shapes [-1,1] verify that the operator computes the correct result *given* those documents — different operators produce different values for the same frame. This is especially important for operators where the formula interacts with frame boundaries (e.g. `$stdDevSamp` returns null for single-element frames due to N-1 divisor).
+
+**Shared infrastructure**: Helpers and common test data live in `tests/core/operator/window/utils/`. The `run_window_operator()` helper and `BASIC_DOCS` dataset are shared across all window operators.
+
+**Category applicability** — not all dimensions apply to all operators:
+
+- **Frameless operators** ($rank, $denseRank, $documentNumber, $shift, $expMovingAvg, $locf, $linearFill): skip documents-mode, range-mode, time-range-mode frame tests. Verify that specifying a `window` key is rejected with correct error. Test operator-specific mechanics instead.
+
+- **Rank operators** ($rank, $denseRank, $documentNumber): no expression input, no numeric precision or non-numeric handling tests. Takes empty object only (`$rank: {}`) — verify non-empty object, field path string, and other non-empty values are rejected with correct error. Core dimension is **tie handling** — no ties, all ties, partial ties at beginning/middle/end, multi-field sortBy tie-breaking. $rank skips positions after ties (1,1,3); $denseRank does not (1,1,2); $documentNumber assigns unique positions regardless (1,2,3).
+
+- **N-parameter operators** ($firstN, $lastN, $topN, $bottomN, $minN, $maxN): test `n`=1, `n`=partition-size, `n`>partition-size (returns all available), `n`=0 (error or empty per spec), invalid `n` (negative, fractional, string, null → error codes). For $top/$topN/$bottom/$bottomN, also test the operator's own `sortBy` and `output` parameters.
+
+- **Multi-expression operators** ($covariancePop, $covarianceSamp): take two expressions `["$x", "$y"]`. Test null/missing/type-mixing per expression position independently. $covarianceSamp with single element → null (N-1 divisor).
+
+- **Gap-filler operators** ($locf, $linearFill): core dimension is **gap definition and boundary behavior** — null/missing as gaps, first value in partition is gap (no prior anchor → null), last value is gap, consecutive gaps, partition boundary isolation. $linearFill requires at least two non-null numeric anchors to interpolate.
+
+- **Calculus operators** ($derivative, $integral): require `unit` parameter (time unit string) when sortBy is date, omit `unit` when sortBy is numeric. Test zero delta in sortBy (division by zero for $derivative), single document in frame → null.
+
+- **$expMovingAvg**: `N` mode vs `alpha` mode (mutually exclusive). Test N=1 (no smoothing), alpha=1 (no memory), invalid values (N=0, alpha>1). First document result equals first value.
+
+- **$shift**: uses `by` (int offset), `output` (expression), `default` (value when offset exceeds partition). Test positive/negative/zero `by`, large offset beyond partition → default returned.
+
+- **Array-output operators** ($push, $addToSet, $firstN, $lastN, $topN, $bottomN, $minN, $maxN, $concatArrays, $setUnion): empty-frame result is `[]` (not null). Test output ordering (deterministic for ordered operators, unordered for $addToSet/$setUnion), deduplication semantics ($addToSet, $setUnion), mixed BSON types in output.
+
+- **Order-dependent vs order-independent**: Order-independent operators ($sum, $avg, $min, $max, $count, $stdDevPop, $stdDevSamp, $addToSet, $setUnion, $median, $percentile, $minN, $maxN) — sort test verifies **same result** with different sort orders. Order-dependent operators ($first, $last, $push, $rank, $denseRank, $documentNumber, $shift, $locf, $linearFill, $derivative, $integral, $expMovingAvg, $concatArrays) — sort test verifies **different results** with different sort orders.
+
+- **Non-numeric handling varies by category**: Accumulators **ignore** non-numeric values (compute on remaining numerics; all-non-numeric → null). N-selectors and $shift **return** non-numeric values as-is. $push/$concatArrays **collect** values of any type. $addToSet/$setUnion **collect unique** values of any type. Gap-fillers treat non-numeric as gaps to fill.
+
+- **Default window when `window` key is omitted**: Tested at the stage level (see below). One representative test using `$sum` verifies that omitting the `window` key defaults to unbounded-to-unbounded (whole partition). Per-operator tests do not need to repeat this.
+
+- **$median and $percentile**: `method` parameter ("approximate" is the only valid value). $percentile additionally takes `p` (array of doubles in [0,1], non-empty). Test boundary percentiles (p=0, p=1, p=0.5), multiple percentiles in single call, invalid `p` values.
 
 ---
 
