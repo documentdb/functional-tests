@@ -53,7 +53,9 @@ TOSTRING_REJECTION_CASES = generate_bson_rejection_test_cases(TOSTRING_BSON_TYPE
 
 _STRING_EXPR_FORMS = [
     pytest.param(lambda v: {"$toString": v}, id="toString"),
-    pytest.param(lambda v: {"$convert": {"input": v, "to": "string"}}, id="convert"),
+    pytest.param(
+        lambda v: {"$convert": {"input": v, "to": "string", "format": "auto"}}, id="convert"
+    ),
 ]
 
 

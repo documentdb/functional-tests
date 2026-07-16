@@ -162,7 +162,11 @@ TOSTRING_BINARY_TESTS: list[ExpressionTestCase] = [
 
 @pytest.mark.parametrize(
     "test",
-    pytest_params(with_convert_variants(TOSTRING_BINARY_TESTS, "$toString", "string")),
+    pytest_params(
+        with_convert_variants(
+            TOSTRING_BINARY_TESTS, "$toString", "string", extra_convert_fields={"format": "auto"}
+        )
+    ),
 )
 def test_toString_binary(collection, test: ExpressionTestCase):
     """$toString converts Binary to base64 or UUID strings depending on subtype and length."""

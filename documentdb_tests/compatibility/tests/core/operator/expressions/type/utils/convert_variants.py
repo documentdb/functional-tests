@@ -20,6 +20,7 @@ def with_convert_variants(
     tests: list[ExpressionTestCase],
     operator_key: str,
     target_type: str,
+    extra_convert_fields: dict | None = None,
 ) -> list[ExpressionTestCase]:
     """Return *tests* interleaved with a $convert-equivalent for each eligible case.
 
@@ -32,6 +33,10 @@ def with_convert_variants(
     The sibling inherits all other fields (``expected``, ``error_code``,
     ``msg``, ``marks``) unchanged, and its ``id`` is prefixed with
     ``"convert_"``.
+
+    ``extra_convert_fields`` is merged into the ``$convert`` document after
+    ``input`` and ``to``.  Use this when the operator requires additional
+    options (e.g. ``{"format": "auto"}`` for binary-to-string conversions).
 
     Cases are skipped when:
 
@@ -51,11 +56,14 @@ def with_convert_variants(
             continue
         if operator_key not in expr:
             continue
+        convert_doc: dict = {"input": expr[operator_key], "to": target_type}
+        if extra_convert_fields:
+            convert_doc.update(extra_convert_fields)
         result.append(
             replace(
                 t,
                 id=f"convert_{t.id}",
-                expression={"$convert": {"input": expr[operator_key], "to": target_type}},
+                expression={"$convert": convert_doc},
             )
         )
     return result
