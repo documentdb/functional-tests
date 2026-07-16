@@ -66,8 +66,37 @@ SETINTERSECTION_CROSS_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
+# Property [setEquals Composition]: $setEquals verifies the results of the other
+# set operators.
+SETEQUALS_CROSS_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "setEquals_setUnion_operand",
+        expression={"$setEquals": [{"$setUnion": [[1, 2], [3]]}, [1, 2, 3]]},
+        expected=True,
+        msg="$setEquals should accept a $setUnion result as an operand",
+    ),
+    ExpressionTestCase(
+        "setEquals_setIntersection_operand",
+        expression={"$setEquals": [{"$setIntersection": [[1, 2, 3], [2, 3, 4]]}, [2, 3]]},
+        expected=True,
+        msg="$setEquals should accept a $setIntersection result as an operand",
+    ),
+    ExpressionTestCase(
+        "setEquals_setDifference_operand",
+        expression={"$setEquals": [{"$setDifference": [[1, 2, 3], [2]]}, [1, 3]]},
+        expected=True,
+        msg="$setEquals should accept a $setDifference result as an operand",
+    ),
+    ExpressionTestCase(
+        "setEquals_chained_setUnion",
+        expression={"$setEquals": [{"$setUnion": [[1, 2], [3]]}, {"$setUnion": [[3], [1, 2]]}]},
+        expected=True,
+        msg="$setEquals should compare two $setUnion results as commutative operands",
+    ),
+]
+
 SET_OPERATOR_COMBINATION_TESTS: list[ExpressionTestCase] = (
-    SETDIFFERENCE_CROSS_TESTS + SETINTERSECTION_CROSS_TESTS
+    SETDIFFERENCE_CROSS_TESTS + SETINTERSECTION_CROSS_TESTS + SETEQUALS_CROSS_TESTS
 )
 
 
