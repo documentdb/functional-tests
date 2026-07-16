@@ -51,11 +51,17 @@ RETURN_TYPE_BOOL_SPEC = [
 
 RETURN_TYPE_BOOL_CASES = generate_bson_acceptance_test_cases(RETURN_TYPE_BOOL_SPEC)
 
+_BOOL_EXPR_FORMS = [
+    pytest.param(lambda v: {"$toBool": v}, id="toBool"),
+    pytest.param(lambda v: {"$convert": {"input": v, "to": "bool"}}, id="convert"),
+]
 
+
+@pytest.mark.parametrize("expr_fn", _BOOL_EXPR_FORMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", RETURN_TYPE_BOOL_CASES)
-def test_toBool_return_type_is_bool(collection, bson_type, sample_value, spec):
-    """$toBool always returns BSON type 'bool' for a successful conversion."""
-    result = execute_expression(collection, {"$type": {"$toBool": sample_value}})
+def test_toBool_return_type_is_bool(collection, bson_type, sample_value, spec, expr_fn):
+    """$toBool and $convert to bool always return BSON type 'bool' for a successful conversion."""
+    result = execute_expression(collection, {"$type": expr_fn(sample_value)})
     assert_expression_result(result, expected="bool", msg=f"{spec.msg} ({bson_type.value} input)")
 
 

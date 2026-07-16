@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -187,11 +190,13 @@ TOBOOL_TRUTHY_TYPES_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOBOOL_STRING_AND_TYPES_TESTS = (
+TOBOOL_STRING_AND_TYPES_TESTS = with_convert_variants(
     TOBOOL_PASSTHROUGH_TESTS
     + TOBOOL_STRING_TESTS
     + TOBOOL_STRING_SIZE_LIMIT_TESTS
-    + TOBOOL_TRUTHY_TYPES_TESTS
+    + TOBOOL_TRUTHY_TYPES_TESTS,
+    "$toBool",
+    "bool",
 )
 
 

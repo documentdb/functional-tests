@@ -38,20 +38,27 @@ TOOBJECTID_BSON_TYPE_SPEC = [
 RETURN_TYPE_OBJECTID_CASES = generate_bson_acceptance_test_cases(TOOBJECTID_BSON_TYPE_SPEC)
 TOOBJECTID_REJECTION_CASES = generate_bson_rejection_test_cases(TOOBJECTID_BSON_TYPE_SPEC)
 
+_OBJECTID_EXPR_FORMS = [
+    pytest.param(lambda v: {"$toObjectId": v}, id="toObjectId"),
+    pytest.param(lambda v: {"$convert": {"input": v, "to": "objectId"}}, id="convert"),
+]
 
+
+@pytest.mark.parametrize("expr_fn", _OBJECTID_EXPR_FORMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", RETURN_TYPE_OBJECTID_CASES)
-def test_toObjectId_return_type_is_objectId(collection, bson_type, sample_value, spec):
-    """$toObjectId always returns BSON type 'objectId' for a successful conversion."""
-    result = execute_expression(collection, {"$type": {"$toObjectId": sample_value}})
+def test_toObjectId_return_type_is_objectId(collection, bson_type, sample_value, spec, expr_fn):
+    """$toObjectId and $convert to objectId always return BSON type 'objectId'."""
+    result = execute_expression(collection, {"$type": expr_fn(sample_value)})
     assert_expression_result(
         result, expected="objectId", msg=f"{spec.msg} ({bson_type.value} input)"
     )
 
 
+@pytest.mark.parametrize("expr_fn", _OBJECTID_EXPR_FORMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", TOOBJECTID_REJECTION_CASES)
-def test_toObjectId_type_rejection(collection, bson_type, sample_value, spec):
-    """$toObjectId rejects all non-string, non-objectId BSON types with conversion failure."""
-    result = execute_expression(collection, {"$toObjectId": sample_value})
+def test_toObjectId_type_rejection(collection, bson_type, sample_value, spec, expr_fn):
+    """$toObjectId and $convert to objectId reject invalid BSON types with conversion failure."""
+    result = execute_expression(collection, expr_fn(sample_value))
     assert_expression_result(
         result,
         error_code=spec.expected_code(bson_type),

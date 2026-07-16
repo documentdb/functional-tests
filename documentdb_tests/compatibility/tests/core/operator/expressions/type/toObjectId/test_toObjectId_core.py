@@ -3,6 +3,9 @@
 import pytest
 from bson import ObjectId
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -121,11 +124,13 @@ TOOBJECTID_FIELD_REF_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-TOOBJECTID_CORE_TESTS = (
+TOOBJECTID_CORE_TESTS = with_convert_variants(
     TOOBJECTID_HEX_STRING_TESTS
     + TOOBJECTID_IDENTITY_TESTS
     + TOOBJECTID_EXPRESSION_INPUT_TESTS
-    + TOOBJECTID_FIELD_REF_TESTS
+    + TOOBJECTID_FIELD_REF_TESTS,
+    "$toObjectId",
+    "objectId",
 )
 
 

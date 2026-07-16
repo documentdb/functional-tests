@@ -2,6 +2,9 @@
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -29,7 +32,10 @@ TOBOOL_NULL_MISSING_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOBOOL_NULL_MISSING_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TOBOOL_NULL_MISSING_TESTS, "$toBool", "bool")),
+)
 def test_toBool_null(collection, test: ExpressionTestCase):
     """$toBool returns null for null and missing inputs."""
     result = execute_expression(collection, test.expression)

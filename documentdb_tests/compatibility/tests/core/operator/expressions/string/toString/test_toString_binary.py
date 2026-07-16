@@ -3,6 +3,9 @@
 import pytest
 from bson import Binary
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -157,7 +160,10 @@ TOSTRING_BINARY_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOSTRING_BINARY_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TOSTRING_BINARY_TESTS, "$toString", "string")),
+)
 def test_toString_binary(collection, test: ExpressionTestCase):
     """$toString converts Binary to base64 or UUID strings depending on subtype and length."""
     result = execute_expression(collection, test.expression)

@@ -3,6 +3,9 @@
 import pytest
 from bson import Decimal128, Int64, ObjectId
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -48,18 +51,25 @@ TOSTRING_BSON_TYPE_SPEC = [
 TOSTRING_ACCEPTANCE_CASES = generate_bson_acceptance_test_cases(TOSTRING_BSON_TYPE_SPEC)
 TOSTRING_REJECTION_CASES = generate_bson_rejection_test_cases(TOSTRING_BSON_TYPE_SPEC)
 
+_STRING_EXPR_FORMS = [
+    pytest.param(lambda v: {"$toString": v}, id="toString"),
+    pytest.param(lambda v: {"$convert": {"input": v, "to": "string"}}, id="convert"),
+]
 
+
+@pytest.mark.parametrize("expr_fn", _STRING_EXPR_FORMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", TOSTRING_ACCEPTANCE_CASES)
-def test_toString_return_type_is_string(collection, bson_type, sample_value, spec):
-    """$toString always returns BSON type 'string' for a successful conversion."""
-    result = execute_expression(collection, {"$type": {"$toString": sample_value}})
+def test_toString_return_type_is_string(collection, bson_type, sample_value, spec, expr_fn):
+    """$toString and $convert to string always return BSON type 'string'."""
+    result = execute_expression(collection, {"$type": expr_fn(sample_value)})
     assert_expression_result(result, expected="string", msg=f"{spec.msg} ({bson_type.value} input)")
 
 
+@pytest.mark.parametrize("expr_fn", _STRING_EXPR_FORMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", TOSTRING_REJECTION_CASES)
-def test_toString_type_rejection(collection, bson_type, sample_value, spec):
-    """$toString rejects unsupported BSON types with a conversion failure."""
-    result = execute_expression(collection, {"$toString": sample_value})
+def test_toString_type_rejection(collection, bson_type, sample_value, spec, expr_fn):
+    """$toString and $convert to string reject unsupported BSON types with a conversion failure."""
+    result = execute_expression(collection, expr_fn(sample_value))
     assert_expression_result(
         result,
         error_code=spec.expected_code(bson_type),
@@ -182,7 +192,9 @@ TOSTRING_FIELD_REF_TESTS: list[ExpressionTestCase] = [
 @pytest.mark.parametrize(
     "test",
     pytest_params(
-        TOSTRING_RETURN_TYPE_NULL_TESTS + TOSTRING_IDEMPOTENCY_TESTS + TOSTRING_FIELD_REF_TESTS
+        TOSTRING_RETURN_TYPE_NULL_TESTS
+        + TOSTRING_IDEMPOTENCY_TESTS
+        + with_convert_variants(TOSTRING_FIELD_REF_TESTS, "$toString", "string")
     ),
 )
 def test_toString_return_type_null_idempotency_and_field_ref(collection, test: ExpressionTestCase):

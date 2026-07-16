@@ -3,6 +3,9 @@
 import pytest
 from bson import Decimal128
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -204,7 +207,10 @@ TOSTRING_DECIMAL128_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOSTRING_DECIMAL128_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TOSTRING_DECIMAL128_TESTS, "$toString", "string")),
+)
 def test_toString_decimal128(collection, test: ExpressionTestCase):
     """$toString converts Decimal128 values to their canonical string representation."""
     result = execute_expression(collection, test.expression)

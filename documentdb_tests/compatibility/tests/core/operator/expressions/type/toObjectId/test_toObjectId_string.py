@@ -2,6 +2,9 @@
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -267,11 +270,13 @@ TOOBJECTID_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOOBJECTID_STRING_TESTS = (
+TOOBJECTID_STRING_TESTS = with_convert_variants(
     TOOBJECTID_LENGTH_ERROR_TESTS
     + TOOBJECTID_HEX_ERROR_TESTS
     + TOOBJECTID_WHITESPACE_ERROR_TESTS
-    + TOOBJECTID_STRING_SIZE_LIMIT_TESTS
+    + TOOBJECTID_STRING_SIZE_LIMIT_TESTS,
+    "$toObjectId",
+    "objectId",
 )
 
 

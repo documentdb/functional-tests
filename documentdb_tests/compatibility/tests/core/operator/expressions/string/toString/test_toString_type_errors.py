@@ -2,6 +2,9 @@
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -38,7 +41,10 @@ TOSTRING_TYPE_ERROR_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOSTRING_TYPE_ERROR_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TOSTRING_TYPE_ERROR_TESTS, "$toString", "string")),
+)
 def test_toString_type_errors(collection, test: ExpressionTestCase):
     """$toString rejects unsupported BSON types with a conversion failure."""
     result = execute_expression(collection, test.expression)

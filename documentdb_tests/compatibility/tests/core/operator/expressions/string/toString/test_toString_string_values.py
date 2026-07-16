@@ -2,6 +2,9 @@
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -147,8 +150,10 @@ TOSTRING_EXPR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOSTRING_STRING_VALUES_TESTS = (
-    TOSTRING_STRING_PASSTHROUGH_TESTS + TOSTRING_ENCODING_TESTS + TOSTRING_EXPR_TESTS
+TOSTRING_STRING_VALUES_TESTS = with_convert_variants(
+    TOSTRING_STRING_PASSTHROUGH_TESTS + TOSTRING_ENCODING_TESTS + TOSTRING_EXPR_TESTS,
+    "$toString",
+    "string",
 )
 
 

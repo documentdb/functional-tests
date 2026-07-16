@@ -2,6 +2,9 @@
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -167,7 +170,10 @@ TOSTRING_DOUBLE_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOSTRING_DOUBLE_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TOSTRING_DOUBLE_TESTS, "$toString", "string")),
+)
 def test_toString_double(collection, test: ExpressionTestCase):
     """$toString converts double inputs to their string representation."""
     result = execute_expression(collection, test.expression)

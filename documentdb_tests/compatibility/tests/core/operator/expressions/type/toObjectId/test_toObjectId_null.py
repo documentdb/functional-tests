@@ -2,6 +2,9 @@
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -29,7 +32,10 @@ TOOBJECTID_NULL_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOOBJECTID_NULL_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TOOBJECTID_NULL_TESTS, "$toObjectId", "objectId")),
+)
 def test_toObjectId_null(collection, test: ExpressionTestCase):
     """$toObjectId returns null for null or missing input."""
     result = execute_expression(collection, test.expression)

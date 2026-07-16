@@ -3,6 +3,9 @@
 import pytest
 from bson import Decimal128, Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -249,8 +252,10 @@ TOBOOL_SPECIAL_FLOAT_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOBOOL_NUMERIC_TESTS = (
-    TOBOOL_FALSY_ZERO_TESTS + TOBOOL_TRUTHY_NONZERO_TESTS + TOBOOL_SPECIAL_FLOAT_TESTS
+TOBOOL_NUMERIC_TESTS = with_convert_variants(
+    TOBOOL_FALSY_ZERO_TESTS + TOBOOL_TRUTHY_NONZERO_TESTS + TOBOOL_SPECIAL_FLOAT_TESTS,
+    "$toBool",
+    "bool",
 )
 
 

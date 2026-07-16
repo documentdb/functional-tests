@@ -2,6 +2,9 @@
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -118,7 +121,12 @@ TOBOOL_EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
 
 
 @pytest.mark.parametrize(
-    "test", pytest_params(TOBOOL_FIELD_REF_TESTS + TOBOOL_EXPRESSION_INPUT_TESTS)
+    "test",
+    pytest_params(
+        with_convert_variants(
+            TOBOOL_FIELD_REF_TESTS + TOBOOL_EXPRESSION_INPUT_TESTS, "$toBool", "bool"
+        )
+    ),
 )
 def test_toBool_field_ref(collection, test: ExpressionTestCase):
     """$toBool resolves field paths from inserted documents and evaluates nested expressions."""
