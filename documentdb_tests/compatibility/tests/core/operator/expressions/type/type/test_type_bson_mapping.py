@@ -177,6 +177,12 @@ TYPE_ARRAY_LITERAL_TESTS: list[ExpressionTestCase] = [
         expected="array",
         msg="$type should return 'array' when $literal prevents single-element array unwrapping",
     ),
+    ExpressionTestCase(
+        "array_single_element_field_path",
+        expression={"$type": ["$val"]},
+        expected="missing",
+        msg="$type should evaluate ['$val'] as a field path expression, not a string literal",
+    ),
 ]
 
 # Property [Object Expression Handling]: plain objects passed via $literal
