@@ -49,7 +49,26 @@ SETDIFFERENCE_CROSS_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-SET_OPERATOR_COMBINATION_TESTS: list[ExpressionTestCase] = SETDIFFERENCE_CROSS_TESTS
+# Property [setIntersection Composition]: $setIntersection composes with the other
+# set operators.
+SETINTERSECTION_CROSS_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "setIntersection_nested_setUnion_operand",
+        expression={"$setIntersection": [{"$setUnion": [[1, 2], [3]]}, [2, 3, 4]]},
+        expected=[2, 3],
+        msg="$setIntersection should accept a $setUnion result as an operand",
+    ),
+    ExpressionTestCase(
+        "setIntersection_with_setDifference",
+        expression={"$setIntersection": [{"$setDifference": [[1, 2, 3], [1]]}, [2, 4]]},
+        expected=[2],
+        msg="$setIntersection should accept a $setDifference result as an operand",
+    ),
+]
+
+SET_OPERATOR_COMBINATION_TESTS: list[ExpressionTestCase] = (
+    SETDIFFERENCE_CROSS_TESTS + SETINTERSECTION_CROSS_TESTS
+)
 
 
 @pytest.mark.parametrize("test", pytest_params(SET_OPERATOR_COMBINATION_TESTS))
