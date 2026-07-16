@@ -95,8 +95,34 @@ SETEQUALS_CROSS_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
+# Property [setIsSubset Composition]: $setIsSubset verifies the results of the
+# other set operators.
+SETISSUBSET_CROSS_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        "setIsSubset_of_setUnion",
+        expression={"$setIsSubset": [[1, 2, 3], {"$setUnion": [[1, 2, 3], [4, 5]]}]},
+        expected=True,
+        msg="$setIsSubset should hold for a set as a subset of its $setUnion with another",
+    ),
+    ExpressionTestCase(
+        "setIsSubset_of_setIntersection",
+        expression={"$setIsSubset": [{"$setIntersection": [[1, 2, 3], [2, 3, 4]]}, [1, 2, 3]]},
+        expected=True,
+        msg="$setIsSubset should hold for a $setIntersection result as a subset of an operand",
+    ),
+    ExpressionTestCase(
+        "setIsSubset_of_setDifference",
+        expression={"$setIsSubset": [{"$setDifference": [[1, 2, 3], [2, 3, 4]]}, [1, 2, 3]]},
+        expected=True,
+        msg="$setIsSubset should hold for a $setDifference result as a subset of the minuend",
+    ),
+]
+
 SET_OPERATOR_COMBINATION_TESTS: list[ExpressionTestCase] = (
-    SETDIFFERENCE_CROSS_TESTS + SETINTERSECTION_CROSS_TESTS + SETEQUALS_CROSS_TESTS
+    SETDIFFERENCE_CROSS_TESTS
+    + SETINTERSECTION_CROSS_TESTS
+    + SETEQUALS_CROSS_TESTS
+    + SETISSUBSET_CROSS_TESTS
 )
 
 
