@@ -14,9 +14,13 @@ from documentdb_tests.framework.error_codes import (
     FAILED_TO_PARSE_ERROR,
     FIELD_PATH_DOLLAR_PREFIX_ERROR,
     INDEX_NOT_FOUND_ERROR,
+    INDEX_OPTIONS_CONFLICT_ERROR,
     INVALID_INDEX_SPEC_OPTION_ERROR,
     NO_QUERY_EXECUTION_PLANS_ERROR,
+    PROJECT_COMPUTED_FIELD_BANNED_ERROR,
     PROJECT_EXCLUSION_IN_INCLUSION_ERROR,
+    WILDCARD_COMPOUND_PREFIX_MULTIKEY_ERROR,
+    WILDCARD_COMPOUND_PREFIX_NOT_EXCLUDED_ERROR,
     WILDCARD_MULTIPLE_FIELDS_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -186,6 +190,30 @@ INVALID_PROJECTION_TESTS: list[IndexTestCase] = [
         expected=BAD_VALUE_ERROR,
         msg="Non-wildcard index with wildcardProjection should fail with BadValue",
     ),
+    IndexTestCase(
+        id="value_string",
+        indexes=({"key": {"$**": 1}, "name": "wc", "wildcardProjection": {"a": "yes"}},),
+        expected=PROJECT_COMPUTED_FIELD_BANNED_ERROR,
+        msg="wildcardProjection with a string value is parsed as a computed field and rejected",
+    ),
+    IndexTestCase(
+        id="value_numeric_string",
+        indexes=({"key": {"$**": 1}, "name": "wc", "wildcardProjection": {"a": "1"}},),
+        expected=PROJECT_COMPUTED_FIELD_BANNED_ERROR,
+        msg="wildcardProjection with a numeric-string value is a computed field and rejected",
+    ),
+    IndexTestCase(
+        id="value_array",
+        indexes=({"key": {"$**": 1}, "name": "wc", "wildcardProjection": {"a": [1]}},),
+        expected=PROJECT_COMPUTED_FIELD_BANNED_ERROR,
+        msg="wildcardProjection with an array value is a computed field and rejected",
+    ),
+    IndexTestCase(
+        id="value_null",
+        indexes=({"key": {"$**": 1}, "name": "wc", "wildcardProjection": {"a": None}},),
+        expected=PROJECT_COMPUTED_FIELD_BANNED_ERROR,
+        msg="wildcardProjection with a null value is a computed field and rejected",
+    ),
 ]
 
 
@@ -346,4 +374,124 @@ def test_wildcard_text_query_no_text_index_fails(collection):
     )
     assertFailureCode(
         result, INDEX_NOT_FOUND_ERROR, msg="$text with only a wildcard index should fail"
+    )
+
+
+def test_compound_wildcard_prefix_multikey_insert_fails(collection):
+    """Inserting a doc whose non-wildcard prefix field is an array fails: a compound wildcard
+    index's non-wildcard prefix cannot be multikey."""
+    execute_command(
+        collection,
+        {
+            "createIndexes": collection.name,
+            "indexes": [{"key": {"a": 1, "$**": 1}, "name": "cwi", "wildcardProjection": {"a": 0}}],
+        },
+    )
+    result = execute_command(
+        collection,
+        {"insert": collection.name, "documents": [{"_id": 1, "a": [1, 2], "b": 5}]},
+    )
+    assertFailureCode(
+        result,
+        WILDCARD_COMPOUND_PREFIX_MULTIKEY_ERROR,
+        msg="Inserting an array into the compound wildcard prefix field should fail with 7246301",
+    )
+
+
+def test_compound_wildcard_prefix_multikey_create_fails(collection):
+    """Creating a compound wildcard index fails when existing data already has an array in the
+    non-wildcard prefix field."""
+    collection.insert_one({"_id": 1, "a": [1, 2], "b": 5})
+    result = execute_command(
+        collection,
+        {
+            "createIndexes": collection.name,
+            "indexes": [{"key": {"a": 1, "$**": 1}, "name": "cwi", "wildcardProjection": {"a": 0}}],
+        },
+    )
+    assertFailureCode(
+        result,
+        WILDCARD_COMPOUND_PREFIX_MULTIKEY_ERROR,
+        msg="Creating a compound wildcard over an existing multikey prefix "
+        "should fail with 7246301",
+    )
+
+
+def test_compound_wildcard_prefix_multikey_update_fails(collection):
+    """Updating the non-wildcard prefix field to an array fails after a compound wildcard index
+    exists."""
+    execute_command(
+        collection,
+        {
+            "createIndexes": collection.name,
+            "indexes": [{"key": {"a": 1, "$**": 1}, "name": "cwi", "wildcardProjection": {"a": 0}}],
+        },
+    )
+    collection.insert_one({"_id": 1, "a": 1, "b": 5})
+    result = execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$set": {"a": [1, 2]}}}],
+        },
+    )
+    assertFailureCode(
+        result,
+        WILDCARD_COMPOUND_PREFIX_MULTIKEY_ERROR,
+        msg="Updating the compound wildcard prefix field to an array should fail with 7246301",
+    )
+
+
+def test_compound_wildcard_overlapping_field_not_excluded_fails(collection):
+    """A compound wildcard index whose regular key field also falls in wildcard scope must
+    exclude that field via wildcardProjection. Providing a projection that does not exclude the
+    overlapping field fails: the wildcardProjection must exclude all regular index fields."""
+    result = execute_command(
+        collection,
+        {
+            "createIndexes": collection.name,
+            "indexes": [
+                {
+                    "key": {"a": 1, "$**": 1},
+                    "name": "cwi",
+                    # 'a' is a regular key field and remains in wildcard scope (only 'b' excluded).
+                    "wildcardProjection": {"b": 0},
+                }
+            ],
+        },
+    )
+    assertFailureCode(
+        result,
+        WILDCARD_COMPOUND_PREFIX_NOT_EXCLUDED_ERROR,
+        msg="Compound wildcard whose projection does not exclude the overlapping regular key "
+        "field should fail with 7246209",
+    )
+
+
+def test_two_compound_wildcards_same_spec_different_name_conflicts(collection):
+    """Two compound wildcard indexes with the same prefix and identical wildcard scope
+    (same key and wildcardProjection) but different names conflict with IndexOptionsConflict."""
+    execute_command(
+        collection,
+        {
+            "createIndexes": collection.name,
+            "indexes": [
+                {"key": {"a": 1, "$**": 1}, "name": "cwi_first", "wildcardProjection": {"a": 0}}
+            ],
+        },
+    )
+    result = execute_command(
+        collection,
+        {
+            "createIndexes": collection.name,
+            "indexes": [
+                {"key": {"a": 1, "$**": 1}, "name": "cwi_second", "wildcardProjection": {"a": 0}}
+            ],
+        },
+    )
+    assertFailureCode(
+        result,
+        INDEX_OPTIONS_CONFLICT_ERROR,
+        msg="Identical compound wildcard spec under a different name should fail with "
+        "IndexOptionsConflict",
     )

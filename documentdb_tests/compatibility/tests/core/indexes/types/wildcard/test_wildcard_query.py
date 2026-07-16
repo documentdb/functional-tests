@@ -206,6 +206,95 @@ def test_wildcard_range(collection, test):
     assertSuccess(result, test.expected, msg=test.msg)
 
 
+SCOPED_WILDCARD_TESTS: list[IndexQueryTestCase] = [
+    IndexQueryTestCase(
+        id="deeper_scope_nested_leaf",
+        indexes=({"key": {"a.b.$**": 1}, "name": "wc_ab"},),
+        doc=({"_id": 1, "a": {"b": {"c": 1}}}, {"_id": 2, "a": {"b": {"c": 2}}}),
+        filter={"a.b.c": 2},
+        hint="wc_ab",
+        expected=[{"_id": 2, "a": {"b": {"c": 2}}}],
+        msg="Deeper scoped wildcard (a.b.$**) serves a query on a leaf within scope",
+    ),
+    IndexQueryTestCase(
+        id="scope_sibling_leaf",
+        indexes=({"key": {"sub.$**": 1}, "name": "wc_sub"},),
+        doc=({"_id": 1, "sub": {"x": 1, "y": 2}}, {"_id": 2, "sub": {"x": 3, "y": 4}}),
+        filter={"sub.y": 2},
+        hint="wc_sub",
+        expected=[{"_id": 1, "sub": {"x": 1, "y": 2}}],
+        msg="Scoped wildcard indexes every leaf under scope; a sibling leaf is queryable",
+    ),
+    IndexQueryTestCase(
+        id="scope_multikey_array",
+        indexes=({"key": {"sub.$**": 1}, "name": "wc_sub"},),
+        doc=({"_id": 1, "sub": {"tags": ["a", "b"]}}, {"_id": 2, "sub": {"tags": ["c"]}}),
+        filter={"sub.tags": "b"},
+        hint="wc_sub",
+        expected=[{"_id": 1, "sub": {"tags": ["a", "b"]}}],
+        msg="Scoped wildcard matches an array element within scope (multikey)",
+    ),
+    IndexQueryTestCase(
+        id="scope_in_predicate",
+        indexes=({"key": {"sub.$**": 1}, "name": "wc_sub"},),
+        doc=(
+            {"_id": 1, "sub": {"x": 1}},
+            {"_id": 2, "sub": {"x": 2}},
+            {"_id": 3, "sub": {"x": 3}},
+        ),
+        filter={"sub.x": {"$in": [1, 3]}},
+        hint="wc_sub",
+        sort={"_id": 1},
+        expected=[{"_id": 1, "sub": {"x": 1}}, {"_id": 3, "sub": {"x": 3}}],
+        msg="Scoped wildcard serves an $in predicate on an in-scope field",
+    ),
+    IndexQueryTestCase(
+        id="scope_sort_within_scope",
+        indexes=({"key": {"sub.$**": 1}, "name": "wc_sub"},),
+        doc=(
+            {"_id": 1, "sub": {"x": 9}},
+            {"_id": 2, "sub": {"x": 3}},
+            {"_id": 3, "sub": {"x": 6}},
+        ),
+        filter={"sub.x": {"$gte": 3}},
+        sort={"sub.x": 1},
+        hint="wc_sub",
+        expected=[
+            {"_id": 2, "sub": {"x": 3}},
+            {"_id": 3, "sub": {"x": 6}},
+            {"_id": 1, "sub": {"x": 9}},
+        ],
+        msg="Scoped wildcard provides sort order for an in-scope field",
+    ),
+    IndexQueryTestCase(
+        id="scope_rooted_at_id_subfield",
+        indexes=({"key": {"_id.$**": 1}, "name": "wc_id_sub"},),
+        doc=({"_id": {"a": 1, "b": 2}}, {"_id": {"a": 3, "b": 4}}),
+        filter={"_id.a": 3},
+        hint="wc_id_sub",
+        expected=[{"_id": {"a": 3, "b": 4}}],
+        msg="Scoped wildcard rooted at _id serves a query on an _id subfield",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(SCOPED_WILDCARD_TESTS))
+def test_wildcard_scoped_path(collection, test):
+    """Verify path-specific (scoped) wildcard indexes serve queries on fields within scope."""
+    execute_command(
+        collection,
+        {"createIndexes": collection.name, "indexes": list(test.indexes)},
+    )
+    collection.insert_many(list(test.doc))
+    cmd = {"find": collection.name, "filter": test.filter}
+    if test.hint:
+        cmd["hint"] = test.hint
+    if test.sort:
+        cmd["sort"] = test.sort
+    result = execute_command(collection, cmd)
+    assertSuccess(result, test.expected, msg=test.msg)
+
+
 OPERATOR_TESTS: list[IndexQueryTestCase] = [
     IndexQueryTestCase(
         id="or_two_fields",
@@ -427,6 +516,90 @@ def test_wildcard_projection_output(collection, test):
     assertSuccess(result, test.expected, msg=test.msg)
 
 
+WILDCARD_PROJECTION_QUERY_TESTS: list[IndexQueryTestCase] = [
+    IndexQueryTestCase(
+        id="inclusion_nested_leaf_served",
+        indexes=({"key": {"$**": 1}, "name": "wc_inc", "wildcardProjection": {"a": 1}},),
+        doc=(
+            {"_id": 1, "a": {"b": 1}, "z": 9},
+            {"_id": 2, "a": {"b": 2}, "z": 8},
+        ),
+        filter={"a.b": 2},
+        hint="wc_inc",
+        expected=[{"_id": 2, "a": {"b": 2}, "z": 8}],
+        msg="Inclusion projection indexes the whole subtree; a nested leaf under it is served",
+    ),
+    IndexQueryTestCase(
+        id="inclusion_range_on_projected_field",
+        indexes=({"key": {"$**": 1}, "name": "wc_inc", "wildcardProjection": {"a": 1}},),
+        doc=(
+            {"_id": 1, "a": 1, "b": 100},
+            {"_id": 2, "a": 5, "b": 100},
+            {"_id": 3, "a": 9, "b": 100},
+        ),
+        filter={"a": {"$gte": 5}},
+        hint="wc_inc",
+        sort={"_id": 1},
+        expected=[{"_id": 2, "a": 5, "b": 100}, {"_id": 3, "a": 9, "b": 100}],
+        msg="Range query on an included field is served by the wildcard index",
+    ),
+    IndexQueryTestCase(
+        id="exclusion_sibling_of_excluded_served",
+        indexes=({"key": {"$**": 1}, "name": "wc_exc", "wildcardProjection": {"a": 0}},),
+        doc=(
+            {"_id": 1, "a": 1, "b": {"c": 1}},
+            {"_id": 2, "a": 2, "b": {"c": 2}},
+        ),
+        filter={"b.c": 2},
+        hint="wc_exc",
+        expected=[{"_id": 2, "a": 2, "b": {"c": 2}}],
+        msg="Exclusion projection still indexes non-excluded nested leaves",
+    ),
+    IndexQueryTestCase(
+        id="exclusion_multiple_fields_served",
+        indexes=({"key": {"$**": 1}, "name": "wc_exc2", "wildcardProjection": {"a": 0, "b": 0}},),
+        doc=(
+            {"_id": 1, "a": 1, "b": 2, "c": 3},
+            {"_id": 2, "a": 4, "b": 5, "c": 6},
+        ),
+        filter={"c": 6},
+        hint="wc_exc2",
+        expected=[{"_id": 2, "a": 4, "b": 5, "c": 6}],
+        msg="Query on a field outside a multi-field exclusion projection is served",
+    ),
+    IndexQueryTestCase(
+        id="exclude_id_inclusion_serves_field",
+        indexes=(
+            {
+                "key": {"$**": 1},
+                "name": "wc_noid",
+                "wildcardProjection": {"_id": 0, "a": 1},
+            },
+        ),
+        doc=({"_id": 1, "a": 1}, {"_id": 2, "a": 2}),
+        filter={"a": 2},
+        hint="wc_noid",
+        expected=[{"_id": 2, "a": 2}],
+        msg="Inclusion projection with _id excluded still serves the included field",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(WILDCARD_PROJECTION_QUERY_TESTS))
+def test_wildcard_projection_query_served(collection, test):
+    """Verify queries are served by a wildcard index constrained by a wildcardProjection."""
+    execute_command(
+        collection,
+        {"createIndexes": collection.name, "indexes": list(test.indexes)},
+    )
+    collection.insert_many(list(test.doc))
+    cmd = {"find": collection.name, "filter": test.filter, "hint": test.hint}
+    if test.sort:
+        cmd["sort"] = test.sort
+    result = execute_command(collection, cmd)
+    assertSuccess(result, test.expected, msg=test.msg)
+
+
 COMPOUND_WILDCARD_QUERY_TESTS: list[IndexQueryTestCase] = [
     IndexQueryTestCase(
         id="prefix_and_wildcard_field_nonwildcard_first",
@@ -453,6 +626,34 @@ COMPOUND_WILDCARD_QUERY_TESTS: list[IndexQueryTestCase] = [
         hint="cwi_wc_a",
         expected=[{"_id": 1, "a": 1, "b": 10}],
         msg="Compound wildcard (wildcard first) serves a prefix + wildcard-field query",
+    ),
+    IndexQueryTestCase(
+        id="prefix_equality_wildcard_range",
+        indexes=({"key": {"a": 1, "$**": 1}, "name": "cwi_a_wc", "wildcardProjection": {"a": 0}},),
+        doc=(
+            {"_id": 1, "a": 1, "b": 5},
+            {"_id": 2, "a": 1, "b": 15},
+            {"_id": 3, "a": 2, "b": 15},
+        ),
+        filter={"a": 1, "b": {"$gte": 10}},
+        hint="cwi_a_wc",
+        sort={"_id": 1},
+        expected=[{"_id": 2, "a": 1, "b": 15}],
+        msg="Compound wildcard serves prefix equality plus a range on the wildcard field",
+    ),
+    IndexQueryTestCase(
+        id="prefix_only_query",
+        indexes=({"key": {"a": 1, "$**": 1}, "name": "cwi_a_wc", "wildcardProjection": {"a": 0}},),
+        doc=(
+            {"_id": 1, "a": 1, "b": 10},
+            {"_id": 2, "a": 1, "b": 20},
+            {"_id": 3, "a": 2, "b": 30},
+        ),
+        filter={"a": 1},
+        hint="cwi_a_wc",
+        sort={"_id": 1},
+        expected=[{"_id": 1, "a": 1, "b": 10}, {"_id": 2, "a": 1, "b": 20}],
+        msg="Compound wildcard serves a query on the non-wildcard prefix field alone",
     ),
 ]
 

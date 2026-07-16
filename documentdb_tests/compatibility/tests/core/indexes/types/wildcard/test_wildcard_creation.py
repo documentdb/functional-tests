@@ -217,6 +217,15 @@ COEXIST_TESTS: list[IndexTestCase] = [
         ),
         msg="Wildcard index coexists with targeted index on an overlapping field",
     ),
+    IndexTestCase(
+        id="two_compound_wildcards_same_prefix_different_scope",
+        indexes=(
+            {"key": {"a": 1, "$**": 1}, "name": "cwi_ab", "wildcardProjection": {"a": 0, "b": 0}},
+            {"key": {"a": 1, "$**": 1}, "name": "cwi_ac", "wildcardProjection": {"a": 0, "c": 0}},
+        ),
+        msg="Two compound wildcard indexes with the same prefix but different wildcard scopes "
+        "(differing projections) and distinct names should coexist",
+    ),
 ]
 
 

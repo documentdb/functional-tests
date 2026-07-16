@@ -1,6 +1,10 @@
-"""Tests for wildcard index document structure, null/missing semantics, and write operations."""
+"""Tests for wildcard index data type handling: document structure, BSON scalar and special types,
+objects, arrays, null/missing semantics, and write operations."""
+
+from datetime import datetime, timezone
 
 import pytest
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Timestamp
 
 from documentdb_tests.compatibility.tests.core.indexes.commands.utils.index_test_case import (
     IndexQueryTestCase,
@@ -14,15 +18,6 @@ pytestmark = pytest.mark.index
 
 STRUCTURE_TESTS: list[IndexQueryTestCase] = [
     IndexQueryTestCase(
-        id="embedded_grandchild_scalar",
-        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
-        doc=({"_id": 1, "a": {"b": {"c": 10}}}, {"_id": 2, "a": {"b": {"c": 20}}}),
-        filter={"a.b.c": 20},
-        hint="wc_all",
-        expected=[{"_id": 2, "a": {"b": {"c": 20}}}],
-        msg="Grandchild scalar (two levels deep) matched via wildcard",
-    ),
-    IndexQueryTestCase(
         id="embedded_doc_equality_unhinted",
         indexes=({"key": {"$**": 1}, "name": "wc_all"},),
         doc=({"_id": 1, "a": {"b": 1}}, {"_id": 2, "a": {"b": 2}}),
@@ -30,24 +25,6 @@ STRUCTURE_TESTS: list[IndexQueryTestCase] = [
         filter={"a": {"b": 1}},
         expected=[{"_id": 1, "a": {"b": 1}}],
         msg="Whole-document equality correctness",
-    ),
-    IndexQueryTestCase(
-        id="array_element_match",
-        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
-        doc=({"_id": 1, "a": [1, 2, 3]}, {"_id": 2, "a": [4, 5]}),
-        filter={"a": 2},
-        hint="wc_all",
-        expected=[{"_id": 1, "a": [1, 2, 3]}],
-        msg="Array element match via wildcard",
-    ),
-    IndexQueryTestCase(
-        id="array_of_objects_scalar",
-        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
-        doc=({"_id": 1, "a": [{"b": 1}, {"b": 2}]}, {"_id": 2, "a": [{"b": 3}]}),
-        filter={"a.b": 2},
-        hint="wc_all",
-        expected=[{"_id": 1, "a": [{"b": 1}, {"b": 2}]}],
-        msg="Scalar within array of objects",
     ),
     IndexQueryTestCase(
         id="array_equality_unhinted",
@@ -93,6 +70,35 @@ STRUCTURE_TESTS: list[IndexQueryTestCase] = [
         hint="wc_all",
         expected=[{"_id": 1, "a": {"x": 1, "y": 2, "z": 3}}],
         msg="$exists on multi-leaf embedded object returns doc once (dedup)",
+    ),
+    IndexQueryTestCase(
+        id="dedup_range_on_array_of_subdocs",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "items": [{"q": 5}, {"q": 10}, {"q": 15}]},
+            {"_id": 2, "items": [{"q": 1}]},
+        ),
+        filter={"items.q": {"$gte": 5}},
+        hint="wc_all",
+        sort={"_id": 1},
+        expected=[{"_id": 1, "items": [{"q": 5}, {"q": 10}, {"q": 15}]}],
+        msg="Range on array-of-subdocuments returns each matching doc once (multikey dedup)",
+    ),
+    IndexQueryTestCase(
+        id="dedup_exists_on_array_of_subdocs",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "items": [{"q": 5}, {"q": 10}, {"q": 15}]},
+            {"_id": 2, "items": [{"q": 1}]},
+        ),
+        filter={"items.q": {"$exists": True}},
+        hint="wc_all",
+        sort={"_id": 1},
+        expected=[
+            {"_id": 1, "items": [{"q": 5}, {"q": 10}, {"q": 15}]},
+            {"_id": 2, "items": [{"q": 1}]},
+        ],
+        msg="$exists on array-of-subdocuments returns each matching doc once (multikey dedup)",
     ),
     IndexQueryTestCase(
         id="numeric_string_field_name",
@@ -362,6 +368,31 @@ def test_wildcard_dynamic_field_indexed_after_update(collection):
     )
 
 
+def test_wildcard_overwritten_nested_field_reindexed_after_update(collection):
+    """Overwriting an existing nested field via $set re-indexes it under the new value: the new
+    value is queryable via the wildcard index while the old value no longer matches."""
+    execute_command(
+        collection,
+        {"createIndexes": collection.name, "indexes": [{"key": {"$**": 1}, "name": "wc_all"}]},
+    )
+    collection.insert_one({"_id": 1, "a": {"b": 1}})
+    execute_command(
+        collection,
+        {"update": collection.name, "updates": [{"q": {"_id": 1}, "u": {"$set": {"a.b": 99}}}]},
+    )
+    # A single hinted query on the range [1, 99] proves both facts at once: only the new value
+    # (99) matches and the old value (1) does not.
+    result = execute_command(
+        collection,
+        {"find": collection.name, "filter": {"a.b": {"$in": [1, 99]}}, "hint": "wc_all"},
+    )
+    assertSuccess(
+        result,
+        [{"_id": 1, "a": {"b": 99}}],
+        msg="Overwritten nested field is re-indexed: new value matches, old value does not",
+    )
+
+
 def test_wildcard_upsert_indexed(collection):
     """A document inserted via upsert is queryable via the wildcard index."""
     execute_command(
@@ -412,3 +443,267 @@ def test_wildcard_type_array_matches_nested_array(collection):
         {"find": collection.name, "filter": {"v": {"$type": "array"}}, "hint": "wc_all"},
     )
     assertSuccess(result, [{"_id": 1, "v": [[1, 2]]}], msg="$type 'array' matches nested array")
+
+
+SCALAR_TYPE_TESTS: list[IndexQueryTestCase] = [
+    IndexQueryTestCase(
+        id="int64_scalar",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=({"_id": 1, "v": Int64(2**53)}, {"_id": 2, "v": Int64(100)}),
+        filter={"v": Int64(2**53)},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": Int64(2**53)}],
+        msg="int64 scalar is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="double_scalar",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=({"_id": 1, "v": 3.14}, {"_id": 2, "v": 2.71}),
+        filter={"v": 3.14},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": 3.14}],
+        msg="double scalar is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="decimal128_scalar",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=({"_id": 1, "v": Decimal128("1.5")}, {"_id": 2, "v": Decimal128("2.5")}),
+        filter={"v": Decimal128("1.5")},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": Decimal128("1.5")}],
+        msg="Decimal128 scalar is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="bool_true_scalar",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=({"_id": 1, "v": True}, {"_id": 2, "v": False}),
+        filter={"v": True},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": True}],
+        msg="boolean true is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="bool_false_scalar",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=({"_id": 1, "v": True}, {"_id": 2, "v": False}),
+        filter={"v": False},
+        hint="wc_all",
+        expected=[{"_id": 2, "v": False}],
+        msg="boolean false is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="date_scalar",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "v": datetime(2020, 1, 1, tzinfo=timezone.utc)},
+            {"_id": 2, "v": datetime(2021, 6, 15, tzinfo=timezone.utc)},
+        ),
+        filter={"v": datetime(2020, 1, 1, tzinfo=timezone.utc)},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": datetime(2020, 1, 1, tzinfo=timezone.utc)}],
+        msg="date scalar is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="objectid_scalar",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "v": ObjectId("507f1f77bcf86cd799439011")},
+            {"_id": 2, "v": ObjectId("507f1f77bcf86cd799439012")},
+        ),
+        filter={"v": ObjectId("507f1f77bcf86cd799439011")},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": ObjectId("507f1f77bcf86cd799439011")}],
+        msg="ObjectId scalar is queryable via wildcard",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(SCALAR_TYPE_TESTS))
+def test_wildcard_scalar_types(collection, test):
+    """Verify wildcard index correctly indexes and retrieves scalar BSON types."""
+    execute_command(
+        collection,
+        {"createIndexes": collection.name, "indexes": list(test.indexes)},
+    )
+    collection.insert_many(list(test.doc))
+    result = execute_command(
+        collection, {"find": collection.name, "filter": test.filter, "hint": test.hint}
+    )
+    assertSuccess(result, test.expected, msg=test.msg)
+
+
+SPECIAL_TYPE_TESTS: list[IndexQueryTestCase] = [
+    IndexQueryTestCase(
+        id="binary_type",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "v": Binary(b"\x01\x02\x03")},
+            {"_id": 2, "v": Binary(b"\x04\x05\x06")},
+        ),
+        filter={"v": Binary(b"\x01\x02\x03")},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": Binary(b"\x01\x02\x03")}],
+        msg="Binary data is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="timestamp_type",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "v": Timestamp(1000, 1)},
+            {"_id": 2, "v": Timestamp(2000, 1)},
+        ),
+        filter={"v": Timestamp(1000, 1)},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": Timestamp(1000, 1)}],
+        msg="Timestamp is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="minkey_type",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=({"_id": 1, "v": MinKey()}, {"_id": 2, "v": 5}),
+        filter={"v": MinKey()},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": MinKey()}],
+        msg="MinKey is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="maxkey_type",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=({"_id": 1, "v": MaxKey()}, {"_id": 2, "v": 5}),
+        filter={"v": MaxKey()},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": MaxKey()}],
+        msg="MaxKey is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="javascript_code_type",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "v": Code("function(){return 1;}")},
+            {"_id": 2, "v": Code("function(){return 2;}")},
+        ),
+        filter={"v": Code("function(){return 1;}")},
+        hint="wc_all",
+        expected=[{"_id": 1, "v": Code("function(){return 1;}")}],
+        msg="JavaScript Code is queryable via wildcard",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(SPECIAL_TYPE_TESTS))
+def test_wildcard_special_types(collection, test):
+    """Verify wildcard index correctly indexes and retrieves special BSON types."""
+    execute_command(
+        collection,
+        {"createIndexes": collection.name, "indexes": list(test.indexes)},
+    )
+    collection.insert_many(list(test.doc))
+    result = execute_command(
+        collection, {"find": collection.name, "filter": test.filter, "hint": test.hint}
+    )
+    assertSuccess(result, test.expected, msg=test.msg)
+
+
+OBJECT_ARRAY_TYPE_TESTS: list[IndexQueryTestCase] = [
+    IndexQueryTestCase(
+        id="nested_object_leaf_query",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "obj": {"x": 1, "y": 2}},
+            {"_id": 2, "obj": {"x": 3, "y": 4}},
+        ),
+        filter={"obj.x": 1},
+        hint="wc_all",
+        expected=[{"_id": 1, "obj": {"x": 1, "y": 2}}],
+        msg="Nested object leaf field is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="deeply_nested_object",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "a": {"b": {"c": {"d": 10}}}},
+            {"_id": 2, "a": {"b": {"c": {"d": 20}}}},
+        ),
+        filter={"a.b.c.d": 10},
+        hint="wc_all",
+        expected=[{"_id": 1, "a": {"b": {"c": {"d": 10}}}}],
+        msg="Deeply nested object leaf (3+ levels) is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="array_scalar_elements",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "tags": ["red", "blue"]},
+            {"_id": 2, "tags": ["green", "yellow"]},
+        ),
+        filter={"tags": "blue"},
+        hint="wc_all",
+        expected=[{"_id": 1, "tags": ["red", "blue"]}],
+        msg="Array scalar element match via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="array_numeric_elements_range",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "scores": [10, 20, 30]},
+            {"_id": 2, "scores": [40, 50]},
+        ),
+        filter={"scores": {"$gte": 25}},
+        hint="wc_all",
+        sort={"_id": 1},
+        expected=[{"_id": 1, "scores": [10, 20, 30]}, {"_id": 2, "scores": [40, 50]}],
+        msg="Array numeric elements with range query via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="array_of_objects_nested_field",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "items": [{"name": "a", "qty": 5}, {"name": "b", "qty": 10}]},
+            {"_id": 2, "items": [{"name": "c", "qty": 15}]},
+        ),
+        filter={"items.qty": 10},
+        hint="wc_all",
+        expected=[{"_id": 1, "items": [{"name": "a", "qty": 5}, {"name": "b", "qty": 10}]}],
+        msg="Array of objects nested field is queryable via wildcard",
+    ),
+    IndexQueryTestCase(
+        id="mixed_type_field_int_and_string",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "v": 42},
+            {"_id": 2, "v": "42"},
+            {"_id": 3, "v": 42.0},
+        ),
+        filter={"v": "42"},
+        hint="wc_all",
+        expected=[{"_id": 2, "v": "42"}],
+        msg="String match does not return numeric equivalent",
+    ),
+    IndexQueryTestCase(
+        id="object_with_array_value",
+        indexes=({"key": {"$**": 1}, "name": "wc_all"},),
+        doc=(
+            {"_id": 1, "meta": {"tags": ["x", "y"], "count": 2}},
+            {"_id": 2, "meta": {"tags": ["z"], "count": 1}},
+        ),
+        filter={"meta.tags": "x"},
+        hint="wc_all",
+        expected=[{"_id": 1, "meta": {"tags": ["x", "y"], "count": 2}}],
+        msg="Array inside object is queryable via wildcard",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(OBJECT_ARRAY_TYPE_TESTS))
+def test_wildcard_object_and_array_types(collection, test):
+    """Verify wildcard index correctly indexes and retrieves objects and arrays."""
+    execute_command(
+        collection,
+        {"createIndexes": collection.name, "indexes": list(test.indexes)},
+    )
+    collection.insert_many(list(test.doc))
+    cmd = {"find": collection.name, "filter": test.filter, "hint": test.hint}
+    if test.sort:
+        cmd["sort"] = test.sort
+    result = execute_command(collection, cmd)
+    assertSuccess(result, test.expected, msg=test.msg)
