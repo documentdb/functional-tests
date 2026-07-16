@@ -542,7 +542,7 @@ SPECIAL_TYPE_TESTS: list[IndexQueryTestCase] = [
         ),
         filter={"v": Binary(b"\x01\x02\x03")},
         hint="wc_all",
-        expected=[{"_id": 1, "v": Binary(b"\x01\x02\x03")}],
+        expected=[{"_id": 1, "v": b"\x01\x02\x03"}],
         msg="Binary data is queryable via wildcard",
     ),
     IndexQueryTestCase(
