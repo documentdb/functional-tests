@@ -12,7 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_constants import DATE_EPOCH
+from documentdb_tests.framework.test_constants import DATE_EPOCH, DATE_YEAR_9999
 
 # Property [Minute Extraction]: $minute returns the minute component (0-59) of a UTC date.
 MINUTE_EXTRACTION_TESTS: list[ExpressionTestCase] = [
@@ -160,7 +160,7 @@ MINUTE_YEAR_TESTS: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         "year_9999",
-        doc={"date": datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc)},
+        doc={"date": DATE_YEAR_9999},
         expression={"$minute": "$date"},
         expected=59,
         msg="$minute should return 59 for the last representable year 9999",
