@@ -19,6 +19,7 @@ from documentdb_tests.framework.error_codes import (
     NO_QUERY_EXECUTION_PLANS_ERROR,
     PROJECT_COMPUTED_FIELD_BANNED_ERROR,
     PROJECT_EXCLUSION_IN_INCLUSION_ERROR,
+    PROJECT_PATH_COLLISION_CHILD_AFTER_PARENT_ERROR,
     WILDCARD_COMPOUND_PREFIX_MULTIKEY_ERROR,
     WILDCARD_COMPOUND_PREFIX_NOT_EXCLUDED_ERROR,
     WILDCARD_MULTIPLE_FIELDS_ERROR,
@@ -173,6 +174,18 @@ INVALID_PROJECTION_TESTS: list[IndexTestCase] = [
         msg="Mixed inclusion/exclusion (no _id exception) should fail with 31254",
     ),
     IndexTestCase(
+        id="mixed_inclusion_exclusion_nested",
+        indexes=({"key": {"$**": 1}, "name": "wc", "wildcardProjection": {"a": {"b": 1, "c": 0}}},),
+        expected=PROJECT_EXCLUSION_IN_INCLUSION_ERROR,
+        msg="Mixed inclusion/exclusion nested under a field should fail with 31254",
+    ),
+    IndexTestCase(
+        id="dotted_path_parent_child_collision",
+        indexes=({"key": {"$**": 1}, "name": "wc", "wildcardProjection": {"a": 1, "a.b": 0}},),
+        expected=PROJECT_PATH_COLLISION_CHILD_AFTER_PARENT_ERROR,
+        msg="Dotted-path parent/child collision (a:1, a.b:0) should fail with 31249",
+    ),
+    IndexTestCase(
         id="empty_projection",
         indexes=({"key": {"$**": 1}, "name": "wc", "wildcardProjection": {}},),
         expected=FAILED_TO_PARSE_ERROR,
@@ -183,6 +196,19 @@ INVALID_PROJECTION_TESTS: list[IndexTestCase] = [
         indexes=({"key": {"sub.$**": 1}, "name": "wc", "wildcardProjection": {"a": 1}},),
         expected=FAILED_TO_PARSE_ERROR,
         msg="Field-path wildcard key with wildcardProjection should fail with FailedToParse",
+    ),
+    IndexTestCase(
+        id="compound_field_path_key_with_projection",
+        indexes=(
+            {
+                "key": {"a": 1, "sub.$**": 1},
+                "name": "cwi_sub",
+                "wildcardProjection": {"a": 0},
+            },
+        ),
+        expected=FAILED_TO_PARSE_ERROR,
+        msg="Compound scoped wildcard (prefix field + sub.$**) with wildcardProjection should "
+        "fail with FailedToParse, same as the non-compound field-path case",
     ),
     IndexTestCase(
         id="non_wildcard_index_with_projection",

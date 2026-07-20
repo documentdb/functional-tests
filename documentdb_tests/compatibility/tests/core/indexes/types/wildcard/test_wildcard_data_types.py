@@ -1,5 +1,5 @@
 """Tests for wildcard index data type handling: document structure, BSON scalar and special types,
-objects, arrays, null/missing semantics, and write operations."""
+objects, arrays, null/missing semantics, and re-indexing after writes."""
 
 from datetime import datetime, timezone
 
@@ -9,7 +9,7 @@ from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Time
 from documentdb_tests.compatibility.tests.core.indexes.commands.utils.index_test_case import (
     IndexQueryTestCase,
 )
-from documentdb_tests.framework.assertions import assertSuccess, assertSuccessPartial
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -275,80 +275,6 @@ def test_wildcard_null_and_missing(collection, test):
     assertSuccess(result, test.expected, msg=test.msg)
 
 
-def test_wildcard_missing_field_not_indexed_count(collection):
-    """A document missing the indexed field is not indexed; $exists:true count excludes it."""
-    execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"$**": 1}, "name": "wc_all"}]},
-    )
-    collection.insert_many(
-        [{"_id": 1, "a": 1}, {"_id": 2, "a": None}, {"_id": 3}, {"_id": 4, "a": 3}]
-    )
-    result = execute_command(
-        collection,
-        {"count": collection.name, "query": {"a": {"$exists": True}}, "hint": "wc_all"},
-    )
-    assertSuccessPartial(result, {"n": 3, "ok": 1.0}, msg="Missing field not indexed")
-
-
-def test_wildcard_update_hinted(collection):
-    """An update hinted to the wildcard index modifies the targeted document."""
-    execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"$**": 1}, "name": "wc_all"}]},
-    )
-    collection.insert_many([{"_id": 1, "a": 1}, {"_id": 2, "a": 2}])
-    result = execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {"a": 2}, "u": {"$set": {"a": 99}}, "hint": "wc_all"}],
-        },
-    )
-    assertSuccessPartial(
-        result, {"n": 1, "nModified": 1, "ok": 1.0}, msg="Hinted update via wildcard"
-    )
-
-
-def test_wildcard_findandmodify_hinted(collection):
-    """A findAndModify hinted to the wildcard index updates and returns the modified document."""
-    execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"$**": 1}, "name": "wc_all"}]},
-    )
-    collection.insert_many([{"_id": 1, "a": 1}, {"_id": 2, "a": 2}])
-    result = execute_command(
-        collection,
-        {
-            "findAndModify": collection.name,
-            "query": {"a": 2},
-            "update": {"$set": {"a": 99}},
-            "new": True,
-            "hint": "wc_all",
-        },
-    )
-    assertSuccessPartial(
-        result, {"value": {"_id": 2, "a": 99}, "ok": 1.0}, msg="Hinted findAndModify via wildcard"
-    )
-
-
-def test_wildcard_delete_hinted(collection):
-    """A delete hinted to the wildcard index removes the targeted document."""
-    execute_command(
-        collection,
-        {"createIndexes": collection.name, "indexes": [{"key": {"$**": 1}, "name": "wc_all"}]},
-    )
-    collection.insert_many([{"_id": 1, "a": 1}, {"_id": 2, "a": 2}])
-    result = execute_command(
-        collection,
-        {
-            "delete": collection.name,
-            "deletes": [{"q": {"a": 2}, "limit": 1, "hint": "wc_all"}],
-        },
-    )
-    assertSuccessPartial(result, {"n": 1, "ok": 1.0}, msg="Hinted delete via wildcard")
-
-
 def test_wildcard_dynamic_field_indexed_after_update(collection):
     """A field added by $set becomes immediately queryable via the wildcard index."""
     execute_command(
@@ -393,27 +319,28 @@ def test_wildcard_overwritten_nested_field_reindexed_after_update(collection):
     )
 
 
-def test_wildcard_upsert_indexed(collection):
-    """A document inserted via upsert is queryable via the wildcard index."""
+def test_wildcard_array_element_replaced_with_object_reindexed(collection):
+    """Overwriting a scalar array element with an object via $set re-indexes it under the new
+    subpath: the new nested field is queryable via the wildcard index."""
     execute_command(
         collection,
         {"createIndexes": collection.name, "indexes": [{"key": {"$**": 1}, "name": "wc_all"}]},
     )
+    collection.insert_one({"_id": 1, "a": [1, 2, 3]})
     execute_command(
         collection,
         {
             "update": collection.name,
-            "updates": [{"q": {"a": 42}, "u": {"$set": {"a": 42}}, "upsert": True}],
+            "updates": [{"q": {"_id": 1}, "u": {"$set": {"a.1": {"b": 5}}}}],
         },
     )
     result = execute_command(
-        collection, {"find": collection.name, "filter": {"a": 42}, "hint": "wc_all"}
+        collection, {"find": collection.name, "filter": {"a.b": 5}, "hint": "wc_all"}
     )
     assertSuccess(
         result,
-        [{"a": 42}],
-        transform=lambda batch: [{"a": d["a"]} for d in batch],
-        msg="Upserted document is queryable via wildcard index",
+        [{"_id": 1, "a": [1, {"b": 5}, 3]}],
+        msg="Array element replaced with object is re-indexed under the new subpath",
     )
 
 

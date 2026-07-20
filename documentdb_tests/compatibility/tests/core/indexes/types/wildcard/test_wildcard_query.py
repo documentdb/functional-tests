@@ -1,4 +1,6 @@
-"""Tests for wildcard index query behavior."""
+"""Tests for wildcard index query behavior: equality, range, scoped-path, logical/array
+operators, sort, projection output, wildcardProjection-constrained queries, compound wildcard
+queries, count, aggregation, and distinct."""
 
 import pytest
 
