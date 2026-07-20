@@ -51,6 +51,12 @@ ISODAYOFWEEK_ARGUMENT_TESTS: list[ExpressionTestCase] = [
         msg="$isoDayOfWeek should treat an object with an unknown key as an invalid document form",
     ),
     ExpressionTestCase(
+        "empty_array",
+        expression={"$isoDayOfWeek": []},
+        error_code=ISO_DATE_INVALID_ARRAY_INPUT_ERROR,
+        msg="$isoDayOfWeek should error for an empty operand array",
+    ),
+    ExpressionTestCase(
         "invalid_array",
         expression={"$isoDayOfWeek": [1, 2]},
         error_code=ISO_DATE_INVALID_ARRAY_INPUT_ERROR,

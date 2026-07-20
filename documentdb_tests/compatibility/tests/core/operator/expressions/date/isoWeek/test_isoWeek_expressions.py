@@ -48,6 +48,12 @@ ISOWEEK_ARGUMENT_TESTS: list[ExpressionTestCase] = [
         msg="$isoWeek should treat an object with an unknown key as an invalid document form",
     ),
     ExpressionTestCase(
+        "empty_array",
+        expression={"$isoWeek": []},
+        error_code=ISO_DATE_INVALID_ARRAY_INPUT_ERROR,
+        msg="$isoWeek should error for an empty operand array",
+    ),
+    ExpressionTestCase(
         "invalid_array",
         expression={"$isoWeek": [1, 2]},
         error_code=ISO_DATE_INVALID_ARRAY_INPUT_ERROR,
