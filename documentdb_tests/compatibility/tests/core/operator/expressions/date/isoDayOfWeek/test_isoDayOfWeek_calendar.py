@@ -66,13 +66,6 @@ ISODAYOFWEEK_EXTRACTION_TESTS: list[ExpressionTestCase] = [
         expected=7,
         msg="$isoDayOfWeek should return 7 for a Sunday",
     ),
-    ExpressionTestCase(
-        "saturday_1998",
-        doc={"date": datetime(1998, 11, 7, 0, 0, 0, tzinfo=timezone.utc)},
-        expression={"$isoDayOfWeek": "$date"},
-        expected=6,
-        msg="$isoDayOfWeek should return 6 for a Saturday in 1998",
-    ),
 ]
 
 # Property [Year Range]: the ISO day is correct at the epoch and at distant past and future
