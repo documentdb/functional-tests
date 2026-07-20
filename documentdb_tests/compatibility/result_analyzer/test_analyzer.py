@@ -8,6 +8,8 @@ from documentdb_tests.compatibility.result_analyzer.analyzer import (
     categorize_outcome,
     extract_exception_type,
     extract_failure_tag,
+    feature_path,
+    group_by_feature,
     is_infrastructure_error,
 )
 
@@ -222,3 +224,89 @@ class TestCategorizeOutcome:
 
     def test_unknown_outcome_defaults_to_fail(self):
         assert categorize_outcome({"outcome": ""}) == TestOutcome.FAIL
+
+
+# feature_path.
+
+
+@pytest.mark.unit
+class TestFeaturePath:
+    def test_extracts_path_including_file(self):
+        nodeid = (
+            "documentdb_tests/compatibility/tests/core/operator/expressions/"
+            "arithmetic/add/test_add_numeric.py::test_add"
+        )
+        assert feature_path(nodeid) == [
+            "core",
+            "operator",
+            "expressions",
+            "arithmetic",
+            "add",
+            "test_add_numeric.py",
+        ]
+
+    def test_shallow_path(self):
+        nodeid = (
+            "documentdb_tests/compatibility/tests/changeStreams/create/"
+            "test_smoke_changeStream_create.py::test_it"
+        )
+        assert feature_path(nodeid) == [
+            "changeStreams",
+            "create",
+            "test_smoke_changeStream_create.py",
+        ]
+
+    def test_file_is_deepest_tier_selector_dropped(self):
+        nodeid = "documentdb_tests/compatibility/tests/core/test_x.py::test_y[param]"
+        # Directory + file are tiers; the ::test[param] selector is dropped.
+        assert feature_path(nodeid) == ["core", "test_x.py"]
+
+    def test_missing_root_returns_empty(self):
+        assert feature_path("some/other/path/test_x.py::test_y") == []
+
+
+# group_by_feature.
+
+
+@pytest.mark.unit
+class TestGroupByFeature:
+    def _tests(self):
+        base = "documentdb_tests/compatibility/tests/"
+        return [
+            {"name": base + "core/operator/string/test_a.py::t", "outcome": TestOutcome.PASS},
+            {"name": base + "core/operator/string/test_b.py::t", "outcome": TestOutcome.FAIL},
+            {"name": base + "core/operator/array/test_c.py::t", "outcome": TestOutcome.PASS},
+            {"name": base + "system/security/test_d.py::t", "outcome": TestOutcome.ERROR},
+        ]
+
+    def test_counts_aggregate_up_the_tree(self):
+        tree = group_by_feature(self._tests())
+        # core holds 3 tests (2 pass, 1 fail); operator holds the same 3.
+        core = tree["children"]["core"]
+        assert core["counts"]["passed"] == 2
+        assert core["counts"]["failed"] == 1
+        assert core["children"]["operator"]["counts"]["passed"] == 2
+
+    def test_leaf_holds_its_own_tests(self):
+        tree = group_by_feature(self._tests())
+        string_node = tree["children"]["core"]["children"]["operator"]["children"]["string"]
+        # string aggregates its two files; each file is the actual leaf.
+        assert string_node["counts"]["passed"] == 1
+        assert string_node["counts"]["failed"] == 1
+        assert set(string_node["children"]) == {"test_a.py", "test_b.py"}
+        leaf = string_node["children"]["test_a.py"]
+        assert leaf["counts"]["passed"] == 1 and leaf["children"] == {}
+
+    def test_ragged_depths_coexist(self):
+        # system/security is depth 2; core/operator/string is depth 3, both group.
+        tree = group_by_feature(self._tests())
+        assert tree["children"]["system"]["children"]["security"]["counts"]["error"] == 1
+
+    def test_root_totals_all_tests(self):
+        tree = group_by_feature(self._tests())
+        c = tree["counts"]
+        assert c["passed"] == 2 and c["failed"] == 1 and c["error"] == 1
+
+    def test_empty_input(self):
+        tree = group_by_feature([])
+        assert tree["children"] == {} and tree["counts"]["passed"] == 0

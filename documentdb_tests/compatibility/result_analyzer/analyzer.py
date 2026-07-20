@@ -191,6 +191,18 @@ _OUTCOME_COUNT_KEYS = (
     "xpassed",
 )
 
+# Per-test outcome buckets (the subset of the above that a single test can land
+# in). Used when aggregating tests, where run-level totals like "collected" or
+# "deselected" have no meaning.
+_PER_TEST_OUTCOME_KEYS = (
+    "passed",
+    "failed",
+    "error",
+    "skipped",
+    "xfailed",
+    "xpassed",
+)
+
 
 def _counts_with_missing_as_zero(native_summary: Dict[str, Any]) -> Dict[str, int]:
     """
@@ -229,6 +241,74 @@ def build_reconciliation(native_summary: Dict[str, Any]) -> Dict[str, Any]:
     denominator = counts["passed"] + counts["failed"] + counts["error"]
     pass_rate = (counts["passed"] / denominator * 100) if denominator > 0 else 0.0
     return {**counts, "pass_rate": round(pass_rate, 2)}
+
+
+# The test root under which the feature taxonomy begins. A nodeid looks like
+# "documentdb_tests/compatibility/tests/core/operator/.../test_x.py::test_y";
+# everything after this prefix is the feature path (core, operator, ...).
+_TESTS_ROOT = "tests/"
+
+
+def feature_path(nodeid: str) -> List[str]:
+    """
+    Return the feature path components for a test, from its nodeid.
+
+    The directory tree under ``tests/`` *is* the feature taxonomy
+    (e.g. ``core/operator/expressions/arithmetic/add``), so the path components
+    are the grouping tiers — area first, then successively narrower categories,
+    down to the test file itself as the deepest tier (files group related cases,
+    e.g. ``subtract/test_subtract_errors.py``). The tree is ragged, so callers
+    must not assume a fixed depth. The ``::test`` selector is dropped — individual
+    test cases are the leaves shown elsewhere, not tree tiers.
+
+    Args:
+        nodeid: A pytest node id.
+
+    Returns:
+        Ordered path components (directories then the file), or an empty list if
+        the root isn't found.
+    """
+    path = nodeid.split("::", 1)[0]
+    marker = path.rfind(_TESTS_ROOT)
+    if marker == -1:
+        return []
+    relative = path[marker + len(_TESTS_ROOT) :]
+    return relative.split("/")
+
+
+def group_by_feature(tests: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Aggregate per-test outcomes into a nested tree keyed by feature path.
+
+    Each node holds its own aggregated outcome counts (summed over every test
+    beneath it) and a ``children`` map of the next path component to a child
+    node. A node is a leaf when tests live directly at its path; because the
+    tree is ragged, leaves occur at varying depths.
+
+    Args:
+        tests: The per-test detail dicts (each with ``name`` and ``outcome``).
+
+    Returns:
+        The root node: ``{"counts": {...}, "children": {component: node, ...}}``.
+    """
+
+    def _new_node() -> Dict[str, Any]:
+        return {"counts": {key: 0 for key in _PER_TEST_OUTCOME_KEYS}, "children": {}}
+
+    root = _new_node()
+    for test in tests:
+        counter_key = OUTCOME_TO_KEY.get(test.get("outcome", ""))
+        if counter_key is None:
+            continue
+        components = feature_path(test.get("name", ""))
+        # Credit the count to the root and to every node along the path, so each
+        # node's counts include all tests beneath it.
+        node = root
+        node["counts"][counter_key] += 1
+        for component in components:
+            node = node["children"].setdefault(component, _new_node())
+            node["counts"][counter_key] += 1
+    return root
 
 
 def load_registered_markers(pytest_ini_path: str = "pytest.ini") -> set:
@@ -484,4 +564,5 @@ class ResultAnalyzer:
             "by_tag": by_tag_with_rates,
             "tests": tests_details,
             "reconciliation": reconciliation,
+            "by_feature": group_by_feature(tests_details),
         }
