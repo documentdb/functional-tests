@@ -28,4 +28,4 @@ def test_smoke_expression_size(collection):
     )
 
     expected = [{"_id": 1, "arraySize": 3}, {"_id": 2, "arraySize": 5}]
-    assertSuccess(result, expected, msg="Should support $size expression")
+    assertSuccess(result, expected, "$size should return element counts in $project")
