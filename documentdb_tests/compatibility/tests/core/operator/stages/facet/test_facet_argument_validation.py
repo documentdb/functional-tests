@@ -47,6 +47,41 @@ FACET_ARGUMENT_SUCCESS_TESTS: list[StageTestCase] = [
         expected=[{"日本語": [{"n": 2}]}],
         msg="$facet should accept and correctly retrieve a unicode output field name",
     ),
+    StageTestCase(
+        id="space_in_field_name",
+        docs=DOCS,
+        pipeline=[{"$facet": {"my field": [{"$count": "n"}]}}],
+        expected=[{"my field": [{"n": 2}]}],
+        msg="$facet should accept an output field name containing a space",
+    ),
+    StageTestCase(
+        id="hyphen_in_field_name",
+        docs=DOCS,
+        pipeline=[{"$facet": {"my-field": [{"$count": "n"}]}}],
+        expected=[{"my-field": [{"n": 2}]}],
+        msg="$facet should accept an output field name containing a hyphen",
+    ),
+    StageTestCase(
+        id="underscore_in_field_name",
+        docs=DOCS,
+        pipeline=[{"$facet": {"my_field": [{"$count": "n"}]}}],
+        expected=[{"my_field": [{"n": 2}]}],
+        msg="$facet should accept an output field name containing an underscore",
+    ),
+    StageTestCase(
+        id="numeric_only_field_name",
+        docs=DOCS,
+        pipeline=[{"$facet": {"123": [{"$count": "n"}]}}],
+        expected=[{"123": [{"n": 2}]}],
+        msg="$facet should accept a numeric-only output field name",
+    ),
+    StageTestCase(
+        id="at_sign_field_name",
+        docs=DOCS,
+        pipeline=[{"$facet": {"@field": [{"$count": "n"}]}}],
+        expected=[{"@field": [{"n": 2}]}],
+        msg="$facet should accept an output field name beginning with an at-sign",
+    ),
 ]
 
 # Combined list for parametrization.

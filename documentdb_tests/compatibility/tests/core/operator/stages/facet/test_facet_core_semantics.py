@@ -132,6 +132,14 @@ FACET_CORE_SEMANTICS_TESTS: list[StageTestCase] = [
         extra_command_fields={"allowDiskUse": True},
         msg="$facet should operate normally when allowDiskUse:true is set",
     ),
+    StageTestCase(
+        id="allowDiskUse_false_operates_normally",
+        docs=DOCS,
+        pipeline=[{"$facet": {"n": [{"$count": "n"}]}}],
+        expected=[{"n": [{"n": 3}]}],
+        extra_command_fields={"allowDiskUse": False},
+        msg="$facet should operate normally when allowDiskUse:false is set",
+    ),
 ]
 
 

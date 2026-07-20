@@ -15,7 +15,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
     StageTestCase,
     populate_collection,
 )
-from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.assertions import assertResult, assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -72,6 +72,21 @@ FACET_INDEPENDENCE_TESTS: list[StageTestCase] = [
         msg="A field added in one sub-pipeline must not leak into another sub-pipeline",
     ),
     StageTestCase(
+        id="sample_before_facet_shared_snapshot",
+        docs=DOCS,
+        pipeline=[
+            {"$sample": {"size": 10}},
+            {
+                "$facet": {
+                    "a": [{"$sort": {"_id": 1}}],
+                    "b": [{"$sort": {"_id": 1}}],
+                }
+            },
+        ],
+        expected=[{"a": DOCS, "b": DOCS}],
+        msg="$sample before $facet: both sub-pipelines receive the same document snapshot",
+    ),
+    StageTestCase(
         id="same_result_as_independent_pipelines",
         docs=DOCS,
         pipeline=[
@@ -115,4 +130,32 @@ def test_facet_independence(collection, test_case: StageTestCase):
         msg=test_case.msg,
         ignore_doc_order=test_case.ignore_doc_order,
         ignore_order_in=test_case.ignore_order_in,
+    )
+
+
+@pytest.mark.aggregate
+def test_rand_before_facet_shared_snapshot(collection):
+    """$rand before $facet is frozen: both sub-pipelines see the same value per document."""
+    collection.insert_many(DOCS)
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$addFields": {"r": {"$rand": {}}}},
+                {
+                    "$facet": {
+                        "a": [{"$sort": {"_id": 1}}, {"$project": {"_id": 1, "r": 1}}],
+                        "b": [{"$sort": {"_id": 1}}, {"$project": {"_id": 1, "r": 1}}],
+                    }
+                },
+            ],
+            "cursor": {},
+        },
+    )
+    a_branch = result["cursor"]["firstBatch"][0]["a"]
+    assertSuccess(
+        result,
+        [{"a": a_branch, "b": a_branch}],
+        msg="Both sub-pipelines must see the same pre-computed $rand values from the snapshot",
     )

@@ -28,6 +28,7 @@ from documentdb_tests.framework.error_codes import (
     FIELD_PATH_EMPTY_COMPONENT_ERROR,
     INVALID_NAMESPACE_ERROR,
     LIMIT_NOT_POSITIVE_ERROR,
+    LOOKUP_SUB_PIPELINE_NOT_ALLOWED_ERROR,
     PIPELINE_STAGE_EXTRA_FIELD_ERROR,
     UNKNOWN_PIPELINE_STAGE_ERROR,
 )
@@ -331,6 +332,186 @@ FACET_FORBIDDEN_STAGE_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [Lookup Pipeline Forbidden Stages]: the $facet-forbidden stages
+# ($out, $merge, $collStats, $indexStats, $planCacheStats, $geoNear, $facet)
+# are also rejected when nested inside a pipeline-form $lookup that is itself
+# inside a $facet sub-pipeline. Each produces LOOKUP_SUB_PIPELINE_NOT_ALLOWED_ERROR
+# (51047) at parse time, before any documents are processed.
+_LOOKUP_FROM = "_facet_test_foreign"
+
+FACET_LOOKUP_PIPELINE_FORBIDDEN_STAGE_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        id="out_in_lookup_pipeline",
+        docs=DOCS,
+        pipeline=[
+            {
+                "$facet": {
+                    "a": [
+                        {
+                            "$lookup": {
+                                "from": _LOOKUP_FROM,
+                                "let": {},
+                                "pipeline": [{"$out": "outcoll"}],
+                                "as": "j",
+                            }
+                        }
+                    ],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        error_code=LOOKUP_SUB_PIPELINE_NOT_ALLOWED_ERROR,
+        msg="$out inside a $lookup pipeline within $facet should be rejected with 51047",
+    ),
+    StageTestCase(
+        id="merge_in_lookup_pipeline",
+        docs=DOCS,
+        pipeline=[
+            {
+                "$facet": {
+                    "a": [
+                        {
+                            "$lookup": {
+                                "from": _LOOKUP_FROM,
+                                "let": {},
+                                "pipeline": [{"$merge": {"into": "mcoll"}}],
+                                "as": "j",
+                            }
+                        }
+                    ],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        error_code=LOOKUP_SUB_PIPELINE_NOT_ALLOWED_ERROR,
+        msg="$merge inside a $lookup pipeline within $facet should be rejected with 51047",
+    ),
+    StageTestCase(
+        id="collStats_in_lookup_pipeline",
+        docs=DOCS,
+        pipeline=[
+            {
+                "$facet": {
+                    "a": [
+                        {
+                            "$lookup": {
+                                "from": _LOOKUP_FROM,
+                                "let": {},
+                                "pipeline": [{"$collStats": {}}],
+                                "as": "j",
+                            }
+                        }
+                    ],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        error_code=FACET_PIPELINE_INVALID_STAGE_ERROR,
+        msg="$collStats inside a $lookup pipeline within $facet should be rejected with 40600",
+    ),
+    StageTestCase(
+        id="indexStats_in_lookup_pipeline",
+        docs=DOCS,
+        pipeline=[
+            {
+                "$facet": {
+                    "a": [
+                        {
+                            "$lookup": {
+                                "from": _LOOKUP_FROM,
+                                "let": {},
+                                "pipeline": [{"$indexStats": {}}],
+                                "as": "j",
+                            }
+                        }
+                    ],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        error_code=FACET_PIPELINE_INVALID_STAGE_ERROR,
+        msg="$indexStats inside a $lookup pipeline within $facet should be rejected with 40600",
+    ),
+    StageTestCase(
+        id="planCacheStats_in_lookup_pipeline",
+        docs=DOCS,
+        pipeline=[
+            {
+                "$facet": {
+                    "a": [
+                        {
+                            "$lookup": {
+                                "from": _LOOKUP_FROM,
+                                "let": {},
+                                "pipeline": [{"$planCacheStats": {}}],
+                                "as": "j",
+                            }
+                        }
+                    ],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        error_code=FACET_PIPELINE_INVALID_STAGE_ERROR,
+        msg="$planCacheStats inside a $lookup pipeline within $facet should be rejected with 40600",
+    ),
+    StageTestCase(
+        id="geoNear_in_lookup_pipeline",
+        docs=DOCS,
+        pipeline=[
+            {
+                "$facet": {
+                    "a": [
+                        {
+                            "$lookup": {
+                                "from": _LOOKUP_FROM,
+                                "let": {},
+                                "pipeline": [
+                                    {
+                                        "$geoNear": {
+                                            "near": {"type": "Point", "coordinates": [0, 0]},
+                                            "distanceField": "d",
+                                            "spherical": True,
+                                        }
+                                    }
+                                ],
+                                "as": "j",
+                            }
+                        }
+                    ],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        error_code=FACET_PIPELINE_INVALID_STAGE_ERROR,
+        msg="$geoNear inside a $lookup pipeline within $facet should be rejected with 40600",
+    ),
+    StageTestCase(
+        id="nested_facet_in_lookup_pipeline",
+        docs=DOCS,
+        pipeline=[
+            {
+                "$facet": {
+                    "a": [
+                        {
+                            "$lookup": {
+                                "from": _LOOKUP_FROM,
+                                "let": {},
+                                "pipeline": [{"$facet": {"b": [{"$match": {}}]}}],
+                                "as": "j",
+                            }
+                        }
+                    ],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        error_code=FACET_PIPELINE_INVALID_STAGE_ERROR,
+        msg="$facet inside a $lookup pipeline within $facet should be rejected with 40600",
+    ),
+]
+
+
 # Property [Sub-Pipeline Independence]: a runtime error in any sub-pipeline fails
 # the whole $facet stage.
 INDEPENDENCE_DOCS = [
@@ -385,6 +566,7 @@ FACET_ERROR_TESTS = (
     + FACET_PARSE_TIME_ERROR_TESTS
     + FACET_BOUNDARY_ERROR_TESTS
     + FACET_FORBIDDEN_STAGE_TESTS
+    + FACET_LOOKUP_PIPELINE_FORBIDDEN_STAGE_TESTS
     + FACET_INDEPENDENCE_ERROR_TESTS
     + FACET_SIZE_LIMIT_ERROR_TESTS
 )

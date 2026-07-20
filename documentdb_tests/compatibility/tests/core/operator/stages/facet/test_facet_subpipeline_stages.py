@@ -346,6 +346,91 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
         },
         msg="Sub-pipelines on a non-existent field should not crash and return one doc each",
     ),
+    StageTestCase(
+        id="redact",
+        docs=DOCS,
+        pipeline=[
+            {
+                "$facet": {
+                    "filtered": [
+                        {
+                            "$redact": {
+                                "$cond": {
+                                    "if": {"$eq": ["$cat", "A"]},
+                                    "then": "$$KEEP",
+                                    "else": "$$PRUNE",
+                                }
+                            }
+                        },
+                        {"$sort": {"_id": 1}},
+                    ],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        expected=[
+            {
+                "filtered": [
+                    {"_id": 1, "cat": "A", "price": 10, "tags": ["x", "y"]},
+                    {"_id": 2, "cat": "A", "price": 20, "tags": ["y"]},
+                ],
+                "total": [{"n": 4}],
+            }
+        ],
+        msg="$redact sub-pipeline should prune documents not matching the condition",
+    ),
+    StageTestCase(
+        id="sample",
+        docs=DOCS,
+        pipeline=[
+            {
+                "$facet": {
+                    "picked": [{"$sample": {"size": 2}}],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        expected={"picked": Len(2), "total": Eq([{"n": 4}])},
+        msg="$sample sub-pipeline should return exactly the requested number of documents",
+    ),
+    StageTestCase(
+        id="setWindowFields",
+        docs=DOCS,
+        pipeline=[
+            {
+                "$facet": {
+                    "windowed": [
+                        {"$sort": {"_id": 1}},
+                        {
+                            "$setWindowFields": {
+                                "sortBy": {"_id": 1},
+                                "output": {
+                                    "running": {
+                                        "$sum": "$price",
+                                        "window": {"documents": ["unbounded", "current"]},
+                                    }
+                                },
+                            }
+                        },
+                        {"$project": {"_id": 1, "running": 1}},
+                    ],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        expected=[
+            {
+                "windowed": [
+                    {"_id": 1, "running": 10},
+                    {"_id": 2, "running": 30},
+                    {"_id": 3, "running": 60},
+                    {"_id": 4, "running": 100},
+                ],
+                "total": [{"n": 4}],
+            }
+        ],
+        msg="$setWindowFields sub-pipeline should compute a running total over sorted documents",
+    ),
 ]
 
 
@@ -420,6 +505,255 @@ def test_facet_subpipeline_lookup_basic(collection):
 
 
 @pytest.mark.aggregate
+def test_facet_subpipeline_lookup_pipeline_match_project_sort(collection):
+    """Pipeline-form $lookup with $match + $project + $sort inside a $facet sub-pipeline."""
+    collection.insert_many([{"_id": 1, "key": "a"}, {"_id": 2, "key": "b"}])
+    foreign = f"{collection.name}_foreign"
+    db = collection.database
+    db[foreign].insert_many(
+        [
+            {"_id": 10, "fk": "a", "price": 15},
+            {"_id": 11, "fk": "a", "price": 5},
+            {"_id": 12, "fk": "b", "price": 25},
+        ]
+    )
+    try:
+        result = execute_command(
+            collection,
+            {
+                "aggregate": collection.name,
+                "pipeline": [
+                    {
+                        "$facet": {
+                            "joined": [
+                                {"$sort": {"_id": 1}},
+                                {
+                                    "$lookup": {
+                                        "from": foreign,
+                                        "let": {"k": "$key"},
+                                        "pipeline": [
+                                            {"$match": {"$expr": {"$eq": ["$fk", "$$k"]}}},
+                                            {"$project": {"_id": 0, "price": 1}},
+                                            {"$sort": {"price": 1}},
+                                        ],
+                                        "as": "matches",
+                                    }
+                                },
+                            ],
+                            "total": [{"$count": "n"}],
+                        }
+                    }
+                ],
+                "cursor": {},
+            },
+        )
+        assertSuccess(
+            result,
+            [
+                {
+                    "joined": [
+                        {"_id": 1, "key": "a", "matches": [{"price": 5}, {"price": 15}]},
+                        {"_id": 2, "key": "b", "matches": [{"price": 25}]},
+                    ],
+                    "total": [{"n": 2}],
+                }
+            ],
+            msg="$lookup + $match + $project + $sort should return projected, sorted foreign docs",
+        )
+    finally:
+        db.drop_collection(foreign)
+
+
+@pytest.mark.aggregate
+def test_facet_subpipeline_lookup_pipeline_match_group(collection):
+    """$lookup pipeline with $match + $group inside $facet aggregates foreign docs."""
+    collection.insert_many([{"_id": 1, "key": "a"}, {"_id": 2, "key": "b"}])
+    foreign = f"{collection.name}_foreign"
+    db = collection.database
+    db[foreign].insert_many(
+        [
+            {"_id": 10, "fk": "a", "price": 5},
+            {"_id": 11, "fk": "a", "price": 15},
+            {"_id": 12, "fk": "b", "price": 25},
+        ]
+    )
+    try:
+        result = execute_command(
+            collection,
+            {
+                "aggregate": collection.name,
+                "pipeline": [
+                    {
+                        "$facet": {
+                            "summary": [
+                                {"$sort": {"_id": 1}},
+                                {
+                                    "$lookup": {
+                                        "from": foreign,
+                                        "let": {"k": "$key"},
+                                        "pipeline": [
+                                            {"$match": {"$expr": {"$eq": ["$fk", "$$k"]}}},
+                                            {"$group": {"_id": None, "total": {"$sum": "$price"}}},
+                                        ],
+                                        "as": "agg",
+                                    }
+                                },
+                                {
+                                    "$project": {
+                                        "_id": 1,
+                                        "total": {"$arrayElemAt": ["$agg.total", 0]},
+                                    }
+                                },
+                            ],
+                            "total": [{"$count": "n"}],
+                        }
+                    }
+                ],
+                "cursor": {},
+            },
+        )
+        assertSuccess(
+            result,
+            [
+                {
+                    "summary": [
+                        {"_id": 1, "total": 20},
+                        {"_id": 2, "total": 25},
+                    ],
+                    "total": [{"n": 2}],
+                }
+            ],
+            msg="$lookup + $match + $group should aggregate foreign docs per joined key",
+        )
+    finally:
+        db.drop_collection(foreign)
+
+
+@pytest.mark.aggregate
+def test_facet_subpipeline_lookup_pipeline_match_addfields_project(collection):
+    """Pipeline-form $lookup with $match + $addFields + $project inside a $facet sub-pipeline."""
+    collection.insert_many([{"_id": 1, "key": "a"}, {"_id": 2, "key": "b"}])
+    foreign = f"{collection.name}_foreign"
+    db = collection.database
+    db[foreign].insert_many(
+        [
+            {"_id": 10, "fk": "a", "price": 5, "qty": 2},
+            {"_id": 11, "fk": "b", "price": 25, "qty": 3},
+        ]
+    )
+    try:
+        result = execute_command(
+            collection,
+            {
+                "aggregate": collection.name,
+                "pipeline": [
+                    {
+                        "$facet": {
+                            "enriched": [
+                                {"$sort": {"_id": 1}},
+                                {
+                                    "$lookup": {
+                                        "from": foreign,
+                                        "let": {"k": "$key"},
+                                        "pipeline": [
+                                            {"$match": {"$expr": {"$eq": ["$fk", "$$k"]}}},
+                                            {
+                                                "$addFields": {
+                                                    "line_total": {"$multiply": ["$price", "$qty"]}
+                                                }
+                                            },
+                                            {"$project": {"_id": 0, "line_total": 1}},
+                                        ],
+                                        "as": "items",
+                                    }
+                                },
+                            ],
+                            "total": [{"$count": "n"}],
+                        }
+                    }
+                ],
+                "cursor": {},
+            },
+        )
+        assertSuccess(
+            result,
+            [
+                {
+                    "enriched": [
+                        {"_id": 1, "key": "a", "items": [{"line_total": 10}]},
+                        {"_id": 2, "key": "b", "items": [{"line_total": 75}]},
+                    ],
+                    "total": [{"n": 2}],
+                }
+            ],
+            msg="$lookup + $match + $addFields + $project should compute derived fields per doc",
+        )
+    finally:
+        db.drop_collection(foreign)
+
+
+@pytest.mark.aggregate
+def test_facet_subpipeline_lookup_pipeline_match_unwind_project_sort(collection):
+    """$lookup pipeline with $match + $unwind + $project + $sort inside a $facet pipeline."""
+    collection.insert_many([{"_id": 1, "key": "a"}, {"_id": 2, "key": "b"}])
+    foreign = f"{collection.name}_foreign"
+    db = collection.database
+    db[foreign].insert_many(
+        [
+            {"_id": 10, "fk": "a", "tags": ["x", "y"]},
+            {"_id": 11, "fk": "a", "tags": ["z"]},
+            {"_id": 12, "fk": "b", "tags": ["w"]},
+        ]
+    )
+    try:
+        result = execute_command(
+            collection,
+            {
+                "aggregate": collection.name,
+                "pipeline": [
+                    {
+                        "$facet": {
+                            "flat": [
+                                {"$sort": {"_id": 1}},
+                                {
+                                    "$lookup": {
+                                        "from": foreign,
+                                        "let": {"k": "$key"},
+                                        "pipeline": [
+                                            {"$match": {"$expr": {"$eq": ["$fk", "$$k"]}}},
+                                            {"$unwind": "$tags"},
+                                            {"$project": {"_id": 0, "tag": "$tags"}},
+                                            {"$sort": {"tag": 1}},
+                                        ],
+                                        "as": "tags",
+                                    }
+                                },
+                            ],
+                            "total": [{"$count": "n"}],
+                        }
+                    }
+                ],
+                "cursor": {},
+            },
+        )
+        assertSuccess(
+            result,
+            [
+                {
+                    "flat": [
+                        {"_id": 1, "key": "a", "tags": [{"tag": "x"}, {"tag": "y"}, {"tag": "z"}]},
+                        {"_id": 2, "key": "b", "tags": [{"tag": "w"}]},
+                    ],
+                    "total": [{"n": 2}],
+                }
+            ],
+            msg="$lookup + $match + $unwind + $sort should flatten and sort foreign tag arrays",
+        )
+    finally:
+        db.drop_collection(foreign)
+
+
+@pytest.mark.aggregate
 def test_facet_subpipeline_graphlookup_basic(collection):
     """A $graphLookup inside a $facet sub-pipeline returns the traversal."""
     collection.insert_many(
@@ -469,4 +803,54 @@ def test_facet_subpipeline_graphlookup_basic(collection):
         result,
         [{"graph": [{"_id": 3, "chainNames": ["a", "b"]}]}],
         msg="$graphLookup inside $facet should return the traversal chain",
+    )
+
+
+@pytest.mark.aggregate
+def test_facet_subpipeline_union_with(collection):
+    """$unionWith inside a $facet sub-pipeline combines documents from two pipeline branches."""
+    collection.insert_many(
+        [
+            {"_id": 1, "cat": "A", "price": 10, "tags": ["x", "y"]},
+            {"_id": 2, "cat": "A", "price": 20, "tags": ["y"]},
+            {"_id": 3, "cat": "B", "price": 30, "tags": ["z"]},
+            {"_id": 4, "cat": "C", "price": 40, "tags": []},
+        ]
+    )
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {
+                    "$facet": {
+                        "union": [
+                            {"$match": {"_id": 1}},
+                            {
+                                "$unionWith": {
+                                    "coll": collection.name,
+                                    "pipeline": [{"$match": {"_id": 2}}],
+                                }
+                            },
+                            {"$sort": {"_id": 1}},
+                        ],
+                        "total": [{"$count": "n"}],
+                    }
+                }
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [
+            {
+                "union": [
+                    {"_id": 1, "cat": "A", "price": 10, "tags": ["x", "y"]},
+                    {"_id": 2, "cat": "A", "price": 20, "tags": ["y"]},
+                ],
+                "total": [{"n": 4}],
+            }
+        ],
+        msg="$unionWith sub-pipeline should combine documents from two branches",
     )
