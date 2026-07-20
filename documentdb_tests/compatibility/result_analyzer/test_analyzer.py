@@ -3,7 +3,9 @@
 import pytest
 
 from documentdb_tests.compatibility.result_analyzer.analyzer import (
+    TestOutcome,
     build_reconciliation,
+    categorize_outcome,
     extract_exception_type,
     extract_failure_tag,
     is_infrastructure_error,
@@ -191,3 +193,32 @@ class TestBuildReconciliation:
     def test_missing_keys_default_to_zero(self):
         result = build_reconciliation({})
         assert result["collected"] == 0 and result["pass_rate"] == 0.0
+
+
+# categorize_outcome.
+
+
+@pytest.mark.unit
+class TestCategorizeOutcome:
+    def test_passed(self):
+        assert categorize_outcome({"outcome": "passed"}) == TestOutcome.PASS
+
+    def test_error_is_its_own_category(self):
+        # A setup/fixture crash reports outcome "error"; it must not be lumped
+        # into FAIL (it never reached a verdict).
+        assert categorize_outcome({"outcome": "error"}) == TestOutcome.ERROR
+
+    def test_skipped(self):
+        assert categorize_outcome({"outcome": "skipped"}) == TestOutcome.SKIPPED
+
+    def test_xfailed(self):
+        assert categorize_outcome({"outcome": "xfailed"}) == TestOutcome.XFAIL
+
+    def test_xpassed(self):
+        assert categorize_outcome({"outcome": "xpassed"}) == TestOutcome.XPASS
+
+    def test_failed(self):
+        assert categorize_outcome({"outcome": "failed"}) == TestOutcome.FAIL
+
+    def test_unknown_outcome_defaults_to_fail(self):
+        assert categorize_outcome({"outcome": ""}) == TestOutcome.FAIL

@@ -18,6 +18,7 @@ from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_NAMES as
 OUTCOME_TO_KEY = {
     "PASS": "passed",
     "FAIL": "failed",
+    "ERROR": "error",
     "SKIPPED": "skipped",
     "XFAIL": "xfailed",
     "XPASS": "xpassed",
@@ -29,6 +30,7 @@ class TestOutcome:
 
     PASS = "PASS"
     FAIL = "FAIL"
+    ERROR = "ERROR"
     SKIPPED = "SKIPPED"
     XFAIL = "XFAIL"
     XPASS = "XPASS"
@@ -40,7 +42,8 @@ def categorize_outcome(test_result: Dict[str, Any]) -> str:
 
     Maps pytest outcomes to simple categories:
     - PASS: Test passed
-    - FAIL: Test failed (for any reason)
+    - FAIL: Test failed a verdict (assertion/comparison in the call phase)
+    - ERROR: Test never reached a verdict (a crash in setup or teardown)
     - SKIPPED: Test skipped
     - XFAIL: Test expected to fail and did fail
     - XPASS: Test expected to fail but passed
@@ -49,12 +52,14 @@ def categorize_outcome(test_result: Dict[str, Any]) -> str:
         test_result: Test result dictionary from pytest JSON report
 
     Returns:
-        One of: PASS, FAIL, SKIPPED, XFAIL, XPASS
+        One of: PASS, FAIL, ERROR, SKIPPED, XFAIL, XPASS
     """
     outcome = test_result.get("outcome", "")
 
     if outcome == "passed":
         return TestOutcome.PASS
+    elif outcome == "error":
+        return TestOutcome.ERROR
     elif outcome == "skipped":
         return TestOutcome.SKIPPED
     elif outcome == "xfailed":
@@ -397,13 +402,21 @@ class ResultAnalyzer:
             "total": 0,
             "passed": 0,
             "failed": 0,
+            "error": 0,
             "skipped": 0,
             "xfailed": 0,
             "xpassed": 0,
         }
 
         by_tag: Dict[str, Dict[str, int]] = defaultdict(
-            lambda: {"passed": 0, "failed": 0, "skipped": 0, "xfailed": 0, "xpassed": 0}
+            lambda: {
+                "passed": 0,
+                "failed": 0,
+                "error": 0,
+                "skipped": 0,
+                "xfailed": 0,
+                "xpassed": 0,
+            }
         )
 
         tests_details = []
@@ -437,8 +450,10 @@ class ResultAnalyzer:
                 "tags": tags,
             }
 
-            # Add error information for failed tests
-            if test_outcome == TestOutcome.FAIL:
+            # Add error information for tests that failed or errored. A FAIL
+            # reached a verdict and was wrong; an ERROR crashed before a verdict
+            # (usually in a fixture) - both carry a traceback worth surfacing.
+            if test_outcome in (TestOutcome.FAIL, TestOutcome.ERROR):
                 phase_info = _failing_phase_info(test)
                 test_detail["error"] = phase_info.get("longrepr", "")
                 if is_infrastructure_error(test):
