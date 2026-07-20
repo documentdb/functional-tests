@@ -171,6 +171,61 @@ def is_infrastructure_error(test_result: Dict[str, Any]) -> bool:
     return exception_type in INFRA_EXCEPTIONS
 
 
+# Every outcome count we report. pytest-json-report includes a key only when its
+# count is non-zero (an all-pass run has no "failed"/"error"/"skipped" key), so
+# we list the full set here and fill any the run omitted with zero.
+_OUTCOME_COUNT_KEYS = (
+    "collected",
+    "deselected",
+    "total",
+    "passed",
+    "failed",
+    "error",
+    "skipped",
+    "xfailed",
+    "xpassed",
+)
+
+
+def _counts_with_missing_as_zero(native_summary: Dict[str, Any]) -> Dict[str, int]:
+    """
+    Return every outcome count, treating a key the run omitted as zero.
+
+    pytest reports only the outcomes that occurred, so a missing count genuinely
+    means zero. Filling them in lets the rest of the code read each count
+    directly instead of guarding every access.
+    """
+    return {key: native_summary.get(key, 0) for key in _OUTCOME_COUNT_KEYS}
+
+
+def build_reconciliation(native_summary: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Build reconciliation figures from pytest-json-report's native summary.
+
+    The native summary already decomposes a run honestly:
+    ``collected = deselected + total`` and
+    ``total = passed + failed + skipped + xfailed + error`` (there is no
+    ``xpassed`` key under ``xfail_strict`` — an unexpected pass is a ``failed``).
+    We surface those counts plus a pass rate whose denominator is only the tests
+    that reached a verdict and could have passed: ``passed + failed + error``.
+    Skipped and xfailed are excluded — a skip never ran and an xfail is a known,
+    expected gap — so neither should move the rate.
+
+    Args:
+        native_summary: The ``summary`` block from the pytest JSON report.
+
+    Returns:
+        Dict of reconciliation counts plus ``pass_rate`` (percent, rounded).
+    """
+    counts = _counts_with_missing_as_zero(native_summary)
+
+    # Only verdict-bearing outcomes count toward the rate; a run with any error
+    # therefore cannot read 100%.
+    denominator = counts["passed"] + counts["failed"] + counts["error"]
+    pass_rate = (counts["passed"] / denominator * 100) if denominator > 0 else 0.0
+    return {**counts, "pass_rate": round(pass_rate, 2)}
+
+
 def load_registered_markers(pytest_ini_path: str = "pytest.ini") -> set:
     """
     Load registered markers from pytest.ini.
@@ -333,6 +388,10 @@ class ResultAnalyzer:
         with open(json_report_path, "r") as f:
             report = json.load(f)
 
+        # Reconciliation is derived from pytest's own summary, which counts
+        # deselected/errored tests that the per-test loop below never sees.
+        reconciliation = build_reconciliation(report.get("summary", {}))
+
         # Initialize counters
         summary: Dict[str, Any] = {
             "total": 0,
@@ -405,4 +464,9 @@ class ResultAnalyzer:
             (summary["passed"] / summary["total"] * 100) if summary["total"] > 0 else 0, 2
         )
 
-        return {"summary": summary, "by_tag": by_tag_with_rates, "tests": tests_details}
+        return {
+            "summary": summary,
+            "by_tag": by_tag_with_rates,
+            "tests": tests_details,
+            "reconciliation": reconciliation,
+        }

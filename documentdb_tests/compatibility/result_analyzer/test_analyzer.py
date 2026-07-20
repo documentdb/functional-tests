@@ -3,6 +3,7 @@
 import pytest
 
 from documentdb_tests.compatibility.result_analyzer.analyzer import (
+    build_reconciliation,
     extract_exception_type,
     extract_failure_tag,
     is_infrastructure_error,
@@ -133,3 +134,60 @@ class TestIsInfrastructureError:
         # An infra crash during setup must still be detected without a call phase.
         result = _make_setup_error_result("pymongo.errors.ConnectionFailure: connection lost")
         assert is_infrastructure_error(result) is True
+
+
+# build_reconciliation.
+
+
+@pytest.mark.unit
+class TestBuildReconciliation:
+    def test_pass_rate_excludes_skipped_and_xfailed(self):
+        # Denominator is passed + failed + error; skipped/xfailed don't move it.
+        summary = {
+            "collected": 20,
+            "total": 20,
+            "passed": 8,
+            "failed": 2,
+            "error": 0,
+            "skipped": 5,
+            "xfailed": 5,
+        }
+        result = build_reconciliation(summary)
+        # 8 / (8 + 2 + 0) = 80%, not 8/20
+        assert result["pass_rate"] == 80.0
+
+    def test_error_counts_against_pass_rate(self):
+        # A run with any error cannot read 100%.
+        summary = {"total": 10, "passed": 9, "failed": 0, "error": 1}
+        result = build_reconciliation(summary)
+        assert result["pass_rate"] == 90.0
+
+    def test_all_passed_is_100(self):
+        summary = {"total": 5, "passed": 5, "failed": 0, "error": 0}
+        assert build_reconciliation(summary)["pass_rate"] == 100.0
+
+    def test_no_verdicts_is_zero_not_division_error(self):
+        # Everything deselected/skipped: denominator is 0, must not raise.
+        summary = {"collected": 12, "deselected": 4, "total": 8, "skipped": 8}
+        result = build_reconciliation(summary)
+        assert result["pass_rate"] == 0.0
+
+    def test_counts_are_surfaced_from_native_summary(self):
+        summary = {
+            "collected": 30,
+            "deselected": 5,
+            "total": 25,
+            "passed": 20,
+            "failed": 3,
+            "error": 2,
+            "skipped": 0,
+            "xfailed": 0,
+        }
+        result = build_reconciliation(summary)
+        assert result["collected"] == 30
+        assert result["deselected"] == 5
+        assert result["error"] == 2
+
+    def test_missing_keys_default_to_zero(self):
+        result = build_reconciliation({})
+        assert result["collected"] == 0 and result["pass_rate"] == 0.0
