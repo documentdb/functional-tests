@@ -29,6 +29,9 @@ from documentdb_tests.framework.large_payload_guard import (  # noqa: E402
     PARAM_SIZE_LIMIT_BYTES,
     exceeds_size_limit,
 )
+from documentdb_tests.framework.marker_reason_validator import (  # noqa: E402
+    validate_marker_reasons,
+)
 from documentdb_tests.framework.preconditions import (  # noqa: E402
     REQUIRES_MARKER,
     detect_capabilities,
@@ -389,6 +392,7 @@ def pytest_collection_modifyitems(session, config, items):
 
     structure_errors = []
     format_errors = {}
+    marker_reason_errors = {}
 
     # Validate file structure for all files under "tests" folder
     if items:
@@ -410,6 +414,9 @@ def pytest_collection_modifyitems(session, config, items):
         file_errors = validate_test_format(file_path)
         if file_errors:
             format_errors[file_path] = file_errors
+        reason_errors = validate_marker_reasons(file_path)
+        if reason_errors:
+            marker_reason_errors[file_path] = reason_errors
 
     # Validate framework error code invariants
     structure_errors.extend(validate_error_codes_sorted())
@@ -430,7 +437,7 @@ def pytest_collection_modifyitems(session, config, items):
                 )
                 break
 
-    if structure_errors or format_errors or large_param_errors:
+    if structure_errors or format_errors or marker_reason_errors or large_param_errors:
         import sys
 
         if structure_errors:
@@ -444,6 +451,20 @@ def pytest_collection_modifyitems(session, config, items):
                 print(f"\n{file_path}:", file=sys.stderr)
                 print("\n".join(file_errors), file=sys.stderr)
             print("\nSee docs/testing/TEST_FORMAT.md for rules.\n", file=sys.stderr)
+
+        if marker_reason_errors:
+            print("\n❌ Marker Reason Violations:", file=sys.stderr)
+            for file_path, file_errors in marker_reason_errors.items():
+                print(f"\n{file_path}:", file=sys.stderr)
+                print("\n".join(file_errors), file=sys.stderr)
+            print(
+                "\nMarkers that skip or reclassify a test (skip/skipif/xfail/"
+                "engine_xfail/engine_xcrash) must carry a reason=, and runtime "
+                "pytest.skip()/fail()/xfail() calls must pass a message, so the "
+                "outcome is never unexplained. See docs/testing/TEST_FORMAT.md "
+                "for rules.\n",
+                file=sys.stderr,
+            )
 
         if large_param_errors:
             print("\n❌ Large Test Payloads:", file=sys.stderr)

@@ -118,6 +118,40 @@ def test_divide(collection, test):
 - `msg` is **required** — describes expected behavior, not input
 - Use constants from `framework.test_constants` (`INT32_MAX`, `FLOAT_NAN`, etc.) and `framework.error_codes` (`TYPE_MISMATCH_ERROR`, etc.)
 
+## Marker Reasons
+
+Markers that suppress or reclassify a test's outcome must always explain why, so a
+run never has an unexplained skipped/xfailed test. This is checked statically at
+collection time.
+
+```python
+# ✅ Good
+@pytest.mark.skip(reason="Requires Atlas Search configuration")
+@pytest.mark.engine_xfail(engine="mongodb", reason="MongoDB misparses multi-digit years")
+
+# ❌ Bad — no reason
+@pytest.mark.skip
+@pytest.mark.engine_xfail(engine="mongodb")
+```
+
+Applies to `skip`, `skipif`, `xfail`, `engine_xfail`, and `engine_xcrash`. The
+same rule covers runtime `pytest.skip()` / `fail()` / `xfail()` calls, via their
+message argument:
+
+```python
+# ✅ Good
+pytest.skip("Engine supports this; skipping not-supported test")
+pytest.skip(f"Unrecognized os.type {os_type!r}; skipping platform-specific check")
+
+# ❌ Bad — no message
+pytest.skip()
+```
+
+The explanation must be **present**, and if written as a string literal it must be
+**non-empty**. A non-literal explanation (a shared constant or an f-string) is
+accepted — a static check can't resolve its value — so a reason constant reused
+across cases and a runtime message embedding dynamic context are both fine.
+
 ## Validation
 
 A pytest hook auto-validates during collection:
@@ -126,3 +160,5 @@ A pytest hook auto-validates during collection:
 - Must use assertion helpers, not plain `assert`
 - One assertion per test function
 - Must use `execute_command()` or helpers from utils
+- Outcome-suppressing markers must carry a `reason=`, and runtime
+  `pytest.skip()`/`fail()`/`xfail()` calls must pass a message (see Marker Reasons)
