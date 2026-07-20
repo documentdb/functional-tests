@@ -85,13 +85,38 @@ def extract_exception_type(crash_message: str) -> str:
     return ""
 
 
+# Phases pytest reports for a test, in execution order. A test can fail in any of
+# them: a fixture crash surfaces in ``setup``, an assertion in ``call``, a
+# fixture-teardown error in ``teardown``.
+_PHASES = ("call", "setup", "teardown")
+
+
+def _failing_phase_info(test_result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Return the phase dict that carries the failure, preferring ``call``.
+
+    A normal test failure lives in ``call``, but an errored test has no ``call``
+    phase at all — its crash/longrepr is under ``setup`` (or ``teardown``).
+    Reading only ``call`` would miss those entirely, so fall back across phases.
+    """
+    # Prefer an explicitly failed phase; otherwise the first phase present.
+    for phase in _PHASES:
+        info = test_result.get(phase)
+        if isinstance(info, dict) and info.get("outcome") == "failed":
+            return info
+    for phase in _PHASES:
+        info = test_result.get(phase)
+        if isinstance(info, dict):
+            return info
+    return {}
+
+
 def extract_failure_tag(test_result: Dict[str, Any]) -> str:
     """
-    Extract failure tag (e.g. RESULT_MISMATCH) from assertion message.
+    Extract a failure tag (e.g. RESULT_MISMATCH) from an assertion message.
 
-    The framework assertions prefix errors with tags like:
-    [RESULT_MISMATCH], [UNEXPECTED_ERROR], [UNEXPECTED_SUCCESS],
-    [ERROR_MISMATCH], [TEST_EXCEPTION]
+    Framework assertions prefix errors with a bracketed tag; this returns the
+    first one found, whatever it is, so new tags need no change here.
 
     Args:
         test_result: Full test result dict from pytest JSON
@@ -99,13 +124,13 @@ def extract_failure_tag(test_result: Dict[str, Any]) -> str:
     Returns:
         Tag string without brackets, or empty string if not found
     """
-    call_info = test_result.get("call", {})
-    crash_info = call_info.get("crash", {})
+    phase_info = _failing_phase_info(test_result)
+    crash_info = phase_info.get("crash", {})
     crash_message = crash_info.get("message", "")
 
     # Detect strict XPASS from longrepr
-    longrepr = call_info.get("longrepr", "")
-    if longrepr.startswith("[XPASS(strict)]"):
+    longrepr = phase_info.get("longrepr", "")
+    if isinstance(longrepr, str) and longrepr.startswith("[XPASS(strict)]"):
         return "XPASS_STRICT"
 
     match = re.search(r"\[([A-Z_]+)\]", crash_message)
@@ -128,9 +153,9 @@ def is_infrastructure_error(test_result: Dict[str, Any]) -> bool:
     Returns:
         True if error is infrastructure-related, False otherwise
     """
-    # Get the crash info from call
-    call_info = test_result.get("call", {})
-    crash_info = call_info.get("crash", {})
+    # Get the crash info from the failing phase (setup for errored tests)
+    phase_info = _failing_phase_info(test_result)
+    crash_info = phase_info.get("crash", {})
     crash_message = crash_info.get("message", "")
 
     if not crash_message:
@@ -355,8 +380,8 @@ class ResultAnalyzer:
 
             # Add error information for failed tests
             if test_outcome == TestOutcome.FAIL:
-                call_info = test.get("call", {})
-                test_detail["error"] = call_info.get("longrepr", "")
+                phase_info = _failing_phase_info(test)
+                test_detail["error"] = phase_info.get("longrepr", "")
                 if is_infrastructure_error(test):
                     test_detail["failure_type"] = "INFRA_ERROR"
                 else:

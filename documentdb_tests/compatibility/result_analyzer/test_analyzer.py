@@ -14,6 +14,18 @@ def _make_test_result(crash_message: str) -> dict:
     return {"call": {"crash": {"message": crash_message}}}
 
 
+def _make_setup_error_result(crash_message: str, longrepr: str = "") -> dict:
+    """An errored test: failure lives in the setup phase, with no call phase."""
+    return {
+        "setup": {
+            "outcome": "failed",
+            "crash": {"message": crash_message},
+            "longrepr": longrepr,
+        },
+        "teardown": {"outcome": "passed"},
+    }
+
+
 # --- extract_failure_tag ---
 
 
@@ -49,6 +61,15 @@ class TestExtractFailureTag:
 
     def test_missing_call(self):
         assert extract_failure_tag({}) == ""
+
+    def test_reads_setup_phase_when_no_call(self):
+        # Errored tests have no call phase; the tag must come from setup.
+        result = _make_setup_error_result("[TEST_EXCEPTION] fixture blew up")
+        assert extract_failure_tag(result) == "TEST_EXCEPTION"
+
+    def test_reads_strict_xpass_from_failing_phase(self):
+        result = {"call": {"outcome": "failed", "longrepr": "[XPASS(strict)] stale marker"}}
+        assert extract_failure_tag(result) == "XPASS_STRICT"
 
 
 # --- extract_exception_type ---
@@ -107,3 +128,8 @@ class TestIsInfrastructureError:
 
     def test_missing_call(self):
         assert is_infrastructure_error({}) is False
+
+    def test_reads_setup_phase_when_no_call(self):
+        # An infra crash during setup must still be detected without a call phase.
+        result = _make_setup_error_result("pymongo.errors.ConnectionFailure: connection lost")
+        assert is_infrastructure_error(result) is True
