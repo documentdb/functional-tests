@@ -35,14 +35,15 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
     StageTestCase(
         id="sortByCount",
         docs=DOCS,
-        pipeline=[{"$facet": {"byCat": [{"$sortByCount": "$cat"}]}}],
+        pipeline=[{"$facet": {"byCat": [{"$sortByCount": "$cat"}], "total": [{"$count": "n"}]}}],
         expected=[
             {
                 "byCat": [
                     {"_id": "A", "count": 2},
                     {"_id": "B", "count": 1},
                     {"_id": "C", "count": 1},
-                ]
+                ],
+                "total": [{"n": 4}],
             }
         ],
         msg="$sortByCount sub-pipeline should return {_id, count} documents sorted by count",
@@ -52,21 +53,36 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
         id="bucket",
         docs=DOCS,
         pipeline=[
-            {"$facet": {"buckets": [{"$bucket": {"groupBy": "$price", "boundaries": [0, 25, 50]}}]}}
+            {
+                "$facet": {
+                    "buckets": [{"$bucket": {"groupBy": "$price", "boundaries": [0, 25, 50]}}],
+                    "total": [{"$count": "n"}],
+                }
+            }
         ],
-        expected=[{"buckets": [{"_id": 0, "count": 2}, {"_id": 25, "count": 2}]}],
+        expected=[
+            {"buckets": [{"_id": 0, "count": 2}, {"_id": 25, "count": 2}], "total": [{"n": 4}]}
+        ],
         msg="$bucket sub-pipeline should return bucket documents",
     ),
     StageTestCase(
         id="bucketAuto",
         docs=DOCS,
-        pipeline=[{"$facet": {"auto": [{"$bucketAuto": {"groupBy": "$price", "buckets": 2}}]}}],
+        pipeline=[
+            {
+                "$facet": {
+                    "auto": [{"$bucketAuto": {"groupBy": "$price", "buckets": 2}}],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
         expected=[
             {
                 "auto": [
                     {"_id": {"min": 10, "max": 30}, "count": 2},
                     {"_id": {"min": 30, "max": 40}, "count": 2},
-                ]
+                ],
+                "total": [{"n": 4}],
             }
         ],
         msg="$bucketAuto sub-pipeline should return auto-bucket documents",
@@ -74,8 +90,15 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
     StageTestCase(
         id="match_count",
         docs=DOCS,
-        pipeline=[{"$facet": {"nA": [{"$match": {"cat": "A"}}, {"$count": "n"}]}}],
-        expected=[{"nA": [{"n": 2}]}],
+        pipeline=[
+            {
+                "$facet": {
+                    "nA": [{"$match": {"cat": "A"}}, {"$count": "n"}],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        expected=[{"nA": [{"n": 2}], "total": [{"n": 4}]}],
         msg="$match + $count sub-pipeline should return a single count document",
     ),
     StageTestCase(
@@ -87,7 +110,8 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
                     "totals": [
                         {"$group": {"_id": "$cat", "total": {"$sum": "$price"}}},
                         {"$sort": {"_id": 1}},
-                    ]
+                    ],
+                    "total": [{"$count": "n"}],
                 }
             }
         ],
@@ -97,7 +121,8 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
                     {"_id": "A", "total": 30},
                     {"_id": "B", "total": 30},
                     {"_id": "C", "total": 40},
-                ]
+                ],
+                "total": [{"n": 4}],
             }
         ],
         msg="$group + $sort sub-pipeline should return sorted grouped results",
@@ -105,24 +130,40 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
     StageTestCase(
         id="limit",
         docs=DOCS,
-        pipeline=[{"$facet": {"first2": [{"$sort": {"_id": 1}}, {"$limit": 2}]}}],
-        expected=[{"first2": [DOCS[0], DOCS[1]]}],
+        pipeline=[
+            {
+                "$facet": {
+                    "first2": [{"$sort": {"_id": 1}}, {"$limit": 2}],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        expected=[{"first2": [DOCS[0], DOCS[1]], "total": [{"n": 4}]}],
         msg="$limit sub-pipeline should return at most N documents",
     ),
     StageTestCase(
         id="skip",
         docs=DOCS,
-        pipeline=[{"$facet": {"rest": [{"$sort": {"_id": 1}}, {"$skip": 2}]}}],
-        expected=[{"rest": [DOCS[2], DOCS[3]]}],
+        pipeline=[
+            {"$facet": {"rest": [{"$sort": {"_id": 1}}, {"$skip": 2}], "total": [{"$count": "n"}]}}
+        ],
+        expected=[{"rest": [DOCS[2], DOCS[3]], "total": [{"n": 4}]}],
         msg="$skip sub-pipeline should skip the specified number of documents",
     ),
     StageTestCase(
         id="project",
         docs=DOCS,
         pipeline=[
-            {"$facet": {"proj": [{"$sort": {"_id": 1}}, {"$project": {"_id": 0, "cat": 1}}]}}
+            {
+                "$facet": {
+                    "proj": [{"$sort": {"_id": 1}}, {"$project": {"_id": 0, "cat": 1}}],
+                    "total": [{"$count": "n"}],
+                }
+            }
         ],
-        expected=[{"proj": [{"cat": "A"}, {"cat": "A"}, {"cat": "B"}, {"cat": "C"}]}],
+        expected=[
+            {"proj": [{"cat": "A"}, {"cat": "A"}, {"cat": "B"}, {"cat": "C"}], "total": [{"n": 4}]}
+        ],
         msg="$project sub-pipeline should return only projected fields",
     ),
     StageTestCase(
@@ -135,11 +176,14 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
                         {"$match": {"_id": 1}},
                         {"$unwind": "$tags"},
                         {"$project": {"_id": 1, "tags": 1}},
-                    ]
+                    ],
+                    "total": [{"$count": "n"}],
                 }
             }
         ],
-        expected=[{"unwound": [{"_id": 1, "tags": "x"}, {"_id": 1, "tags": "y"}]}],
+        expected=[
+            {"unwound": [{"_id": 1, "tags": "x"}, {"_id": 1, "tags": "y"}], "total": [{"n": 4}]}
+        ],
         msg="$unwind sub-pipeline should return unwound documents",
     ),
     StageTestCase(
@@ -151,12 +195,18 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
                     "withDouble": [
                         {"$match": {"_id": 1}},
                         {"$addFields": {"double": {"$multiply": ["$price", 2]}}},
-                    ]
+                    ],
+                    "total": [{"$count": "n"}],
                 }
             }
         ],
         expected=[
-            {"withDouble": [{"_id": 1, "cat": "A", "price": 10, "tags": ["x", "y"], "double": 20}]}
+            {
+                "withDouble": [
+                    {"_id": 1, "cat": "A", "price": 10, "tags": ["x", "y"], "double": 20}
+                ],
+                "total": [{"n": 4}],
+            }
         ],
         msg="$addFields sub-pipeline should add a computed field",
     ),
@@ -169,11 +219,12 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
                     "replaced": [
                         {"$match": {"_id": 1}},
                         {"$replaceRoot": {"newRoot": {"only": "$cat"}}},
-                    ]
+                    ],
+                    "total": [{"$count": "n"}],
                 }
             }
         ],
-        expected=[{"replaced": [{"only": "A"}]}],
+        expected=[{"replaced": [{"only": "A"}], "total": [{"n": 4}]}],
         msg="$replaceRoot sub-pipeline should replace the document root",
     ),
     StageTestCase(
@@ -186,11 +237,12 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
                         {"$match": {"cat": "A"}},
                         {"$group": {"_id": None, "total": {"$sum": "$price"}}},
                         {"$project": {"_id": 0, "total": 1}},
-                    ]
+                    ],
+                    "n": [{"$count": "n"}],
                 }
             }
         ],
-        expected=[{"chain": [{"total": 30}]}],
+        expected=[{"chain": [{"total": 30}], "n": [{"n": 4}]}],
         msg="A chained sub-pipeline should return the result of the full chain",
     ),
     StageTestCase(
@@ -266,8 +318,15 @@ FACET_SUBPIPELINE_STAGE_TESTS: list[StageTestCase] = [
     StageTestCase(
         id="match_dotted_array_path_count",
         docs=DOCS,
-        pipeline=[{"$facet": {"withY": [{"$match": {"tags": "y"}}, {"$count": "n"}]}}],
-        expected=[{"withY": [{"n": 2}]}],
+        pipeline=[
+            {
+                "$facet": {
+                    "withY": [{"$match": {"tags": "y"}}, {"$count": "n"}],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        expected=[{"withY": [{"n": 2}], "total": [{"n": 4}]}],
         msg="$match on an array field + $count should count matching documents",
     ),
     StageTestCase(

@@ -35,15 +35,18 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
     StageTestCase(
         id="first_stage_processes_all_documents",
         docs=DOCS,
-        pipeline=[{"$facet": {"n": [{"$count": "n"}]}}],
-        expected=[{"n": [{"n": 3}]}],
+        pipeline=[{"$facet": {"n": [{"$count": "n"}], "total": [{"$count": "n"}]}}],
+        expected=[{"n": [{"n": 3}], "total": [{"n": 3}]}],
         msg="$facet as first stage should process all documents",
     ),
     StageTestCase(
         id="match_before_facet_filters_subpipelines",
         docs=DOCS,
-        pipeline=[{"$match": {"cat": "A"}}, {"$facet": {"n": [{"$count": "n"}]}}],
-        expected=[{"n": [{"n": 2}]}],
+        pipeline=[
+            {"$match": {"cat": "A"}},
+            {"$facet": {"n": [{"$count": "n"}], "total": [{"$count": "n"}]}},
+        ],
+        expected=[{"n": [{"n": 2}], "total": [{"n": 2}]}],
         msg="$match before $facet should filter input to all sub-pipelines",
     ),
     StageTestCase(
@@ -51,9 +54,9 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         docs=DOCS,
         pipeline=[
             {"$sort": {"v": 1}},
-            {"$facet": {"docs": [{"$project": {"_id": 1}}]}},
+            {"$facet": {"docs": [{"$project": {"_id": 1}}], "total": [{"$count": "n"}]}},
         ],
-        expected=[{"docs": [{"_id": 2}, {"_id": 3}, {"_id": 1}]}],
+        expected=[{"docs": [{"_id": 2}, {"_id": 3}, {"_id": 1}], "total": [{"n": 3}]}],
         msg="$sort before $facet should preserve document order into sub-pipelines",
     ),
     StageTestCase(
@@ -62,9 +65,9 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$sort": {"_id": 1}},
             {"$limit": 2},
-            {"$facet": {"n": [{"$count": "n"}]}},
+            {"$facet": {"n": [{"$count": "n"}], "total": [{"$count": "n"}]}},
         ],
-        expected=[{"n": [{"n": 2}]}],
+        expected=[{"n": [{"n": 2}], "total": [{"n": 2}]}],
         msg="$limit before $facet should reduce the input set",
     ),
     StageTestCase(
@@ -73,9 +76,9 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$sort": {"_id": 1}},
             {"$skip": 2},
-            {"$facet": {"docs": [{"$project": {"_id": 1}}]}},
+            {"$facet": {"docs": [{"$project": {"_id": 1}}], "total": [{"$count": "n"}]}},
         ],
-        expected=[{"docs": [{"_id": 3}]}],
+        expected=[{"docs": [{"_id": 3}], "total": [{"n": 1}]}],
         msg="$skip before $facet should remove skipped documents",
     ),
     StageTestCase(
@@ -83,9 +86,9 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         docs=DOCS,
         pipeline=[
             {"$unwind": "$tags"},
-            {"$facet": {"n": [{"$count": "n"}]}},
+            {"$facet": {"n": [{"$count": "n"}], "total": [{"$count": "n"}]}},
         ],
-        expected=[{"n": [{"n": 4}]}],
+        expected=[{"n": [{"n": 4}], "total": [{"n": 4}]}],
         msg="$unwind before $facet should expand input documents",
     ),
     StageTestCase(
@@ -93,9 +96,11 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         docs=DOCS,
         pipeline=[
             {"$group": {"_id": "$cat", "total": {"$sum": "$v"}}},
-            {"$facet": {"grouped": [{"$sort": {"_id": 1}}]}},
+            {"$facet": {"grouped": [{"$sort": {"_id": 1}}], "n": [{"$count": "n"}]}},
         ],
-        expected=[{"grouped": [{"_id": "A", "total": 40}, {"_id": "B", "total": 20}]}],
+        expected=[
+            {"grouped": [{"_id": "A", "total": 40}, {"_id": "B", "total": 20}], "n": [{"n": 2}]}
+        ],
         msg="$group before $facet should pass grouped documents to sub-pipelines",
     ),
     StageTestCase(
@@ -103,9 +108,14 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         docs=DOCS,
         pipeline=[
             {"$addFields": {"doubled": {"$multiply": ["$v", 2]}}},
-            {"$facet": {"docs": [{"$match": {"_id": 1}}, {"$project": {"_id": 1, "doubled": 1}}]}},
+            {
+                "$facet": {
+                    "docs": [{"$match": {"_id": 1}}, {"$project": {"_id": 1, "doubled": 1}}],
+                    "total": [{"$count": "n"}],
+                }
+            },
         ],
-        expected=[{"docs": [{"_id": 1, "doubled": 60}]}],
+        expected=[{"docs": [{"_id": 1, "doubled": 60}], "total": [{"n": 3}]}],
         msg="Fields added before $facet should be visible in sub-pipelines",
     ),
     StageTestCase(
@@ -113,9 +123,9 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         docs=DOCS,
         pipeline=[
             {"$project": {"_id": 1, "cat": 1}},
-            {"$facet": {"docs": [{"$match": {"_id": 1}}]}},
+            {"$facet": {"docs": [{"$match": {"_id": 1}}], "total": [{"$count": "n"}]}},
         ],
-        expected=[{"docs": [{"_id": 1, "cat": "A"}]}],
+        expected=[{"docs": [{"_id": 1, "cat": "A"}], "total": [{"n": 3}]}],
         msg="$project before $facet should reduce fields seen by sub-pipelines",
     ),
     StageTestCase(
@@ -124,9 +134,9 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$match": {"_id": 1}},
             {"$replaceRoot": {"newRoot": {"only": "$cat"}}},
-            {"$facet": {"docs": [{"$project": {"_id": 0, "only": 1}}]}},
+            {"$facet": {"docs": [{"$project": {"_id": 0, "only": 1}}], "total": [{"$count": "n"}]}},
         ],
-        expected=[{"docs": [{"only": "A"}]}],
+        expected=[{"docs": [{"only": "A"}], "total": [{"n": 1}]}],
         msg="$replaceRoot before $facet should be visible to sub-pipelines",
     ),
     StageTestCase(
@@ -150,7 +160,12 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         id="unwind_after_facet_deconstructs_output_array",
         docs=DOCS,
         pipeline=[
-            {"$facet": {"a": [{"$match": {"cat": "A"}}, {"$sort": {"_id": 1}}]}},
+            {
+                "$facet": {
+                    "a": [{"$match": {"cat": "A"}}, {"$sort": {"_id": 1}}],
+                    "total": [{"$count": "n"}],
+                }
+            },
             {"$unwind": "$a"},
             {"$project": {"_id": "$a._id"}},
         ],
@@ -161,7 +176,7 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         id="addfields_after_facet_derives_from_output",
         docs=DOCS,
         pipeline=[
-            {"$facet": {"a": [{"$match": {"cat": "A"}}]}},
+            {"$facet": {"a": [{"$match": {"cat": "A"}}], "total": [{"$count": "n"}]}},
             {"$addFields": {"count": {"$size": "$a"}}},
             {"$project": {"count": 1}},
         ],
@@ -172,7 +187,7 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         id="consecutive_facet_stages",
         docs=DOCS,
         pipeline=[
-            {"$facet": {"a": [{"$match": {"cat": "A"}}]}},
+            {"$facet": {"a": [{"$match": {"cat": "A"}}], "total": [{"$count": "n"}]}},
             {"$facet": {"outer": [{"$project": {"n": {"$size": "$a"}}}]}},
         ],
         expected=[{"outer": [{"n": 2}]}],
@@ -183,7 +198,7 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         docs=DOCS,
         pipeline=[
             {"$match": {"cat": "A"}},
-            {"$facet": {"a": [{"$sort": {"_id": 1}}]}},
+            {"$facet": {"a": [{"$sort": {"_id": 1}}], "n": [{"$count": "n"}]}},
             {"$project": {"first_id": {"$arrayElemAt": ["$a._id", 0]}}},
         ],
         expected=[{"first_id": 1}],
@@ -195,9 +210,9 @@ FACET_POSITION_TESTS: list[StageTestCase] = [
         indexes=[IndexModel([("v", 1)])],
         pipeline=[
             {"$sort": {"v": 1}},
-            {"$facet": {"docs": [{"$project": {"_id": 1}}]}},
+            {"$facet": {"docs": [{"$project": {"_id": 1}}], "total": [{"$count": "n"}]}},
         ],
-        expected=[{"docs": [{"_id": 2}, {"_id": 3}, {"_id": 1}]}],
+        expected=[{"docs": [{"_id": 2}, {"_id": 3}, {"_id": 1}], "total": [{"n": 3}]}],
         msg="Index-sorted order should be preserved into $facet sub-pipelines",
     ),
 ]

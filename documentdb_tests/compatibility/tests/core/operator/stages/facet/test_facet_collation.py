@@ -27,8 +27,15 @@ FACET_COLLATION_TESTS: list[StageTestCase] = [
     StageTestCase(
         id="applies_to_subpipeline_match",
         docs=DOCS,
-        pipeline=[{"$facet": {"ci": [{"$match": {"cat": "a"}}, {"$sort": {"_id": 1}}]}}],
-        expected=[{"ci": [{"_id": 1, "cat": "a"}, {"_id": 2, "cat": "A"}]}],
+        pipeline=[
+            {
+                "$facet": {
+                    "ci": [{"$match": {"cat": "a"}}, {"$sort": {"_id": 1}}],
+                    "total": [{"$count": "n"}],
+                }
+            }
+        ],
+        expected=[{"ci": [{"_id": 1, "cat": "a"}, {"_id": 2, "cat": "A"}], "total": [{"n": 3}]}],
         extra_command_fields={"collation": CI},
         msg="Case-insensitive collation should apply to a $match in a sub-pipeline",
     ),
@@ -42,11 +49,12 @@ FACET_COLLATION_TESTS: list[StageTestCase] = [
                         {"$sortByCount": "$cat"},
                         {"$project": {"_id": 0, "count": 1}},
                         {"$sort": {"count": -1}},
-                    ]
+                    ],
+                    "total": [{"$count": "n"}],
                 }
             }
         ],
-        expected=[{"byCat": [{"count": 2}, {"count": 1}]}],
+        expected=[{"byCat": [{"count": 2}, {"count": 1}], "total": [{"n": 3}]}],
         extra_command_fields={"collation": CI},
         msg="Case-insensitive collation should merge 'a'/'A' in $sortByCount grouping",
     ),
