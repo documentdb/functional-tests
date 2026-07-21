@@ -3,6 +3,9 @@
 import pytest
 from bson import Decimal128
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -131,7 +134,10 @@ TODECIMAL_DECIMAL128_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_DECIMAL128_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TODECIMAL_DECIMAL128_TESTS, "$toDecimal", "decimal")),
+)
 def test_toDecimal_decimal128(collection, test: ExpressionTestCase):
     """$toDecimal is the identity function for Decimal128 inputs."""
     result = execute_expression(collection, test.expression)

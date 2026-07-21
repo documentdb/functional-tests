@@ -2,6 +2,9 @@
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -464,7 +467,12 @@ TOINT_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TOINT_STRING_TESTS + TOINT_STRING_SIZE_LIMIT_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(
+        with_convert_variants(TOINT_STRING_TESTS + TOINT_STRING_SIZE_LIMIT_TESTS, "$toInt", "int")
+    ),
+)
 def test_toInt_string(collection, test: ExpressionTestCase):
     """$toInt parses valid base-10 integer strings and rejects malformed or out-of-range ones."""
     result = execute_expression(collection, test.expression)

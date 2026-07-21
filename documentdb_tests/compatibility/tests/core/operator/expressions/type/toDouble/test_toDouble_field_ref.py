@@ -3,6 +3,9 @@
 import pytest
 from bson import Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -117,7 +120,12 @@ TODOUBLE_EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
 
 
 @pytest.mark.parametrize(
-    "test", pytest_params(TODOUBLE_FIELD_REF_TESTS + TODOUBLE_EXPRESSION_INPUT_TESTS)
+    "test",
+    pytest_params(
+        with_convert_variants(
+            TODOUBLE_FIELD_REF_TESTS + TODOUBLE_EXPRESSION_INPUT_TESTS, "$toDouble", "double"
+        )
+    ),
 )
 def test_toDouble_field_ref(collection, test: ExpressionTestCase):
     """$toDouble resolves field paths and nested paths from inserted documents."""
