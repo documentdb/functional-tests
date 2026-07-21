@@ -56,6 +56,71 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         ),
     ),
     LookupTestCase(
+        "per_doc_variation_distinct_let_values",
+        foreign_docs=[
+            {"_id": 10, "type": "A", "val": 1},
+            {"_id": 11, "type": "B", "val": 2},
+            {"_id": 12, "type": "B", "val": 3},
+        ],
+        docs=[
+            {"_id": 1, "cat": "A"},
+            {"_id": 2, "cat": "B"},
+            {"_id": 3, "cat": "C"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"c": "$cat"},
+                    "pipeline": [{"$match": {"$expr": {"$eq": ["$type", "$$c"]}}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "cat": "A", "joined": [{"_id": 10, "type": "A", "val": 1}]},
+            {
+                "_id": 2,
+                "cat": "B",
+                "joined": [
+                    {"_id": 11, "type": "B", "val": 2},
+                    {"_id": 12, "type": "B", "val": 3},
+                ],
+            },
+            {"_id": 3, "cat": "C", "joined": []},
+        ],
+        msg=(
+            "$lookup correlated join should produce different results per outer"
+            " document based on each document's let variable value"
+        ),
+    ),
+    LookupTestCase(
+        "per_doc_duplicate_let_values_same_result",
+        foreign_docs=[{"_id": 10, "type": "A"}],
+        docs=[
+            {"_id": 1, "cat": "A"},
+            {"_id": 2, "cat": "A"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"c": "$cat"},
+                    "pipeline": [{"$match": {"$expr": {"$eq": ["$type", "$$c"]}}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "cat": "A", "joined": [{"_id": 10, "type": "A"}]},
+            {"_id": 2, "cat": "A", "joined": [{"_id": 10, "type": "A"}]},
+        ],
+        msg=(
+            "$lookup correlated join with duplicate let values should produce"
+            " identical joined results for both outer documents"
+        ),
+    ),
+    LookupTestCase(
         "let_variable_in_match_without_expr_is_literal_string",
         docs=[{"_id": 1, "val": "a"}],
         foreign_docs=[
@@ -388,6 +453,81 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         msg=(
             "$lookup let variable values should support aggregation"
             " expressions evaluated against the input document"
+        ),
+    ),
+    LookupTestCase(
+        "let_variable_values_can_be_constants",
+        foreign_docs=[
+            {"_id": 10, "n": 7, "s": "hello"},
+            {"_id": 11, "n": 7, "s": "other"},
+        ],
+        docs=[{"_id": 1}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"num": 7, "word": "hello"},
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$and": [
+                                        {"$eq": ["$n", "$$num"]},
+                                        {"$eq": ["$s", "$$word"]},
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "joined": [{"_id": 10, "n": 7, "s": "hello"}]}],
+        msg=(
+            "$lookup let variable values should support literal constants,"
+            " including a string treated as a literal rather than a field path"
+        ),
+    ),
+    LookupTestCase(
+        "let_mixed_forms_constant_field_expression",
+        foreign_docs=[
+            {"_id": 10, "c": 5, "f": 7, "e": 3},
+            {"_id": 11, "c": 5, "f": 8, "e": 3},
+        ],
+        docs=[{"_id": 1, "x": 7}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {
+                        "konst": 5,
+                        "from_field": "$x",
+                        "expr": {"$add": [1, 2]},
+                    },
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$and": [
+                                        {"$eq": ["$c", "$$konst"]},
+                                        {"$eq": ["$f", "$$from_field"]},
+                                        {"$eq": ["$e", "$$expr"]},
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "x": 7, "joined": [{"_id": 10, "c": 5, "f": 7, "e": 3}]},
+        ],
+        msg=(
+            "$lookup should resolve a let document that mixes constant, field"
+            " reference, and expression values in a single binding"
         ),
     ),
     LookupTestCase(
