@@ -82,8 +82,8 @@ COLLATION_LOOKUP_EQUALITY_TESTS: list[LookupCollationTestCase] = [
 ]
 
 # Property [Lookup Pipeline Collation Propagation]: collation propagates into
-# the pipeline form of $lookup so that sub-pipeline expressions inherit
-# command-level collation.
+# the pipeline form of $lookup so that sub-pipeline stages, both $expr matches
+# and ordering, inherit command-level collation.
 COLLATION_LOOKUP_PIPELINE_TESTS: list[LookupCollationTestCase] = [
     LookupCollationTestCase(
         "lookup_pipeline_strength1_case_insensitive",
@@ -132,10 +132,136 @@ COLLATION_LOOKUP_PIPELINE_TESTS: list[LookupCollationTestCase] = [
         ],
         msg="$lookup pipeline form without collation should use binary comparison",
     ),
+    LookupCollationTestCase(
+        "lookup_pipeline_sort_case_insensitive",
+        docs=[{"_id": 1, "product": "apple"}],
+        foreign_docs=[{"_id": 10, "name": "Banana"}, {"_id": 11, "name": "apple"}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "pipeline": [{"$sort": {"name": 1}}],
+                    "as": "matched",
+                }
+            },
+            {"$sort": {"_id": 1}},
+        ],
+        command_collation={"locale": "en"},
+        expected=[
+            {
+                "_id": 1,
+                "product": "apple",
+                "matched": [{"_id": 11, "name": "apple"}, {"_id": 10, "name": "Banana"}],
+            }
+        ],
+        msg="$lookup sub-pipeline $sort should order under command-level collation",
+    ),
+    LookupCollationTestCase(
+        "lookup_pipeline_sort_no_collation_binary",
+        docs=[{"_id": 1, "product": "apple"}],
+        foreign_docs=[{"_id": 10, "name": "Banana"}, {"_id": 11, "name": "apple"}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "pipeline": [{"$sort": {"name": 1}}],
+                    "as": "matched",
+                }
+            },
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "product": "apple",
+                "matched": [{"_id": 10, "name": "Banana"}, {"_id": 11, "name": "apple"}],
+            }
+        ],
+        msg="$lookup sub-pipeline $sort without collation should order by binary comparison",
+    ),
+]
+
+# Property [Lookup Nested Sub-Pipeline Collation Propagation]: command-level
+# collation propagates through a nested $lookup into the innermost sub-pipeline,
+# so a deeply nested $expr comparison is collation-equal.
+COLLATION_LOOKUP_NESTED_TESTS: list[LookupCollationTestCase] = [
+    LookupCollationTestCase(
+        "lookup_nested_strength1_case_insensitive",
+        docs=[{"_id": 1, "product": "apple"}],
+        foreign_docs=[{"_id": 10, "name": "Apple"}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"prod": "$product"},
+                    "pipeline": [
+                        {
+                            "$lookup": {
+                                "from": FOREIGN,
+                                "pipeline": [
+                                    {"$match": {"$expr": {"$eq": ["$name", "$$prod"]}}},
+                                ],
+                                "as": "inner",
+                            }
+                        },
+                    ],
+                    "as": "matched",
+                }
+            },
+            {"$sort": {"_id": 1}},
+        ],
+        command_collation={"locale": "en", "strength": 1},
+        expected=[
+            {
+                "_id": 1,
+                "product": "apple",
+                "matched": [{"_id": 10, "name": "Apple", "inner": [{"_id": 10, "name": "Apple"}]}],
+            }
+        ],
+        msg="$lookup nested sub-pipeline should inherit command-level collation "
+        "at the innermost level",
+    ),
+    LookupCollationTestCase(
+        "lookup_nested_no_collation_binary",
+        docs=[{"_id": 1, "product": "apple"}],
+        foreign_docs=[{"_id": 10, "name": "Apple"}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"prod": "$product"},
+                    "pipeline": [
+                        {
+                            "$lookup": {
+                                "from": FOREIGN,
+                                "pipeline": [
+                                    {"$match": {"$expr": {"$eq": ["$name", "$$prod"]}}},
+                                ],
+                                "as": "inner",
+                            }
+                        },
+                    ],
+                    "as": "matched",
+                }
+            },
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "product": "apple",
+                "matched": [{"_id": 10, "name": "Apple", "inner": []}],
+            }
+        ],
+        msg="$lookup nested sub-pipeline without collation should use binary "
+        "comparison at the innermost level",
+    ),
 ]
 
 COLLATION_LOOKUP_TESTS: list[LookupCollationTestCase] = (
-    COLLATION_LOOKUP_EQUALITY_TESTS + COLLATION_LOOKUP_PIPELINE_TESTS
+    COLLATION_LOOKUP_EQUALITY_TESTS
+    + COLLATION_LOOKUP_PIPELINE_TESTS
+    + COLLATION_LOOKUP_NESTED_TESTS
 )
 
 
