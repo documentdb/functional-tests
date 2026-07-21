@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from pymongo import IndexModel
 
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
@@ -176,8 +177,75 @@ COLLATION_LOOKUP_CROSS_COLLECTION_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [Lookup Index Collation Not A Matching Source]: a collated index on
+# the foreign field does not change the join result, which follows command and
+# collection collation rather than the index collation.
+COLLATION_LOOKUP_INDEX_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "lookup_index_collation_not_used_for_matching",
+        siblings=[
+            SiblingCollection(
+                suffix="_foreign",
+                indexes=[IndexModel([("name", 1)], collation={"locale": "en", "strength": 1})],
+                docs=[{"_id": 10, "name": "apple"}],
+            ),
+        ],
+        docs=[{"_id": 1, "product": "Apple"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [
+                {
+                    "$lookup": {
+                        "from": ctx.collection + "_foreign",
+                        "localField": "product",
+                        "foreignField": "name",
+                        "as": "matched",
+                    }
+                },
+                {"$sort": {"_id": 1}},
+            ],
+            "cursor": {},
+        },
+        expected=[{"_id": 1, "product": "Apple", "matched": []}],
+        msg="$lookup should not use a case-insensitive foreign index collation "
+        "for matching when no command or collection collation applies",
+    ),
+    CommandTestCase(
+        "lookup_index_collation_does_not_interfere",
+        siblings=[
+            SiblingCollection(
+                suffix="_foreign",
+                indexes=[IndexModel([("name", 1)], collation={"locale": "en", "strength": 1})],
+                docs=[{"_id": 10, "name": "apple"}],
+            ),
+        ],
+        docs=[{"_id": 1, "product": "Apple"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [
+                {
+                    "$lookup": {
+                        "from": ctx.collection + "_foreign",
+                        "localField": "product",
+                        "foreignField": "name",
+                        "as": "matched",
+                    }
+                },
+                {"$sort": {"_id": 1}},
+            ],
+            "cursor": {},
+            "collation": {"locale": "en", "strength": 1},
+        },
+        expected=[{"_id": 1, "product": "Apple", "matched": [{"_id": 10, "name": "apple"}]}],
+        msg="$lookup should follow command collation and not be disrupted by a "
+        "foreign index collation",
+    ),
+]
+
 COLLATION_LOOKUP_RESOLUTION_TESTS: list[CommandTestCase] = (
-    COLLATION_LOOKUP_PRECEDENCE_TESTS + COLLATION_LOOKUP_CROSS_COLLECTION_TESTS
+    COLLATION_LOOKUP_PRECEDENCE_TESTS
+    + COLLATION_LOOKUP_CROSS_COLLECTION_TESTS
+    + COLLATION_LOOKUP_INDEX_TESTS
 )
 
 

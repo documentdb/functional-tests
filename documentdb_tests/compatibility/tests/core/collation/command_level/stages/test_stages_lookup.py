@@ -81,12 +81,12 @@ COLLATION_LOOKUP_EQUALITY_TESTS: list[LookupCollationTestCase] = [
     ),
 ]
 
-# Property [Lookup Pipeline Collation Propagation]: collation propagates into
-# the pipeline form of $lookup so that sub-pipeline stages, both $expr matches
-# and ordering, inherit command-level collation.
-COLLATION_LOOKUP_PIPELINE_TESTS: list[LookupCollationTestCase] = [
+# Property [Lookup Verbose Collation Propagation]: collation propagates into
+# the verbose form of $lookup (let + pipeline) so that sub-pipeline stages,
+# both $expr matches and ordering, inherit command-level collation.
+COLLATION_LOOKUP_VERBOSE_TESTS: list[LookupCollationTestCase] = [
     LookupCollationTestCase(
-        "lookup_pipeline_strength1_case_insensitive",
+        "lookup_verbose_strength1_case_insensitive",
         docs=[{"_id": 1, "product": "Apple"}, {"_id": 2, "product": "banana"}],
         foreign_docs=[{"_id": 1, "name": "apple"}, {"_id": 2, "name": "Banana"}],
         pipeline=[
@@ -107,10 +107,10 @@ COLLATION_LOOKUP_PIPELINE_TESTS: list[LookupCollationTestCase] = [
             {"_id": 1, "product": "Apple", "matched": [{"_id": 1, "name": "apple"}]},
             {"_id": 2, "product": "banana", "matched": [{"_id": 2, "name": "Banana"}]},
         ],
-        msg="$lookup pipeline form with strength 1 should inherit collation",
+        msg="$lookup verbose form with strength 1 should inherit collation",
     ),
     LookupCollationTestCase(
-        "lookup_pipeline_no_collation_binary",
+        "lookup_verbose_no_collation_binary",
         docs=[{"_id": 1, "product": "Apple"}, {"_id": 2, "product": "banana"}],
         foreign_docs=[{"_id": 1, "name": "apple"}, {"_id": 2, "name": "Banana"}],
         pipeline=[
@@ -130,10 +130,10 @@ COLLATION_LOOKUP_PIPELINE_TESTS: list[LookupCollationTestCase] = [
             {"_id": 1, "product": "Apple", "matched": []},
             {"_id": 2, "product": "banana", "matched": []},
         ],
-        msg="$lookup pipeline form without collation should use binary comparison",
+        msg="$lookup verbose form without collation should use binary comparison",
     ),
     LookupCollationTestCase(
-        "lookup_pipeline_sort_case_insensitive",
+        "lookup_verbose_sort_case_insensitive",
         docs=[{"_id": 1, "product": "apple"}],
         foreign_docs=[{"_id": 10, "name": "Banana"}, {"_id": 11, "name": "apple"}],
         pipeline=[
@@ -157,7 +157,7 @@ COLLATION_LOOKUP_PIPELINE_TESTS: list[LookupCollationTestCase] = [
         msg="$lookup sub-pipeline $sort should order under command-level collation",
     ),
     LookupCollationTestCase(
-        "lookup_pipeline_sort_no_collation_binary",
+        "lookup_verbose_sort_no_collation_binary",
         docs=[{"_id": 1, "product": "apple"}],
         foreign_docs=[{"_id": 10, "name": "Banana"}, {"_id": 11, "name": "apple"}],
         pipeline=[
@@ -258,10 +258,69 @@ COLLATION_LOOKUP_NESTED_TESTS: list[LookupCollationTestCase] = [
     ),
 ]
 
+# Property [Lookup Concise Correlated Collation Propagation]: in the concise
+# form (localField + foreignField + pipeline), command-level collation governs
+# both the equality prefilter and the sub-pipeline comparisons.
+COLLATION_LOOKUP_CONCISE_TESTS: list[LookupCollationTestCase] = [
+    LookupCollationTestCase(
+        "lookup_concise_strength1_case_insensitive",
+        docs=[{"_id": 1, "product": "Apple"}],
+        foreign_docs=[
+            {"_id": 10, "name": "apple", "tag": "KEEP"},
+            {"_id": 11, "name": "apple", "tag": "drop"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "localField": "product",
+                    "foreignField": "name",
+                    "pipeline": [{"$match": {"tag": "keep"}}],
+                    "as": "matched",
+                }
+            },
+            {"$sort": {"_id": 1}},
+        ],
+        command_collation={"locale": "en", "strength": 1},
+        expected=[
+            {
+                "_id": 1,
+                "product": "Apple",
+                "matched": [{"_id": 10, "name": "apple", "tag": "KEEP"}],
+            }
+        ],
+        msg="$lookup concise form should apply command collation to both the "
+        "equality match and the sub-pipeline",
+    ),
+    LookupCollationTestCase(
+        "lookup_concise_no_collation_binary",
+        docs=[{"_id": 1, "product": "Apple"}],
+        foreign_docs=[
+            {"_id": 10, "name": "apple", "tag": "KEEP"},
+            {"_id": 11, "name": "apple", "tag": "drop"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "localField": "product",
+                    "foreignField": "name",
+                    "pipeline": [{"$match": {"tag": "keep"}}],
+                    "as": "matched",
+                }
+            },
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[{"_id": 1, "product": "Apple", "matched": []}],
+        msg="$lookup concise form without collation should use binary comparison",
+    ),
+]
+
 COLLATION_LOOKUP_TESTS: list[LookupCollationTestCase] = (
     COLLATION_LOOKUP_EQUALITY_TESTS
-    + COLLATION_LOOKUP_PIPELINE_TESTS
+    + COLLATION_LOOKUP_VERBOSE_TESTS
     + COLLATION_LOOKUP_NESTED_TESTS
+    + COLLATION_LOOKUP_CONCISE_TESTS
 )
 
 
