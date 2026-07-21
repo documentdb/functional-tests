@@ -5,6 +5,9 @@ import math
 import pytest
 from bson import Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -253,13 +256,15 @@ TOLONG_DOUBLE_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOLONG_NUMERIC_TESTS = (
+TOLONG_NUMERIC_TESTS = with_convert_variants(
     TOLONG_NULL_MISSING_TESTS
     + TOLONG_BOOL_TESTS
     + TOLONG_INT32_TESTS
     + TOLONG_INT64_IDENTITY_TESTS
     + TOLONG_DOUBLE_TESTS
-    + TOLONG_DOUBLE_ERROR_TESTS
+    + TOLONG_DOUBLE_ERROR_TESTS,
+    "$toLong",
+    "long",
 )
 
 

@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -228,7 +231,10 @@ TOLONG_DATETIME_BINARY_TESTS = (
 )
 
 
-@pytest.mark.parametrize("test", pytest_params(TOLONG_DATETIME_BINARY_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TOLONG_DATETIME_BINARY_TESTS, "$toLong", "long")),
+)
 def test_toLong_datetime_binary(collection, test: ExpressionTestCase):
     """$toLong converts datetime and binary inputs; rejects unsupported BSON types."""
     result = execute_expression(collection, test.expression)

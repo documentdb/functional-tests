@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -203,7 +206,10 @@ TODOUBLE_DATETIME_BINARY_TESTS = (
 )
 
 
-@pytest.mark.parametrize("test", pytest_params(TODOUBLE_DATETIME_BINARY_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TODOUBLE_DATETIME_BINARY_TESTS, "$toDouble", "double")),
+)
 def test_toDouble_datetime_binary(collection, test: ExpressionTestCase):
     """$toDouble converts datetime and binary inputs; rejects unsupported BSON types."""
     result = execute_expression(collection, test.expression)

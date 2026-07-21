@@ -3,6 +3,9 @@
 import pytest
 from bson import Decimal128
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -215,7 +218,12 @@ TODECIMAL_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
 
 
 @pytest.mark.parametrize(
-    "test", pytest_params(TODECIMAL_STRING_TESTS + TODECIMAL_STRING_SIZE_LIMIT_TESTS)
+    "test",
+    pytest_params(
+        with_convert_variants(
+            TODECIMAL_STRING_TESTS + TODECIMAL_STRING_SIZE_LIMIT_TESTS, "$toDecimal", "decimal"
+        )
+    ),
 )
 def test_toDecimal_string(collection, test: ExpressionTestCase):
     """$toDecimal parses valid numeric strings including scientific notation and special values."""

@@ -2,6 +2,9 @@
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -218,7 +221,14 @@ TODECIMAL_STRING_SIZE_LIMIT_ERROR_TESTS: list[ExpressionTestCase] = [
 
 
 @pytest.mark.parametrize(
-    "test", pytest_params(TODECIMAL_STRING_ERROR_TESTS + TODECIMAL_STRING_SIZE_LIMIT_ERROR_TESTS)
+    "test",
+    pytest_params(
+        with_convert_variants(
+            TODECIMAL_STRING_ERROR_TESTS + TODECIMAL_STRING_SIZE_LIMIT_ERROR_TESTS,
+            "$toDecimal",
+            "decimal",
+        )
+    ),
 )
 def test_toDecimal_string_errors(collection, test: ExpressionTestCase):
     """$toDecimal rejects malformed and out-of-range string inputs."""

@@ -59,18 +59,25 @@ RETURN_TYPE_LONG_SPEC = [
 RETURN_TYPE_LONG_CASES = generate_bson_acceptance_test_cases(RETURN_TYPE_LONG_SPEC)
 REJECTION_LONG_CASES = generate_bson_rejection_test_cases(RETURN_TYPE_LONG_SPEC)
 
+_LONG_EXPR_FORMS = [
+    pytest.param(lambda v: {"$toLong": v}, id="toLong"),
+    pytest.param(lambda v: {"$convert": {"input": v, "to": "long"}}, id="convert"),
+]
 
+
+@pytest.mark.parametrize("expr_fn", _LONG_EXPR_FORMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", RETURN_TYPE_LONG_CASES)
-def test_toLong_return_type_is_long(collection, bson_type, sample_value, spec):
-    """$toLong always returns BSON type 'long' for a successful conversion."""
-    result = execute_expression(collection, {"$type": {"$toLong": sample_value}})
+def test_toLong_return_type_is_long(collection, bson_type, sample_value, spec, expr_fn):
+    """$toLong and $convert to long always return BSON type 'long'."""
+    result = execute_expression(collection, {"$type": expr_fn(sample_value)})
     assert_expression_result(result, expected="long", msg=f"{spec.msg} ({bson_type.value} input)")
 
 
+@pytest.mark.parametrize("expr_fn", _LONG_EXPR_FORMS)
 @pytest.mark.parametrize("bson_type,sample_value,spec", REJECTION_LONG_CASES)
-def test_toLong_rejects_unsupported_type(collection, bson_type, sample_value, spec):
-    """$toLong rejects BSON types it cannot convert with a conversion failure."""
-    result = execute_expression(collection, {"$toLong": sample_value})
+def test_toLong_rejects_unsupported_type(collection, bson_type, sample_value, spec, expr_fn):
+    """$toLong and $convert to long reject BSON types they cannot convert."""
+    result = execute_expression(collection, expr_fn(sample_value))
     assert_expression_result(
         result,
         error_code=spec.expected_code(bson_type),

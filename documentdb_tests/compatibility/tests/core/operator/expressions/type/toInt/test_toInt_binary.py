@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -211,7 +214,10 @@ TOINT_BINARY_TESTS = (
 )
 
 
-@pytest.mark.parametrize("test", pytest_params(TOINT_BINARY_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TOINT_BINARY_TESTS, "$toInt", "int")),
+)
 def test_toInt_binary(collection, test: ExpressionTestCase):
     """$toInt converts 1/2/4-byte binary; rejects other lengths and unsupported BSON types."""
     result = execute_expression(collection, test.expression)

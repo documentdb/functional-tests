@@ -3,6 +3,9 @@
 import pytest
 from bson import Decimal128
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -120,7 +123,10 @@ TOINT_DECIMAL128_BOUNDARY_TESTS: list[ExpressionTestCase] = [
 TOINT_DECIMAL128_TESTS = TOINT_DECIMAL128_TRUNCATION_TESTS + TOINT_DECIMAL128_BOUNDARY_TESTS
 
 
-@pytest.mark.parametrize("test", pytest_params(TOINT_DECIMAL128_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TOINT_DECIMAL128_TESTS, "$toInt", "int")),
+)
 def test_toInt_decimal128(collection, test: ExpressionTestCase):
     """$toInt converts Decimal128 values within int32 range; rejects NaN, infinity, and overflow."""
     result = execute_expression(collection, test.expression)
