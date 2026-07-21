@@ -17,6 +17,8 @@
 └── test_unwind_combined_options.py               # multiple options together
 ```
 
+8. **Non-test files in a test folder** — a test folder may contain a few non-test Python files, which the structure validator exempts from the `test_`-prefix and parent-name naming rules: `__init__.py`, `conftest.py`, and any module under a `utils/` or `fixtures/` subfolder. Shared *logic and test data* live in `utils/`; `conftest.py` holds shared pytest *fixtures* scoped to that directory (e.g. an autouse baseline, or package-scoped setup).
+
 ## Decision Tree
 
 **Step 1: Cross-cutting feature?** (rbac, transactions, collation, geospatial, text_search, validation, ttl)
