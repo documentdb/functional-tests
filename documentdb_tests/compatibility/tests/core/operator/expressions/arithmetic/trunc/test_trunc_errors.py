@@ -276,6 +276,20 @@ TRUNC_INSERT_TESTS: list[ExpressionTestCase] = [
         error_code=NON_NUMERIC_TYPE_ERROR,
         msg="Should reject composite array from $x.y on array-of-objects",
     ),
+    ExpressionTestCase(
+        "array_index_path",
+        expression={"$trunc": ["$arr.0", 1]},
+        doc={"arr": [1.567, 2.345]},
+        error_code=NON_NUMERIC_TYPE_ERROR,
+        msg="Should reject $arr.0 on an array (no positional indexing)",
+    ),
+    ExpressionTestCase(
+        "array_index_on_object_key",
+        expression={"$trunc": ["$a.0.b", 1]},
+        doc={"a": [{"b": 1.567}, {"b": 2.345}]},
+        error_code=NON_NUMERIC_TYPE_ERROR,
+        msg="Should reject $a.0.b on array-of-objects (no positional indexing)",
+    ),
 ]
 
 
