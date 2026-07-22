@@ -59,6 +59,7 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
     "local_rename": "renaming into the unreplicated local database is permitted",
     "search": "search and vector search surfaces are available",
     "replication": "replication commands are available (applyOps, oplog access)",
+    "remote_target": "the server sees the connection as originating from a non-localhost address",
     "validate_repair": (
         "validate with repair/fixMultikey is permitted and background validation "
         "is rejected (standalone-only behavior)"
@@ -84,6 +85,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "search",
             "oplog",
             "replication",
+            "remote_target",
         }
     ),
     ("mongodb", "standalone"): frozenset(
@@ -91,6 +93,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "unforced_compact",
             "reindex",
             "local_rename",
+            "remote_target",
             "validate_repair",
         }
     ),
@@ -106,6 +109,7 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "unforced_compact",
             "reindex",
             "replication",
+            "remote_target",
             "validate_repair",
         }
     ),
@@ -162,6 +166,16 @@ def _detect_topology(engine: str, client: MongoClient) -> str:
     raise ValueError(f"unknown engine {engine!r}; cannot classify topology")
 
 
+_LOCALHOST_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "0.0.0.0"})
+
+
+def _is_remote_target(client: MongoClient) -> bool:
+    """Return whether the server sees this connection as non-localhost."""
+    result = client.admin.command("whatsmyuri")
+    server_sees_host = result["you"].rsplit(":", 1)[0]
+    return server_sees_host not in _LOCALHOST_HOSTS
+
+
 def marker_spec() -> str:
     """Return the pytest marker definition line for the ``requires`` marker."""
     return (
@@ -189,6 +203,7 @@ def detect_capabilities(engine: str, connection_string: str) -> frozenset[str]:
 
     try:
         topology = _detect_topology(engine, client)
+        is_remote = _is_remote_target(client)
     except Exception:
         return frozenset()
     finally:
@@ -200,7 +215,10 @@ def detect_capabilities(engine: str, connection_string: str) -> frozenset[str]:
             f"no capability mapping for target profile {profile}; "
             "add it to _CAPABILITIES_BY_PROFILE"
         )
-    return _CAPABILITIES_BY_PROFILE[profile]
+    capabilities = set(_CAPABILITIES_BY_PROFILE[profile])
+    if not is_remote:
+        capabilities.discard("remote_target")
+    return frozenset(capabilities)
 
 
 def unmet_requirements(required: dict[str, bool], capabilities: frozenset[str]) -> dict[str, bool]:

@@ -343,8 +343,9 @@ def pytest_collection_modifyitems(session, config, items):
     Tests carrying a ``requires`` marker are deselected when their target's
     capabilities do not match what the test requires, so they do not run against
     a target they do not apply to (rather than appearing as skips). A target's
-    capabilities are determined by its engine and topology, resolved per target
-    at runtime (see ``framework.preconditions``).
+    capabilities are determined by its engine, topology, and connection source,
+    resolved per target at runtime (see ``framework.preconditions``).
+
     """
     # Deselect a capability-gated test when its target's capabilities do not
     # match its requires(...) marker. Each item is parametrized over a target;
