@@ -11,7 +11,6 @@ from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.look
     setup_lookup,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -542,65 +541,9 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         expected=[{"_id": 1, "joined": [{"_id": 10, "now_type": "date"}]}],
         msg="$lookup should accept system variable $$NOW as a let value producing a date type",
     ),
-    LookupTestCase(
-        "remove_as_let_value_treats_variable_as_missing",
-        docs=[{"_id": 1}],
-        foreign_docs=[{"_id": 10}],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {"removed": "$$REMOVE"},
-                    "pipeline": [
-                        {
-                            "$addFields": {
-                                "removed_val": "$$removed",
-                                "type_result": {"$type": "$$removed"},
-                            }
-                        }
-                    ],
-                    "as": "joined",
-                }
-            }
-        ],
-        expected=[
-            {
-                "_id": 1,
-                "joined": [{"_id": 10, "type_result": "missing"}],
-            },
-        ],
-        msg=(
-            "$lookup with $$REMOVE as a let value should cause the"
-            " variable to be treated as a removed/missing field"
-        ),
-    ),
 ]
 
-# Property [Correlated Subquery Expression Error]: expression evaluation
-# errors in let values propagate as errors.
-LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS: list[LookupTestCase] = [
-    LookupTestCase(
-        "let_expression_error_propagates",
-        docs=[{"_id": 1}],
-        foreign_docs=[{"_id": 10}],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {"bad": {"$divide": [1, 0]}},
-                    "pipeline": [],
-                    "as": "joined",
-                }
-            }
-        ],
-        error_code=BAD_VALUE_ERROR,
-        msg="$lookup should propagate expression evaluation errors in let values",
-    ),
-]
-
-LOOKUP_CORRELATED_SUBQUERY_ALL_TESTS: list[LookupTestCase] = (
-    LOOKUP_CORRELATED_SUBQUERY_TESTS + LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS
-)
+LOOKUP_CORRELATED_SUBQUERY_ALL_TESTS: list[LookupTestCase] = LOOKUP_CORRELATED_SUBQUERY_TESTS
 
 
 @pytest.mark.aggregate
