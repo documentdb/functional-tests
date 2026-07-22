@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import datetime
+
 import pytest
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.lookup_common import (
     FOREIGN,
@@ -340,13 +343,23 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         docs=[
             {
                 "_id": 1,
-                "v_int": 42,
-                "v_str": "hello",
-                "v_bool": True,
                 "v_double": 3.14,
+                "v_int32": 42,
+                "v_int64": Int64(2**40),
+                "v_decimal": Decimal128("123.456"),
+                "v_string": "hello",
+                "v_bool": True,
                 "v_null": None,
-                "v_arr": [1, 2],
-                "v_doc": {"n": 1},
+                "v_date": datetime.datetime(2024, 6, 15, 12, 0, 0),
+                "v_oid": ObjectId("507f1f77bcf86cd799439011"),
+                "v_binary": Binary(b"\x00\x01\x02", 0),
+                "v_regex": Regex("^abc", "i"),
+                "v_code": Code("function() {}"),
+                "v_timestamp": Timestamp(1000, 1),
+                "v_minkey": MinKey(),
+                "v_maxkey": MaxKey(),
+                "v_arr": [1, "two", 3],
+                "v_doc": {"nested": "doc"},
             }
         ],
         foreign_docs=[{"_id": 10}],
@@ -355,23 +368,43 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
                 "$lookup": {
                     "from": FOREIGN,
                     "let": {
-                        "vi": "$v_int",
-                        "vs": "$v_str",
-                        "vb": "$v_bool",
-                        "vd": "$v_double",
-                        "vn": "$v_null",
-                        "va": "$v_arr",
+                        "vdouble": "$v_double",
+                        "vint32": "$v_int32",
+                        "vint64": "$v_int64",
+                        "vdecimal": "$v_decimal",
+                        "vstring": "$v_string",
+                        "vbool": "$v_bool",
+                        "vnull": "$v_null",
+                        "vdate": "$v_date",
+                        "void": "$v_oid",
+                        "vbinary": "$v_binary",
+                        "vregex": "$v_regex",
+                        "vcode": "$v_code",
+                        "vtimestamp": "$v_timestamp",
+                        "vminkey": "$v_minkey",
+                        "vmaxkey": "$v_maxkey",
+                        "varr": "$v_arr",
                         "vdoc": "$v_doc",
                     },
                     "pipeline": [
                         {
                             "$addFields": {
-                                "ri": "$$vi",
-                                "rs": "$$vs",
-                                "rb": "$$vb",
-                                "rd": "$$vd",
-                                "rn": "$$vn",
-                                "ra": "$$va",
+                                "rdouble": "$$vdouble",
+                                "rint32": "$$vint32",
+                                "rint64": "$$vint64",
+                                "rdecimal": "$$vdecimal",
+                                "rstring": "$$vstring",
+                                "rbool": "$$vbool",
+                                "rnull": "$$vnull",
+                                "rdate": "$$vdate",
+                                "roid": "$$void",
+                                "rbinary": "$$vbinary",
+                                "rregex": "$$vregex",
+                                "rcode": "$$vcode",
+                                "rtimestamp": "$$vtimestamp",
+                                "rminkey": "$$vminkey",
+                                "rmaxkey": "$$vmaxkey",
+                                "rarr": "$$varr",
                                 "rdoc": "$$vdoc",
                             }
                         }
@@ -383,31 +416,52 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         expected=[
             {
                 "_id": 1,
-                "v_int": 42,
-                "v_str": "hello",
-                "v_bool": True,
                 "v_double": 3.14,
+                "v_int32": 42,
+                "v_int64": Int64(2**40),
+                "v_decimal": Decimal128("123.456"),
+                "v_string": "hello",
+                "v_bool": True,
                 "v_null": None,
-                "v_arr": [1, 2],
-                "v_doc": {"n": 1},
+                "v_date": datetime.datetime(2024, 6, 15, 12, 0, 0, tzinfo=datetime.timezone.utc),
+                "v_oid": ObjectId("507f1f77bcf86cd799439011"),
+                "v_binary": b"\x00\x01\x02",
+                "v_regex": Regex("^abc", 2),
+                "v_code": Code("function() {}"),
+                "v_timestamp": Timestamp(1000, 1),
+                "v_minkey": MinKey(),
+                "v_maxkey": MaxKey(),
+                "v_arr": [1, "two", 3],
+                "v_doc": {"nested": "doc"},
                 "joined": [
                     {
                         "_id": 10,
-                        "ri": 42,
-                        "rs": "hello",
-                        "rb": True,
-                        "rd": 3.14,
-                        "rn": None,
-                        "ra": [1, 2],
-                        "rdoc": {"n": 1},
+                        "rdouble": 3.14,
+                        "rint32": 42,
+                        "rint64": Int64(2**40),
+                        "rdecimal": Decimal128("123.456"),
+                        "rstring": "hello",
+                        "rbool": True,
+                        "rnull": None,
+                        "rdate": datetime.datetime(
+                            2024, 6, 15, 12, 0, 0, tzinfo=datetime.timezone.utc
+                        ),
+                        "roid": ObjectId("507f1f77bcf86cd799439011"),
+                        "rbinary": b"\x00\x01\x02",
+                        "rregex": Regex("^abc", 2),
+                        "rcode": Code("function() {}"),
+                        "rtimestamp": Timestamp(1000, 1),
+                        "rminkey": MinKey(),
+                        "rmaxkey": MaxKey(),
+                        "rarr": [1, "two", 3],
+                        "rdoc": {"nested": "doc"},
                     }
                 ],
             },
         ],
         msg=(
-            "$lookup let variable values should support any BSON type"
-            " including int, string, bool, double, null, array, and"
-            " document"
+            "$lookup let variable values should carry every BSON type through"
+            " to the sub-pipeline unchanged"
         ),
     ),
     LookupTestCase(
