@@ -1,5 +1,6 @@
 """Tests for wildcard index query behavior: equality, range, scoped-path, logical/array
-operators, sort, projection output, count, aggregation, and distinct.
+operators, sort, projection output, count, aggregation, distinct, collection-scan equivalence,
+and hidden-index creation.
 
 wildcardProjection-constrained queries live in test_wildcard_projection_query.py and compound
 wildcard queries live in test_wildcard_compound_query.py."""
