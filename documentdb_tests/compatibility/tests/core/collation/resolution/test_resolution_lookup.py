@@ -112,18 +112,47 @@ COLLATION_LOOKUP_PRECEDENCE_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Lookup Cross-Collection Resolution]: the source collection's
-# collation governs the join and the foreign collection's default is ignored,
-# whether the source has its own default or falls back to binary.
-COLLATION_LOOKUP_CROSS_COLLECTION_TESTS: list[CommandTestCase] = [
+# Property [Foreign Collation Ignored Across Forms]: the foreign collection's
+# own default collation is never used for the join in any correlated form;
+# matching follows the source collection default, or binary when the source has
+# none. Cases use a case-insensitive foreign default so "ignored" is observable.
+COLLATION_LOOKUP_FOREIGN_IGNORED_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "lookup_source_default_governs_over_foreign_default",
+        "equality_foreign_default_ignored_falls_back_to_binary",
+        siblings=[
+            SiblingCollection(
+                suffix="_foreign",
+                collation={"locale": "en", "strength": 1},
+                docs=[{"_id": 10, "x": "Apple"}],
+            ),
+        ],
+        docs=[{"_id": 1, "x": "apple"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [
+                {
+                    "$lookup": {
+                        "from": ctx.collection + "_foreign",
+                        "localField": "x",
+                        "foreignField": "x",
+                        "as": "matched",
+                    }
+                }
+            ],
+            "cursor": {},
+        },
+        expected=[{"_id": 1, "x": "apple", "matched": []}],
+        msg="equality $lookup should ignore a case-insensitive foreign default and "
+        "match by binary, so apple does not match Apple",
+    ),
+    CommandTestCase(
+        "equality_source_default_governs_over_foreign",
         target_collection=CustomCollection(options={"collation": {"locale": "en", "strength": 1}}),
         siblings=[
             SiblingCollection(
                 suffix="_foreign",
                 collation={"locale": "fr", "strength": 3},
-                docs=[{"_id": 10, "x": "Apple"}, {"_id": 11, "x": "banana"}],
+                docs=[{"_id": 10, "x": "Apple"}],
             ),
         ],
         docs=[{"_id": 1, "x": "apple"}],
@@ -137,22 +166,79 @@ COLLATION_LOOKUP_CROSS_COLLECTION_TESTS: list[CommandTestCase] = [
                         "foreignField": "x",
                         "as": "matched",
                     }
-                },
-                {"$sort": {"_id": 1}},
+                }
             ],
             "cursor": {},
         },
         expected=[{"_id": 1, "x": "apple", "matched": [{"_id": 10, "x": "Apple"}]}],
-        msg="$lookup join should use the source collection default collation over "
-        "a differing foreign collection default",
+        msg="equality $lookup should use the source default over a differing "
+        "foreign default, so apple matches Apple",
     ),
     CommandTestCase(
-        "lookup_foreign_default_ignored_without_source_default",
+        "verbose_foreign_default_ignored_falls_back_to_binary",
+        siblings=[
+            SiblingCollection(
+                suffix="_foreign",
+                collation={"locale": "en", "strength": 1},
+                docs=[{"_id": 10, "x": "Apple"}],
+            ),
+        ],
+        docs=[{"_id": 1, "x": "apple"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [
+                {
+                    "$lookup": {
+                        "from": ctx.collection + "_foreign",
+                        "let": {"p": "$x"},
+                        "pipeline": [{"$match": {"$expr": {"$eq": ["$x", "$$p"]}}}],
+                        "as": "matched",
+                    }
+                }
+            ],
+            "cursor": {},
+        },
+        expected=[{"_id": 1, "x": "apple", "matched": []}],
+        msg="verbose $lookup sub-pipeline should ignore a case-insensitive foreign "
+        "default and match by binary",
+    ),
+    CommandTestCase(
+        "verbose_source_default_governs_over_foreign",
+        target_collection=CustomCollection(options={"collation": {"locale": "en", "strength": 1}}),
         siblings=[
             SiblingCollection(
                 suffix="_foreign",
                 collation={"locale": "fr", "strength": 3},
-                docs=[{"_id": 10, "x": "Apple"}, {"_id": 11, "x": "banana"}],
+                docs=[{"_id": 10, "x": "Apple"}],
+            ),
+        ],
+        docs=[{"_id": 1, "x": "apple"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [
+                {
+                    "$lookup": {
+                        "from": ctx.collection + "_foreign",
+                        "let": {"p": "$x"},
+                        "pipeline": [{"$match": {"$expr": {"$eq": ["$x", "$$p"]}}}],
+                        "as": "matched",
+                    }
+                }
+            ],
+            "cursor": {},
+        },
+        expected=[{"_id": 1, "x": "apple", "matched": [{"_id": 10, "x": "Apple"}]}],
+        msg="verbose $lookup sub-pipeline should use the source default over a "
+        "differing foreign default",
+    ),
+    CommandTestCase(
+        "concise_source_default_governs_over_foreign",
+        target_collection=CustomCollection(options={"collation": {"locale": "en", "strength": 1}}),
+        siblings=[
+            SiblingCollection(
+                suffix="_foreign",
+                collation={"locale": "fr", "strength": 3},
+                docs=[{"_id": 10, "x": "Apple"}],
             ),
         ],
         docs=[{"_id": 1, "x": "apple"}],
@@ -164,16 +250,16 @@ COLLATION_LOOKUP_CROSS_COLLECTION_TESTS: list[CommandTestCase] = [
                         "from": ctx.collection + "_foreign",
                         "localField": "x",
                         "foreignField": "x",
+                        "pipeline": [{"$match": {}}],
                         "as": "matched",
                     }
-                },
-                {"$sort": {"_id": 1}},
+                }
             ],
             "cursor": {},
         },
-        expected=[{"_id": 1, "x": "apple", "matched": []}],
-        msg="$lookup join should ignore the foreign collection default and fall "
-        "back to binary when neither the source nor the command specifies collation",
+        expected=[{"_id": 1, "x": "apple", "matched": [{"_id": 10, "x": "Apple"}]}],
+        msg="concise $lookup should use the source default over a differing foreign "
+        "default in its equality prefilter",
     ),
 ]
 
@@ -242,10 +328,182 @@ COLLATION_LOOKUP_INDEX_TESTS: list[CommandTestCase] = [
     ),
 ]
 
+# Property [Nested Foreign Collation Across Collections and Syntaxes]: in nested
+# lookups spanning multiple distinct collections, the source collection default
+# governs matching at every level and each foreign default is ignored, whatever
+# lookup syntax each level uses. These use distinct collections rather than a
+# self-join, and mix syntaxes across levels.
+COLLATION_LOOKUP_NESTED_FOREIGN_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "nested_verbose_multi_collection_source_governs",
+        target_collection=CustomCollection(options={"collation": {"locale": "en", "strength": 1}}),
+        siblings=[
+            SiblingCollection(
+                suffix="_a",
+                collation={"locale": "fr", "strength": 3},
+                docs=[{"_id": 10, "x": "apple", "y": "Banana"}],
+            ),
+            SiblingCollection(
+                suffix="_b",
+                collation={"locale": "fr", "strength": 3},
+                docs=[{"_id": 20, "z": "banana"}],
+            ),
+        ],
+        docs=[{"_id": 1, "x": "Apple"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [
+                {
+                    "$lookup": {
+                        "from": ctx.collection + "_a",
+                        "let": {"p": "$x"},
+                        "pipeline": [
+                            {"$match": {"$expr": {"$eq": ["$x", "$$p"]}}},
+                            {
+                                "$lookup": {
+                                    "from": ctx.collection + "_b",
+                                    "let": {"q": "$y"},
+                                    "pipeline": [{"$match": {"$expr": {"$eq": ["$z", "$$q"]}}}],
+                                    "as": "inner",
+                                }
+                            },
+                        ],
+                        "as": "m",
+                    }
+                }
+            ],
+            "cursor": {},
+        },
+        expected=[
+            {
+                "_id": 1,
+                "x": "Apple",
+                "m": [
+                    {
+                        "_id": 10,
+                        "x": "apple",
+                        "y": "Banana",
+                        "inner": [{"_id": 20, "z": "banana"}],
+                    }
+                ],
+            }
+        ],
+        msg="nested verbose lookups over distinct collections should use the source "
+        "default at both levels and ignore each foreign default",
+    ),
+    CommandTestCase(
+        "nested_verbose_base_standard_inner_source_governs",
+        target_collection=CustomCollection(options={"collation": {"locale": "en", "strength": 1}}),
+        siblings=[
+            SiblingCollection(
+                suffix="_a",
+                collation={"locale": "fr", "strength": 3},
+                docs=[{"_id": 10, "x": "apple", "y": "Banana"}],
+            ),
+            SiblingCollection(
+                suffix="_b",
+                collation={"locale": "fr", "strength": 3},
+                docs=[{"_id": 20, "z": "banana"}],
+            ),
+        ],
+        docs=[{"_id": 1, "x": "Apple"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [
+                {
+                    "$lookup": {
+                        "from": ctx.collection + "_a",
+                        "let": {"p": "$x"},
+                        "pipeline": [
+                            {"$match": {"$expr": {"$eq": ["$x", "$$p"]}}},
+                            {
+                                "$lookup": {
+                                    "from": ctx.collection + "_b",
+                                    "localField": "y",
+                                    "foreignField": "z",
+                                    "as": "inner",
+                                }
+                            },
+                        ],
+                        "as": "m",
+                    }
+                }
+            ],
+            "cursor": {},
+        },
+        expected=[
+            {
+                "_id": 1,
+                "x": "Apple",
+                "m": [
+                    {
+                        "_id": 10,
+                        "x": "apple",
+                        "y": "Banana",
+                        "inner": [{"_id": 20, "z": "banana"}],
+                    }
+                ],
+            }
+        ],
+        msg="a verbose base with a standard inner lookup over distinct collections "
+        "should apply the source default across both syntaxes",
+    ),
+    CommandTestCase(
+        "nested_concise_base_uncorrelated_inner_source_governs",
+        target_collection=CustomCollection(options={"collation": {"locale": "en", "strength": 1}}),
+        siblings=[
+            SiblingCollection(
+                suffix="_a",
+                collation={"locale": "fr", "strength": 3},
+                docs=[{"_id": 10, "x": "apple"}],
+            ),
+            SiblingCollection(
+                suffix="_b",
+                collation={"locale": "fr", "strength": 3},
+                docs=[{"_id": 20, "w": "HELLO"}],
+            ),
+        ],
+        docs=[{"_id": 1, "x": "Apple"}],
+        command=lambda ctx: {
+            "aggregate": ctx.collection,
+            "pipeline": [
+                {
+                    "$lookup": {
+                        "from": ctx.collection + "_a",
+                        "localField": "x",
+                        "foreignField": "x",
+                        "pipeline": [
+                            {
+                                "$lookup": {
+                                    "from": ctx.collection + "_b",
+                                    "pipeline": [{"$match": {"w": "hello"}}],
+                                    "as": "inner",
+                                }
+                            }
+                        ],
+                        "as": "m",
+                    }
+                }
+            ],
+            "cursor": {},
+        },
+        expected=[
+            {
+                "_id": 1,
+                "x": "Apple",
+                "m": [{"_id": 10, "x": "apple", "inner": [{"_id": 20, "w": "HELLO"}]}],
+            }
+        ],
+        msg="a concise base with an uncorrelated inner lookup over distinct "
+        "collections should apply the source default across both syntaxes",
+    ),
+]
+
 COLLATION_LOOKUP_RESOLUTION_TESTS: list[CommandTestCase] = (
     COLLATION_LOOKUP_PRECEDENCE_TESTS
-    + COLLATION_LOOKUP_CROSS_COLLECTION_TESTS
+    + COLLATION_LOOKUP_FOREIGN_IGNORED_TESTS
     + COLLATION_LOOKUP_INDEX_TESTS
+    + COLLATION_LOOKUP_NESTED_FOREIGN_TESTS
 )
 
 
