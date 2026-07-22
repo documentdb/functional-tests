@@ -14,7 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.look
     setup_lookup,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, LET_UNDEFINED_VARIABLE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -544,6 +544,94 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         ),
     ),
     LookupTestCase(
+        "let_constant_values_all_bson_types",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {
+                        "k_double": 3.14,
+                        "k_int32": 42,
+                        "k_int64": Int64(2**40),
+                        "k_decimal": Decimal128("123.456"),
+                        "k_string": "hello",
+                        "k_bool": True,
+                        "k_null": None,
+                        "k_date": datetime.datetime(2024, 6, 15, 12, 0, 0),
+                        "k_oid": ObjectId("507f1f77bcf86cd799439011"),
+                        "k_binary": Binary(b"\x00\x01\x02", 0),
+                        "k_regex": Regex("^abc", "i"),
+                        "k_code": Code("function() {}"),
+                        "k_timestamp": Timestamp(1000, 1),
+                        "k_minkey": MinKey(),
+                        "k_maxkey": MaxKey(),
+                        "k_arr": [1, "two", 3],
+                        "k_doc": {"nested": "doc"},
+                    },
+                    "pipeline": [
+                        {
+                            "$addFields": {
+                                "r_double": "$$k_double",
+                                "r_int32": "$$k_int32",
+                                "r_int64": "$$k_int64",
+                                "r_decimal": "$$k_decimal",
+                                "r_string": "$$k_string",
+                                "r_bool": "$$k_bool",
+                                "r_null": "$$k_null",
+                                "r_date": "$$k_date",
+                                "r_oid": "$$k_oid",
+                                "r_binary": "$$k_binary",
+                                "r_regex": "$$k_regex",
+                                "r_code": "$$k_code",
+                                "r_timestamp": "$$k_timestamp",
+                                "r_minkey": "$$k_minkey",
+                                "r_maxkey": "$$k_maxkey",
+                                "r_arr": "$$k_arr",
+                                "r_doc": "$$k_doc",
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "joined": [
+                    {
+                        "_id": 10,
+                        "r_double": 3.14,
+                        "r_int32": 42,
+                        "r_int64": Int64(2**40),
+                        "r_decimal": Decimal128("123.456"),
+                        "r_string": "hello",
+                        "r_bool": True,
+                        "r_null": None,
+                        "r_date": datetime.datetime(
+                            2024, 6, 15, 12, 0, 0, tzinfo=datetime.timezone.utc
+                        ),
+                        "r_oid": ObjectId("507f1f77bcf86cd799439011"),
+                        "r_binary": b"\x00\x01\x02",
+                        "r_regex": Regex("^abc", 2),
+                        "r_code": Code("function() {}"),
+                        "r_timestamp": Timestamp(1000, 1),
+                        "r_minkey": MinKey(),
+                        "r_maxkey": MaxKey(),
+                        "r_arr": [1, "two", 3],
+                        "r_doc": {"nested": "doc"},
+                    }
+                ],
+            }
+        ],
+        msg=(
+            "$lookup let variable values should support literal constants of every"
+            " BSON type, carried through to the sub-pipeline unchanged"
+        ),
+    ),
+    LookupTestCase(
         "let_mixed_forms_constant_field_expression",
         foreign_docs=[
             {"_id": 10, "c": 5, "f": 7, "e": 3},
@@ -790,10 +878,53 @@ LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS: list[LookupTestCase] = [
         error_code=BAD_VALUE_ERROR,
         msg="$lookup should propagate expression evaluation errors in let values",
     ),
+    LookupTestCase(
+        "let_expr_error_for_some_docs_fails_all",
+        docs=[{"_id": 1, "x": 10}, {"_id": 2, "x": 0}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"inv": {"$divide": [1, "$x"]}},
+                    "pipeline": [{"$addFields": {"val": "$$inv"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        error_code=BAD_VALUE_ERROR,
+        msg="$lookup should fail the entire aggregate when a let expression errors "
+        "for any single outer document",
+    ),
+]
+
+# Property [Correlated Subquery Undefined Variable]: referencing a variable that
+# is not defined in let produces an undefined variable error.
+LOOKUP_CORRELATED_SUBQUERY_UNDEFINED_VAR_TESTS: list[LookupTestCase] = [
+    LookupTestCase(
+        "undefined_var_in_addFields_errors",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"x": "$_id"},
+                    "pipeline": [{"$addFields": {"val": "$$undefined_var"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        error_code=LET_UNDEFINED_VARIABLE_ERROR,
+        msg="$lookup should reject a sub-pipeline reference to a variable that is "
+        "not defined in let",
+    ),
 ]
 
 LOOKUP_CORRELATED_SUBQUERY_ALL_TESTS: list[LookupTestCase] = (
-    LOOKUP_CORRELATED_SUBQUERY_TESTS + LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS
+    LOOKUP_CORRELATED_SUBQUERY_TESTS
+    + LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS
+    + LOOKUP_CORRELATED_SUBQUERY_UNDEFINED_VAR_TESTS
 )
 
 
