@@ -146,9 +146,48 @@ LOOKUP_SELF_JOIN_TESTS: list[LookupTestCase] = [
     ),
 ]
 
+# Property [Correlated Self-Join]: a collection can correlate to itself through a
+# let variable and sub-pipeline, resolving each outer document's field per row.
+LOOKUP_SELF_JOIN_CORRELATED_TESTS: list[LookupTestCase] = [
+    LookupTestCase(
+        "self_join_correlated_by_let_var",
+        docs=[
+            {"_id": 1, "name": "root", "parent": None},
+            {"_id": 2, "name": "child", "parent": 1},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": SELF,
+                    "let": {"pid": "$_id"},
+                    "pipeline": [{"$match": {"$expr": {"$eq": ["$parent", "$$pid"]}}}],
+                    "as": "children",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "name": "root",
+                "parent": None,
+                "children": [{"_id": 2, "name": "child", "parent": 1}],
+            },
+            {"_id": 2, "name": "child", "parent": 1, "children": []},
+        ],
+        msg=(
+            "$lookup correlated self-join should find each document's children"
+            " where the foreign parent equals the outer _id"
+        ),
+    ),
+]
+
+LOOKUP_SELF_JOIN_ALL_TESTS: list[LookupTestCase] = (
+    LOOKUP_SELF_JOIN_TESTS + LOOKUP_SELF_JOIN_CORRELATED_TESTS
+)
+
 
 @pytest.mark.aggregate
-@pytest.mark.parametrize("test_case", pytest_params(LOOKUP_SELF_JOIN_TESTS))
+@pytest.mark.parametrize("test_case", pytest_params(LOOKUP_SELF_JOIN_ALL_TESTS))
 def test_lookup_self_join(collection, test_case: LookupTestCase):
     """Test $lookup self-join behavior."""
     collection.database.create_collection(collection.name)
