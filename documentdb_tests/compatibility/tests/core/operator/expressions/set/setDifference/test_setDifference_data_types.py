@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -465,6 +465,20 @@ SETDIFFERENCE_BSON_ELEMENT_TESTS: list[ExpressionTestCase] = [
         expression={"$setDifference": ["$arr1", "$arr2"]},
         expected=[Regex("abc", "i")],
         msg="Should treat regex with different flags as distinct elements",
+    ),
+    ExpressionTestCase(
+        "javascript_remove",
+        doc={"arr1": [Code("function(){}"), Code("other()")], "arr2": [Code("function(){}")]},
+        expression={"$setDifference": ["$arr1", "$arr2"]},
+        expected=[Code("other()")],
+        msg="Should handle javascript code element comparison correctly",
+    ),
+    ExpressionTestCase(
+        "javascript_dedup",
+        doc={"arr1": [Code("function(){}"), Code("function(){}")], "arr2": []},
+        expression={"$setDifference": ["$arr1", "$arr2"]},
+        expected=[Code("function(){}")],
+        msg="Should deduplicate identical javascript code elements",
     ),
     ExpressionTestCase(
         "special_values_remove_null_nan",

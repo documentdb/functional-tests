@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -151,6 +151,13 @@ SETISSUBSET_ELEMENT_TYPE_TESTS: list[ExpressionTestCase] = [
         expression={"$setIsSubset": ["$a", "$b"]},
         expected=True,
         msg="$setIsSubset should resolve membership for maxkey elements",
+    ),
+    ExpressionTestCase(
+        "javascript",
+        doc={"a": [Code("function(){}")], "b": [Code("function(){}"), Code("other()")]},
+        expression={"$setIsSubset": ["$a", "$b"]},
+        expected=True,
+        msg="$setIsSubset should resolve membership for javascript code elements",
     ),
     ExpressionTestCase(
         "nested_arrays",
