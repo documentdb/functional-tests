@@ -13,8 +13,8 @@ from documentdb_tests.compatibility.tests.system.administration.commands.autoCom
     ensure_autocompact_idle,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
-from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, OBJECT_IS_BUSY_ERROR
+from documentdb_tests.framework.executor import execute_admin_with_retry_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 from documentdb_tests.framework.test_constants import (
@@ -285,7 +285,10 @@ def test_autoCompact_fstmb_bounds(database_client, collection, test):
     # Ensure autoCompact is idle first: a leftover config from a prior test
     # would otherwise conflict.
     ensure_autocompact_idle(collection)
-    result = execute_admin_command(collection, test.build_command(ctx))
+    # Tolerate the transient busy state while a prior compaction winds down.
+    result = execute_admin_with_retry_command(
+        collection, test.build_command(ctx), retry_code=OBJECT_IS_BUSY_ERROR
+    )
     assertResult(
         result,
         expected=test.build_expected(ctx),
