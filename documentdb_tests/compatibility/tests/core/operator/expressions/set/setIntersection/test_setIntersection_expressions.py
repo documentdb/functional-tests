@@ -95,6 +95,13 @@ SETINTERSECTION_INPUT_SHAPE_TESTS: list[ExpressionTestCase] = [
         expected=[2, 3],
         msg="$setIntersection should resolve CURRENT system variable for array field",
     ),
+    ExpressionTestCase(
+        "operand_array_of_field_refs",
+        doc={"x": 1, "y": 2},
+        expression={"$setIntersection": [["$x", "$y"], [2, 3]]},
+        expected=[2],
+        msg="$setIntersection should resolve an operand array whose elements are field references",
+    ),
 ]
 
 

@@ -100,6 +100,13 @@ SETEQUALS_INPUT_SHAPE_TESTS: list[ExpressionTestCase] = [
         expected=True,
         msg="$setEquals should resolve the CURRENT system variable for an array field",
     ),
+    ExpressionTestCase(
+        "operand_array_of_field_refs",
+        doc={"x": 1, "y": 2},
+        expression={"$setEquals": [["$x", "$y"], [1, 2]]},
+        expected=True,
+        msg="$setEquals should resolve an operand array whose elements are field references",
+    ),
 ]
 
 

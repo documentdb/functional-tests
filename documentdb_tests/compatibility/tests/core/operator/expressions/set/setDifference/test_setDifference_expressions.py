@@ -101,6 +101,13 @@ SETDIFFERENCE_INPUT_SHAPE_TESTS: list[ExpressionTestCase] = [
         expected=[1],
         msg="Should resolve CURRENT system variable for array field",
     ),
+    ExpressionTestCase(
+        "operand_array_of_field_refs",
+        doc={"x": 1, "y": 2},
+        expression={"$setDifference": [["$x", "$y"], [2]]},
+        expected=[1],
+        msg="Should resolve an operand array whose elements are field references",
+    ),
 ]
 
 
