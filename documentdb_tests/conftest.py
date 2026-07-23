@@ -181,6 +181,28 @@ def pytest_runtest_setup(item):
             pytest.skip(marker.kwargs.get("reason", "crashes the server"))
 
 
+@pytest.hookimpl(optionalhook=True)
+def pytest_json_runtest_metadata(item, call):
+    """Record the xfail reason in the JSON report so it isn't lost.
+
+    The reason lives on the marker but is absent from the default JSON report.
+    Keying off the resolved ``xfail`` marker (added in setup above for the
+    matching engine) captures it only when xfail is actually in effect, and
+    covers both the xfailed test and a strict-xpass that became a failure.
+
+    ``optionalhook`` so this is ignored when pytest-json-report isn't active
+    (e.g. a plain unit-test run without --json-report), rather than erroring as
+    an unknown hook.
+    """
+    if call.when != "setup":
+        return {}
+    marker = item.get_closest_marker("xfail")
+    if marker is None:
+        return {}
+    reason = marker.kwargs.get("reason")
+    return {"xfail_reason": reason} if reason else {}
+
+
 @pytest.fixture(scope="session")
 def engine_client(request):
     """
