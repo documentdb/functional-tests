@@ -8,7 +8,13 @@ Presentation only; no selection logic lives here.
 
 from typing import Any, Dict, List
 
-from .report_content import VERDICT_PASS, determine_verdict
+from .report_content import (
+    NEEDS_ATTENTION_CAP,
+    VERDICT_PASS,
+    cap_items,
+    determine_verdict,
+    group_needs_attention,
+)
 
 
 def _verdict_heading(analysis: Dict[str, Any]) -> str:
@@ -56,8 +62,55 @@ def _breakdown_lines(reconciliation: Dict[str, Any]) -> List[str]:
     return lines
 
 
+def _needs_attention_lines(analysis: Dict[str, Any]) -> List[str]:
+    """
+    The failures and errors a human must act on, grouped by failure type.
+
+    Each test is a collapsible ``<details>`` whose summary is the one-line
+    identity and whose body is the real traceback, so the section stays scannable
+    while the full detail is one click away. A mass failure is capped so it can't
+    bury the report or exceed the step-summary size limit.
+    """
+    grouped = group_needs_attention(analysis)
+    if not grouped:
+        return []
+
+    total = sum(len(v) for v in grouped.values())
+    lines = ["", f"### Needs attention ({total})", ""]
+
+    for failure_type in sorted(grouped):
+        tests = grouped[failure_type]
+        lines.append(f"#### {failure_type} ({len(tests)})")
+        lines.append("")
+        shown, omitted = cap_items(tests)
+        for test in shown:
+            lines.extend(_failure_details(test))
+        if omitted:
+            lines.append(f"_… and {omitted} more not shown (cap {NEEDS_ATTENTION_CAP})._")
+            lines.append("")
+    return lines
+
+
+def _failure_details(test: Dict[str, Any]) -> List[str]:
+    """One collapsible entry: summary line + traceback in a code block."""
+    name = test.get("name", "")
+    outcome = test.get("outcome", "")
+    traceback = test.get("error") or "(no traceback captured)"
+    return [
+        "<details>",
+        f"<summary>{outcome}: <code>{name}</code></summary>",
+        "",
+        "```",
+        traceback.rstrip(),
+        "```",
+        "</details>",
+        "",
+    ]
+
+
 def render(analysis: Dict[str, Any]) -> str:
     """Render the full markdown report body."""
     lines = [_verdict_heading(analysis), ""]
     lines.extend(_breakdown_lines(analysis.get("reconciliation", {})))
+    lines.extend(_needs_attention_lines(analysis))
     return "\n".join(lines) + "\n"

@@ -3,9 +3,13 @@
 import pytest
 
 from documentdb_tests.compatibility.result_analyzer.report_content import (
+    NEEDS_ATTENTION_CAP,
     VERDICT_FAIL,
     VERDICT_PASS,
+    cap_items,
     determine_verdict,
+    group_needs_attention,
+    needs_attention,
 )
 
 
@@ -48,3 +52,43 @@ class TestDetermineVerdict:
         # Empty reconciliation -> nothing executed -> FAIL.
         verdict, reason = determine_verdict({})
         assert verdict == VERDICT_FAIL and "no tests ran" in reason
+
+
+@pytest.mark.unit
+class TestNeedsAttention:
+    def _analysis(self):
+        return {
+            "tests": [
+                {"name": "a", "outcome": "PASS"},
+                {"name": "b", "outcome": "FAIL", "failure_type": "RESULT_MISMATCH"},
+                {"name": "c", "outcome": "ERROR", "failure_type": "UNKNOWN"},
+                {"name": "d", "outcome": "SKIPPED"},
+                {"name": "e", "outcome": "XFAIL"},
+            ]
+        }
+
+    def test_includes_failures_and_errors_only(self):
+        names = {t["name"] for t in needs_attention(self._analysis())}
+        # b (FAIL) and c (ERROR); not the pass/skip/xfail.
+        assert names == {"b", "c"}
+
+    def test_grouped_by_failure_type(self):
+        grouped = group_needs_attention(self._analysis())
+        assert set(grouped) == {"RESULT_MISMATCH", "UNKNOWN"}
+        assert grouped["RESULT_MISMATCH"][0]["name"] == "b"
+        assert grouped["UNKNOWN"][0]["name"] == "c"
+
+
+@pytest.mark.unit
+class TestCapItems:
+    def test_under_cap_keeps_all(self):
+        kept, omitted = cap_items([1, 2, 3], cap=5)
+        assert kept == [1, 2, 3] and omitted == 0
+
+    def test_over_cap_trims_and_counts(self):
+        kept, omitted = cap_items(list(range(30)), cap=25)
+        assert len(kept) == 25 and omitted == 5
+
+    def test_default_cap(self):
+        kept, omitted = cap_items(list(range(NEEDS_ATTENTION_CAP + 3)))
+        assert len(kept) == NEEDS_ATTENTION_CAP and omitted == 3

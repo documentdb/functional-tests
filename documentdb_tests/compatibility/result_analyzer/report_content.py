@@ -59,6 +59,44 @@ def group_failures_by_type(analysis: Dict[str, Any]) -> Dict[str, list]:
     return grouped
 
 
+# Above this many needs-attention items, the report lists a capped sample rather
+# than every traceback. A mass failure would otherwise bury the summary and blow
+# past the step-summary size limit.
+NEEDS_ATTENTION_CAP = 25
+
+
+def needs_attention(analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Return the tests a human must act on: failures and errors.
+
+    A FAIL reached a verdict and was wrong; an ERROR never reached one (a crash,
+    usually in a fixture). Both need attention, so they're surfaced together —
+    each still tagged with its outcome so a renderer can distinguish them.
+    """
+    return [t for t in analysis["tests"] if t["outcome"] in ("FAIL", "ERROR")]
+
+
+def group_needs_attention(analysis: Dict[str, Any]) -> Dict[str, list]:
+    """Group needs-attention tests by failure_type, for sectioned display."""
+    grouped: Dict[str, list] = {}
+    for test in needs_attention(analysis):
+        ft = test.get("failure_type", "UNKNOWN")
+        grouped.setdefault(ft, []).append(test)
+    return grouped
+
+
+def cap_items(items: List[Any], cap: int = NEEDS_ATTENTION_CAP) -> Tuple[List[Any], int]:
+    """
+    Trim a list to at most ``cap`` items.
+
+    Returns the kept items and the number omitted, so a renderer can show
+    "N more not shown" instead of an overwhelming wall of tracebacks.
+    """
+    if len(items) <= cap:
+        return items, 0
+    return items[:cap], len(items) - cap
+
+
 def tag_rows(analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Return per-tag rows sorted worst-pass-rate-first, ready for tabulation."""
     rows = []
