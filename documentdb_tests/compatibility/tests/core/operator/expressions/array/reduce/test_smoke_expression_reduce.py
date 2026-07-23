@@ -38,4 +38,4 @@ def test_smoke_expression_reduce(collection):
     )
 
     expected = [{"_id": 1, "sum": 6}, {"_id": 2, "sum": 15}]
-    assertSuccess(result, expected, msg="Should support $reduce expression")
+    assertSuccess(result, expected, "$reduce should sum array elements in $project")
