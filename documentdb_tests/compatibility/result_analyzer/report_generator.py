@@ -9,7 +9,7 @@ re-exported here for backward compatibility with existing imports.
 
 from typing import Any, Callable, Dict
 
-from . import render_json, render_text
+from . import render_json, render_markdown, render_text
 from .render_text import print_summary
 
 __all__ = ["generate_report", "print_summary"]
@@ -19,6 +19,7 @@ __all__ = ["generate_report", "print_summary"]
 _RENDERERS: Dict[str, Callable[[Dict[str, Any]], str]] = {
     "json": render_json.render,
     "text": render_text.render,
+    "markdown": render_markdown.render,
 }
 
 

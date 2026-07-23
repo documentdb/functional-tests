@@ -1,13 +1,52 @@
 """
 Format-agnostic report content.
 
-Decides *what* a report should say — which tests belong in each section —
-independent of how it is drawn. Renderers (text, markdown) consume these results
-and are responsible only for presentation, so the selection logic lives in
-exactly one place.
+Decides *what* a report should say — the verdict, and which tests belong in each
+section — independent of how it is drawn. Renderers (text, markdown) consume
+these results and are responsible only for presentation, so the selection logic
+lives in exactly one place.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
+
+VERDICT_PASS = "PASS"
+VERDICT_FAIL = "FAIL"
+
+
+def determine_verdict(reconciliation: Dict[str, Any]) -> Tuple[str, str]:
+    """
+    Decide the binary run verdict and a one-line reason.
+
+    Anything that isn't a clean, meaningful, all-passing run is a FAIL; the
+    breakdown section carries the detail. The checks run in priority order so
+    the most serious explanation wins:
+
+    1. A raw ``xpassed`` means ``xfail_strict`` wasn't applied, so the run's
+       results can't be trusted — flag it as invalid.
+    2. No test reached a verdict (all deselected/skipped) — a run with nothing to
+       show for it is treated as a failure, not a silent pass.
+    3. Any failure or error.
+    Otherwise PASS.
+
+    Args:
+        reconciliation: The reconciliation counts from the analysis.
+
+    Returns:
+        A ``(verdict, reason)`` pair; ``reason`` is empty on PASS.
+    """
+    executed = (
+        reconciliation.get("passed", 0)
+        + reconciliation.get("failed", 0)
+        + reconciliation.get("error", 0)
+    )
+
+    if reconciliation.get("xpassed", 0) > 0:
+        return VERDICT_FAIL, "results may be invalid — strict xfail not applied"
+    if executed == 0:
+        return VERDICT_FAIL, "no tests ran"
+    if reconciliation.get("failed", 0) or reconciliation.get("error", 0):
+        return VERDICT_FAIL, "tests failed"
+    return VERDICT_PASS, ""
 
 
 def group_failures_by_type(analysis: Dict[str, Any]) -> Dict[str, list]:
