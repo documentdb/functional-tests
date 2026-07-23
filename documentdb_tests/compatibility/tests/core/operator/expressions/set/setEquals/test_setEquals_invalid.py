@@ -236,11 +236,25 @@ SETEQUALS_FIELD_NON_ARRAY_TESTS: list[ExpressionTestCase] = [
         msg="$setEquals should error when a field resolves to int",
     ),
     ExpressionTestCase(
+        "field_resolves_int_second",
+        doc={"a": 5},
+        expression={"$setEquals": [[1], "$a"]},
+        error_code=SET_EQUALS_RUNTIME_NON_ARRAY_ERROR,
+        msg="$setEquals should error when a second-position field resolves to int",
+    ),
+    ExpressionTestCase(
         "field_resolves_string",
         doc={"a": "hello"},
         expression={"$setEquals": ["$a", [1]]},
         error_code=SET_EQUALS_RUNTIME_NON_ARRAY_ERROR,
         msg="$setEquals should error when a field resolves to string",
+    ),
+    ExpressionTestCase(
+        "field_resolves_string_second",
+        doc={"a": "hello"},
+        expression={"$setEquals": [[1], "$a"]},
+        error_code=SET_EQUALS_RUNTIME_NON_ARRAY_ERROR,
+        msg="$setEquals should error when a second-position field resolves to string",
     ),
     ExpressionTestCase(
         "field_resolves_object",
@@ -250,11 +264,25 @@ SETEQUALS_FIELD_NON_ARRAY_TESTS: list[ExpressionTestCase] = [
         msg="$setEquals should error when a field resolves to object",
     ),
     ExpressionTestCase(
+        "field_resolves_object_second",
+        doc={"a": {"b": 1}},
+        expression={"$setEquals": [[1], "$a"]},
+        error_code=SET_EQUALS_RUNTIME_NON_ARRAY_ERROR,
+        msg="$setEquals should error when a second-position field resolves to object",
+    ),
+    ExpressionTestCase(
         "field_resolves_null",
         doc={"a": None},
         expression={"$setEquals": ["$a", [1]]},
         error_code=SET_EQUALS_RUNTIME_NON_ARRAY_ERROR,
         msg="$setEquals should error when a field resolves to null",
+    ),
+    ExpressionTestCase(
+        "field_resolves_null_second",
+        doc={"a": None},
+        expression={"$setEquals": [[1], "$a"]},
+        error_code=SET_EQUALS_RUNTIME_NON_ARRAY_ERROR,
+        msg="$setEquals should error when a second-position field resolves to null",
     ),
 ]
 
