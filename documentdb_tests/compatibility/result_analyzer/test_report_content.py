@@ -9,7 +9,10 @@ from documentdb_tests.compatibility.result_analyzer.report_content import (
     cap_items,
     determine_verdict,
     group_needs_attention,
+    known_gaps,
     needs_attention,
+    pass_rate,
+    skipped_tests,
 )
 
 
@@ -92,3 +95,58 @@ class TestCapItems:
     def test_default_cap(self):
         kept, omitted = cap_items(list(range(NEEDS_ATTENTION_CAP + 3)))
         assert len(kept) == NEEDS_ATTENTION_CAP and omitted == 3
+
+
+@pytest.mark.unit
+class TestPassRate:
+    def test_all_passed_is_100(self):
+        assert pass_rate({"passed": 50, "failed": 0, "error": 0}) == "100%"
+
+    def test_never_100_when_a_failure_exists(self):
+        # 12 failures diluted by ~38k passes must NOT round up to 100%.
+        assert pass_rate({"passed": 37855, "failed": 12, "error": 0}) == "99.9%"
+
+    def test_never_100_truncates_not_rounds(self):
+        # 9999/10000 = 99.99% -> truncates to 99.9%, never 100%.
+        assert pass_rate({"passed": 9999, "failed": 1, "error": 0}) == "99.9%"
+
+    def test_error_counts_against_rate(self):
+        assert pass_rate({"passed": 9, "failed": 0, "error": 1}) == "90.0%"
+
+    def test_nothing_ran_is_dash(self):
+        assert pass_rate({"passed": 0, "failed": 0, "error": 0, "skipped": 5}) == "—"
+
+
+@pytest.mark.unit
+class TestKnownGaps:
+    def test_returns_xfailed_with_reasons(self):
+        analysis = {
+            "tests": [
+                {"name": "a", "outcome": "PASS"},
+                {"name": "b", "outcome": "XFAIL", "xfail_reason": "server bug #95"},
+                {"name": "c", "outcome": "FAIL", "failure_type": "RESULT_MISMATCH"},
+            ]
+        }
+        gaps = known_gaps(analysis)
+        assert gaps == [{"name": "b", "reason": "server bug #95"}]
+
+    def test_missing_reason_is_empty_string(self):
+        analysis = {"tests": [{"name": "b", "outcome": "XFAIL"}]}
+        assert known_gaps(analysis) == [{"name": "b", "reason": ""}]
+
+
+@pytest.mark.unit
+class TestSkippedTests:
+    def test_returns_skipped_with_reasons(self):
+        analysis = {
+            "tests": [
+                {"name": "a", "outcome": "PASS"},
+                {"name": "b", "outcome": "SKIPPED", "skip_reason": "requires auditing"},
+                {"name": "c", "outcome": "XFAIL", "xfail_reason": "gap"},
+            ]
+        }
+        assert skipped_tests(analysis) == [{"name": "b", "reason": "requires auditing"}]
+
+    def test_missing_reason_is_empty_string(self):
+        analysis = {"tests": [{"name": "b", "outcome": "SKIPPED"}]}
+        assert skipped_tests(analysis) == [{"name": "b", "reason": ""}]

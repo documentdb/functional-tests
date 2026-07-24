@@ -8,6 +8,7 @@ from documentdb_tests.compatibility.result_analyzer.analyzer import (
     categorize_outcome,
     extract_exception_type,
     extract_failure_tag,
+    extract_skip_reason,
     feature_path,
     group_by_feature,
     is_infrastructure_error,
@@ -75,6 +76,30 @@ class TestExtractFailureTag:
     def test_reads_strict_xpass_from_failing_phase(self):
         result = {"call": {"outcome": "failed", "longrepr": "[XPASS(strict)] stale marker"}}
         assert extract_failure_tag(result) == "XPASS_STRICT"
+
+
+# extract_skip_reason.
+
+
+@pytest.mark.unit
+class TestExtractSkipReason:
+    def test_reads_reason_from_setup_longrepr(self):
+        result = {
+            "setup": {
+                "outcome": "skipped",
+                "longrepr": "('/path/test_x.py', 17, 'Skipped: Requires auditing to be enabled')",
+            }
+        }
+        assert extract_skip_reason(result) == "Requires auditing to be enabled"
+
+    def test_no_setup_is_empty(self):
+        assert extract_skip_reason({}) == ""
+
+    def test_non_string_longrepr_is_empty(self):
+        assert extract_skip_reason({"setup": {"longrepr": None}}) == ""
+
+    def test_longrepr_without_skip_marker_is_empty(self):
+        assert extract_skip_reason({"setup": {"longrepr": "some other text"}}) == ""
 
 
 # --- extract_exception_type ---
@@ -310,3 +335,25 @@ class TestGroupByFeature:
     def test_empty_input(self):
         tree = group_by_feature([])
         assert tree["children"] == {} and tree["counts"]["passed"] == 0
+
+    def test_deselected_tests_appear_with_reasons(self):
+        base = "documentdb_tests/compatibility/tests/"
+        deselected = {
+            base + "changeStreams/insert/test_x.py::t": {"replica_set": True},
+            base + "changeStreams/update/test_y.py::t": {"replica_set": True},
+        }
+        tree = group_by_feature([], deselected)
+        cs = tree["children"]["changeStreams"]
+        # Deselected tests are counted separately (not as passed) and their
+        # required capability is recorded for display.
+        assert cs["counts"]["deselected"] == 2
+        assert cs["counts"]["passed"] == 0
+        assert cs["requires"] == {"replica_set"}
+
+    def test_deselected_and_run_tests_coexist(self):
+        base = "documentdb_tests/compatibility/tests/"
+        tests = [{"name": base + "core/operator/test_a.py::t", "outcome": TestOutcome.PASS}]
+        deselected = {base + "changeStreams/insert/test_x.py::t": {"replica_set": True}}
+        tree = group_by_feature(tests, deselected)
+        assert tree["children"]["core"]["counts"]["passed"] == 1
+        assert tree["children"]["changeStreams"]["counts"]["deselected"] == 1

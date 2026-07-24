@@ -144,6 +144,26 @@ def extract_failure_tag(test_result: Dict[str, Any]) -> str:
     return ""
 
 
+def extract_skip_reason(test_result: Dict[str, Any]) -> str:
+    """
+    Extract the reason a test was skipped, from its setup-phase longrepr.
+
+    pytest records a skip as ``('<path>', <lineno>, 'Skipped: <reason>')`` in the
+    setup phase's longrepr. Pull out the reason text.
+
+    Args:
+        test_result: Full test result dict from pytest JSON
+
+    Returns:
+        The reason, or empty string if none is recorded.
+    """
+    longrepr = (test_result.get("setup") or {}).get("longrepr", "")
+    if not isinstance(longrepr, str):
+        return ""
+    match = re.search(r"Skipped:\s*(.*?)'\)\s*$", longrepr)
+    return match.group(1) if match else ""
+
+
 def is_infrastructure_error(test_result: Dict[str, Any]) -> bool:
     """
     Check if error is infrastructure-related based on exception type.
@@ -276,7 +296,9 @@ def feature_path(nodeid: str) -> List[str]:
     return relative.split("/")
 
 
-def group_by_feature(tests: List[Dict[str, Any]]) -> Dict[str, Any]:
+def group_by_feature(
+    tests: List[Dict[str, Any]], deselected: Optional[Dict[str, Dict[str, bool]]] = None
+) -> Dict[str, Any]:
     """
     Aggregate per-test outcomes into a nested tree keyed by feature path.
 
@@ -287,27 +309,42 @@ def group_by_feature(tests: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     Args:
         tests: The per-test detail dicts (each with ``name`` and ``outcome``).
+        deselected: Optional mapping of deselected nodeid -> the requirements the
+            target didn't meet. Deselected tests have no outcome, so they're
+            counted under a separate ``deselected`` tally and their required
+            capability names are collected into each node's ``requires`` set,
+            letting the tree show — and explain — areas not applicable here.
 
     Returns:
-        The root node: ``{"counts": {...}, "children": {component: node, ...}}``.
+        The root node:
+        ``{"counts": {...}, "requires": set(), "children": {component: node}}``.
     """
 
     def _new_node() -> Dict[str, Any]:
-        return {"counts": {key: 0 for key in _PER_TEST_OUTCOME_KEYS}, "children": {}}
+        counts = dict.fromkeys(_PER_TEST_OUTCOME_KEYS, 0)
+        counts["deselected"] = 0
+        return {"counts": counts, "requires": set(), "children": {}}
+
+    def _credit(nodeid: str, counter_key: str, requires: Optional[List[str]] = None) -> None:
+        components = feature_path(nodeid)
+        node = root
+        node["counts"][counter_key] += 1
+        node["requires"].update(requires or [])
+        for component in components:
+            node = node["children"].setdefault(component, _new_node())
+            node["counts"][counter_key] += 1
+            node["requires"].update(requires or [])
 
     root = _new_node()
     for test in tests:
         counter_key = OUTCOME_TO_KEY.get(test.get("outcome", ""))
         if counter_key is None:
             continue
-        components = feature_path(test.get("name", ""))
-        # Credit the count to the root and to every node along the path, so each
+        # Credit the count to the root and every node along the path, so each
         # node's counts include all tests beneath it.
-        node = root
-        node["counts"][counter_key] += 1
-        for component in components:
-            node = node["children"].setdefault(component, _new_node())
-            node["counts"][counter_key] += 1
+        _credit(test.get("name", ""), counter_key)
+    for nodeid, unmet in (deselected or {}).items():
+        _credit(nodeid, "deselected", requires=list(unmet.keys()))
     return root
 
 
@@ -431,6 +468,26 @@ class ResultAnalyzer:
         # Filter to only registered markers
         return [m for m in markers if m in registered_markers]
 
+    @staticmethod
+    def _load_deselected(json_report_path: str) -> Dict[str, Dict[str, bool]]:
+        """
+        Return the report's deselected sidecar: nodeid -> unmet requirements.
+
+        The sidecar (``<report>.deselected.json``) is written at collection time
+        (see conftest); it maps each deselected nodeid to the requirements the
+        target didn't meet. Absent sidecar (older runs, or no deselection) yields
+        an empty mapping.
+        """
+        sidecar = f"{json_report_path}.deselected.json"
+        if not Path(sidecar).exists():
+            return {}
+        try:
+            with open(sidecar) as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+        except (OSError, ValueError):
+            return {}
+
     def analyze_results(self, json_report_path: str) -> Dict[str, Any]:
         """
         Analyze pytest JSON report and generate categorized results.
@@ -472,6 +529,11 @@ class ResultAnalyzer:
         # Load JSON report
         with open(json_report_path, "r") as f:
             report = json.load(f)
+
+        # Deselected tests are dropped before the run, so they aren't in the
+        # report. A sidecar written at collection time (if present) records which
+        # ones and why, letting the feature tree show areas not applicable here.
+        deselected_nodeids = self._load_deselected(json_report_path)
 
         # Reconciliation is derived from pytest's own summary, which counts
         # deselected/errored tests that the per-test loop below never sees.
@@ -541,6 +603,18 @@ class ResultAnalyzer:
                 else:
                     test_detail["failure_type"] = extract_failure_tag(test) or "UNKNOWN"
 
+            # An xfailed test is a documented incompatibility; carry its reason
+            # (recorded into the report metadata by a conftest hook) so it can be
+            # listed as a known gap.
+            if test_outcome == TestOutcome.XFAIL:
+                metadata = test.get("metadata") or {}
+                test_detail["xfail_reason"] = metadata.get("xfail_reason", "")
+
+            # A skipped test was deliberately not run; carry its reason so the
+            # report can explain why, rather than showing a bare count.
+            if test_outcome == TestOutcome.SKIPPED:
+                test_detail["skip_reason"] = extract_skip_reason(test)
+
             tests_details.append(test_detail)
 
         # Calculate pass rates for each tag
@@ -564,5 +638,5 @@ class ResultAnalyzer:
             "by_tag": by_tag_with_rates,
             "tests": tests_details,
             "reconciliation": reconciliation,
-            "by_feature": group_by_feature(tests_details),
+            "by_feature": group_by_feature(tests_details, deselected_nodeids),
         }

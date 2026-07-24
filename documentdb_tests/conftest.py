@@ -356,6 +356,29 @@ def register_db_cleanup(engine_client):
             fixtures.cleanup_database(engine_client, name)
 
 
+def _write_deselected_sidecar(config, deselected_reasons: dict) -> None:
+    """
+    Record why tests were deselected, alongside the JSON report.
+
+    Deselected tests are dropped before the run, so they never appear in the
+    pytest JSON report. Writing a sidecar next to it (``<report>.deselected.json``)
+    lets the result analyzer explain the collected-vs-executed gap — e.g. which
+    features were not applicable to this target — rather than showing a bare
+    count. No-op when the JSON report isn't enabled.
+    """
+    report_path = getattr(config.option, "json_report_file", None)
+    if not report_path:
+        return
+    import json
+
+    sidecar = f"{report_path}.deselected.json"
+    try:
+        with open(sidecar, "w") as f:
+            json.dump(deselected_reasons, f)
+    except OSError:
+        pass
+
+
 def pytest_collection_modifyitems(session, config, items):
     """
     Combined pytest hook to validate test structure, format, and framework invariants.
@@ -377,6 +400,8 @@ def pytest_collection_modifyitems(session, config, items):
     capabilities_by_target: dict[str, frozenset[str]] = {}
     kept: list = []
     requires_deselected: list = []
+    # nodeid -> the requirements the target did not meet, for the report sidecar.
+    deselected_reasons: dict[str, dict] = {}
     for item in items:
         marker = item.get_closest_marker(REQUIRES_MARKER)
         if marker is None or not marker.kwargs:
@@ -392,11 +417,13 @@ def pytest_collection_modifyitems(session, config, items):
             capabilities_by_target[target.connection_string] = capabilities
         if unmet_requirements(marker.kwargs, capabilities):
             requires_deselected.append(item)
+            deselected_reasons[item.nodeid] = unmet_requirements(marker.kwargs, capabilities)
         else:
             kept.append(item)
     if requires_deselected:
         config.hook.pytest_deselected(items=requires_deselected)
         items[:] = kept
+        _write_deselected_sidecar(config, deselected_reasons)
 
     # Deselect no_parallel tests when running under xdist
     is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")

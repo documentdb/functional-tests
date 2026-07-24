@@ -7,6 +7,7 @@ these results and are responsible only for presentation, so the selection logic
 lives in exactly one place.
 """
 
+import math
 from typing import Any, Dict, List, Tuple
 
 VERDICT_PASS = "PASS"
@@ -95,6 +96,57 @@ def cap_items(items: List[Any], cap: int = NEEDS_ATTENTION_CAP) -> Tuple[List[An
     if len(items) <= cap:
         return items, 0
     return items[:cap], len(items) - cap
+
+
+def known_gaps(analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Return the xfailed tests — documented incompatibilities — with their reasons.
+
+    These are expected, not regressions, so they're reported separately from
+    needs-attention. Each entry carries the test name and its recorded reason.
+    """
+    gaps = []
+    for test in analysis["tests"]:
+        if test["outcome"] == "XFAIL":
+            gaps.append({"name": test["name"], "reason": test.get("xfail_reason", "")})
+    return gaps
+
+
+def skipped_tests(analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Return the skipped tests with their reasons.
+
+    A skip is a deliberate "not run here" (e.g. not applicable to this target),
+    so — like known gaps — it's worth explaining rather than showing as a bare
+    count. Each entry carries the test name and its recorded reason.
+    """
+    skipped = []
+    for test in analysis["tests"]:
+        if test["outcome"] == "SKIPPED":
+            skipped.append({"name": test["name"], "reason": test.get("skip_reason", "")})
+    return skipped
+
+
+def pass_rate(counts: Dict[str, Any]) -> str:
+    """
+    Format a node's pass rate over verdict-bearing outcomes.
+
+    Only a genuinely clean node (no failures or errors) may read 100%. When
+    something failed, the rate is truncated rather than rounded, so a handful of
+    failures diluted by tens of thousands of passes can't round up to a
+    misleading 100%.
+
+    Returns a percent string, or "—" when nothing ran.
+    """
+    passed = counts.get("passed", 0)
+    bad = counts.get("failed", 0) + counts.get("error", 0)
+    counted = passed + bad
+    if counted == 0:
+        return "—"
+    if bad == 0:
+        return "100%"
+    # Truncate to 1dp so a near-perfect-but-not-clean node never shows 100%.
+    return f"{math.floor(passed / counted * 1000) / 10}%"
 
 
 def tag_rows(analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
