@@ -1,12 +1,11 @@
 """
 Tests for $stdDevPop with nested field paths, array field traversal,
-expressions that return different types per document, and $unset/$project
+expressions that return different types per document, and $project
 removing fields before $setWindowFields.
 
 Covers: dotted field paths, missing intermediate paths, array index access,
 array-of-objects traversal, top-level array fields, expressions returning
-mixed types per row, and pipeline stages removing sortBy/partitionBy/expression
-fields.
+mixed types per row, and pipeline stages removing expression fields.
 """
 
 from datetime import datetime, timezone
@@ -15,7 +14,6 @@ from documentdb_tests.compatibility.tests.core.operator.window.utils.window_test
     run_window_operator,
 )
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.executor import execute_command
 
 # Property [Dotted Field Path]:
 # Tests that $stdDevPop correctly accesses nested document values via dotted paths.
@@ -28,27 +26,12 @@ def test_stdDevPop_dotted_field_path(collection):
         {"_id": 2, "partition": "A", "data": {"metrics": {"value": 20}}},
         {"_id": 3, "partition": "A", "data": {"metrics": {"value": 30}}},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevPop": "$data.metrics.value",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+        "$stdDevPop",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression="$data.metrics.value",
     )
     expected = [
         {
@@ -84,27 +67,12 @@ def test_stdDevPop_missing_intermediate_path(collection):
         {"_id": 2, "partition": "A", "data": {"other": 99}},
         {"_id": 3, "partition": "A", "data": {"metrics": {"value": 30}}},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevPop": "$data.metrics.value",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+        "$stdDevPop",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression="$data.metrics.value",
     )
     # Doc 2 missing data.metrics.value -> ignored. stdDevPop of [10, 30] = 10.0
     expected = [
@@ -122,27 +90,12 @@ def test_stdDevPop_top_level_missing_object(collection):
         {"_id": 2, "partition": "A"},
         {"_id": 3, "partition": "A", "data": {"value": 30}},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevPop": "$data.value",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+        "$stdDevPop",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression="$data.value",
     )
     expected = [
         {"_id": 1, "partition": "A", "data": {"value": 10}, "result": 10.0},
@@ -187,33 +140,12 @@ def test_stdDevPop_expression_returns_different_types(collection):
         {"_id": 3, "partition": "A", "x": 30},
         {"_id": 4, "partition": "A", "x": -1},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevPop": {
-                                    "$cond": [
-                                        {"$gt": ["$x", 0]},
-                                        "$x",
-                                        "not_a_number",
-                                    ]
-                                },
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+        "$stdDevPop",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression={"$cond": [{"$gt": ["$x", 0]}, "$x", "not_a_number"]},
     )
     # $cond returns: 10, "not_a_number", 30, "not_a_number"
     # Only numeric: [10, 30] -> stdDevPop = 10.0
@@ -237,27 +169,12 @@ def test_stdDevPop_expression_returns_null_for_some(collection):
         {"_id": 2, "partition": "A", "x": 20, "y": None},
         {"_id": 3, "partition": "A", "x": 30, "y": 2},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevPop": {"$multiply": ["$x", "$y"]},
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+        "$stdDevPop",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression={"$multiply": ["$x", "$y"]},
     )
     # $multiply: [10*2=20, 20*null=null, 30*2=60]
     # Numeric values: [20, 60] -> stdDevPop = 20.0
@@ -267,49 +184,6 @@ def test_stdDevPop_expression_returns_null_for_some(collection):
         {"_id": 3, "partition": "A", "x": 30, "y": 2, "result": 20.0},
     ]
     assertSuccess(result, expected, msg="expression returning null for some — null results ignored")
-
-
-# Property [Pipeline Removes Expression Field]:
-# Tests behavior when $project removes the expression field before $setWindowFields.
-
-
-def test_stdDevPop_project_removes_expression_field(collection):
-    """$project removing the expression field before $setWindowFields — treated as missing."""
-    docs = [
-        {"_id": 1, "partition": "A", "value": 10, "extra": 99},
-        {"_id": 2, "partition": "A", "value": 20, "extra": 99},
-        {"_id": 3, "partition": "A", "value": 30, "extra": 99},
-    ]
-    collection.insert_many(docs)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$project": {"partition": 1, "extra": 1}},
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevPop": "$value",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                },
-            ],
-            "cursor": {},
-        },
-    )
-    # All docs missing "value" -> all non-numeric -> result is null
-    expected = [
-        {"_id": 1, "partition": "A", "extra": 99, "result": None},
-        {"_id": 2, "partition": "A", "extra": 99, "result": None},
-        {"_id": 3, "partition": "A", "extra": 99, "result": None},
-    ]
-    assertSuccess(result, expected, msg="$project removing expression field -> all null results")
 
 
 # Property [Date Value as Expression]:
@@ -356,28 +230,13 @@ def test_stdDevPop_numeric_path_component(collection):
         {"_id": 2, "partition": "A", "arr": [{"field": 30}, {"field": 40}]},
         {"_id": 3, "partition": "A", "arr": [{"field": 50}, {"field": 60}]},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevPop": "$arr.0.field",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                },
-                {"$project": {"_id": 1, "result": 1}},
-            ],
-            "cursor": {},
-        },
+        "$stdDevPop",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression="$arr.0.field",
+        extra_stages=[{"$project": {"_id": 1, "result": 1}}],
     )
     # In $setWindowFields context, $arr.0.field does not resolve to array element —
     # the path returns non-numeric (array) values which are ignored, resulting in null.

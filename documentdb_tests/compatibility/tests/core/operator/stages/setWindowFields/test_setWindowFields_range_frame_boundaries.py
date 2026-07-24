@@ -12,32 +12,10 @@ Per-operator tests (under window/$operator/) verify the operator computes
 correct results given those documents.
 """
 
+from documentdb_tests.compatibility.tests.core.operator.window.utils.window_test_case import (
+    run_window_operator,
+)
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.executor import execute_command
-
-
-def _run_sum_range_window(collection, docs, window, sort_by=None):
-    """Helper to run $sum with a range window spec."""
-    if sort_by is None:
-        sort_by = {"score": 1}
-    collection.insert_many(docs)
-    stage = {
-        "$setWindowFields": {
-            "partitionBy": "$partition",
-            "sortBy": sort_by,
-            "output": {
-                "result": {
-                    "$sum": "$value",
-                    "window": window,
-                }
-            },
-        }
-    }
-    return execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": [stage], "cursor": {}},
-    )
-
 
 # Property [Symmetric Range]: range [-N, N] includes documents within N of current sortBy value
 
@@ -51,7 +29,7 @@ def test_range_symmetric_sliding(collection):
         {"_id": 4, "partition": "A", "score": 12, "value": 8},
         {"_id": 5, "partition": "A", "score": 20, "value": 16},
     ]
-    result = _run_sum_range_window(collection, docs, {"range": [-5, 5]})
+    result = run_window_operator(collection, "$sum", docs, {"range": [-5, 5]}, sort_by={"score": 1})
     # score=0:  range [-5, 5] -> scores in [-5, 5] -> includes 0, 3 -> 1+2 = 3
     # score=3:  range [-2, 8] -> scores in [-2, 8] -> includes 0, 3 -> 1+2 = 3
     # score=10: range [5, 15] -> scores in [5, 15] -> includes 10, 12 -> 4+8 = 12
@@ -78,7 +56,9 @@ def test_range_unbounded_to_current(collection):
         {"_id": 3, "partition": "A", "score": 3, "value": 4},
         {"_id": 4, "partition": "A", "score": 4, "value": 8},
     ]
-    result = _run_sum_range_window(collection, docs, {"range": ["unbounded", "current"]})
+    result = run_window_operator(
+        collection, "$sum", docs, {"range": ["unbounded", "current"]}, sort_by={"score": 1}
+    )
     expected = [
         {"_id": 1, "partition": "A", "score": 1, "value": 1, "result": 1},
         {"_id": 2, "partition": "A", "score": 2, "value": 2, "result": 3},
@@ -96,7 +76,9 @@ def test_range_current_to_unbounded(collection):
         {"_id": 3, "partition": "A", "score": 3, "value": 4},
         {"_id": 4, "partition": "A", "score": 4, "value": 8},
     ]
-    result = _run_sum_range_window(collection, docs, {"range": ["current", "unbounded"]})
+    result = run_window_operator(
+        collection, "$sum", docs, {"range": ["current", "unbounded"]}, sort_by={"score": 1}
+    )
     expected = [
         {"_id": 1, "partition": "A", "score": 1, "value": 1, "result": 15},
         {"_id": 2, "partition": "A", "score": 2, "value": 2, "result": 14},
@@ -117,7 +99,7 @@ def test_range_zero_zero_includes_ties(collection):
         {"_id": 3, "partition": "A", "score": 5, "value": 4},
         {"_id": 4, "partition": "A", "score": 10, "value": 8},
     ]
-    result = _run_sum_range_window(collection, docs, {"range": [0, 0]})
+    result = run_window_operator(collection, "$sum", docs, {"range": [0, 0]}, sort_by={"score": 1})
     # score=5 ties: all three included -> 1+2+4 = 7
     # score=10: only itself -> 8
     expected = [
@@ -140,7 +122,7 @@ def test_range_with_gaps(collection):
         {"_id": 3, "partition": "A", "score": 100, "value": 4},
         {"_id": 4, "partition": "A", "score": 101, "value": 8},
     ]
-    result = _run_sum_range_window(collection, docs, {"range": [-5, 5]})
+    result = run_window_operator(collection, "$sum", docs, {"range": [-5, 5]}, sort_by={"score": 1})
     # score=1: range [-4, 6] -> includes 1, 2 -> 1+2 = 3
     # score=2: range [-3, 7] -> includes 1, 2 -> 1+2 = 3
     # score=100: range [95, 105] -> includes 100, 101 -> 4+8 = 12
@@ -163,7 +145,9 @@ def test_range_empty_returns_zero(collection):
         {"_id": 1, "partition": "A", "score": 1, "value": 10},
         {"_id": 2, "partition": "A", "score": 100, "value": 20},
     ]
-    result = _run_sum_range_window(collection, docs, {"range": [-2, -1]})
+    result = run_window_operator(
+        collection, "$sum", docs, {"range": [-2, -1]}, sort_by={"score": 1}
+    )
     # score=1: range [-1, 0] -> no doc with score in [-1, 0] -> 0
     # score=100: range [98, 99] -> no doc with score in [98, 99] -> 0
     expected = [
@@ -184,7 +168,9 @@ def test_range_fractional_bounds(collection):
         {"_id": 3, "partition": "A", "score": 2.0, "value": 4},
         {"_id": 4, "partition": "A", "score": 3.0, "value": 8},
     ]
-    result = _run_sum_range_window(collection, docs, {"range": [-0.5, 0.5]})
+    result = run_window_operator(
+        collection, "$sum", docs, {"range": [-0.5, 0.5]}, sort_by={"score": 1}
+    )
     # score=1.0: range [0.5, 1.5] -> includes 1.0, 1.5 -> 1+2 = 3
     # score=1.5: range [1.0, 2.0] -> includes 1.0, 1.5, 2.0 -> 1+2+4 = 7
     # score=2.0: range [1.5, 2.5] -> includes 1.5, 2.0 -> 2+4 = 6

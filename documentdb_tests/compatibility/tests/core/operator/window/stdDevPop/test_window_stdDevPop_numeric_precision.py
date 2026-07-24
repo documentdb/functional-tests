@@ -17,7 +17,15 @@ from documentdb_tests.compatibility.tests.core.operator.window.utils.window_test
 from documentdb_tests.framework.assertions import assertResult, assertSuccess, assertSuccessNaN
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.property_checks import Gt, Lte, PerDoc
-from documentdb_tests.framework.test_constants import DOUBLE_NEGATIVE_ZERO, FLOAT_NAN
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_LARGE_EXPONENT,
+    DECIMAL128_MAX,
+    DECIMAL128_MIN,
+    DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_SMALL_EXPONENT,
+    DOUBLE_NEGATIVE_ZERO,
+    FLOAT_NAN,
+)
 
 # Property [Numeric Type Mixing]: Int32, Int64, Double coexist correctly
 
@@ -722,3 +730,166 @@ def test_stdDevPop_negative_zero(collection):
         {"_id": 3, "partition": "A", "value": 20, "result": 8.16496580927726},
     ]
     assertSuccess(result, expected, msg="-0.0 treated as numeric zero in stdDevPop")
+
+
+# Property [Decimal128 Boundary Constants]: exercise extreme exponent boundaries from test_constants
+
+
+def test_stdDevPop_decimal128_max_boundary(collection):
+    """$stdDevPop with DECIMAL128_MAX values — tests extreme positive exponent boundary."""
+    # DECIMAL128_MAX overflows double to Infinity; stdDevPop([Inf, Inf, Inf]) -> Inf-Inf=NaN
+    docs = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_MAX},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_MAX},
+        {"_id": 3, "partition": "A", "value": DECIMAL128_MAX},
+    ]
+    result = run_window_operator(
+        collection, "$stdDevPop", docs, {"documents": ["unbounded", "unbounded"]}
+    )
+    expected = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_MAX, "result": FLOAT_NAN},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_MAX, "result": FLOAT_NAN},
+        {"_id": 3, "partition": "A", "value": DECIMAL128_MAX, "result": FLOAT_NAN},
+    ]
+    assertSuccessNaN(result, expected, msg="DECIMAL128_MAX values produce NaN (overflow to Inf)")
+
+
+def test_stdDevPop_decimal128_min_boundary(collection):
+    """$stdDevPop with DECIMAL128_MIN values — tests extreme negative exponent boundary."""
+    # DECIMAL128_MIN overflows double to -Infinity; stdDevPop([-Inf, -Inf, -Inf]) -> NaN
+    docs = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_MIN},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_MIN},
+        {"_id": 3, "partition": "A", "value": DECIMAL128_MIN},
+    ]
+    result = run_window_operator(
+        collection, "$stdDevPop", docs, {"documents": ["unbounded", "unbounded"]}
+    )
+    expected = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_MIN, "result": FLOAT_NAN},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_MIN, "result": FLOAT_NAN},
+        {"_id": 3, "partition": "A", "value": DECIMAL128_MIN, "result": FLOAT_NAN},
+    ]
+    assertSuccessNaN(result, expected, msg="DECIMAL128_MIN values produce NaN (overflow to -Inf)")
+
+
+def test_stdDevPop_decimal128_max_and_min_spread(collection):
+    """$stdDevPop with DECIMAL128_MAX and DECIMAL128_MIN — extreme spread boundary."""
+    # DECIMAL128_MAX and DECIMAL128_MIN overflow double precision, producing Infinity/-Infinity.
+    # stdDevPop([Inf, -Inf]) -> mean=NaN -> result=NaN
+    docs = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_MAX},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_MIN},
+    ]
+    result = run_window_operator(
+        collection, "$stdDevPop", docs, {"documents": ["unbounded", "unbounded"]}
+    )
+    expected = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_MAX, "result": FLOAT_NAN},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_MIN, "result": FLOAT_NAN},
+    ]
+    assertSuccessNaN(result, expected, msg="DECIMAL128_MAX and DECIMAL128_MIN spread produces NaN")
+
+
+def test_stdDevPop_decimal128_small_exponent_boundary(collection):
+    """$stdDevPop with DECIMAL128_SMALL_EXPONENT — tests tiny exponent (1E-6143)."""
+    docs = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_SMALL_EXPONENT},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_SMALL_EXPONENT},
+        {"_id": 3, "partition": "A", "value": DECIMAL128_SMALL_EXPONENT},
+    ]
+    result = run_window_operator(
+        collection, "$stdDevPop", docs, {"documents": ["unbounded", "unbounded"]}
+    )
+    # All identical -> stdDevPop = 0
+    expected = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_SMALL_EXPONENT, "result": 0.0},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_SMALL_EXPONENT, "result": 0.0},
+        {"_id": 3, "partition": "A", "value": DECIMAL128_SMALL_EXPONENT, "result": 0.0},
+    ]
+    assertSuccess(result, expected, msg="DECIMAL128_SMALL_EXPONENT identical values return 0")
+
+
+def test_stdDevPop_decimal128_large_exponent_boundary(collection):
+    """$stdDevPop with DECIMAL128_LARGE_EXPONENT — tests large exponent (1E+6144)."""
+    # 1E+6144 overflows double to Infinity; stdDevPop([Inf, Inf, Inf]) -> NaN
+    docs = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT},
+        {"_id": 3, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT},
+    ]
+    result = run_window_operator(
+        collection, "$stdDevPop", docs, {"documents": ["unbounded", "unbounded"]}
+    )
+    expected = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT, "result": FLOAT_NAN},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT, "result": FLOAT_NAN},
+        {"_id": 3, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT, "result": FLOAT_NAN},
+    ]
+    assertSuccessNaN(
+        result, expected, msg="DECIMAL128_LARGE_EXPONENT values produce NaN (overflow to Inf)"
+    )
+
+
+def test_stdDevPop_decimal128_large_and_small_exponent_spread(collection):
+    """$stdDevPop with DECIMAL128_LARGE_EXPONENT and DECIMAL128_SMALL_EXPONENT."""
+    # 1E+6144 overflows double -> Infinity; 1E-6143 underflows double -> 0.0
+    # stdDevPop([Inf, 0]) -> mean=Inf, deviations=[NaN, NaN] -> result=NaN
+    docs = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_SMALL_EXPONENT},
+    ]
+    result = run_window_operator(
+        collection, "$stdDevPop", docs, {"documents": ["unbounded", "unbounded"]}
+    )
+    expected = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT, "result": FLOAT_NAN},
+        {"_id": 2, "partition": "A", "value": DECIMAL128_SMALL_EXPONENT, "result": FLOAT_NAN},
+    ]
+    assertSuccessNaN(
+        result,
+        expected,
+        msg="DECIMAL128_LARGE_EXPONENT and DECIMAL128_SMALL_EXPONENT spread produces NaN",
+    )
+
+
+def test_stdDevPop_decimal128_negative_zero_boundary(collection):
+    """$stdDevPop with DECIMAL128_NEGATIVE_ZERO — treated as numeric zero."""
+    docs = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_NEGATIVE_ZERO},
+        {"_id": 2, "partition": "A", "value": Decimal128("10")},
+        {"_id": 3, "partition": "A", "value": Decimal128("20")},
+    ]
+    result = run_window_operator(
+        collection, "$stdDevPop", docs, {"documents": ["unbounded", "unbounded"]}
+    )
+    # Values: [-0, 10, 20] -> mean=10, variance=(100+0+100)/3=66.67, stdDevPop=8.165
+    expected = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_NEGATIVE_ZERO, "result": 8.16496580927726},
+        {"_id": 2, "partition": "A", "value": Decimal128("10"), "result": 8.16496580927726},
+        {"_id": 3, "partition": "A", "value": Decimal128("20"), "result": 8.16496580927726},
+    ]
+    assertSuccess(result, expected, msg="DECIMAL128_NEGATIVE_ZERO treated as zero in stdDevPop")
+
+
+def test_stdDevPop_decimal128_boundary_mixed_with_double(collection):
+    """$stdDevPop with DECIMAL128_LARGE_EXPONENT mixed with Double — type promotion at boundary."""
+    # 1E+6144 overflows double -> Infinity; stdDevPop([Inf, 0, Inf]) -> mean=Inf -> result=NaN
+    docs = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT},
+        {"_id": 2, "partition": "A", "value": 0.0},
+        {"_id": 3, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT},
+    ]
+    result = run_window_operator(
+        collection, "$stdDevPop", docs, {"documents": ["unbounded", "unbounded"]}
+    )
+    expected = [
+        {"_id": 1, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT, "result": FLOAT_NAN},
+        {"_id": 2, "partition": "A", "value": 0.0, "result": FLOAT_NAN},
+        {"_id": 3, "partition": "A", "value": DECIMAL128_LARGE_EXPONENT, "result": FLOAT_NAN},
+    ]
+    assertSuccessNaN(
+        result,
+        expected,
+        msg="DECIMAL128_LARGE_EXPONENT mixed with Double produces NaN due to overflow",
+    )

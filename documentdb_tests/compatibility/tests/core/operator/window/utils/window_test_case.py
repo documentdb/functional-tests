@@ -37,6 +37,7 @@ def run_window_operator(
     sort_by: dict[str, Any] | None = None,
     partition_by: str = "$partition",
     extra_stages: list[dict[str, Any]] | None = None,
+    expression: str | dict = "$value",
 ) -> Any:
     """Build and execute a $setWindowFields pipeline.
 
@@ -48,6 +49,7 @@ def run_window_operator(
         sort_by: The sortBy specification. Defaults to {"_id": 1}.
         partition_by: The partitionBy expression. Defaults to "$partition".
         extra_stages: Additional pipeline stages to append after $setWindowFields.
+        expression: The operator expression. Defaults to "$value".
 
     Returns:
         The result from execute_command (result dict or Exception).
@@ -64,7 +66,7 @@ def run_window_operator(
                 "sortBy": sort_by,
                 "output": {
                     "result": {
-                        operator: "$value",
+                        operator: expression,
                         "window": window,
                     }
                 },

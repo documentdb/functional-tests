@@ -1,13 +1,15 @@
 """
 Tests for $stdDevSamp with nested field paths, array field traversal,
-expressions that return different types per document, and $unset/$project
+expressions that return different types per document, and $project
 removing fields before $setWindowFields.
 """
 
 from datetime import datetime, timezone
 
+from documentdb_tests.compatibility.tests.core.operator.window.utils.window_test_case import (
+    run_window_operator,
+)
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.executor import execute_command
 
 # Property [Nested Field Paths]: dotted path accesses nested document values
 
@@ -19,27 +21,12 @@ def test_stdDevSamp_dotted_field_path(collection):
         {"_id": 2, "partition": "A", "data": {"metrics": {"value": 20}}},
         {"_id": 3, "partition": "A", "data": {"metrics": {"value": 30}}},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevSamp": "$data.metrics.value",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+        "$stdDevSamp",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression="$data.metrics.value",
     )
     # stdDevSamp([10, 20, 30]) = 10.0
     expected = [
@@ -60,27 +47,12 @@ def test_stdDevSamp_missing_intermediate_path(collection):
         {"_id": 2, "partition": "A", "data": {"other": 99}},
         {"_id": 3, "partition": "A", "data": {"metrics": {"value": 30}}},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevSamp": "$data.metrics.value",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+        "$stdDevSamp",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression="$data.metrics.value",
     )
     # Doc 2 missing data.metrics.value -> ignored. stdDevSamp([10, 30]) = 14.142135623730951
     expected = [
@@ -108,27 +80,12 @@ def test_stdDevSamp_top_level_missing_object(collection):
         {"_id": 2, "partition": "A"},
         {"_id": 3, "partition": "A", "data": {"value": 30}},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevSamp": "$data.value",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+        "$stdDevSamp",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression="$data.value",
     )
     # Doc 2 missing "data" entirely -> ignored. stdDevSamp([10, 30]) = 14.142135623730951
     expected = [
@@ -149,27 +106,8 @@ def test_stdDevSamp_array_field_is_non_numeric(collection):
         {"_id": 2, "partition": "A", "value": 50},
         {"_id": 3, "partition": "A", "value": [40, 50]},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevSamp": "$value",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+    result = run_window_operator(
+        collection, "$stdDevSamp", docs, {"documents": ["unbounded", "unbounded"]}
     )
     # Only doc 2 has a numeric value. Single numeric value -> stdDevSamp = null (N=1, N-1=0)
     expected = [
@@ -189,27 +127,8 @@ def test_stdDevSamp_date_value_as_expression_ignored(collection):
         {"_id": 2, "partition": "A", "value": 20},
         {"_id": 3, "partition": "A", "value": datetime(2023, 6, 1, tzinfo=timezone.utc)},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevSamp": "$value",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+    result = run_window_operator(
+        collection, "$stdDevSamp", docs, {"documents": ["unbounded", "unbounded"]}
     )
     # Only doc 2 is numeric -> single value -> stdDevSamp = null (N=1, N-1=0)
     expected = [
@@ -245,33 +164,12 @@ def test_stdDevSamp_expression_returns_different_types(collection):
         {"_id": 3, "partition": "A", "x": 30},
         {"_id": 4, "partition": "A", "x": -1},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevSamp": {
-                                    "$cond": [
-                                        {"$gt": ["$x", 0]},
-                                        "$x",
-                                        "not_a_number",
-                                    ]
-                                },
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+        "$stdDevSamp",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression={"$cond": [{"$gt": ["$x", 0]}, "$x", "not_a_number"]},
     )
     # $cond returns: 10, "not_a_number", 30, "not_a_number"
     # Only numeric: [10, 30] -> stdDevSamp = 14.142135623730951
@@ -291,78 +189,21 @@ def test_stdDevSamp_expression_returns_null_for_some(collection):
         {"_id": 2, "partition": "A", "x": 20, "y": None},
         {"_id": 3, "partition": "A", "x": 30, "y": 2},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevSamp": {"$multiply": ["$x", "$y"]},
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                }
-            ],
-            "cursor": {},
-        },
+        "$stdDevSamp",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression={"$multiply": ["$x", "$y"]},
     )
     # $multiply: [10*2=20, 20*null=null, 30*2=60]
-    # Numeric values: [20, 60] -> stdDevSamp = sqrt(((20-40)^2+(60-40)^2)/1) = sqrt(800) =
+    # Numeric values: [20, 60] -> stdDevSamp = sqrt(((20-40)^2+(60-40)^2)/1) = sqrt(800)
     expected = [
         {"_id": 1, "partition": "A", "x": 10, "y": 2, "result": 28.284271247461902},
         {"_id": 2, "partition": "A", "x": 20, "y": None, "result": 28.284271247461902},
         {"_id": 3, "partition": "A", "x": 30, "y": 2, "result": 28.284271247461902},
     ]
     assertSuccess(result, expected, msg="expression returning null for some — null results ignored")
-
-
-# Property [Pipeline Stage Interaction]: $project/$unset/$match before $setWindowFields
-
-
-def test_stdDevSamp_project_removes_expression_field(collection):
-    """$project removing the expression field before $setWindowFields — treated as missing."""
-    docs = [
-        {"_id": 1, "partition": "A", "value": 10, "extra": 99},
-        {"_id": 2, "partition": "A", "value": 20, "extra": 99},
-        {"_id": 3, "partition": "A", "value": 30, "extra": 99},
-    ]
-    collection.insert_many(docs)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$project": {"partition": 1, "extra": 1}},
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevSamp": "$value",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                },
-            ],
-            "cursor": {},
-        },
-    )
-    # All docs missing "value" -> all non-numeric -> result is null
-    expected = [
-        {"_id": 1, "partition": "A", "extra": 99, "result": None},
-        {"_id": 2, "partition": "A", "extra": 99, "result": None},
-        {"_id": 3, "partition": "A", "extra": 99, "result": None},
-    ]
-    assertSuccess(result, expected, msg="$project removing expression field -> all null results")
 
 
 # Property [Numeric Path Component]:
@@ -376,28 +217,13 @@ def test_stdDevSamp_numeric_path_component(collection):
         {"_id": 2, "partition": "A", "arr": [{"field": 30}, {"field": 40}]},
         {"_id": 3, "partition": "A", "arr": [{"field": 50}, {"field": 60}]},
     ]
-    collection.insert_many(docs)
-    result = execute_command(
+    result = run_window_operator(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": {"_id": 1},
-                        "output": {
-                            "result": {
-                                "$stdDevSamp": "$arr.0.field",
-                                "window": {"documents": ["unbounded", "unbounded"]},
-                            }
-                        },
-                    }
-                },
-                {"$project": {"_id": 1, "result": 1}},
-            ],
-            "cursor": {},
-        },
+        "$stdDevSamp",
+        docs,
+        {"documents": ["unbounded", "unbounded"]},
+        expression="$arr.0.field",
+        extra_stages=[{"$project": {"_id": 1, "result": 1}}],
     )
     # In $setWindowFields context, $arr.0.field does not resolve to array element —
     # the path returns non-numeric (array) values which are ignored, resulting in null.

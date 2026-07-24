@@ -12,6 +12,9 @@ Per-operator tests (under window/$operator/) verify the operator computes
 correct results given those documents.
 """
 
+from documentdb_tests.compatibility.tests.core.operator.window.utils.window_test_case import (
+    run_window_operator,
+)
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
@@ -24,35 +27,12 @@ BASIC_DOCS = [
 ]
 
 
-def _run_sum_window(collection, docs, window, sort_by=None):
-    """Helper to run $sum with a given window spec."""
-    if sort_by is None:
-        sort_by = {"_id": 1}
-    collection.insert_many(docs)
-    stage = {
-        "$setWindowFields": {
-            "partitionBy": "$partition",
-            "sortBy": sort_by,
-            "output": {
-                "result": {
-                    "$sum": "$value",
-                    "window": window,
-                }
-            },
-        }
-    }
-    return execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": [stage], "cursor": {}},
-    )
-
-
 # Property [Centered Frame]: symmetric window around current row
 
 
 def test_centered_frame(collection):
     """Centered window [-1, 1] includes one row before and one after current."""
-    result = _run_sum_window(collection, BASIC_DOCS, {"documents": [-1, 1]})
+    result = run_window_operator(collection, "$sum", BASIC_DOCS, {"documents": [-1, 1]})
     # Row 1: [1, 2] = 3 (no row before)
     # Row 2: [1, 2, 4] = 7
     # Row 3: [2, 4, 8] = 14
@@ -73,7 +53,7 @@ def test_centered_frame(collection):
 
 def test_trailing_frame(collection):
     """Trailing window [-2, 0] includes up to 2 rows before and current."""
-    result = _run_sum_window(collection, BASIC_DOCS, {"documents": [-2, 0]})
+    result = run_window_operator(collection, "$sum", BASIC_DOCS, {"documents": [-2, 0]})
     # Row 1: [1] = 1
     # Row 2: [1, 2] = 3
     # Row 3: [1, 2, 4] = 7
@@ -94,7 +74,7 @@ def test_trailing_frame(collection):
 
 def test_leading_frame(collection):
     """Leading window [0, 2] includes current and up to 2 rows after."""
-    result = _run_sum_window(collection, BASIC_DOCS, {"documents": [0, 2]})
+    result = run_window_operator(collection, "$sum", BASIC_DOCS, {"documents": [0, 2]})
     # Row 1: [1, 2, 4] = 7
     # Row 2: [2, 4, 8] = 14
     # Row 3: [4, 8, 16] = 28
@@ -115,7 +95,7 @@ def test_leading_frame(collection):
 
 def test_non_overlapping_both_before(collection):
     """Non-overlapping window [-3, -1] excludes current row, looks back only."""
-    result = _run_sum_window(collection, BASIC_DOCS, {"documents": [-3, -1]})
+    result = run_window_operator(collection, "$sum", BASIC_DOCS, {"documents": [-3, -1]})
     # Row 1: empty = 0
     # Row 2: [1] = 1
     # Row 3: [1, 2] = 3
@@ -133,7 +113,7 @@ def test_non_overlapping_both_before(collection):
 
 def test_non_overlapping_both_after(collection):
     """Non-overlapping window [1, 3] excludes current row, looks forward only."""
-    result = _run_sum_window(collection, BASIC_DOCS, {"documents": [1, 3]})
+    result = run_window_operator(collection, "$sum", BASIC_DOCS, {"documents": [1, 3]})
     # Row 1: [2, 4, 8] = 14
     # Row 2: [4, 8, 16] = 28
     # Row 3: [8, 16] = 24
@@ -154,14 +134,13 @@ def test_non_overlapping_both_after(collection):
 
 def test_empty_frame_returns_zero(collection):
     """Window far beyond partition edges selects no documents — $sum returns 0."""
-    docs = [
-        {"_id": 1, "partition": "A", "value": 10},
-        {"_id": 2, "partition": "A", "value": 20},
-    ]
-    result = _run_sum_window(collection, docs, {"documents": [5, 10]})
+    result = run_window_operator(collection, "$sum", BASIC_DOCS, {"documents": [5, 10]})
     expected = [
-        {"_id": 1, "partition": "A", "value": 10, "result": 0},
-        {"_id": 2, "partition": "A", "value": 20, "result": 0},
+        {"_id": 1, "partition": "A", "value": 1, "result": 0},
+        {"_id": 2, "partition": "A", "value": 2, "result": 0},
+        {"_id": 3, "partition": "A", "value": 4, "result": 0},
+        {"_id": 4, "partition": "A", "value": 8, "result": 0},
+        {"_id": 5, "partition": "A", "value": 16, "result": 0},
     ]
     assertSuccess(result, expected, msg="empty frame (beyond partition) returns 0 for $sum")
 
@@ -171,7 +150,7 @@ def test_empty_frame_returns_zero(collection):
 
 def test_single_element_frame(collection):
     """Window [0, 0] selects only the current document."""
-    result = _run_sum_window(collection, BASIC_DOCS, {"documents": [0, 0]})
+    result = run_window_operator(collection, "$sum", BASIC_DOCS, {"documents": [0, 0]})
     expected = [
         {"_id": 1, "partition": "A", "value": 1, "result": 1},
         {"_id": 2, "partition": "A", "value": 2, "result": 2},
@@ -187,16 +166,13 @@ def test_single_element_frame(collection):
 
 def test_wider_than_partition(collection):
     """Window [-100, 100] extends far beyond partition — equivalent to unbounded."""
-    docs = [
-        {"_id": 1, "partition": "A", "value": 1},
-        {"_id": 2, "partition": "A", "value": 2},
-        {"_id": 3, "partition": "A", "value": 4},
-    ]
-    result = _run_sum_window(collection, docs, {"documents": [-100, 100]})
+    result = run_window_operator(collection, "$sum", BASIC_DOCS, {"documents": [-100, 100]})
     expected = [
-        {"_id": 1, "partition": "A", "value": 1, "result": 7},
-        {"_id": 2, "partition": "A", "value": 2, "result": 7},
-        {"_id": 3, "partition": "A", "value": 4, "result": 7},
+        {"_id": 1, "partition": "A", "value": 1, "result": 31},
+        {"_id": 2, "partition": "A", "value": 2, "result": 31},
+        {"_id": 3, "partition": "A", "value": 4, "result": 31},
+        {"_id": 4, "partition": "A", "value": 8, "result": 31},
+        {"_id": 5, "partition": "A", "value": 16, "result": 31},
     ]
     assertSuccess(result, expected, msg="wider-than-partition clamped to edges")
 
@@ -206,12 +182,7 @@ def test_wider_than_partition(collection):
 
 def test_default_window_no_window_key(collection):
     """No explicit window key defaults to unbounded-unbounded (whole partition)."""
-    docs = [
-        {"_id": 1, "partition": "A", "value": 1},
-        {"_id": 2, "partition": "A", "value": 2},
-        {"_id": 3, "partition": "A", "value": 4},
-    ]
-    collection.insert_many(docs)
+    collection.insert_many(BASIC_DOCS)
     result = execute_command(
         collection,
         {
@@ -231,21 +202,18 @@ def test_default_window_no_window_key(collection):
         },
     )
     expected = [
-        {"_id": 1, "partition": "A", "value": 1, "result": 7},
-        {"_id": 2, "partition": "A", "value": 2, "result": 7},
-        {"_id": 3, "partition": "A", "value": 4, "result": 7},
+        {"_id": 1, "partition": "A", "value": 1, "result": 31},
+        {"_id": 2, "partition": "A", "value": 2, "result": 31},
+        {"_id": 3, "partition": "A", "value": 4, "result": 31},
+        {"_id": 4, "partition": "A", "value": 8, "result": 31},
+        {"_id": 5, "partition": "A", "value": 16, "result": 31},
     ]
     assertSuccess(result, expected, msg="no window key defaults to whole partition")
 
 
 def test_empty_window_object(collection):
     """Empty window object {} is equivalent to no window (whole partition)."""
-    docs = [
-        {"_id": 1, "partition": "A", "value": 1},
-        {"_id": 2, "partition": "A", "value": 2},
-        {"_id": 3, "partition": "A", "value": 4},
-    ]
-    collection.insert_many(docs)
+    collection.insert_many(BASIC_DOCS)
     result = execute_command(
         collection,
         {
@@ -268,9 +236,11 @@ def test_empty_window_object(collection):
         },
     )
     expected = [
-        {"_id": 1, "partition": "A", "value": 1, "result": 7},
-        {"_id": 2, "partition": "A", "value": 2, "result": 7},
-        {"_id": 3, "partition": "A", "value": 4, "result": 7},
+        {"_id": 1, "partition": "A", "value": 1, "result": 31},
+        {"_id": 2, "partition": "A", "value": 2, "result": 31},
+        {"_id": 3, "partition": "A", "value": 4, "result": 31},
+        {"_id": 4, "partition": "A", "value": 8, "result": 31},
+        {"_id": 5, "partition": "A", "value": 16, "result": 31},
     ]
     assertSuccess(result, expected, msg="empty window {} = whole partition")
 
@@ -280,12 +250,7 @@ def test_empty_window_object(collection):
 
 def test_no_sortby_with_unbounded_documents_window(collection):
     """Documents window [unbounded, unbounded] works without sortBy."""
-    docs = [
-        {"_id": 1, "partition": "A", "value": 1},
-        {"_id": 2, "partition": "A", "value": 2},
-        {"_id": 3, "partition": "A", "value": 4},
-    ]
-    collection.insert_many(docs)
+    collection.insert_many(BASIC_DOCS)
     result = execute_command(
         collection,
         {
@@ -307,9 +272,11 @@ def test_no_sortby_with_unbounded_documents_window(collection):
         },
     )
     expected = [
-        {"_id": 1, "partition": "A", "value": 1, "result": 7},
-        {"_id": 2, "partition": "A", "value": 2, "result": 7},
-        {"_id": 3, "partition": "A", "value": 4, "result": 7},
+        {"_id": 1, "partition": "A", "value": 1, "result": 31},
+        {"_id": 2, "partition": "A", "value": 2, "result": 31},
+        {"_id": 3, "partition": "A", "value": 4, "result": 31},
+        {"_id": 4, "partition": "A", "value": 8, "result": 31},
+        {"_id": 5, "partition": "A", "value": 16, "result": 31},
     ]
     assertSuccess(
         result, expected, ignore_doc_order=True, msg="no sortBy with unbounded documents window"

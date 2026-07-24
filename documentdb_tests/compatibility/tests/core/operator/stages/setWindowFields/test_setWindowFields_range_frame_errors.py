@@ -13,13 +13,14 @@ from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import FAILED_TO_PARSE_ERROR
 from documentdb_tests.framework.executor import execute_command
 
+SINGLE_DOC = [{"_id": 1, "partition": "A", "score": 1, "value": 10}]
+
 # Property [Range Bound Validation]: range bounds must be numeric or keyword
 
 
 def test_range_non_numeric_bound(collection):
     """Range bound that is non-numeric (string, not 'unbounded'/'current') produces error."""
-    docs = [{"_id": 1, "partition": "A", "score": 1, "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -48,8 +49,7 @@ def test_range_non_numeric_bound(collection):
 
 def test_range_boolean_bound(collection):
     """Range bound that is a boolean produces error."""
-    docs = [{"_id": 1, "partition": "A", "score": 1, "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -76,8 +76,7 @@ def test_range_boolean_bound(collection):
 
 def test_range_null_bound(collection):
     """Range bound that is null produces error."""
-    docs = [{"_id": 1, "partition": "A", "score": 1, "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -104,8 +103,7 @@ def test_range_null_bound(collection):
 
 def test_range_empty_bounds_array(collection):
     """Range with empty bounds array produces error."""
-    docs = [{"_id": 1, "partition": "A", "score": 1, "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -132,8 +130,7 @@ def test_range_empty_bounds_array(collection):
 
 def test_range_three_element_bounds(collection):
     """Range with three-element bounds array produces error."""
-    docs = [{"_id": 1, "partition": "A", "score": 1, "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -260,8 +257,7 @@ def test_range_non_numeric_sortby_value(collection):
 
 def test_range_no_sortby(collection):
     """Range window without sortBy produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -287,8 +283,7 @@ def test_range_no_sortby(collection):
 
 def test_range_descending_sort(collection):
     """Range mode with descending sort produces error 8947401."""
-    docs = [{"_id": 1, "partition": "A", "score": 1, "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -315,8 +310,7 @@ def test_range_descending_sort(collection):
 
 def test_range_multiple_sortby(collection):
     """Range mode with multiple sortBy fields produces error 5339902."""
-    docs = [{"_id": 1, "partition": "A", "score": 1, "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -346,8 +340,7 @@ def test_range_multiple_sortby(collection):
 
 def test_range_lower_exceeds_upper(collection):
     """Range bounds with lower > upper produces error 5339900."""
-    docs = [{"_id": 1, "partition": "A", "score": 1, "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {

@@ -5,6 +5,9 @@ Verifies that $stdDevSamp produces the same result regardless of sortBy directio
 confirming it is an order-independent operator per TEST_COVERAGE.md §22.
 """
 
+from documentdb_tests.compatibility.tests.core.operator.window.utils.window_test_case import (
+    BASIC_DOCS,
+)
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
@@ -13,14 +16,7 @@ from documentdb_tests.framework.executor import execute_command
 
 def test_stdDevSamp_whole_partition_ascending_sort(collection):
     """$stdDevSamp whole partition with ascending sort."""
-    docs = [
-        {"_id": 1, "partition": "A", "value": 10},
-        {"_id": 2, "partition": "A", "value": 20},
-        {"_id": 3, "partition": "A", "value": 30},
-        {"_id": 4, "partition": "A", "value": 40},
-        {"_id": 5, "partition": "A", "value": 50},
-    ]
-    collection.insert_many(docs)
+    collection.insert_many(BASIC_DOCS)
     result = execute_command(
         collection,
         {
@@ -56,14 +52,7 @@ def test_stdDevSamp_whole_partition_ascending_sort(collection):
 
 def test_stdDevSamp_whole_partition_descending_sort(collection):
     """$stdDevSamp whole partition with descending sort produces same result as ascending."""
-    docs = [
-        {"_id": 1, "partition": "A", "value": 10},
-        {"_id": 2, "partition": "A", "value": 20},
-        {"_id": 3, "partition": "A", "value": 30},
-        {"_id": 4, "partition": "A", "value": 40},
-        {"_id": 5, "partition": "A", "value": 50},
-    ]
-    collection.insert_many(docs)
+    collection.insert_many(BASIC_DOCS)
     result = execute_command(
         collection,
         {

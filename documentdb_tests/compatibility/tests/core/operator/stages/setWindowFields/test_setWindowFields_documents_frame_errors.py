@@ -19,13 +19,14 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.executor import execute_command
 
+SINGLE_DOC = [{"_id": 1, "partition": "A", "value": 10}]
+
 # Property [Window Type Validation]: window value must be an object
 
 
 def test_window_null_value(collection):
     """window: null produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -52,8 +53,7 @@ def test_window_null_value(collection):
 
 def test_window_array_value(collection):
     """window as array produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -80,8 +80,7 @@ def test_window_array_value(collection):
 
 def test_window_not_object(collection):
     """Window value that is a string produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -108,11 +107,7 @@ def test_window_not_object(collection):
 
 def test_window_unknown_key(collection):
     """Unknown key in window object produces error."""
-    docs = [
-        {"_id": 1, "partition": "A", "value": 10},
-        {"_id": 2, "partition": "A", "value": 20},
-    ]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -142,8 +137,7 @@ def test_window_unknown_key(collection):
 
 def test_documents_bounds_null_lower(collection):
     """Null as lower document bound produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -170,8 +164,7 @@ def test_documents_bounds_null_lower(collection):
 
 def test_documents_bounds_null_upper(collection):
     """Null as upper document bound produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -198,8 +191,7 @@ def test_documents_bounds_null_upper(collection):
 
 def test_documents_bounds_empty_array(collection):
     """Empty bounds array produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -226,8 +218,7 @@ def test_documents_bounds_empty_array(collection):
 
 def test_documents_bounds_three_elements(collection):
     """Three-element bounds array produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -254,8 +245,7 @@ def test_documents_bounds_three_elements(collection):
 
 def test_documents_bounds_boolean(collection):
     """Boolean as document bound produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -282,8 +272,7 @@ def test_documents_bounds_boolean(collection):
 
 def test_bound_typo_string(collection):
     """Invalid bound string (not 'current' or 'unbounded') produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -310,8 +299,7 @@ def test_bound_typo_string(collection):
 
 def test_bounds_wrong_length(collection):
     """Bounds array with wrong length (1 element) produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -338,8 +326,7 @@ def test_bounds_wrong_length(collection):
 
 def test_fractional_document_bound(collection):
     """Fractional document bound produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -369,8 +356,7 @@ def test_fractional_document_bound(collection):
 
 def test_lower_exceeds_upper(collection):
     """Document bounds with lower > upper produces error 5339900."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -400,8 +386,7 @@ def test_lower_exceeds_upper(collection):
 
 def test_both_documents_and_range(collection):
     """Specifying both documents and range produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -431,8 +416,7 @@ def test_both_documents_and_range(collection):
 
 def test_output_field_unknown_accumulator_key(collection):
     """Unknown key alongside accumulator in output field produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -465,8 +449,7 @@ def test_output_field_unknown_accumulator_key(collection):
 
 def test_stage_unknown_top_level_key(collection):
     """Unknown top-level key in $setWindowFields stage document produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -496,8 +479,7 @@ def test_stage_unknown_top_level_key(collection):
 
 def test_stage_output_omitted(collection):
     """$setWindowFields without output field produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -518,8 +500,7 @@ def test_stage_output_omitted(collection):
 
 def test_stage_output_non_document(collection):
     """$setWindowFields with non-document output produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -544,8 +525,7 @@ def test_stage_output_non_document(collection):
 
 def test_bounded_documents_window_without_sortby(collection):
     """Bounded documents window [-1, 1] without sortBy produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {
@@ -571,8 +551,7 @@ def test_bounded_documents_window_without_sortby(collection):
 
 def test_cumulative_documents_window_without_sortby(collection):
     """Cumulative documents window [unbounded, current] without sortBy produces error."""
-    docs = [{"_id": 1, "partition": "A", "value": 10}]
-    collection.insert_many(docs)
+    collection.insert_many(SINGLE_DOC)
     result = execute_command(
         collection,
         {

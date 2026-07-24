@@ -9,16 +9,6 @@ Key difference from $stdDevPop: single element in frame → null (N-1=0, undefin
 whereas $stdDevPop single element → NaN when value is Inf (due to Inf arithmetic)
 or 0 for finite values. For frames with 2+ elements, NaN/Inf poisoning behavior
 is identical to $stdDevPop.
-
-DocumentDB behavior (consistent IEEE 754): NaN/Inf are numeric and propagate NaN
-uniformly — same result regardless of window type (removable or non-removable).
-
-The reference server has inconsistent behavior:
-- Non-removable windows (unbounded, cumulative): NaN/Inf → result is NaN
-- Removable/sliding windows: NaN/Inf in frame → result is null (not NaN)
-- $group: NaN → result is null
-This is three different answers for the same semantic question. DocumentDB's
-uniform NaN propagation is the more correct IEEE 754 interpretation.
 """
 
 from documentdb_tests.compatibility.tests.core.operator.window.utils.window_test_case import (

@@ -579,6 +579,7 @@ Same shape as §11, applied to a different axis: §11 covers expression operator
 - **Special floats**: NaN/Infinity propagation in removable vs non-removable windows
 - **Non-numeric handling**: null, missing, string, boolean, date, object, array values in the expression field
 - **Argument validation**: operator rejects invalid input shapes — unknown keys in the operator spec, wrong argument type (e.g. string where object expected), missing required parameters, and extra parameters. Each operator defines its accepted shape (empty object for rank operators, expression for accumulators, named params for $shift/$expMovingAvg/etc.); anything outside that shape must error with the correct code.
+- **Order independence**: for order-independent operators ($sum, $avg, $min, $max, $count, $stdDevPop, $stdDevSamp, $addToSet, $setUnion, $median, $percentile, $minN, $maxN), verify that changing the sort order does not affect the computed result over the same frame. Order-dependent operators ($first, $last, $rank, $denseRank, $documentNumber, $shift, $linearFill, $push, $firstN, $lastN, $topN, $bottomN) must produce different results when sort order changes.
 
 **Tested at the stage level** (under `tests/core/operator/stages/setWindowFields/`):
 - Frame validation errors (documents, range, time-range): invalid bound types, malformed arrays, conflicting modes — these are operator-agnostic
