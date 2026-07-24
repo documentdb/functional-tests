@@ -177,6 +177,14 @@ EXPRESSION_OPERAND_TESTS: list[ExpressionTestCase] = [
         expected=[{"k": "a", "v": 3}, {"k": "b", "v": 9}],
         msg="Should resolve computed values inside an object operand",
     ),
+    ExpressionTestCase(
+        id="operand_single_element_array_unwraps",
+        expression={"$objectToArray": [{"a": 1}]},
+        doc={"x": 0},
+        expected=[{"k": "a", "v": 1}],
+        msg="Single-element array argument is treated as one argument and unwraps"
+        " to the object (contrast with [] zero-args and two-element arity errors)",
+    ),
 ]
 
 # Property [BSON type distinction] (Rule 11): k is always a string; v
