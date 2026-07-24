@@ -29,12 +29,14 @@ from documentdb_tests.framework.parametrize import pytest_params
 TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="single_field",
+        expression={"$objectToArray": {"a": 1}},
         doc={"obj": {"a": 1}},
         expected=[{"k": "a", "v": 1}],
         msg="Should convert single-field object",
     ),
     ExpressionTestCase(
         id="mixed_value_types",
+        expression={"$objectToArray": {"int": 1, "str": "hello", "bool": True, "null": None}},
         doc={"obj": {"int": 1, "str": "hello", "bool": True, "null": None}},
         expected=[
             {"k": "int", "v": 1},
@@ -46,24 +48,28 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         id="empty_object",
+        expression={"$objectToArray": {}},
         doc={"obj": {}},
         expected=[],
         msg="Should return empty array for empty object",
     ),
     ExpressionTestCase(
         id="null_object",
+        expression={"$objectToArray": None},
         doc={"obj": None},
         expected=None,
         msg="Should return null for null object",
     ),
     ExpressionTestCase(
         id="deeply_nested_not_recursive",
+        expression={"$objectToArray": {"a": {"b": {"c": {"d": 1}}}}},
         doc={"obj": {"a": {"b": {"c": {"d": 1}}}}},
         expected=[{"k": "a", "v": {"b": {"c": {"d": 1}}}}],
         msg="Should NOT recursively decompose nested docs",
     ),
     ExpressionTestCase(
         id="case_sensitive_keys",
+        expression={"$objectToArray": {"a": 1, "A": 2}},
         doc={"obj": {"a": 1, "A": 2}},
         expected=[{"k": "a", "v": 1}, {"k": "A", "v": 2}],
         msg="Case-different keys should be distinct",
@@ -74,7 +80,7 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
 def test_objectToArray_literal(collection, test):
     """Test $objectToArray with literal values."""
-    result = execute_expression(collection, {"$objectToArray": test.doc["obj"]})
+    result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
@@ -85,30 +91,35 @@ def test_objectToArray_literal(collection, test):
 BASIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="multiple_fields",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"a": 1, "b": 2, "c": 3}},
         expected=[{"k": "a", "v": 1}, {"k": "b", "v": 2}, {"k": "c", "v": 3}],
         msg="Should convert multi-field object",
     ),
     ExpressionTestCase(
         id="string_values",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"name": "Alice", "city": "Mycity"}},
         expected=[{"k": "name", "v": "Alice"}, {"k": "city", "v": "Mycity"}],
         msg="Should convert object with string values",
     ),
     ExpressionTestCase(
         id="nested_object_value",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"obj": {"x": 1, "y": 2}}},
         expected=[{"k": "obj", "v": {"x": 1, "y": 2}}],
         msg="Should convert object with nested object value",
     ),
     ExpressionTestCase(
         id="array_value",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"arr": [1, 2, 3]}},
         expected=[{"k": "arr", "v": [1, 2, 3]}],
         msg="Should convert object with array value",
     ),
     ExpressionTestCase(
         id="empty_array_value",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"a": []}},
         expected=[{"k": "a", "v": []}],
         msg="Should convert object with an empty-array value",
@@ -121,36 +132,42 @@ BASIC_TESTS: list[ExpressionTestCase] = [
 SPECIAL_KEY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="empty_string_key",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"": 1}},
         expected=[{"k": "", "v": 1}],
         msg="Should handle empty string key",
     ),
     ExpressionTestCase(
         id="dotted_key",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"a.b.c": 1}},
         expected=[{"k": "a.b.c", "v": 1}],
         msg="Should handle dotted key",
     ),
     ExpressionTestCase(
         id="unicode_key",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"日本語": 1}},
         expected=[{"k": "日本語", "v": 1}],
         msg="Should handle unicode key",
     ),
     ExpressionTestCase(
         id="dollar_sign_key",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"$field": 1}},
         expected=[{"k": "$field", "v": 1}],
         msg="Should handle dollar-sign key",
     ),
     ExpressionTestCase(
         id="key_with_spaces",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"my key": 1}},
         expected=[{"k": "my key", "v": 1}],
         msg="Should handle key with spaces",
     ),
     ExpressionTestCase(
         id="numeric_string_keys",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"0": "a", "1": "b"}},
         expected=[{"k": "0", "v": "a"}, {"k": "1", "v": "b"}],
         msg="Should handle numeric-looking keys as strings",
@@ -163,12 +180,14 @@ SPECIAL_KEY_TESTS: list[ExpressionTestCase] = [
 NON_RECURSIVE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="value_looks_like_kv_pair",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"a": {"k": "x", "v": 1}}},
         expected=[{"k": "a", "v": {"k": "x", "v": 1}}],
         msg="Should NOT interpret value as pre-existing k/v pair",
     ),
     ExpressionTestCase(
         id="nested_array_with_object",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"k1": [1, {"a": {"b": 1}}]}},
         expected=[{"k": "k1", "v": [1, {"a": {"b": 1}}]}],
         msg="Should preserve nested array containing objects",
@@ -181,30 +200,35 @@ NON_RECURSIVE_TESTS: list[ExpressionTestCase] = [
 EDGE_CASE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="preserves_field_order",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"qty": 25, "item": "abc123"}},
         expected=[{"k": "qty", "v": 25}, {"k": "item", "v": "abc123"}],
         msg="Should preserve field order",
     ),
     ExpressionTestCase(
         id="many_fields_order",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {f"field_{i}": i for i in range(12)}},
         expected=[{"k": f"field_{i}", "v": i} for i in range(12)],
         msg="Should preserve order for 10+ fields",
     ),
     ExpressionTestCase(
         id="null_value_in_object",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"a": None, "b": 1}},
         expected=[{"k": "a", "v": None}, {"k": "b", "v": 1}],
         msg="Should preserve null values",
     ),
     ExpressionTestCase(
         id="all_null_values",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"a": None, "b": None}},
         expected=[{"k": "a", "v": None}, {"k": "b", "v": None}],
         msg="Should preserve all null values",
     ),
     ExpressionTestCase(
         id="long_key_name",
+        expression={"$objectToArray": "$obj"},
         doc={"obj": {"k" * 1000: 1}},
         expected=[{"k": "k" * 1000, "v": 1}],
         msg="Should preserve 1000-char key name",
@@ -223,7 +247,7 @@ ALL_TESTS = (
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_objectToArray_insert(collection, test):
     """Test $objectToArray with values from inserted documents."""
-    result = execute_expression_with_insert(collection, {"$objectToArray": "$obj"}, test.doc)
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

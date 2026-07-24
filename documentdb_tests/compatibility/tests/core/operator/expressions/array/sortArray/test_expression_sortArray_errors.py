@@ -37,6 +37,7 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_MIN,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_NEGATIVE_NAN,
     DECIMAL128_NEGATIVE_ZERO,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
@@ -78,8 +79,69 @@ LITERAL_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
+# Property [Argument structure validation]: the `$sortArray` argument must be
+# a well-formed object with exactly `input` and `sortBy` and no others; a
+# missing/unknown field or non-object argument is rejected with its own
+# named error. These have no doc, so they only run through the literal path.
+STRUCTURE_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        id="empty_object",
+        expression={"$sortArray": {}},
+        error_code=SORT_ARRAY_MISSING_INPUT_ERROR,
+        msg="Empty object should error",
+    ),
+    ExpressionTestCase(
+        id="missing_input",
+        expression={"$sortArray": {"sortBy": 1}},
+        error_code=SORT_ARRAY_MISSING_INPUT_ERROR,
+        msg="Missing input should error",
+    ),
+    ExpressionTestCase(
+        id="missing_sortby",
+        expression={"$sortArray": {"input": [1, 2, 3]}},
+        error_code=SORT_ARRAY_MISSING_SORTBY_ERROR,
+        msg="Missing sortBy should error",
+    ),
+    ExpressionTestCase(
+        id="unknown_field",
+        expression={"$sortArray": {"input": [1], "sortBy": 1, "extra": 1}},
+        error_code=SORT_ARRAY_UNKNOWN_FIELD_ERROR,
+        msg="Unknown field should error",
+    ),
+    ExpressionTestCase(
+        id="non_object_arg_array",
+        expression={"$sortArray": [[1, 2, 3], 1]},
+        error_code=SORT_ARRAY_NON_OBJECT_ARG_ERROR,
+        msg="Array argument should error",
+    ),
+    ExpressionTestCase(
+        id="non_object_arg_empty_array",
+        expression={"$sortArray": []},
+        error_code=SORT_ARRAY_NON_OBJECT_ARG_ERROR,
+        msg="Empty array argument should error the same as any other array argument",
+    ),
+    ExpressionTestCase(
+        id="non_object_arg_scalar",
+        expression={"$sortArray": 1},
+        error_code=SORT_ARRAY_NON_OBJECT_ARG_ERROR,
+        msg="Scalar argument should error",
+    ),
+    ExpressionTestCase(
+        id="non_object_arg_string",
+        expression={"$sortArray": "hello"},
+        error_code=SORT_ARRAY_NON_OBJECT_ARG_ERROR,
+        msg="String argument should error",
+    ),
+    ExpressionTestCase(
+        id="non_object_arg_null",
+        expression={"$sortArray": None},
+        error_code=SORT_ARRAY_NON_OBJECT_ARG_ERROR,
+        msg="Null argument should error",
+    ),
+]
 
-@pytest.mark.parametrize("test", pytest_params(LITERAL_ERROR_TESTS))
+
+@pytest.mark.parametrize("test", pytest_params(LITERAL_ERROR_TESTS + STRUCTURE_ERROR_TESTS))
 def test_sortArray_not_array_literal(collection, test):
     """Test $sortArray error with non-array literal input."""
     result = execute_expression(collection, test.expression)
@@ -248,7 +310,7 @@ SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="decimal128_neg_nan_input",
         expression={"$sortArray": {"input": "$arr", "sortBy": 1}},
-        doc={"arr": Decimal128("-NaN")},
+        doc={"arr": DECIMAL128_NEGATIVE_NAN},
         error_code=SORT_ARRAY_INPUT_NOT_ARRAY_ERROR,
         msg="Should reject Decimal128 -NaN input",
     ),
@@ -478,116 +540,6 @@ ALL_TESTS = (
 def test_sortArray_not_array_insert(collection, test):
     """Test $sortArray error with non-array input from inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-# Property [Argument structure validation]: the `$sortArray` argument must be
-# a well-formed object with exactly `input` and `sortBy` and no others; a
-# missing/unknown field or non-object argument is rejected with its own
-# named error.
-STRUCTURE_ERROR_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        id="empty_object",
-        expression={"$sortArray": {}},
-        error_code=SORT_ARRAY_MISSING_INPUT_ERROR,
-        msg="Empty object should error",
-    ),
-    ExpressionTestCase(
-        id="missing_input",
-        expression={"$sortArray": {"sortBy": 1}},
-        error_code=SORT_ARRAY_MISSING_INPUT_ERROR,
-        msg="Missing input should error",
-    ),
-    ExpressionTestCase(
-        id="missing_sortby",
-        expression={"$sortArray": {"input": [1, 2, 3]}},
-        error_code=SORT_ARRAY_MISSING_SORTBY_ERROR,
-        msg="Missing sortBy should error",
-    ),
-    ExpressionTestCase(
-        id="unknown_field",
-        expression={"$sortArray": {"input": [1], "sortBy": 1, "extra": 1}},
-        error_code=SORT_ARRAY_UNKNOWN_FIELD_ERROR,
-        msg="Unknown field should error",
-    ),
-    ExpressionTestCase(
-        id="non_object_arg_array",
-        expression={"$sortArray": [[1, 2, 3], 1]},
-        error_code=SORT_ARRAY_NON_OBJECT_ARG_ERROR,
-        msg="Array argument should error",
-    ),
-    ExpressionTestCase(
-        id="non_object_arg_scalar",
-        expression={"$sortArray": 1},
-        error_code=SORT_ARRAY_NON_OBJECT_ARG_ERROR,
-        msg="Scalar argument should error",
-    ),
-    ExpressionTestCase(
-        id="non_object_arg_string",
-        expression={"$sortArray": "hello"},
-        error_code=SORT_ARRAY_NON_OBJECT_ARG_ERROR,
-        msg="String argument should error",
-    ),
-    ExpressionTestCase(
-        id="non_object_arg_null",
-        expression={"$sortArray": None},
-        error_code=SORT_ARRAY_NON_OBJECT_ARG_ERROR,
-        msg="Null argument should error",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(STRUCTURE_ERROR_TESTS))
-def test_sortArray_argument_handling(collection, test):
-    """Test $sortArray argument structure validation."""
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-# Property [Error precedence] (Rule 18): when multiple argument problems
-# co-occur, document which error wins, determined empirically — invalid
-# sortBy beats non-array/null input, and missing-input beats missing-sortBy
-# beats non-array input.
-PRECEDENCE_ERROR_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        id="invalid_sortby_beats_non_array_input",
-        expression={"$sortArray": {"input": "hello", "sortBy": 0}},
-        error_code=SORT_ARRAY_INVALID_SORT_SCALAR_ERROR,
-        msg="Invalid sortBy (0) is reported over non-array input",
-    ),
-    ExpressionTestCase(
-        id="invalid_sortby_beats_null_input",
-        expression={"$sortArray": {"input": "$arr", "sortBy": 0}},
-        doc={"arr": None},
-        error_code=SORT_ARRAY_INVALID_SORT_SCALAR_ERROR,
-        msg="Invalid sortBy (0) is reported instead of null propagation",
-    ),
-    ExpressionTestCase(
-        id="missing_input_beats_missing_sortby",
-        expression={"$sortArray": {}},
-        error_code=SORT_ARRAY_MISSING_INPUT_ERROR,
-        msg="Missing input is reported before missing sortBy",
-    ),
-    ExpressionTestCase(
-        id="missing_sortby_beats_non_array_input",
-        expression={"$sortArray": {"input": "hello"}},
-        error_code=SORT_ARRAY_MISSING_SORTBY_ERROR,
-        msg="Missing sortBy is reported before a non-array input type error",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(PRECEDENCE_ERROR_TESTS))
-def test_sortArray_error_precedence(collection, test):
-    """Document which error wins when multiple argument problems co-occur (Rule 18)."""
-    if test.doc is not None:
-        result = execute_expression_with_insert(collection, test.expression, test.doc)
-    else:
-        result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

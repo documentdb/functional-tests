@@ -28,24 +28,28 @@ from documentdb_tests.framework.parametrize import pytest_params
 TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="ints",
+        expression={"$reverseArray": {"$literal": [1, 2, 3]}},
         doc={"arr": [1, 2, 3]},
         expected=[3, 2, 1],
         msg="Should reverse int array",
     ),
     ExpressionTestCase(
         id="strings",
+        expression={"$reverseArray": {"$literal": ["a", "b", "c"]}},
         doc={"arr": ["a", "b", "c"]},
         expected=["c", "b", "a"],
         msg="Should reverse string array",
     ),
     ExpressionTestCase(
         id="empty_array",
+        expression={"$reverseArray": {"$literal": []}},
         doc={"arr": []},
         expected=[],
         msg="Should return empty array for empty input",
     ),
     ExpressionTestCase(
         id="nested_arrays",
+        expression={"$reverseArray": {"$literal": [[1, 2, 3], [4, 5, 6]]}},
         doc={"arr": [[1, 2, 3], [4, 5, 6]]},
         expected=[[4, 5, 6], [1, 2, 3]],
         msg="Should reverse top-level only, not subarrays",
@@ -56,7 +60,7 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
 def test_reverseArray_literal(collection, test):
     """Test $reverseArray with literal values."""
-    result = execute_expression(collection, {"$reverseArray": {"$literal": test.doc["arr"]}})
+    result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
@@ -68,24 +72,28 @@ def test_reverseArray_literal(collection, test):
 BASIC_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="doubles",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [1.1, 2.2, 3.3]},
         expected=[3.3, 2.2, 1.1],
         msg="Should reverse double array",
     ),
     ExpressionTestCase(
         id="booleans",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [True, True, False]},
         expected=[False, True, True],
         msg="Should reverse boolean array",
     ),
     ExpressionTestCase(
         id="objects",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [{"a": 1}, {"b": 2}, {"c": 3}]},
         expected=[{"c": 3}, {"b": 2}, {"a": 1}],
         msg="Should reverse array of objects",
     ),
     ExpressionTestCase(
         id="numeric_cross_types",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [1, Int64(2), 3.0, Decimal128("4")]},
         expected=[Decimal128("4"), 3.0, Int64(2), 1],
         msg="Should reverse mixed numeric types",
@@ -96,13 +104,22 @@ BASIC_TESTS: list[ExpressionTestCase] = [
 # correctly by the reversal (no swap loop, no-op single element, single swap).
 DEGENERATE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
+        id="empty_array_field_path",
+        expression={"$reverseArray": "$arr"},
+        doc={"arr": []},
+        expected=[],
+        msg="Should return empty array when field path resolves to empty array",
+    ),
+    ExpressionTestCase(
         id="single_element",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [42]},
         expected=[42],
         msg="Should return single element unchanged",
     ),
     ExpressionTestCase(
         id="two_elements",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [1, 2]},
         expected=[2, 1],
         msg="Should swap two elements",
@@ -114,12 +131,14 @@ DEGENERATE_TESTS: list[ExpressionTestCase] = [
 NESTED_ARRAY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_mixed",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [[1], "two", [3, 4]]},
         expected=[[3, 4], "two", [1]],
         msg="Should reverse top-level with mixed nested",
     ),
     ExpressionTestCase(
         id="deeply_nested",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [[[1, 2]], [[3, 4]]]},
         expected=[[[3, 4]], [[1, 2]]],
         msg="Should reverse top-level of deeply nested arrays",
@@ -132,12 +151,14 @@ NESTED_ARRAY_TESTS: list[ExpressionTestCase] = [
 DUPLICATE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="all_same",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [5, 5, 5]},
         expected=[5, 5, 5],
         msg="Should handle all identical values",
     ),
     ExpressionTestCase(
         id="palindrome",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [1, 2, 3, 2, 1]},
         expected=[1, 2, 3, 2, 1],
         msg="Palindrome array should be unchanged",
@@ -151,6 +172,7 @@ _LARGE = list(range(1000))
 LARGE_ARRAY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="large_array",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": _LARGE},
         expected=list(reversed(_LARGE)),
         msg="Should reverse large array",
@@ -163,18 +185,21 @@ LARGE_ARRAY_TESTS: list[ExpressionTestCase] = [
 NULL_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="null_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": None},
         expected=None,
         msg="Should return null for null input",
     ),
     ExpressionTestCase(
         id="array_with_nulls",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [1, None, 3]},
         expected=[3, None, 1],
         msg="Null elements preserved",
     ),
     ExpressionTestCase(
         id="array_all_nulls",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [None, None]},
         expected=[None, None],
         msg="All null array reversed",
@@ -187,18 +212,21 @@ NULL_TESTS: list[ExpressionTestCase] = [
 ELEMENT_PRESERVATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="object_field_order",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [{"a": 1, "b": 2}, {"c": 3, "d": 4}]},
         expected=[{"c": 3, "d": 4}, {"a": 1, "b": 2}],
         msg="Object field order preserved",
     ),
     ExpressionTestCase(
         id="embedded_docs_with_arrays",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [{"items": [1, 2]}, {"items": [3, 4]}]},
         expected=[{"items": [3, 4]}, {"items": [1, 2]}],
         msg="Inner arrays in docs not reversed",
     ),
     ExpressionTestCase(
         id="array_of_objects",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": [{"name": "a", "val": 1}, {"name": "b", "val": 2}, {"name": "c", "val": 3}]},
         expected=[{"name": "c", "val": 3}, {"name": "b", "val": 2}, {"name": "a", "val": 1}],
         msg="Object integrity preserved",
@@ -220,7 +248,7 @@ ALL_TESTS = (
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_reverseArray_insert(collection, test):
     """Test $reverseArray with values from inserted documents."""
-    result = execute_expression_with_insert(collection, {"$reverseArray": "$arr"}, test.doc)
+    result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )

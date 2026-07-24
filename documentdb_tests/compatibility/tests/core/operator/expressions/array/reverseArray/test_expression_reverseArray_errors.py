@@ -31,6 +31,7 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_MIN,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_NEGATIVE_NAN,
     DECIMAL128_NEGATIVE_ZERO,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
@@ -50,35 +51,63 @@ from documentdb_tests.framework.test_constants import (
 TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="string_input",
+        expression={"$reverseArray": "hello"},
         doc={"arr": "hello"},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject string input",
     ),
     ExpressionTestCase(
         id="timestamp_input",
+        expression={"$reverseArray": Timestamp(0, 0)},
         doc={"arr": Timestamp(0, 0)},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject timestamp input",
     ),
     ExpressionTestCase(
         id="nan_input",
+        expression={"$reverseArray": FLOAT_NAN},
         doc={"arr": FLOAT_NAN},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject NaN input",
     ),
     ExpressionTestCase(
         id="int32_max_input",
+        expression={"$reverseArray": INT32_MAX},
         doc={"arr": INT32_MAX},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject INT32_MAX input",
     ),
 ]
 
+# Property [Arity errors]: $reverseArray requires exactly one argument; zero,
+# two, or three arguments are rejected with EXPRESSION_TYPE_MISMATCH_ERROR.
+# These have no doc, so they only run through the literal path below.
+ARITY_ERROR_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        id="zero_args",
+        expression={"$reverseArray": []},
+        error_code=EXPRESSION_TYPE_MISMATCH_ERROR,
+        msg="A literal empty argument array is treated as zero arguments",
+    ),
+    ExpressionTestCase(
+        id="two_args",
+        expression={"$reverseArray": [[], []]},
+        error_code=EXPRESSION_TYPE_MISMATCH_ERROR,
+        msg="Should reject two arguments",
+    ),
+    ExpressionTestCase(
+        id="three_args",
+        expression={"$reverseArray": ["$a", "$b", "$c"]},
+        error_code=EXPRESSION_TYPE_MISMATCH_ERROR,
+        msg="Should reject three arguments",
+    ),
+]
 
-@pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
+
+@pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL + ARITY_ERROR_TESTS))
 def test_reverseArray_not_array_literal(collection, test):
     """Test $reverseArray error with non-array literal input."""
-    result = execute_expression(collection, {"$reverseArray": test.doc["arr"]})
+    result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
@@ -90,90 +119,105 @@ def test_reverseArray_not_array_literal(collection, test):
 NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": 42},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject int input",
     ),
     ExpressionTestCase(
         id="negative_int_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": -42},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject negative int input",
     ),
     ExpressionTestCase(
         id="bool_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": True},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject bool input",
     ),
     ExpressionTestCase(
         id="object_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": {"a": 1}},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject object input",
     ),
     ExpressionTestCase(
         id="empty_object_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": {}},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject empty object input (contrast with [] which succeeds)",
     ),
     ExpressionTestCase(
         id="double_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": 3.14},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject double input",
     ),
     ExpressionTestCase(
         id="negative_double_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": -3.14},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject negative double input",
     ),
     ExpressionTestCase(
         id="decimal128_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": Decimal128("1")},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject decimal128 input",
     ),
     ExpressionTestCase(
         id="int64_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": Int64(1)},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject int64 input",
     ),
     ExpressionTestCase(
         id="objectid_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": ObjectId()},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject objectid input",
     ),
     ExpressionTestCase(
         id="datetime_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject datetime input",
     ),
     ExpressionTestCase(
         id="binary_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": Binary(b"x", 0)},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject binary input",
     ),
     ExpressionTestCase(
         id="regex_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": Regex("x")},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject regex input",
     ),
     ExpressionTestCase(
         id="maxkey_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": MaxKey()},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject maxkey input",
     ),
     ExpressionTestCase(
         id="minkey_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": MinKey()},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject minkey input",
@@ -186,48 +230,56 @@ NOT_ARRAY_ERROR_TESTS: list[ExpressionTestCase] = [
 SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="inf_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": FLOAT_INFINITY},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject Infinity input",
     ),
     ExpressionTestCase(
         id="neg_inf_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": FLOAT_NEGATIVE_INFINITY},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject -Infinity input",
     ),
     ExpressionTestCase(
         id="neg_zero_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": DOUBLE_NEGATIVE_ZERO},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject negative zero input",
     ),
     ExpressionTestCase(
         id="decimal128_nan_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": DECIMAL128_NAN},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject Decimal128 NaN input",
     ),
     ExpressionTestCase(
         id="decimal128_neg_nan_input",
-        doc={"arr": Decimal128("-NaN")},
+        expression={"$reverseArray": "$arr"},
+        doc={"arr": DECIMAL128_NEGATIVE_NAN},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject Decimal128 -NaN input",
     ),
     ExpressionTestCase(
         id="decimal128_inf_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": DECIMAL128_INFINITY},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject Decimal128 Infinity input",
     ),
     ExpressionTestCase(
         id="decimal128_neg_inf_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": DECIMAL128_NEGATIVE_INFINITY},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject Decimal128 -Infinity input",
     ),
     ExpressionTestCase(
         id="decimal128_neg_zero_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": DECIMAL128_NEGATIVE_ZERO},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject Decimal128 -0 input",
@@ -241,30 +293,35 @@ SPECIAL_NUMERIC_ERROR_TESTS: list[ExpressionTestCase] = [
 BOUNDARY_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int32_min_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": INT32_MIN},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject INT32_MIN input",
     ),
     ExpressionTestCase(
         id="int64_max_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": INT64_MAX},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject INT64_MAX input",
     ),
     ExpressionTestCase(
         id="int64_min_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": INT64_MIN},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject INT64_MIN input",
     ),
     ExpressionTestCase(
         id="decimal128_max_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": DECIMAL128_MAX},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject DECIMAL128_MAX input",
     ),
     ExpressionTestCase(
         id="decimal128_min_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": DECIMAL128_MIN},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject DECIMAL128_MIN input",
@@ -277,48 +334,19 @@ BOUNDARY_ERROR_TESTS: list[ExpressionTestCase] = [
 STRING_EDGE_ERROR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="comma_separated_string_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": "1, 2, 3"},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject comma-separated string",
     ),
     ExpressionTestCase(
         id="json_like_string_input",
+        expression={"$reverseArray": "$arr"},
         doc={"arr": "[1, 2, 3]"},
         error_code=REVERSE_ARRAY_NOT_ARRAY_ERROR,
         msg="Should reject JSON-like string",
     ),
 ]
-
-ALL_TESTS = (
-    NOT_ARRAY_ERROR_TESTS
-    + SPECIAL_NUMERIC_ERROR_TESTS
-    + BOUNDARY_ERROR_TESTS
-    + STRING_EDGE_ERROR_TESTS
-    + TEST_SUBSET_FOR_LITERAL
-)
-
-
-@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
-def test_reverseArray_not_array_insert(collection, test):
-    """Test $reverseArray error with non-array input from inserted documents."""
-    result = execute_expression_with_insert(collection, {"$reverseArray": "$arr"}, test.doc)
-    assert_expression_result(
-        result, expected=test.expected, error_code=test.error_code, msg=test.msg
-    )
-
-
-ARITY_ERROR_TESTS = [
-    pytest.param({"$reverseArray": [[], []]}, id="two_args"),
-    pytest.param({"$reverseArray": ["$a", "$b", "$c"]}, id="three_args"),
-]
-
-
-@pytest.mark.parametrize("expr", ARITY_ERROR_TESTS)
-def test_reverseArray_arity_error(collection, expr):
-    """Test $reverseArray errors with wrong number of arguments."""
-    result = execute_expression(collection, expr)
-    assert_expression_result(result, error_code=EXPRESSION_TYPE_MISMATCH_ERROR)
-
 
 # Property [Expression-resolved non-array rejection]: an operand built by
 # wrapping a non-array field reference in an array literal (e.g. [$a] where
@@ -334,10 +362,19 @@ EXPRESSION_ERROR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
+ALL_TESTS = (
+    NOT_ARRAY_ERROR_TESTS
+    + SPECIAL_NUMERIC_ERROR_TESTS
+    + BOUNDARY_ERROR_TESTS
+    + STRING_EDGE_ERROR_TESTS
+    + TEST_SUBSET_FOR_LITERAL
+    + EXPRESSION_ERROR_TESTS
+)
 
-@pytest.mark.parametrize("test", pytest_params(EXPRESSION_ERROR_TESTS))
-def test_reverseArray_expression_error(collection, test):
-    """Test $reverseArray error cases from field-path/expression resolution."""
+
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+def test_reverseArray_not_array_insert(collection, test):
+    """Test $reverseArray error with non-array input from inserted documents."""
     result = execute_expression_with_insert(collection, test.expression, test.doc)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

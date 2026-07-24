@@ -28,6 +28,7 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_ZERO,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NEGATIVE_INFINITY,
@@ -35,6 +36,7 @@ from documentdb_tests.framework.test_constants import (
     INT32_MIN,
     INT64_MAX,
     INT64_MIN,
+    INT64_ZERO,
 )
 
 # Property [Literal-path parity]: representative cases from each group below
@@ -295,8 +297,8 @@ BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int64_boundaries",
         expression={"$sortArray": {"input": "$arr", "sortBy": 1}},
-        doc={"arr": [Int64(0), INT64_MAX, INT64_MIN]},
-        expected=[INT64_MIN, Int64(0), INT64_MAX],
+        doc={"arr": [INT64_ZERO, INT64_MAX, INT64_MIN]},
+        expected=[INT64_MIN, INT64_ZERO, INT64_MAX],
         msg="Should sort INT64 boundary values correctly",
     ),
     ExpressionTestCase(
@@ -309,8 +311,8 @@ BOUNDARY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="decimal128_infinity",
         expression={"$sortArray": {"input": "$arr", "sortBy": 1}},
-        doc={"arr": [DECIMAL128_INFINITY, Decimal128("0"), DECIMAL128_NEGATIVE_INFINITY]},
-        expected=[DECIMAL128_NEGATIVE_INFINITY, Decimal128("0"), DECIMAL128_INFINITY],
+        doc={"arr": [DECIMAL128_INFINITY, DECIMAL128_ZERO, DECIMAL128_NEGATIVE_INFINITY]},
+        expected=[DECIMAL128_NEGATIVE_INFINITY, DECIMAL128_ZERO, DECIMAL128_INFINITY],
         msg="Should sort Decimal128 infinity values correctly",
     ),
 ]
@@ -458,8 +460,8 @@ SPECIAL_VALUE_SORT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="cross_type_zero_equivalence",
         expression={"$sortArray": {"input": "$arr", "sortBy": 1}},
-        doc={"arr": [Decimal128("0"), DOUBLE_NEGATIVE_ZERO, Int64(0)]},
-        expected=[Decimal128("0"), DOUBLE_NEGATIVE_ZERO, Int64(0)],
+        doc={"arr": [DECIMAL128_ZERO, DOUBLE_NEGATIVE_ZERO, INT64_ZERO]},
+        expected=[DECIMAL128_ZERO, DOUBLE_NEGATIVE_ZERO, INT64_ZERO],
         msg="All-zero values across Decimal128/double/Int64 compare equal and"
         " keep stable (input) order",
     ),
