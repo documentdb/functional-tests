@@ -18,6 +18,9 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Array Matching]: $eq against an array matches either the whole
+# array exactly — order- and length-sensitive — or any single element one level
+# deep, including empty arrays on dot paths and typed single-element arrays.
 ARRAY_MATCHING_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="array_order_matters",
@@ -174,6 +177,9 @@ ARRAY_MATCHING_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+# Property [Object Matching]: $eq against a document requires an exact match —
+# field order, field set, and nested values must all agree, including empty and
+# $-prefixed-key documents.
 OBJECT_MATCHING_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="field_order_no_match",
@@ -249,4 +255,4 @@ def test_eq_value_matching(collection, test):
     """Parametrized test for $eq array and object value matching."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, ignore_doc_order=True)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)

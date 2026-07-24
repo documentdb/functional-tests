@@ -26,8 +26,13 @@ from documentdb_tests.framework.test_constants import (
     DATE_Y2K,
     DATE_YEAR_1,
     DATE_YEAR_9999,
+    DECIMAL128_ONE_AND_HALF,
+    DECIMAL128_TWO_AND_HALF,
 )
 
+# Property [BSON Type Matching]: $eq matches a stored value of the same BSON
+# type across every type — numeric, bool, date, binData, timestamp, javascript,
+# and the MinKey/MaxKey sentinels.
 BSON_TYPE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="double",
@@ -45,9 +50,9 @@ BSON_TYPE_TESTS: list[QueryTestCase] = [
     ),
     QueryTestCase(
         id="decimal128",
-        filter={"a": {"$eq": Decimal128("1.5")}},
-        doc=[{"_id": 1, "a": Decimal128("1.5")}, {"_id": 2, "a": Decimal128("2.5")}],
-        expected=[{"_id": 1, "a": Decimal128("1.5")}],
+        filter={"a": {"$eq": DECIMAL128_ONE_AND_HALF}},
+        doc=[{"_id": 1, "a": DECIMAL128_ONE_AND_HALF}, {"_id": 2, "a": DECIMAL128_TWO_AND_HALF}],
+        expected=[{"_id": 1, "a": DECIMAL128_ONE_AND_HALF}],
         msg="$eq with Decimal128",
     ),
     QueryTestCase(
@@ -121,6 +126,9 @@ BSON_TYPE_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+# Property [Numeric Cross-Type Equivalence]: $eq compares numbers by value, not
+# by BSON type — int, long, double, and Decimal128 holding the same value all
+# match each other.
 NUMERIC_CROSS_TYPE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="int_matches_long",
@@ -177,6 +185,9 @@ NUMERIC_CROSS_TYPE_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+# Property [Type Distinction]: $eq does NOT match across non-equivalent BSON
+# types — bool vs int, null vs zero/false/empty string, number vs its string
+# form, ObjectId vs its hex string, and BinData of a different subtype.
 TYPE_DISTINCTION_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="false_does_not_match_zero",
@@ -264,6 +275,9 @@ TYPE_DISTINCTION_TESTS: list[QueryTestCase] = [
 ]
 
 
+# Property [Date Boundaries and Precision]: $eq on dates matches the same
+# instant at the epoch, pre-epoch, and min/max year boundaries with
+# millisecond precision, and stays distinct from Timestamp and ObjectId.
 DATE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="date_epoch",
@@ -331,7 +345,7 @@ ALL_TESTS = BSON_TYPE_TESTS + NUMERIC_CROSS_TYPE_TESTS + TYPE_DISTINCTION_TESTS 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
 def test_eq_bson_wiring(collection, test):
-    """Parametrized test for $eq BSON type wiring, numeric cross-type, and type distinction."""
+    """Parametrized test for $eq BSON types, numeric cross-type, type distinction, and dates."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, ignore_doc_order=True)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)

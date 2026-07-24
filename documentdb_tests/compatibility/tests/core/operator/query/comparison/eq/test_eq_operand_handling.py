@@ -16,6 +16,8 @@ from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Literal Operand]: $eq treats its operand as a literal BSON value —
+# a $-prefixed string is matched literally, never resolved as a field reference.
 LITERAL_OPERAND_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="dollar_prefixed_string_is_literal",
@@ -32,9 +34,11 @@ def test_eq_literal_operand(collection, test):
     """Parametrized test for $eq literal-operand safety."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, ignore_doc_order=True)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
 
 
+# Property [Root Operator Rejection]: $eq is not a top-level query operator and
+# is rejected with BAD_VALUE when used without a field.
 def test_eq_at_query_root_errors(collection):
     """Test $eq as a top-level operator (no field) fails with BAD_VALUE."""
     collection.insert_many([{"_id": 1, "a": 1}])
@@ -46,10 +50,9 @@ def test_eq_at_query_root_errors(collection):
     )
 
 
-# (id, docs, value, expected) — the explicit {a: {$eq: value}} and implicit
-# {a: value} forms must both return `expected` for any non-regex value. Each form
-# is asserted independently (one assertion per test) against the same expected set,
-# which establishes that the two forms are equivalent.
+# Property [Implicit Form Equivalence]: for any non-regex operand, the explicit
+# {a: {$eq: v}} and implicit {a: v} query forms return identical results. Each
+# tuple is (id, docs, value, expected); the two forms are asserted independently.
 IMPLICIT_EQUIVALENCE_CASES = [
     ("scalar_int", [{"_id": 1, "a": 1}, {"_id": 2, "a": 2}], 1, [{"_id": 1, "a": 1}]),
     ("string", [{"_id": 1, "a": "x"}, {"_id": 2, "a": "y"}], "x", [{"_id": 1, "a": "x"}]),

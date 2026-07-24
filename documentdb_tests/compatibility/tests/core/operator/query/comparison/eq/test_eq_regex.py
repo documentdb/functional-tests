@@ -15,6 +15,9 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Regex Operand Semantics]: an explicit $eq regex matches only a
+# stored regex object with the identical pattern and flags, while the implicit
+# {field: /re/} form pattern-matches strings (and equal stored regexes).
 TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="regex_matches_stored_regex",
@@ -94,4 +97,4 @@ def test_eq_regex(collection, test):
     """Parametrized test for $eq regex behavior."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, ignore_doc_order=True)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)

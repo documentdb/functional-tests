@@ -14,6 +14,9 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Field Lookup Paths]: $eq resolves dot notation into nested
+# documents, arrays, numeric indexes, and arrays of objects, matching when any
+# traversed element equals the operand.
 FIELD_LOOKUP_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="nested_field",
@@ -115,6 +118,9 @@ FIELD_LOOKUP_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+# Property [Null and Missing Equivalence]: $eq null matches both an explicit
+# null and an absent field, including along dot paths and into arrays of
+# objects, but never a non-null value.
 NULL_MISSING_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="null_matches_both_null_and_missing",
@@ -158,6 +164,9 @@ NULL_MISSING_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+# Property [Lookup Boundary Values]: $eq handles boundary operands on lookup —
+# compound and null _id values, very long and empty strings, and empty nested
+# objects.
 EDGE_CASE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="id_compound_document",
@@ -205,4 +214,4 @@ def test_eq_field_lookup(collection, test):
     """Parametrized test for $eq field lookup, null/missing handling, and boundary values."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, ignore_doc_order=True)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)

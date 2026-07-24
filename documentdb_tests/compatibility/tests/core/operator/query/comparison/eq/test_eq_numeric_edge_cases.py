@@ -27,6 +27,9 @@ from documentdb_tests.framework.test_constants import (
     FLOAT_INFINITY,
 )
 
+# Property [Precision-Aware Equality]: $eq near the 2^53 double/long boundary
+# matches only values that are genuinely equal, without collapsing longs a
+# double cannot represent.
 PRECISION_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="double_safe_integer_matches_only_equal_long",
@@ -50,6 +53,8 @@ PRECISION_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+# Property [Infinity Matching]: $eq Infinity matches Infinity of the same sign
+# across double and Decimal128, and never the opposite sign or a finite value.
 INFINITY_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="infinity_matches_double_infinity",
@@ -84,6 +89,8 @@ INFINITY_TESTS: list[QueryTestCase] = [
     ),
 ]
 
+# Property [Negative Zero Equivalence]: $eq 0.0 matches stored negative zero as
+# both double and Decimal128 — sign of zero is not significant.
 NEGATIVE_ZERO_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="positive_zero_matches_negative_zero",
@@ -102,6 +109,9 @@ NEGATIVE_ZERO_TESTS: list[QueryTestCase] = [
 ]
 
 
+# Property [Decimal128 Precision]: $eq matches Decimal128 values at the MAX/MIN
+# representable boundaries exactly and keeps Decimal128('0.1') distinct from
+# double 0.1.
 DECIMAL128_PRECISION_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="decimal128_max_exact_match",
@@ -135,4 +145,4 @@ def test_eq_numeric_edge_cases(collection, test):
     """Parametrized test for $eq numeric edge cases."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, ignore_doc_order=True)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)

@@ -15,6 +15,9 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Byte-Wise String Equality]: $eq compares strings by exact bytes —
+# case-sensitive, no Unicode normalization, multibyte and embedded null bytes
+# preserved, and whitespace significant.
 STRING_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="case_sensitive",
@@ -65,12 +68,9 @@ STRING_TESTS: list[QueryTestCase] = [
 ]
 
 
-ALL_TESTS = STRING_TESTS
-
-
-@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+@pytest.mark.parametrize("test", pytest_params(STRING_TESTS))
 def test_eq_string(collection, test):
     """Parametrized test for $eq string-equality subtleties."""
     collection.insert_many(test.doc)
     result = execute_command(collection, {"find": collection.name, "filter": test.filter})
-    assertSuccess(result, test.expected, ignore_doc_order=True)
+    assertSuccess(result, test.expected, msg=test.msg, ignore_doc_order=True)
