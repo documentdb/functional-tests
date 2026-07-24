@@ -11,6 +11,7 @@ from documentdb_tests.compatibility.tests.core.operator.update.utils import Upda
 from documentdb_tests.framework.assertions import assertFailureCode, assertResult
 from documentdb_tests.framework.error_codes import (
     CONFLICTING_UPDATE_OPERATORS_ERROR,
+    FAILED_TO_PARSE_ERROR,
     IMMUTABLE_FIELD_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -91,6 +92,68 @@ def test_currentDate_conflicts(collection, test: UpdateTestCase):
         {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
     )
     assertResult(result, error_code=test.error_code, msg=test.msg)
+
+
+# ---------------------------------------------------------------------------
+# Property [Operand Type]: $currentDate requires a document operand; a
+# non-document operand fails to parse (code 9)
+# ---------------------------------------------------------------------------
+
+OPERAND_TYPE_TESTS: list[UpdateTestCase] = [
+    UpdateTestCase(
+        "operand_null",
+        setup_docs=[{"_id": 1}],
+        query={"_id": 1},
+        update={"$currentDate": None},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$currentDate should fail to parse when operand is null",
+    ),
+    UpdateTestCase(
+        "operand_array",
+        setup_docs=[{"_id": 1}],
+        query={"_id": 1},
+        update={"$currentDate": [1, 2]},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$currentDate should fail to parse when operand is an array",
+    ),
+    UpdateTestCase(
+        "operand_string",
+        setup_docs=[{"_id": 1}],
+        query={"_id": 1},
+        update={"$currentDate": "now"},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$currentDate should fail to parse when operand is a string",
+    ),
+    UpdateTestCase(
+        "operand_bool",
+        setup_docs=[{"_id": 1}],
+        query={"_id": 1},
+        update={"$currentDate": True},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$currentDate should fail to parse when operand is a top-level bool",
+    ),
+    UpdateTestCase(
+        "operand_integer",
+        setup_docs=[{"_id": 1}],
+        query={"_id": 1},
+        update={"$currentDate": 42},
+        error_code=FAILED_TO_PARSE_ERROR,
+        msg="$currentDate should fail to parse when operand is an integer",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(OPERAND_TYPE_TESTS))
+def test_currentDate_operand_type(collection, test: UpdateTestCase):
+    """Test $currentDate rejects non-document operands with FailedToParse."""
+    if test.setup_docs:
+        collection.insert_many(test.setup_docs)
+
+    result = execute_command(
+        collection,
+        {"update": collection.name, "updates": [{"q": test.query, "u": test.update}]},
+    )
+    assertFailureCode(result, test.error_code, msg=test.msg)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
