@@ -28,6 +28,8 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ONE_AND_HALF,
+    DECIMAL128_TWO_AND_HALF,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NEGATIVE_INFINITY,
@@ -81,9 +83,9 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
     ),
     ExpressionTestCase(
         id="nested_bson_in_object_value",
-        expression={"$objectToArray": {"a": {"x": Int64(1), "y": Decimal128("2.5")}}},
-        doc={"obj": {"a": {"x": Int64(1), "y": Decimal128("2.5")}}},
-        expected=[{"k": "a", "v": {"x": Int64(1), "y": Decimal128("2.5")}}],
+        expression={"$objectToArray": {"a": {"x": Int64(1), "y": DECIMAL128_TWO_AND_HALF}}},
+        doc={"obj": {"a": {"x": Int64(1), "y": DECIMAL128_TWO_AND_HALF}}},
+        expected=[{"k": "a", "v": {"x": Int64(1), "y": DECIMAL128_TWO_AND_HALF}}],
         msg="Should preserve nested BSON types in object value",
     ),
     ExpressionTestCase(
@@ -91,7 +93,7 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
         expression={
             "$objectToArray": {
                 "int64": Int64(1),
-                "dec": Decimal128("1.5"),
+                "dec": DECIMAL128_ONE_AND_HALF,
                 "dt": datetime(2024, 1, 1, tzinfo=timezone.utc),
                 "oid": ObjectId("000000000000000000000001"),
                 "bin": Binary(b"\x01", 0),
@@ -102,7 +104,7 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
         doc={
             "obj": {
                 "int64": Int64(1),
-                "dec": Decimal128("1.5"),
+                "dec": DECIMAL128_ONE_AND_HALF,
                 "dt": datetime(2024, 1, 1, tzinfo=timezone.utc),
                 "oid": ObjectId("000000000000000000000001"),
                 "bin": Binary(b"\x01", 0),
@@ -112,7 +114,7 @@ TEST_SUBSET_FOR_LITERAL: list[ExpressionTestCase] = [
         },
         expected=[
             {"k": "int64", "v": Int64(1)},
-            {"k": "dec", "v": Decimal128("1.5")},
+            {"k": "dec", "v": DECIMAL128_ONE_AND_HALF},
             {"k": "dt", "v": datetime(2024, 1, 1, tzinfo=timezone.utc)},
             {"k": "oid", "v": ObjectId("000000000000000000000001")},
             {"k": "bin", "v": b"\x01"},
@@ -356,8 +358,8 @@ NESTED_BSON_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="deeply_nested_bson",
         expression={"$objectToArray": "$obj"},
-        doc={"obj": {"a": {"x": [{"y": Decimal128("1.5")}, Timestamp(0, 0)]}}},
-        expected=[{"k": "a", "v": {"x": [{"y": Decimal128("1.5")}, Timestamp(0, 0)]}}],
+        doc={"obj": {"a": {"x": [{"y": DECIMAL128_ONE_AND_HALF}, Timestamp(0, 0)]}}},
+        expected=[{"k": "a", "v": {"x": [{"y": DECIMAL128_ONE_AND_HALF}, Timestamp(0, 0)]}}],
         msg="Should preserve deeply nested BSON types",
     ),
 ]

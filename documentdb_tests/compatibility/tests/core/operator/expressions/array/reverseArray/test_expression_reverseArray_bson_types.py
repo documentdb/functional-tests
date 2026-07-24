@@ -25,6 +25,9 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_ONE_AND_HALF,
+    DECIMAL128_TRAILING_ZERO,
+    DECIMAL128_TWO_AND_HALF,
     DECIMAL128_ZERO,
     DOUBLE_NEGATIVE_ZERO,
     FLOAT_INFINITY,
@@ -92,8 +95,8 @@ BSON_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="decimal128_values",
         expression={"$reverseArray": "$arr"},
-        doc={"arr": [Decimal128("1.5"), Decimal128("2.5"), Decimal128("3.5")]},
-        expected=[Decimal128("3.5"), Decimal128("2.5"), Decimal128("1.5")],
+        doc={"arr": [DECIMAL128_ONE_AND_HALF, DECIMAL128_TWO_AND_HALF, Decimal128("3.5")]},
+        expected=[Decimal128("3.5"), DECIMAL128_TWO_AND_HALF, DECIMAL128_ONE_AND_HALF],
         msg="Should preserve Decimal128 values",
     ),
     ExpressionTestCase(
@@ -203,8 +206,8 @@ ELEMENT_PRESERVATION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="decimal128_trailing_zeros",
         expression={"$reverseArray": "$arr"},
-        doc={"arr": [Decimal128("1.0"), Decimal128("1.00"), Decimal128("1.000")]},
-        expected=[Decimal128("1.000"), Decimal128("1.00"), Decimal128("1.0")],
+        doc={"arr": [DECIMAL128_TRAILING_ZERO, Decimal128("1.00"), Decimal128("1.000")]},
+        expected=[Decimal128("1.000"), Decimal128("1.00"), DECIMAL128_TRAILING_ZERO],
         msg="Decimal128 trailing zeros preserved",
     ),
     ExpressionTestCase(

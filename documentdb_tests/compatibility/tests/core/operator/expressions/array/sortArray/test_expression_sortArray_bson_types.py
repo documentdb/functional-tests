@@ -28,8 +28,11 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_INFINITY,
+    DECIMAL128_ONE_AND_HALF,
+    DECIMAL128_TWO_AND_HALF,
     DECIMAL128_ZERO,
     DOUBLE_NEGATIVE_ZERO,
+    DOUBLE_ONE_AND_HALF,
     FLOAT_INFINITY,
     FLOAT_NEGATIVE_INFINITY,
     INT32_MAX,
@@ -114,8 +117,8 @@ BSON_VALUE_SORT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="sort_decimal128_asc",
         expression={"$sortArray": {"input": "$arr", "sortBy": 1}},
-        doc={"arr": [Decimal128("3.14"), Decimal128("1.5"), Decimal128("2.7")]},
-        expected=[Decimal128("1.5"), Decimal128("2.7"), Decimal128("3.14")],
+        doc={"arr": [Decimal128("3.14"), DECIMAL128_ONE_AND_HALF, Decimal128("2.7")]},
+        expected=[DECIMAL128_ONE_AND_HALF, Decimal128("2.7"), Decimal128("3.14")],
         msg="Should sort Decimal128 values ascending",
     ),
     ExpressionTestCase(
@@ -355,8 +358,20 @@ BSON_FIELD_SORT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="sort_docs_by_cross_numeric_types",
         expression={"$sortArray": {"input": "$arr", "sortBy": {"v": 1}}},
-        doc={"arr": [{"v": Decimal128("2.5")}, {"v": 1}, {"v": Int64(3)}, {"v": 1.5}]},
-        expected=[{"v": 1}, {"v": 1.5}, {"v": Decimal128("2.5")}, {"v": Int64(3)}],
+        doc={
+            "arr": [
+                {"v": DECIMAL128_TWO_AND_HALF},
+                {"v": 1},
+                {"v": Int64(3)},
+                {"v": DOUBLE_ONE_AND_HALF},
+            ]
+        },
+        expected=[
+            {"v": 1},
+            {"v": DOUBLE_ONE_AND_HALF},
+            {"v": DECIMAL128_TWO_AND_HALF},
+            {"v": Int64(3)},
+        ],
         msg="Should sort documents with mixed numeric field types",
     ),
     ExpressionTestCase(

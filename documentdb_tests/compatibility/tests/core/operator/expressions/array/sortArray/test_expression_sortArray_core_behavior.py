@@ -9,7 +9,7 @@ large arrays, null input and null/missing-field handling, and edge cases
 """
 
 import pytest
-from bson import Decimal128, Int64
+from bson import Int64
 
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
@@ -20,6 +20,10 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_constants import (
+    DECIMAL128_ONE_AND_HALF,
+    DOUBLE_ONE_AND_HALF,
+)
 
 # Property [Literal-path parity]: representative cases from each group below
 # also run through the literal-value path (not just via inserted documents),
@@ -345,8 +349,8 @@ NUMERIC_CROSS_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int_and_double",
         expression={"$sortArray": {"input": "$arr", "sortBy": 1}},
-        doc={"arr": [3, 1.5, 2]},
-        expected=[1.5, 2, 3],
+        doc={"arr": [3, DOUBLE_ONE_AND_HALF, 2]},
+        expected=[DOUBLE_ONE_AND_HALF, 2, 3],
         msg="Should sort ints and doubles together",
     ),
     ExpressionTestCase(
@@ -359,8 +363,8 @@ NUMERIC_CROSS_TYPE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="int_and_decimal128",
         expression={"$sortArray": {"input": "$arr", "sortBy": 1}},
-        doc={"arr": [3, Decimal128("1.5"), 2]},
-        expected=[Decimal128("1.5"), 2, 3],
+        doc={"arr": [3, DECIMAL128_ONE_AND_HALF, 2]},
+        expected=[DECIMAL128_ONE_AND_HALF, 2, 3],
         msg="Should sort ints and decimal128 together",
     ),
 ]
