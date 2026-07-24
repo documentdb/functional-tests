@@ -15,7 +15,6 @@ def render(analysis: Dict[str, Any]) -> str:
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "summary": analysis["summary"],
-        "by_tag": analysis["by_tag"],
         "tests": analysis["tests"],
     }
     return json.dumps(report, indent=2)
