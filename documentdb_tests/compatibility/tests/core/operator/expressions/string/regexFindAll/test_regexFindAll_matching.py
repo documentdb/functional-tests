@@ -6,6 +6,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression,
 )
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 
 from .utils.regexFindAll_common import (
@@ -135,9 +136,11 @@ REGEXFINDALL_EDGE_TESTS: list[RegexFindAllTest] = [
     # performant; scaling to STRING_SIZE_LIMIT_BYTES would produce ~8M matches and hang.
     RegexFindAllTest(
         "edge_large_input_many_matches",
-        input="ab" * 5_000,
+        input=lazy(lambda: "ab" * 5_000),
         regex="ab",
-        expected=[{"match": "ab", "idx": i * 2, "captures": []} for i in range(5_000)],
+        expected=lazy(
+            lambda: [{"match": "ab", "idx": i * 2, "captures": []} for i in range(5_000)]
+        ),
         msg="$regexFindAll should return all 5000 matches from a large repeated input",
     ),
     # Newline in input.
@@ -196,7 +199,7 @@ REGEXFINDALL_MULTI_MATCH_TESTS: list[RegexFindAllTest] = [
         expected=[{"match": "aaa", "idx": 0, "captures": []}],
         msg="$regexFindAll greedy quantifier should consume maximum input in one match",
     ),
-    # Lazy quantifier consumes minimum input, increasing match count.
+    # lazy quantifier consumes minimum input, increasing match count.
     RegexFindAllTest(
         "multi_nongreedy_more_matches",
         input="aaa",

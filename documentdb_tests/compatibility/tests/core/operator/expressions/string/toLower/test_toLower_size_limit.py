@@ -7,6 +7,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -19,8 +20,8 @@ from .utils.toLower_common import (
 TOLOWER_SIZE_LIMIT_SUCCESS_TESTS: list[ToLowerTest] = [
     ToLowerTest(
         "size_one_under",
-        value="A" * (STRING_SIZE_LIMIT_BYTES - 1),
-        expected="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        value=lazy(lambda: "A" * (STRING_SIZE_LIMIT_BYTES - 1)),
+        expected=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         msg="$toLower should accept input string one byte under the 16 MB limit",
     ),
 ]
@@ -29,7 +30,7 @@ TOLOWER_SIZE_LIMIT_SUCCESS_TESTS: list[ToLowerTest] = [
 TOLOWER_SIZE_LIMIT_ERROR_TESTS: list[ToLowerTest] = [
     ToLowerTest(
         "size_at_limit",
-        value="a" * STRING_SIZE_LIMIT_BYTES,
+        value=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$toLower should reject input string at the 16 MB byte limit",
     ),

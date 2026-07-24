@@ -2,32 +2,23 @@
 
 from __future__ import annotations
 
-import time
-
-from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.error_codes import OBJECT_IS_BUSY_ERROR
+from documentdb_tests.framework.executor import execute_admin_with_retry_command
 
 
 def ensure_autocompact_idle(collection):
-    """Disable autoCompact, retrying until it reaches a deterministic idle state.
+    """Reset autoCompact to a disabled baseline before a test runs.
 
-    autoCompact is a server-wide setting, so a test inherits prior state, and a
-    single disable returns before the background wind-down finishes. This sends
-    disable repeatedly with a short pause between calls, returns only after
-    several consecutive disables succeed (so the async wind-down has time to
-    finish), and raises if it never settles within a bounded number of attempts.
+    autoCompact is a server-wide setting, so a test inherits prior state. The
+    background compaction winds down asynchronously, so we must try to disable
+    until the server stops complaining.
 
     Callers must be marked no_parallel: this only resets state left by a prior
-    test, not a concurrent worker mutating the shared setting between settling
+    test, not a concurrent worker mutating the shared setting between the reset
     and the command under test.
     """
-    consecutive = 0
-    for _ in range(200):
-        result = execute_admin_command(collection, {"autoCompact": False})
-        if isinstance(result, dict) and result.get("ok") == 1.0:
-            consecutive += 1
-            if consecutive >= 3:
-                return
-        else:
-            consecutive = 0
-        time.sleep(0.05)
-    raise RuntimeError("autoCompact did not reach an idle state")
+    result = execute_admin_with_retry_command(
+        collection, {"autoCompact": False}, retry_code=OBJECT_IS_BUSY_ERROR
+    )
+    if not (isinstance(result, dict) and result.get("ok") == 1.0):
+        raise RuntimeError(f"autoCompact did not reach an idle state: {result!r}")

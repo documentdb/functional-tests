@@ -7,6 +7,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -19,13 +20,13 @@ from .utils.strLenBytes_common import (
 STRLENBYTES_SIZE_LIMIT_SUCCESS_TESTS: list[StrLenBytesTest] = [
     StrLenBytesTest(
         "size_one_under",
-        value="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        value=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         expected=STRING_SIZE_LIMIT_BYTES - 1,
         msg="$strLenBytes should handle a string one byte under the size limit",
     ),
     StrLenBytesTest(
         "size_one_under_3byte",
-        value="寿" * ((STRING_SIZE_LIMIT_BYTES - 1) // 3),
+        value=lazy(lambda: "寿" * ((STRING_SIZE_LIMIT_BYTES - 1) // 3)),
         expected=(STRING_SIZE_LIMIT_BYTES - 1) // 3 * 3,
         msg="$strLenBytes should handle 3-byte chars near the size limit",
     ),
@@ -35,7 +36,7 @@ STRLENBYTES_SIZE_LIMIT_SUCCESS_TESTS: list[StrLenBytesTest] = [
 STRLENBYTES_SIZE_LIMIT_ERROR_TESTS: list[StrLenBytesTest] = [
     StrLenBytesTest(
         "size_at_limit",
-        value="a" * STRING_SIZE_LIMIT_BYTES,
+        value=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$strLenBytes should reject a string at the size limit",
     ),

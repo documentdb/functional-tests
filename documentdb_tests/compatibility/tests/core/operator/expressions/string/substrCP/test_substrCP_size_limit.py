@@ -7,6 +7,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -24,7 +25,7 @@ SUBSTRCP_SIZE_LIMIT_SUCCESS_TESTS: list[SubstrCPTest] = [
     ),
     SubstrCPTest(
         "size_one_under",
-        string="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        string=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         index=0,
         count=1,
         expected="a",
@@ -37,21 +38,21 @@ SUBSTRCP_SIZE_LIMIT_SUCCESS_TESTS: list[SubstrCPTest] = [
 SUBSTRCP_SIZE_LIMIT_ERROR_TESTS: list[SubstrCPTest] = [
     SubstrCPTest(
         "size_at_limit",
-        string="a" * STRING_SIZE_LIMIT_BYTES,
+        string=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$substrCP should reject input string at the 16 MB byte limit",
     ),
     # 2-byte chars exceeding 16 MB in bytes.
     SubstrCPTest(
         "size_multibyte_at_limit",
-        string="é" * (STRING_SIZE_LIMIT_BYTES // 2),
+        string=lazy(lambda: "é" * (STRING_SIZE_LIMIT_BYTES // 2)),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$substrCP should reject multi-byte string exceeding 16 MB in bytes",
     ),
     # Eager size check: untaken $cond branch with 16 MB string still errors.
     SubstrCPTest(
         "size_cond_untaken_branch",
-        string={"$cond": [True, "hello", "a" * STRING_SIZE_LIMIT_BYTES]},
+        string=lazy(lambda: {"$cond": [True, "hello", "a" * STRING_SIZE_LIMIT_BYTES]}),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$substrCP should reject 16 MB string in untaken $cond branch",
     ),

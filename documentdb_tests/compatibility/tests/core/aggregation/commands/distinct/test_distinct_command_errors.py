@@ -24,6 +24,7 @@ from documentdb_tests.framework.error_codes import (
     UNRECOGNIZED_COMMAND_FIELD_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
@@ -281,7 +282,7 @@ DISTINCT_MAXTIMEMS_ERROR_TESTS: list[CommandTestCase] = [
 DISTINCT_BSON_SIZE_LIMIT_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "bson_size_limit_exceeded",
-        docs=[{"_id": i, "x": f"v{i}" + "x" * 17_000} for i in range(1100)],
+        docs=lazy(lambda: [{"_id": i, "x": f"v{i}" + "x" * 17_000} for i in range(1100)]),
         command=lambda ctx: {"distinct": ctx.collection, "key": "x"},
         error_code=DISTINCT_TOO_BIG_ERROR,
         msg="distinct should produce an error when results exceed the 16MB BSON size limit",

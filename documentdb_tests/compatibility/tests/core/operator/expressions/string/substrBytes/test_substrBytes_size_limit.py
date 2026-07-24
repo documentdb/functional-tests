@@ -7,6 +7,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -20,7 +21,7 @@ from .utils.substrBytes_common import (
 SUBSTRBYTES_SIZE_LIMIT_SUCCESS_TESTS: list[SubstrBytesTest] = [
     SubstrBytesTest(
         "size_one_under_first",
-        string="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        string=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         byte_index=0,
         byte_count=1,
         expected="a",
@@ -28,15 +29,15 @@ SUBSTRBYTES_SIZE_LIMIT_SUCCESS_TESTS: list[SubstrBytesTest] = [
     ),
     SubstrBytesTest(
         "size_one_under_full",
-        string="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        string=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         byte_index=0,
         byte_count=STRING_SIZE_LIMIT_BYTES - 1,
-        expected="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        expected=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         msg="$substrBytes should extract full string one byte under the 16 MB limit",
     ),
     SubstrBytesTest(
         "size_one_under_last",
-        string="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        string=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         byte_index=STRING_SIZE_LIMIT_BYTES - 2,
         byte_count=1,
         expected="a",
@@ -49,7 +50,7 @@ SUBSTRBYTES_SIZE_LIMIT_SUCCESS_TESTS: list[SubstrBytesTest] = [
 SUBSTRBYTES_SIZE_LIMIT_ERROR_TESTS: list[SubstrBytesTest] = [
     SubstrBytesTest(
         "size_at_limit",
-        string="a" * STRING_SIZE_LIMIT_BYTES,
+        string=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         byte_index=0,
         byte_count=1,
         error_code=STRING_SIZE_LIMIT_ERROR,
@@ -58,7 +59,7 @@ SUBSTRBYTES_SIZE_LIMIT_ERROR_TESTS: list[SubstrBytesTest] = [
     # 2-byte chars exceeding 16 MB in bytes.
     SubstrBytesTest(
         "size_multibyte_at_limit",
-        string="é" * (STRING_SIZE_LIMIT_BYTES // 2),
+        string=lazy(lambda: "é" * (STRING_SIZE_LIMIT_BYTES // 2)),
         byte_index=0,
         byte_count=1,
         error_code=STRING_SIZE_LIMIT_ERROR,

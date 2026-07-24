@@ -13,6 +13,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Dotted Path Removal]: dot notation removes a nested field within a
@@ -137,10 +138,12 @@ UNSET_ID_INTERACTIONS_TESTS: list[StageTestCase] = [
 UNSET_LARGE_FIELD_COUNT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "large_field_count_array_form",
-        docs=[
-            {"_id": 1, **{f"f{i}": i for i in range(10_000)}},
-        ],
-        pipeline=[{"$unset": [f"f{i}" for i in range(10_000)]}],
+        docs=lazy(
+            lambda: [
+                {"_id": 1, **{f"f{i}": i for i in range(10_000)}},
+            ]
+        ),
+        pipeline=lazy(lambda: [{"$unset": [f"f{i}" for i in range(10_000)]}]),
         expected=[{"_id": 1}],
         msg="$unset should handle a large number of fields in the array form",
     ),

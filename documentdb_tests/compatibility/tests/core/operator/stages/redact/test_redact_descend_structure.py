@@ -16,6 +16,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Recursion Depth and Scale]: $redact descends through deep nesting and
@@ -23,9 +24,13 @@ from documentdb_tests.framework.parametrize import pytest_params
 REDACT_STRUCTURAL_TESTS: list[StageTestCase] = [
     StageTestCase(
         "structural_large_array_descended_element_wise",
-        docs=[{"_id": 1, "items": [{"n": i, "sub": {"secret": True}} for i in range(10_000)]}],
+        docs=lazy(
+            lambda: [
+                {"_id": 1, "items": [{"n": i, "sub": {"secret": True}} for i in range(10_000)]}
+            ]
+        ),
         pipeline=[{"$redact": {"$cond": [{"$eq": ["$secret", True]}, "$$PRUNE", "$$DESCEND"]}}],
-        expected=[{"_id": 1, "items": [{"n": i} for i in range(10_000)]}],
+        expected=lazy(lambda: [{"_id": 1, "items": [{"n": i} for i in range(10_000)]}]),
         msg="$redact under $$DESCEND should descend element-wise into a large array of "
         "embedded documents without error",
     ),

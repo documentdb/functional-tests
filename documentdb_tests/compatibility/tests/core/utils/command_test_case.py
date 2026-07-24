@@ -10,6 +10,7 @@ from pymongo import IndexModel
 from pymongo.collection import Collection
 from pymongo.database import Database
 
+from documentdb_tests.framework.lazy_payload import materialize
 from documentdb_tests.framework.target_collection import (
     SiblingCollection,
     TargetCollection,
@@ -106,7 +107,7 @@ class CommandTestCase(BaseTestCase):
             if target.name not in target.database.list_collection_names():
                 target.database.create_collection(target.name)
             if self.docs:
-                target.insert_many(self.docs)
+                target.insert_many(materialize(self.docs))
         if self.siblings:
             for sibling in self.siblings:
                 sibling.create(db, resolved)

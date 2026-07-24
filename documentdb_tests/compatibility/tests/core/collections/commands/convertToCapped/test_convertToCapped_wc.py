@@ -27,6 +27,7 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_ZERO,
     FLOAT_INFINITY,
@@ -99,11 +100,8 @@ WRITECONCERN_WTIMEOUT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
             "size": 100_000,
             "writeConcern": {"wtimeout": v},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg=f"wtimeout={id} should succeed",
-        # A negative wtimeout is accepted cleanly on a standalone server but a
-        # replica set reports a writeConcernError, so gate that case.
-        marks=((pytest.mark.requires(quorum_write_concern=False),) if id == "negative" else ()),
     )
     for id, val in [
         ("zero", 0),

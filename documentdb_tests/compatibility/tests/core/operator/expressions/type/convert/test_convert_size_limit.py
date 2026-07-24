@@ -12,6 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import CONVERSION_FAILURE_ERROR, STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -20,10 +21,10 @@ from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 CONVERT_STRING_SIZE_LIMIT_SUCCESS_TESTS: list[ConvertTest] = [
     ConvertTest(
         "size_limit_hex_under",
-        input=Binary(b"A" * (STRING_SIZE_LIMIT_BYTES // 2 - 1)),
+        input=lazy(lambda: Binary(b"A" * (STRING_SIZE_LIMIT_BYTES // 2 - 1))),
         to="string",
         format="hex",
-        expected="41" * (STRING_SIZE_LIMIT_BYTES // 2 - 1),
+        expected=lazy(lambda: "41" * (STRING_SIZE_LIMIT_BYTES // 2 - 1)),
         msg=(
             "$convert should succeed for BinData-to-string when output is"
             " just under the size limit"
@@ -37,7 +38,7 @@ CONVERT_STRING_SIZE_LIMIT_ERROR_TESTS: list[ConvertTest] = [
     # hex format: 8_388_608 bytes -> 16_777_216 chars (exactly the limit).
     ConvertTest(
         "size_limit_err_hex_at_limit",
-        input=Binary(b"A" * (STRING_SIZE_LIMIT_BYTES // 2)),
+        input=lazy(lambda: Binary(b"A" * (STRING_SIZE_LIMIT_BYTES // 2))),
         to="string",
         format="hex",
         error_code=CONVERSION_FAILURE_ERROR,
@@ -46,7 +47,7 @@ CONVERT_STRING_SIZE_LIMIT_ERROR_TESTS: list[ConvertTest] = [
     # base64 format: 12_582_912 bytes -> 16_777_216 chars (exactly the limit).
     ConvertTest(
         "size_limit_err_base64_at_limit",
-        input=Binary(b"A" * (STRING_SIZE_LIMIT_BYTES * 3 // 4)),
+        input=lazy(lambda: Binary(b"A" * (STRING_SIZE_LIMIT_BYTES * 3 // 4))),
         to="string",
         format="base64",
         error_code=CONVERSION_FAILURE_ERROR,
@@ -56,7 +57,7 @@ CONVERT_STRING_SIZE_LIMIT_ERROR_TESTS: list[ConvertTest] = [
     # error code than other formats.
     ConvertTest(
         "size_limit_err_utf8_at_limit",
-        input=Binary(b"A" * STRING_SIZE_LIMIT_BYTES),
+        input=lazy(lambda: Binary(b"A" * STRING_SIZE_LIMIT_BYTES)),
         to="string",
         format="utf8",
         error_code=STRING_SIZE_LIMIT_ERROR,
@@ -64,7 +65,7 @@ CONVERT_STRING_SIZE_LIMIT_ERROR_TESTS: list[ConvertTest] = [
     ),
     ConvertTest(
         "size_limit_err_oversized_input",
-        input="A" * STRING_SIZE_LIMIT_BYTES,
+        input=lazy(lambda: "A" * STRING_SIZE_LIMIT_BYTES),
         to="int",
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$convert should reject oversized string in input parameter",
@@ -72,21 +73,21 @@ CONVERT_STRING_SIZE_LIMIT_ERROR_TESTS: list[ConvertTest] = [
     ConvertTest(
         "size_limit_err_oversized_to",
         input=42,
-        to="A" * STRING_SIZE_LIMIT_BYTES,
+        to=lazy(lambda: "A" * STRING_SIZE_LIMIT_BYTES),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$convert should reject oversized string in to parameter",
     ),
     ConvertTest(
         "size_limit_err_oversized_to_type",
         input=42,
-        to={"type": "A" * STRING_SIZE_LIMIT_BYTES},
+        to=lazy(lambda: {"type": "A" * STRING_SIZE_LIMIT_BYTES}),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$convert should reject oversized string in to.type parameter",
     ),
     ConvertTest(
         "size_limit_err_oversized_to_subtype",
         input=42,
-        to={"type": "binData", "subtype": "A" * STRING_SIZE_LIMIT_BYTES},
+        to=lazy(lambda: {"type": "binData", "subtype": "A" * STRING_SIZE_LIMIT_BYTES}),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$convert should reject oversized string in to.subtype parameter",
     ),
@@ -94,7 +95,7 @@ CONVERT_STRING_SIZE_LIMIT_ERROR_TESTS: list[ConvertTest] = [
         "size_limit_err_oversized_format",
         input=42,
         to="string",
-        format="A" * STRING_SIZE_LIMIT_BYTES,
+        format=lazy(lambda: "A" * STRING_SIZE_LIMIT_BYTES),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$convert should reject oversized string in format parameter",
     ),
@@ -102,7 +103,7 @@ CONVERT_STRING_SIZE_LIMIT_ERROR_TESTS: list[ConvertTest] = [
         "size_limit_err_oversized_byte_order",
         input=42,
         to="binData",
-        byte_order="A" * STRING_SIZE_LIMIT_BYTES,
+        byte_order=lazy(lambda: "A" * STRING_SIZE_LIMIT_BYTES),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$convert should reject oversized string in byteOrder parameter",
     ),

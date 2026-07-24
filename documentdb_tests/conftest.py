@@ -25,6 +25,10 @@ from documentdb_tests.framework.engine_registry import (  # noqa: E402
 from documentdb_tests.framework.error_codes_validator import (  # noqa: E402
     validate_error_codes_sorted,
 )
+from documentdb_tests.framework.large_payload_guard import (  # noqa: E402
+    PARAM_SIZE_LIMIT_BYTES,
+    exceeds_size_limit,
+)
 from documentdb_tests.framework.preconditions import (  # noqa: E402
     REQUIRES_MARKER,
     detect_capabilities,
@@ -410,7 +414,23 @@ def pytest_collection_modifyitems(session, config, items):
     # Validate framework error code invariants
     structure_errors.extend(validate_error_codes_sorted())
 
-    if structure_errors or format_errors:
+    # No test may embed a large payload in its parametrized data. Such values are
+    # duplicated across xdist workers and held for the whole session; they belong
+    # behind Lazy so they are built at test time.
+    large_param_errors = []
+    for item in items:
+        callspec = getattr(item, "callspec", None)
+        if callspec is None:
+            continue
+        for value in callspec.params.values():
+            if exceeds_size_limit(value):
+                large_param_errors.append(
+                    f"  {item.nodeid} exceeds the {PARAM_SIZE_LIMIT_BYTES:,}-byte "
+                    "parametrized-data limit"
+                )
+                break
+
+    if structure_errors or format_errors or large_param_errors:
         import sys
 
         if structure_errors:
@@ -424,6 +444,15 @@ def pytest_collection_modifyitems(session, config, items):
                 print(f"\n{file_path}:", file=sys.stderr)
                 print("\n".join(file_errors), file=sys.stderr)
             print("\nSee docs/testing/TEST_FORMAT.md for rules.\n", file=sys.stderr)
+
+        if large_param_errors:
+            print("\n❌ Large Test Payloads:", file=sys.stderr)
+            print("\n".join(large_param_errors), file=sys.stderr)
+            print(
+                "\nWrap large values in lazy(...) so they are built at test time "
+                "instead of held in the collected test data.\n",
+                file=sys.stderr,
+            )
 
         pytest.exit("Test validation failed", returncode=1)
 

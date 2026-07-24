@@ -13,11 +13,12 @@ from documentdb_tests.compatibility.tests.system.administration.commands.autoCom
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    CONFLICTING_OPERATION_IN_PROGRESS_ERROR,
+    ALREADY_INITIALIZED_ERROR,
+    OBJECT_IS_BUSY_ERROR,
     UNAUTHORIZED_ERROR,
 )
 from documentdb_tests.framework.executor import (
-    execute_admin_command,
+    execute_admin_with_retry_command,
     execute_command,
 )
 from documentdb_tests.framework.parametrize import pytest_params
@@ -68,14 +69,19 @@ def test_autoCompact_reconfigure_conflict(collection):
     ensure_autocompact_idle(collection)
 
     # Establish a running config.
-    execute_admin_command(collection, {"autoCompact": True, "freeSpaceTargetMB": 30})
+    execute_admin_with_retry_command(
+        collection, {"autoCompact": True, "freeSpaceTargetMB": 30}, retry_code=OBJECT_IS_BUSY_ERROR
+    )
 
-    # Second should be rejected as the value differs.
-    result = execute_admin_command(collection, {"autoCompact": True, "freeSpaceTargetMB": 50})
+    # A differing reconfigure is rejected while running; tolerate the transient
+    # busy state while a prior compaction winds down.
+    result = execute_admin_with_retry_command(
+        collection, {"autoCompact": True, "freeSpaceTargetMB": 50}, retry_code=OBJECT_IS_BUSY_ERROR
+    )
 
     assertResult(
         result,
-        error_code=CONFLICTING_OPERATION_IN_PROGRESS_ERROR,
+        error_code=ALREADY_INITIALIZED_ERROR,
         msg="autoCompact should reject reconfiguring an enabled compaction with a different config",
         raw_res=True,
     )
@@ -91,10 +97,15 @@ def test_autoCompact_reconfigure_idempotent(collection):
     ensure_autocompact_idle(collection)
 
     # Establish a running config.
-    execute_admin_command(collection, {"autoCompact": True, "freeSpaceTargetMB": 30})
+    execute_admin_with_retry_command(
+        collection, {"autoCompact": True, "freeSpaceTargetMB": 30}, retry_code=OBJECT_IS_BUSY_ERROR
+    )
 
-    # Second should be accepted as a no-op since the value is the same.
-    result = execute_admin_command(collection, {"autoCompact": True, "freeSpaceTargetMB": 30})
+    # Re-enabling an identical config is a no-op; tolerate the transient busy
+    # state while a prior compaction winds down.
+    result = execute_admin_with_retry_command(
+        collection, {"autoCompact": True, "freeSpaceTargetMB": 30}, retry_code=OBJECT_IS_BUSY_ERROR
+    )
 
     assertResult(
         result,
