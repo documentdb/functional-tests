@@ -29,6 +29,9 @@ Examples:
   # Generate text report
   %(prog)s --output report.txt --format text
 
+  # Generate a markdown report (for a GitHub step summary)
+  %(prog)s --output report.md --format markdown
+
   # Generate JSON analysis
   %(prog)s --output analysis.json --format json
 

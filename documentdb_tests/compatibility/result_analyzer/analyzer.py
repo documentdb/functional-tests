@@ -296,10 +296,10 @@ def feature_path(nodeid: str) -> List[str]:
         the root isn't found.
     """
     path = nodeid.split("::", 1)[0]
-    marker = path.rfind(_TESTS_ROOT)
-    if marker == -1:
+    root_index = path.rfind(_TESTS_ROOT)
+    if root_index == -1:
         return []
-    relative = path[marker + len(_TESTS_ROOT) :]
+    relative = path[root_index + len(_TESTS_ROOT) :]
     return relative.split("/")
 
 
