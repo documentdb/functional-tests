@@ -50,16 +50,6 @@ def determine_verdict(reconciliation: Dict[str, Any]) -> Tuple[str, str]:
     return VERDICT_PASS, ""
 
 
-def group_failures_by_type(analysis: Dict[str, Any]) -> Dict[str, list]:
-    """Group failed tests by their failure_type (RESULT_MISMATCH, INFRA_ERROR, ...)."""
-    failed_tests = [t for t in analysis["tests"] if t["outcome"] == "FAIL"]
-    grouped: Dict[str, list] = {}
-    for test in failed_tests:
-        ft = test.get("failure_type", "UNKNOWN")
-        grouped.setdefault(ft, []).append(test)
-    return grouped
-
-
 # Above this many needs-attention items, the report lists a capped sample rather
 # than every traceback. A mass failure would otherwise bury the summary and blow
 # past the step-summary size limit.
@@ -147,26 +137,3 @@ def pass_rate(counts: Dict[str, Any]) -> str:
         return "100%"
     # Truncate to 1dp so a near-perfect-but-not-clean node never shows 100%.
     return f"{math.floor(passed / counted * 1000) / 10}%"
-
-
-def tag_rows(analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Return per-tag rows sorted worst-pass-rate-first, ready for tabulation."""
-    rows = []
-    by_tag = analysis.get("by_tag", {})
-    for tag, stats in sorted(by_tag.items(), key=lambda x: x[1]["pass_rate"]):
-        rows.append(
-            {
-                "tag": tag,
-                "passed": stats["passed"],
-                "total": stats["total"],
-                "failed": stats["failed"],
-                "skipped": stats["skipped"],
-                "pass_rate": stats["pass_rate"],
-            }
-        )
-    return rows
-
-
-def tests_with_outcome(analysis: Dict[str, Any], outcome: str) -> List[Dict[str, Any]]:
-    """Return the tests whose categorized outcome matches (e.g. SKIPPED, XPASS)."""
-    return [t for t in analysis["tests"] if t["outcome"] == outcome]
