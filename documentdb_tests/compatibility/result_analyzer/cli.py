@@ -96,7 +96,8 @@ Examples:
                 print(f"\nReport saved to: {args.output}")
 
         # Return exit code based on test results
-        if analysis["summary"]["failed"] > 0:
+        reconciliation = analysis["reconciliation"]
+        if reconciliation["failed"] > 0 or reconciliation["error"] > 0:
             return 1
         return 0
 

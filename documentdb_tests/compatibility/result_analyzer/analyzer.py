@@ -394,15 +394,8 @@ class ResultAnalyzer:
         Returns:
             Dictionary containing analysis results with structure:
             {
-                "summary": {
-                    "total": int,
-                    "passed": int,
-                    "failed": int,
-                    "skipped": int,
-                    "pass_rate": float
-                },
-                "reconciliation": { ... },  # counts + pass_rate (see build_reconciliation)
-                "by_feature": { ... },      # nested feature tree (see group_by_feature)
+                "reconciliation": { ... }, # counts + pass_rate (see build_reconciliation)
+                "by_feature": { ... },     # nested feature tree (see group_by_feature)
                 "tests": [
                     {
                         "name": str,
@@ -426,34 +419,17 @@ class ResultAnalyzer:
         deselected_nodeids = self._load_deselected(json_report_path)
 
         # Reconciliation is derived from pytest's own summary, which counts
-        # deselected/errored tests that the per-test loop below never sees.
+        # deselected/errored tests that the per-test loop below never sees. It
+        # is the single source of run totals and pass rate.
         reconciliation = build_reconciliation(report.get("summary", {}))
-
-        # Initialize counters
-        summary: Dict[str, Any] = {
-            "total": 0,
-            "passed": 0,
-            "failed": 0,
-            "error": 0,
-            "skipped": 0,
-            "xfailed": 0,
-            "xpassed": 0,
-        }
 
         tests_details = []
 
         # Process each test
         tests = report.get("tests", [])
         for test in tests:
-            summary["total"] += 1
-
             # Categorize the outcome
             test_outcome = categorize_outcome(test)
-
-            # Update summary counters using mapping
-            counter_key = OUTCOME_TO_KEY.get(test_outcome)
-            if counter_key:
-                summary[counter_key] += 1
 
             # Store test details
             test_detail = {
@@ -487,14 +463,8 @@ class ResultAnalyzer:
 
             tests_details.append(test_detail)
 
-        # Calculate overall pass rate
-        summary["pass_rate"] = round(
-            (summary["passed"] / summary["total"] * 100) if summary["total"] > 0 else 0, 2
-        )
-
         return {
-            "summary": summary,
-            "tests": tests_details,
             "reconciliation": reconciliation,
+            "tests": tests_details,
             "by_feature": group_by_feature(tests_details, deselected_nodeids),
         }

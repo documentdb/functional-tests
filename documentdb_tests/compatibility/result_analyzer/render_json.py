@@ -14,7 +14,7 @@ def render(analysis: Dict[str, Any]) -> str:
     """Render the analysis as a JSON document."""
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "summary": analysis["summary"],
+        "reconciliation": analysis["reconciliation"],
         "tests": analysis["tests"],
     }
     return json.dumps(report, indent=2)
