@@ -51,9 +51,9 @@ Examples:
     parser.add_argument(
         "-f",
         "--format",
-        choices=["text", "json"],
+        choices=["text", "json", "markdown"],
         default="text",
-        help="Output format: text or json (default: text)",
+        help="Output format: text, json, or markdown (default: text)",
     )
 
     parser.add_argument(
