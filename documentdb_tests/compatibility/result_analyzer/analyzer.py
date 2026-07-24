@@ -256,6 +256,14 @@ def build_reconciliation(native_summary: Dict[str, Any]) -> Dict[str, Any]:
     """
     counts = _counts_with_missing_as_zero(native_summary)
 
+    # Deselected tests are those collected but not run. pytest doesn't always
+    # record a ``deselected`` count, so derive it from collected - total to keep
+    # the decomposition honest: collected = deselected + total, always.
+    collected = counts["collected"]
+    total = counts["total"]
+    if collected >= total:
+        counts["deselected"] = collected - total
+
     # Only verdict-bearing outcomes count toward the rate; a run with any error
     # therefore cannot read 100%.
     denominator = counts["passed"] + counts["failed"] + counts["error"]

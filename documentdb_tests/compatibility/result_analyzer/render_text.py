@@ -9,7 +9,9 @@ aligned text. Presentation only; the selection logic lives in ``report_content``
 from typing import Any, Dict, List
 
 from .report_content import (
+    NEEDS_ATTENTION_CAP,
     VERDICT_PASS,
+    cap_items,
     determine_verdict,
     group_needs_attention,
     pass_rate,
@@ -45,7 +47,7 @@ def _breakdown_lines(reconciliation: Dict[str, Any]) -> List[str]:
 
 
 def _needs_attention_lines(analysis: Dict[str, Any]) -> List[str]:
-    """Failures and errors, grouped by failure type, as a plain list."""
+    """Failures and errors, grouped by failure type, as a plain list (capped)."""
     grouped = group_needs_attention(analysis)
     if not grouped:
         return []
@@ -54,8 +56,11 @@ def _needs_attention_lines(analysis: Dict[str, Any]) -> List[str]:
     for failure_type in sorted(grouped):
         tests = grouped[failure_type]
         lines.append(f"  {failure_type} ({len(tests)}):")
-        for test in tests:
+        shown, omitted = cap_items(tests)
+        for test in shown:
             lines.append(f"    {test['outcome']}: {test['name']}")
+        if omitted:
+            lines.append(f"    ... and {omitted} more (cap {NEEDS_ATTENTION_CAP})")
     return lines
 
 

@@ -221,6 +221,14 @@ class TestBuildReconciliation:
         result = build_reconciliation({})
         assert result["collected"] == 0 and result["pass_rate"] == 0.0
 
+    def test_deselected_derived_from_collected_minus_total(self):
+        # pytest often omits a 'deselected' count; derive it so the breakdown
+        # always reconciles: collected == deselected + total.
+        summary = {"collected": 100, "total": 80, "passed": 80}
+        result = build_reconciliation(summary)
+        assert result["deselected"] == 20
+        assert result["collected"] == result["deselected"] + result["total"]
+
 
 # categorize_outcome.
 
