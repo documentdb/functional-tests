@@ -3,6 +3,9 @@
 import pytest
 from bson import Decimal128, Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -165,7 +168,10 @@ TOLONG_DECIMAL128_ERROR_TESTS: list[ExpressionTestCase] = [
 TOLONG_DECIMAL128_TESTS = TOLONG_DECIMAL128_TESTS + TOLONG_DECIMAL128_ERROR_TESTS
 
 
-@pytest.mark.parametrize("test", pytest_params(TOLONG_DECIMAL128_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TOLONG_DECIMAL128_TESTS, "$toLong", "long")),
+)
 def test_toLong_decimal128(collection, test: ExpressionTestCase):
     """$toLong converts Decimal128 values including truncation, boundary values, and overflow."""
     result = execute_expression(collection, test.expression)

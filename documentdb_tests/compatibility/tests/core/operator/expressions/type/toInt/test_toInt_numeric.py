@@ -3,6 +3,9 @@
 import pytest
 from bson import Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -137,8 +140,10 @@ TOINT_INT64_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TOINT_NUMERIC_TESTS = (
-    TOINT_NULL_MISSING_TESTS + TOINT_BOOL_TESTS + TOINT_INT32_TESTS + TOINT_INT64_TESTS
+TOINT_NUMERIC_TESTS = with_convert_variants(
+    TOINT_NULL_MISSING_TESTS + TOINT_BOOL_TESTS + TOINT_INT32_TESTS + TOINT_INT64_TESTS,
+    "$toInt",
+    "int",
 )
 
 
