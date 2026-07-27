@@ -9,6 +9,8 @@ behavior, and $match with $expr after other pipeline stages.
 import pytest
 from bson import Int64, Timestamp
 
+pytestmark = pytest.mark.aggregate
+
 from documentdb_tests.framework.assertions import (
     assertFailureCode,
     assertSuccess,
