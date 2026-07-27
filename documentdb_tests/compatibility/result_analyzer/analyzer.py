@@ -145,10 +145,12 @@ def extract_failure_tag(test_result: Dict[str, Any]) -> str:
 
 def extract_skip_reason(test_result: Dict[str, Any]) -> str:
     """
-    Extract the reason a test was skipped, from its setup-phase longrepr.
+    Extract the reason a test was skipped, from the phase that skipped it.
 
     pytest records a skip as ``('<path>', <lineno>, 'Skipped: <reason>')`` in the
-    setup phase's longrepr. Pull out the reason text.
+    longrepr of whichever phase raised it: ``setup`` for a marker or a fixture's
+    skip, ``call`` for a runtime ``pytest.skip()`` inside the test body. Reading
+    only one phase would silently lose the other's reason.
 
     Args:
         test_result: Full test result dict from pytest JSON
@@ -156,11 +158,17 @@ def extract_skip_reason(test_result: Dict[str, Any]) -> str:
     Returns:
         The reason, or empty string if none is recorded.
     """
-    longrepr = (test_result.get("setup") or {}).get("longrepr", "")
-    if not isinstance(longrepr, str):
-        return ""
-    match = re.search(r"Skipped:\s*(.*?)'\)\s*$", longrepr)
-    return match.group(1) if match else ""
+    for phase in _PHASES:
+        info = test_result.get(phase)
+        if not isinstance(info, dict) or info.get("outcome") != "skipped":
+            continue
+        longrepr = info.get("longrepr", "")
+        if not isinstance(longrepr, str):
+            continue
+        match = re.search(r"Skipped:\s*(.*?)'\)\s*$", longrepr)
+        if match:
+            return match.group(1)
+    return ""
 
 
 def is_infrastructure_error(test_result: Dict[str, Any]) -> bool:

@@ -92,14 +92,28 @@ class TestExtractSkipReason:
         }
         assert extract_skip_reason(result) == "Requires auditing to be enabled"
 
+    def test_reads_reason_from_call_longrepr_for_runtime_skip(self):
+        # A pytest.skip() inside the test body skips in the call phase, not setup.
+        result = {
+            "setup": {"outcome": "passed"},
+            "call": {
+                "outcome": "skipped",
+                "longrepr": "('/path/test_x.py', 34, 'Skipped: Engine supports the feature')",
+            },
+        }
+        assert extract_skip_reason(result) == "Engine supports the feature"
+
     def test_no_setup_is_empty(self):
         assert extract_skip_reason({}) == ""
 
     def test_non_string_longrepr_is_empty(self):
-        assert extract_skip_reason({"setup": {"longrepr": None}}) == ""
+        assert extract_skip_reason({"setup": {"outcome": "skipped", "longrepr": None}}) == ""
 
     def test_longrepr_without_skip_marker_is_empty(self):
-        assert extract_skip_reason({"setup": {"longrepr": "some other text"}}) == ""
+        assert (
+            extract_skip_reason({"setup": {"outcome": "skipped", "longrepr": "some other text"}})
+            == ""
+        )
 
 
 # --- extract_exception_type ---
