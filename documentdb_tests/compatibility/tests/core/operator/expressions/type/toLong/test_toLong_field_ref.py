@@ -3,6 +3,9 @@
 import pytest
 from bson import Binary, Decimal128, Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -130,7 +133,12 @@ TOLONG_EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
 
 
 @pytest.mark.parametrize(
-    "test", pytest_params(TOLONG_FIELD_REF_TESTS + TOLONG_EXPRESSION_INPUT_TESTS)
+    "test",
+    pytest_params(
+        with_convert_variants(
+            TOLONG_FIELD_REF_TESTS + TOLONG_EXPRESSION_INPUT_TESTS, "$toLong", "long"
+        )
+    ),
 )
 def test_toLong_field_ref(collection, test: ExpressionTestCase):
     """$toLong resolves field paths and nested paths from inserted documents."""

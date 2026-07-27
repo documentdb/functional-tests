@@ -3,6 +3,9 @@
 import pytest
 from bson import Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -328,7 +331,12 @@ TOLONG_STRING_TESTS = TOLONG_STRING_NUMERIC_TESTS + TOLONG_STRING_ERROR_TESTS
 
 
 @pytest.mark.parametrize(
-    "test", pytest_params(TOLONG_STRING_TESTS + TOLONG_STRING_SIZE_LIMIT_TESTS)
+    "test",
+    pytest_params(
+        with_convert_variants(
+            TOLONG_STRING_TESTS + TOLONG_STRING_SIZE_LIMIT_TESTS, "$toLong", "long"
+        )
+    ),
 )
 def test_toLong_string(collection, test: ExpressionTestCase):
     """$toLong parses valid integer strings and rejects non-integer or malformed ones."""
