@@ -115,15 +115,24 @@ def _known_gaps_lines(analysis: Dict[str, Any]) -> List[str]:
     """
     Documented incompatibilities (xfailed), collapsed by default.
 
-    These are expected gaps, not regressions, so they're tucked behind a
+    These are expected gaps, not regressions, so the detail sits behind a
     ``<details>`` - out of the way for the common reader, but available as a
-    plain-English catalogue of what doesn't work and why.
+    plain-English catalogue of what doesn't work and why. The section carries its
+    own heading so it reads as a peer of needs-attention rather than blending
+    into that section's per-failure-type dropdowns.
     """
     gaps = known_gaps(analysis)
     if not gaps:
         return []
 
-    lines = ["", "<details>", f"<summary><b>Known gaps ({len(gaps)})</b></summary>", ""]
+    lines = [
+        "",
+        f"### Known gaps ({len(gaps)})",
+        "",
+        "<details>",
+        "<summary>Show all</summary>",
+        "",
+    ]
     lines.append("| Test | Reason |")
     lines.append("|---|---|")
     for gap in gaps:
@@ -139,13 +148,20 @@ def _skipped_lines(analysis: Dict[str, Any]) -> List[str]:
     Skipped tests with reasons, collapsed by default.
 
     Explains why tests didn't run (e.g. not applicable to this target), mirroring
-    known gaps — out of the way behind a ``<details>`` but answerable.
+    known gaps: its own heading, with the detail behind a ``<details>``.
     """
     skipped = skipped_tests(analysis)
     if not skipped:
         return []
 
-    lines = ["", "<details>", f"<summary><b>Skipped ({len(skipped)})</b></summary>", ""]
+    lines = [
+        "",
+        f"### Skipped ({len(skipped)})",
+        "",
+        "<details>",
+        "<summary>Show all</summary>",
+        "",
+    ]
     lines.append("| Test | Reason |")
     lines.append("|---|---|")
     for test in skipped:
@@ -294,7 +310,14 @@ def _feature_breakdown_lines(analysis: Dict[str, Any]) -> List[str]:
     if not tree.get("children"):
         return []
 
-    lines = ["", "<details>", "<summary><b>Feature breakdown</b></summary>", ""]
+    lines = [
+        "",
+        "### Feature breakdown",
+        "",
+        "<details>",
+        "<summary>Show all</summary>",
+        "",
+    ]
     lines.extend(_feature_nodes(tree))
     lines.append("</details>")
     return lines
