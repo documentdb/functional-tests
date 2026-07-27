@@ -152,6 +152,15 @@ The explanation must be **present**, and if written as a string literal it must 
 accepted — a static check can't resolve its value — so a reason constant reused
 across cases and a runtime message embedding dynamic context are both fine.
 
+## Strict xfail
+
+`engine_xfail` is **strict**: the marked test is expected to fail on that engine,
+and if it *passes* the run fails with an `[XPASS(strict)]` error rather than
+silently tolerating the unexpected pass. This is deliberate — a documented gap
+that the server has since fixed should surface loudly so the stale marker is
+removed and the test resumes guarding real behavior. If a test starts failing
+with `[XPASS(strict)]`, delete its `engine_xfail` marker.
+
 ## Validation
 
 A pytest hook auto-validates during collection:

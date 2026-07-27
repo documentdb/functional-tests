@@ -166,10 +166,15 @@ def pytest_runtest_setup(item):
     engine = target.engine if target is not None else None
     for marker in item.iter_markers("engine_xfail"):
         if engine == marker.kwargs.get("engine"):
+            # strict=True so a documented gap that the server has since fixed
+            # becomes a hard failure (an unexpected pass), not a silently
+            # tolerated xpass. That forces the stale marker to be removed and the
+            # test to resume guarding real behavior.
             item.add_marker(
                 pytest.mark.xfail(
                     reason=marker.kwargs.get("reason", ""),
                     raises=marker.kwargs.get("raises", AssertionError),
+                    strict=True,
                 )
             )
     # A crash test kills the server, so it is skipped against the engine it
