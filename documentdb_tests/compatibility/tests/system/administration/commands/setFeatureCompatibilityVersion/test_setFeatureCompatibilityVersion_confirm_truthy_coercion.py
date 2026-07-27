@@ -99,4 +99,3 @@ def test_setFeatureCompatibilityVersion_confirm_truthy(database_client, collecti
         msg=test.msg,
         raw_res=True,
     )
-    execute_admin_command(collection, {"setFeatureCompatibilityVersion": current, "confirm": True})

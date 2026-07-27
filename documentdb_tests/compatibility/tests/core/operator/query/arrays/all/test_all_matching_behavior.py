@@ -19,6 +19,8 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 
+# Property [Scalar Matching]: multi-element $all does not match a scalar
+# (non-array) field.
 SCALAR_MATCHING_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="scalar_multi_no_match",
@@ -38,6 +40,8 @@ def test_all_scalar_matching(collection, test):
     assertSuccess(result, test.expected, ignore_doc_order=True)
 
 
+# Property [Order Independence]: $all matches regardless of the order of
+# elements in the field array.
 ORDER_INDEPENDENCE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="reverse_order",
@@ -71,6 +75,8 @@ def test_all_order_independence(collection, test):
     assertSuccess(result, test.expected, ignore_doc_order=True)
 
 
+# Property [Duplicate Handling]: duplicate elements in the $all operand or the
+# field array do not affect whether a document matches.
 DUPLICATE_HANDLING_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="dup_in_all_single_in_field",
@@ -104,6 +110,8 @@ def test_all_duplicate_handling(collection, test):
     assertSuccess(result, test.expected, ignore_doc_order=True)
 
 
+# Property [Empty String]: $all matches empty-string elements in both array and
+# scalar fields, and distinguishes an empty string from null.
 EMPTY_STRING_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="empty_string_in_array",
@@ -137,6 +145,8 @@ def test_all_empty_string(collection, test):
     assertSuccess(result, test.expected, ignore_doc_order=True)
 
 
+# Property [Array Implicit Matching]: $all matches an array field only when it
+# contains every operand element (across BSON types), extra elements allowed.
 ARRAY_IMPLICIT_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="all_present",
@@ -208,6 +218,8 @@ def test_all_array_implicit_matching(collection, test):
     assertSuccess(result, test.expected, ignore_doc_order=True)
 
 
+# Property [Object Matching]: $all matches embedded documents by exact,
+# field-order-sensitive equality; partial documents do not match.
 OBJECT_MATCHING_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="exact_object_match",
@@ -244,6 +256,8 @@ def test_all_object_matching(collection, test):
     assertSuccess(result, test.expected, ignore_doc_order=True)
 
 
+# Property [Nested Arrays]: a nested-array operand matches a field that either
+# contains it as an element or is equal to it, requiring exact inner contents.
 NESTED_ARRAY_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="nested_array_as_element",
@@ -318,6 +332,8 @@ def test_all_nested_arrays(collection, test):
     assertSuccess(result, test.expected, ignore_doc_order=True)
 
 
+# Property [Null and Missing]: $all [null] matches null fields, missing fields,
+# and arrays containing null, but not empty arrays.
 NULL_AND_MISSING_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="null_field_is_null",
@@ -386,6 +402,8 @@ def test_all_null_and_missing(collection, test):
     assertSuccess(result, test.expected, ignore_doc_order=True)
 
 
+# Property [Large Arrays]: $all matches correctly on large arrays (up to 10000
+# elements) and fails when a single required element is missing.
 LARGE_ARRAY_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="10000_elements_match",
@@ -419,6 +437,8 @@ def test_all_large_arrays(collection, test):
     assertSuccess(result, test.expected)
 
 
+# Property [Field Lookup]: $all resolves dotted paths through embedded docs and
+# arrays, including numeric path components matching array index or object key.
 FIELD_LOOKUP_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="array_of_docs_path",
