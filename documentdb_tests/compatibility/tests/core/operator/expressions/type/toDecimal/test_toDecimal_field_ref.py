@@ -3,6 +3,9 @@
 import pytest
 from bson import Decimal128, Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -135,7 +138,12 @@ TODECIMAL_EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
 
 
 @pytest.mark.parametrize(
-    "test", pytest_params(TODECIMAL_FIELD_REF_TESTS + TODECIMAL_EXPRESSION_INPUT_TESTS)
+    "test",
+    pytest_params(
+        with_convert_variants(
+            TODECIMAL_FIELD_REF_TESTS + TODECIMAL_EXPRESSION_INPUT_TESTS, "$toDecimal", "decimal"
+        )
+    ),
 )
 def test_toDecimal_field_ref(collection, test: ExpressionTestCase):
     """$toDecimal resolves field paths and nested paths from inserted documents."""
