@@ -14,6 +14,7 @@ import pytest
 # Enable assertion rewriting BEFORE importing framework modules
 pytest.register_assert_rewrite("documentdb_tests.framework.assertions")
 
+import warnings  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 from documentdb_tests.framework import fixtures  # noqa: E402
@@ -370,18 +371,30 @@ def _write_deselected_sidecar(config, deselected_reasons: dict) -> None:
     lets the result analyzer explain the collected-vs-executed gap — e.g. which
     features were not applicable to this target — rather than showing a bare
     count. No-op when the JSON report isn't enabled.
+
+    The report's directory may not exist yet: this runs at collection time, while
+    pytest-json-report creates the directory later, when it writes the report at
+    session end. Create it here so the sidecar isn't lost.
     """
     report_path = getattr(config.option, "json_report_file", None)
     if not report_path:
         return
     import json
 
-    sidecar = f"{report_path}.deselected.json"
+    sidecar = Path(f"{report_path}.deselected.json")
     try:
+        sidecar.parent.mkdir(parents=True, exist_ok=True)
         with open(sidecar, "w") as f:
             json.dump(deselected_reasons, f)
-    except OSError:
-        pass
+    except OSError as exc:
+        # Warn rather than fail: the sidecar only enriches the report, so a run
+        # should still complete without it. Staying silent here once hid its
+        # absence for a whole CI cycle, leaving the report quietly incomplete.
+        warnings.warn(
+            f"Could not write the deselected-tests sidecar {sidecar}: {exc}. "
+            "The report will not be able to explain deselected (unsupported) tests.",
+            stacklevel=2,
+        )
 
 
 def pytest_collection_modifyitems(session, config, items):
