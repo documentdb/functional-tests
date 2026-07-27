@@ -132,9 +132,11 @@ def extract_failure_tag(test_result: Dict[str, Any]) -> str:
     crash_info = phase_info.get("crash", {})
     crash_message = crash_info.get("message", "")
 
-    # Detect strict XPASS from longrepr
+    # Detect strict XPASS from longrepr. Match anywhere in the text: under
+    # xdist the worker prepends a banner line ("[gw2] linux -- ..."), so the
+    # marker is not necessarily at the start.
     longrepr = phase_info.get("longrepr", "")
-    if isinstance(longrepr, str) and longrepr.startswith("[XPASS(strict)]"):
+    if isinstance(longrepr, str) and "[XPASS(strict)]" in longrepr:
         return "XPASS_STRICT"
 
     match = re.search(r"\[([A-Z_]+)\]", crash_message)

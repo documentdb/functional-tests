@@ -77,6 +77,20 @@ class TestExtractFailureTag:
         result = {"call": {"outcome": "failed", "longrepr": "[XPASS(strict)] stale marker"}}
         assert extract_failure_tag(result) == "XPASS_STRICT"
 
+    def test_reads_strict_xpass_behind_xdist_worker_banner(self):
+        # Under xdist the worker prepends a banner line, so the marker is not
+        # at the start of the longrepr. Taken verbatim from a CI report.
+        result = {
+            "call": {
+                "outcome": "failed",
+                "longrepr": (
+                    "[gw2] linux -- Python 3.12.13 /opt/hostedtoolcache/bin/python\n"
+                    "[XPASS(strict)] pretend the operator is broken"
+                ),
+            }
+        }
+        assert extract_failure_tag(result) == "XPASS_STRICT"
+
 
 # extract_skip_reason.
 
