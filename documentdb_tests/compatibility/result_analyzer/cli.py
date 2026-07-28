@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 from .analyzer import ResultAnalyzer
+from .report_content import VERDICT_PASS, determine_verdict
 from .report_generator import generate_report, print_summary
 
 
@@ -98,11 +99,10 @@ Examples:
             if not args.quiet:
                 print(f"\nReport saved to: {args.output}")
 
-        # Return exit code based on test results
-        reconciliation = analysis["reconciliation"]
-        if reconciliation["failed"] > 0 or reconciliation["error"] > 0:
-            return 1
-        return 0
+        # Exit with the report's own verdict, which also fails on raw xpasses
+        # and empty runs.
+        verdict, _ = determine_verdict(analysis["reconciliation"])
+        return 0 if verdict == VERDICT_PASS else 1
 
     except Exception as e:
         print(f"Error analyzing results: {e}", file=sys.stderr)
