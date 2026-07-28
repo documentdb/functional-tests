@@ -94,5 +94,18 @@ class TestMarkerReasonValidator:
         errors = validate_marker_reasons(_write(tmp_path, src))
         assert len(errors) == 2
 
+    def test_cursor_skip_is_not_a_pytest_skip(self, tmp_path):
+        # A PyMongo cursor's .skip(n) is pagination, not an outcome suppression.
+        src = "def test_a(collection):\n    docs = list(collection.find({}).skip(2))\n"
+        assert validate_marker_reasons(_write(tmp_path, src)) == []
+
+    def test_chained_cursor_skip_is_not_flagged(self, tmp_path):
+        src = "def test_a(collection):\n    collection.find({}).skip(3).limit(2)\n"
+        assert validate_marker_reasons(_write(tmp_path, src)) == []
+
+    def test_unrelated_fail_method_is_not_flagged(self, tmp_path):
+        src = "class T:\n    def test_a(self):\n        self.fail()\n"
+        assert validate_marker_reasons(_write(tmp_path, src)) == []
+
     def test_unparseable_file_is_skipped(self, tmp_path):
         assert validate_marker_reasons(_write(tmp_path, "def (:\n")) == []

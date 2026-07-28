@@ -72,9 +72,9 @@ def _runtime_skip_function(node: ast.Call) -> str | None:
     """
     func = node.func
     if isinstance(func, ast.Attribute) and func.attr in RUNTIME_SKIP_FUNCTIONS:
-        # Exclude marker attributes (``pytest.mark.skip``); those are handled
-        # separately and would otherwise be double-flagged.
-        if isinstance(func.value, ast.Attribute) and func.value.attr == "mark":
+        # Must be on ``pytest`` itself: a PyMongo cursor's ``.skip(n)`` is
+        # unrelated. Also excludes ``pytest.mark.skip``, handled above.
+        if not (isinstance(func.value, ast.Name) and func.value.id == "pytest"):
             return None
         return func.attr
     if isinstance(func, ast.Name) and func.id in RUNTIME_SKIP_FUNCTIONS:
