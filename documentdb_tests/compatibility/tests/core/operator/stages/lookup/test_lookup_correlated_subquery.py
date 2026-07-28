@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import datetime
+
 import pytest
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.lookup_common import (
     FOREIGN,
@@ -11,7 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.look
     setup_lookup,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, LET_UNDEFINED_VARIABLE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -53,6 +56,71 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         msg=(
             "$lookup let variables should expose local document fields"
             " to the sub-pipeline via $$variableName syntax"
+        ),
+    ),
+    LookupTestCase(
+        "per_doc_variation_distinct_let_values",
+        foreign_docs=[
+            {"_id": 10, "type": "A", "val": 1},
+            {"_id": 11, "type": "B", "val": 2},
+            {"_id": 12, "type": "B", "val": 3},
+        ],
+        docs=[
+            {"_id": 1, "cat": "A"},
+            {"_id": 2, "cat": "B"},
+            {"_id": 3, "cat": "C"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"c": "$cat"},
+                    "pipeline": [{"$match": {"$expr": {"$eq": ["$type", "$$c"]}}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "cat": "A", "joined": [{"_id": 10, "type": "A", "val": 1}]},
+            {
+                "_id": 2,
+                "cat": "B",
+                "joined": [
+                    {"_id": 11, "type": "B", "val": 2},
+                    {"_id": 12, "type": "B", "val": 3},
+                ],
+            },
+            {"_id": 3, "cat": "C", "joined": []},
+        ],
+        msg=(
+            "$lookup correlated join should produce different results per outer"
+            " document based on each document's let variable value"
+        ),
+    ),
+    LookupTestCase(
+        "per_doc_duplicate_let_values_same_result",
+        foreign_docs=[{"_id": 10, "type": "A"}],
+        docs=[
+            {"_id": 1, "cat": "A"},
+            {"_id": 2, "cat": "A"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"c": "$cat"},
+                    "pipeline": [{"$match": {"$expr": {"$eq": ["$type", "$$c"]}}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "cat": "A", "joined": [{"_id": 10, "type": "A"}]},
+            {"_id": 2, "cat": "A", "joined": [{"_id": 10, "type": "A"}]},
+        ],
+        msg=(
+            "$lookup correlated join with duplicate let values should produce"
+            " identical joined results for both outer documents"
         ),
     ),
     LookupTestCase(
@@ -275,13 +343,23 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         docs=[
             {
                 "_id": 1,
-                "v_int": 42,
-                "v_str": "hello",
-                "v_bool": True,
                 "v_double": 3.14,
+                "v_int32": 42,
+                "v_int64": Int64(2**40),
+                "v_decimal": Decimal128("123.456"),
+                "v_string": "hello",
+                "v_bool": True,
                 "v_null": None,
-                "v_arr": [1, 2],
-                "v_doc": {"n": 1},
+                "v_date": datetime.datetime(2024, 6, 15, 12, 0, 0),
+                "v_oid": ObjectId("507f1f77bcf86cd799439011"),
+                "v_binary": Binary(b"\x00\x01\x02", 0),
+                "v_regex": Regex("^abc", "i"),
+                "v_code": Code("function() {}"),
+                "v_timestamp": Timestamp(1000, 1),
+                "v_minkey": MinKey(),
+                "v_maxkey": MaxKey(),
+                "v_arr": [1, "two", 3],
+                "v_doc": {"nested": "doc"},
             }
         ],
         foreign_docs=[{"_id": 10}],
@@ -290,23 +368,43 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
                 "$lookup": {
                     "from": FOREIGN,
                     "let": {
-                        "vi": "$v_int",
-                        "vs": "$v_str",
-                        "vb": "$v_bool",
-                        "vd": "$v_double",
-                        "vn": "$v_null",
-                        "va": "$v_arr",
+                        "vdouble": "$v_double",
+                        "vint32": "$v_int32",
+                        "vint64": "$v_int64",
+                        "vdecimal": "$v_decimal",
+                        "vstring": "$v_string",
+                        "vbool": "$v_bool",
+                        "vnull": "$v_null",
+                        "vdate": "$v_date",
+                        "void": "$v_oid",
+                        "vbinary": "$v_binary",
+                        "vregex": "$v_regex",
+                        "vcode": "$v_code",
+                        "vtimestamp": "$v_timestamp",
+                        "vminkey": "$v_minkey",
+                        "vmaxkey": "$v_maxkey",
+                        "varr": "$v_arr",
                         "vdoc": "$v_doc",
                     },
                     "pipeline": [
                         {
                             "$addFields": {
-                                "ri": "$$vi",
-                                "rs": "$$vs",
-                                "rb": "$$vb",
-                                "rd": "$$vd",
-                                "rn": "$$vn",
-                                "ra": "$$va",
+                                "rdouble": "$$vdouble",
+                                "rint32": "$$vint32",
+                                "rint64": "$$vint64",
+                                "rdecimal": "$$vdecimal",
+                                "rstring": "$$vstring",
+                                "rbool": "$$vbool",
+                                "rnull": "$$vnull",
+                                "rdate": "$$vdate",
+                                "roid": "$$void",
+                                "rbinary": "$$vbinary",
+                                "rregex": "$$vregex",
+                                "rcode": "$$vcode",
+                                "rtimestamp": "$$vtimestamp",
+                                "rminkey": "$$vminkey",
+                                "rmaxkey": "$$vmaxkey",
+                                "rarr": "$$varr",
                                 "rdoc": "$$vdoc",
                             }
                         }
@@ -318,31 +416,52 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         expected=[
             {
                 "_id": 1,
-                "v_int": 42,
-                "v_str": "hello",
-                "v_bool": True,
                 "v_double": 3.14,
+                "v_int32": 42,
+                "v_int64": Int64(2**40),
+                "v_decimal": Decimal128("123.456"),
+                "v_string": "hello",
+                "v_bool": True,
                 "v_null": None,
-                "v_arr": [1, 2],
-                "v_doc": {"n": 1},
+                "v_date": datetime.datetime(2024, 6, 15, 12, 0, 0, tzinfo=datetime.timezone.utc),
+                "v_oid": ObjectId("507f1f77bcf86cd799439011"),
+                "v_binary": b"\x00\x01\x02",
+                "v_regex": Regex("^abc", 2),
+                "v_code": Code("function() {}"),
+                "v_timestamp": Timestamp(1000, 1),
+                "v_minkey": MinKey(),
+                "v_maxkey": MaxKey(),
+                "v_arr": [1, "two", 3],
+                "v_doc": {"nested": "doc"},
                 "joined": [
                     {
                         "_id": 10,
-                        "ri": 42,
-                        "rs": "hello",
-                        "rb": True,
-                        "rd": 3.14,
-                        "rn": None,
-                        "ra": [1, 2],
-                        "rdoc": {"n": 1},
+                        "rdouble": 3.14,
+                        "rint32": 42,
+                        "rint64": Int64(2**40),
+                        "rdecimal": Decimal128("123.456"),
+                        "rstring": "hello",
+                        "rbool": True,
+                        "rnull": None,
+                        "rdate": datetime.datetime(
+                            2024, 6, 15, 12, 0, 0, tzinfo=datetime.timezone.utc
+                        ),
+                        "roid": ObjectId("507f1f77bcf86cd799439011"),
+                        "rbinary": b"\x00\x01\x02",
+                        "rregex": Regex("^abc", 2),
+                        "rcode": Code("function() {}"),
+                        "rtimestamp": Timestamp(1000, 1),
+                        "rminkey": MinKey(),
+                        "rmaxkey": MaxKey(),
+                        "rarr": [1, "two", 3],
+                        "rdoc": {"nested": "doc"},
                     }
                 ],
             },
         ],
         msg=(
-            "$lookup let variable values should support any BSON type"
-            " including int, string, bool, double, null, array, and"
-            " document"
+            "$lookup let variable values should carry every BSON type through"
+            " to the sub-pipeline unchanged"
         ),
     ),
     LookupTestCase(
@@ -388,6 +507,169 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         msg=(
             "$lookup let variable values should support aggregation"
             " expressions evaluated against the input document"
+        ),
+    ),
+    LookupTestCase(
+        "let_variable_values_can_be_constants",
+        foreign_docs=[
+            {"_id": 10, "n": 7, "s": "hello"},
+            {"_id": 11, "n": 7, "s": "other"},
+        ],
+        docs=[{"_id": 1}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"num": 7, "word": "hello"},
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$and": [
+                                        {"$eq": ["$n", "$$num"]},
+                                        {"$eq": ["$s", "$$word"]},
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "joined": [{"_id": 10, "n": 7, "s": "hello"}]}],
+        msg=(
+            "$lookup let variable values should support literal constants,"
+            " including a string treated as a literal rather than a field path"
+        ),
+    ),
+    LookupTestCase(
+        "let_constant_values_all_bson_types",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {
+                        "k_double": 3.14,
+                        "k_int32": 42,
+                        "k_int64": Int64(2**40),
+                        "k_decimal": Decimal128("123.456"),
+                        "k_string": "hello",
+                        "k_bool": True,
+                        "k_null": None,
+                        "k_date": datetime.datetime(2024, 6, 15, 12, 0, 0),
+                        "k_oid": ObjectId("507f1f77bcf86cd799439011"),
+                        "k_binary": Binary(b"\x00\x01\x02", 0),
+                        "k_regex": Regex("^abc", "i"),
+                        "k_code": Code("function() {}"),
+                        "k_timestamp": Timestamp(1000, 1),
+                        "k_minkey": MinKey(),
+                        "k_maxkey": MaxKey(),
+                        "k_arr": [1, "two", 3],
+                        "k_doc": {"nested": "doc"},
+                    },
+                    "pipeline": [
+                        {
+                            "$addFields": {
+                                "r_double": "$$k_double",
+                                "r_int32": "$$k_int32",
+                                "r_int64": "$$k_int64",
+                                "r_decimal": "$$k_decimal",
+                                "r_string": "$$k_string",
+                                "r_bool": "$$k_bool",
+                                "r_null": "$$k_null",
+                                "r_date": "$$k_date",
+                                "r_oid": "$$k_oid",
+                                "r_binary": "$$k_binary",
+                                "r_regex": "$$k_regex",
+                                "r_code": "$$k_code",
+                                "r_timestamp": "$$k_timestamp",
+                                "r_minkey": "$$k_minkey",
+                                "r_maxkey": "$$k_maxkey",
+                                "r_arr": "$$k_arr",
+                                "r_doc": "$$k_doc",
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "joined": [
+                    {
+                        "_id": 10,
+                        "r_double": 3.14,
+                        "r_int32": 42,
+                        "r_int64": Int64(2**40),
+                        "r_decimal": Decimal128("123.456"),
+                        "r_string": "hello",
+                        "r_bool": True,
+                        "r_null": None,
+                        "r_date": datetime.datetime(
+                            2024, 6, 15, 12, 0, 0, tzinfo=datetime.timezone.utc
+                        ),
+                        "r_oid": ObjectId("507f1f77bcf86cd799439011"),
+                        "r_binary": b"\x00\x01\x02",
+                        "r_regex": Regex("^abc", 2),
+                        "r_code": Code("function() {}"),
+                        "r_timestamp": Timestamp(1000, 1),
+                        "r_minkey": MinKey(),
+                        "r_maxkey": MaxKey(),
+                        "r_arr": [1, "two", 3],
+                        "r_doc": {"nested": "doc"},
+                    }
+                ],
+            }
+        ],
+        msg=(
+            "$lookup let variable values should support literal constants of every"
+            " BSON type, carried through to the sub-pipeline unchanged"
+        ),
+    ),
+    LookupTestCase(
+        "let_mixed_forms_constant_field_expression",
+        foreign_docs=[
+            {"_id": 10, "c": 5, "f": 7, "e": 3},
+            {"_id": 11, "c": 5, "f": 8, "e": 3},
+        ],
+        docs=[{"_id": 1, "x": 7}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {
+                        "konst": 5,
+                        "from_field": "$x",
+                        "expr": {"$add": [1, 2]},
+                    },
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$and": [
+                                        {"$eq": ["$c", "$$konst"]},
+                                        {"$eq": ["$f", "$$from_field"]},
+                                        {"$eq": ["$e", "$$expr"]},
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "x": 7, "joined": [{"_id": 10, "c": 5, "f": 7, "e": 3}]},
+        ],
+        msg=(
+            "$lookup should resolve a let document that mixes constant, field"
+            " reference, and expression values in a single binding"
         ),
     ),
     LookupTestCase(
@@ -596,10 +878,53 @@ LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS: list[LookupTestCase] = [
         error_code=BAD_VALUE_ERROR,
         msg="$lookup should propagate expression evaluation errors in let values",
     ),
+    LookupTestCase(
+        "let_expr_error_for_some_docs_fails_all",
+        docs=[{"_id": 1, "x": 10}, {"_id": 2, "x": 0}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"inv": {"$divide": [1, "$x"]}},
+                    "pipeline": [{"$addFields": {"val": "$$inv"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        error_code=BAD_VALUE_ERROR,
+        msg="$lookup should fail the entire aggregate when a let expression errors "
+        "for any single outer document",
+    ),
+]
+
+# Property [Correlated Subquery Undefined Variable]: referencing a variable that
+# is not defined in let produces an undefined variable error.
+LOOKUP_CORRELATED_SUBQUERY_UNDEFINED_VAR_TESTS: list[LookupTestCase] = [
+    LookupTestCase(
+        "undefined_var_in_addFields_errors",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"x": "$_id"},
+                    "pipeline": [{"$addFields": {"val": "$$undefined_var"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        error_code=LET_UNDEFINED_VARIABLE_ERROR,
+        msg="$lookup should reject a sub-pipeline reference to a variable that is "
+        "not defined in let",
+    ),
 ]
 
 LOOKUP_CORRELATED_SUBQUERY_ALL_TESTS: list[LookupTestCase] = (
-    LOOKUP_CORRELATED_SUBQUERY_TESTS + LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS
+    LOOKUP_CORRELATED_SUBQUERY_TESTS
+    + LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS
+    + LOOKUP_CORRELATED_SUBQUERY_UNDEFINED_VAR_TESTS
 )
 
 
