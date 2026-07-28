@@ -558,7 +558,9 @@ def _merge_json_reports(phase1_path, phase2_path):
     p1["duration"] = p1.get("duration", 0) + p2.get("duration", 0)
     p1_summary = p1.setdefault("summary", {})
     p2_summary = p2.get("summary", {})
-    for key in ("passed", "failed", "error", "skipped", "total"):
+    # Sum every per-test outcome bucket; omitting one leaves the merged summary
+    # inconsistent with the merged "tests" array (xfailed/xpassed were once lost).
+    for key in ("passed", "failed", "error", "skipped", "xfailed", "xpassed", "total"):
         if key in p2_summary:
             p1_summary[key] = p1_summary.get(key, 0) + p2_summary[key]
     # Phase 2 runs without xdist, so its collected reflects the true count
