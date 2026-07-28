@@ -167,7 +167,9 @@ def extract_skip_reason(test_result: Dict[str, Any]) -> str:
         longrepr = info.get("longrepr", "")
         if not isinstance(longrepr, str):
             continue
-        match = re.search(r"Skipped:\s*(.*?)'\)\s*$", longrepr)
+        # repr double-quotes the reason when it contains an apostrophe;
+        # accept either quote or the reason is lost.
+        match = re.search(r"Skipped:\s*(.*?)['\"]\)\s*$", longrepr)
         if match:
             return match.group(1)
     return ""

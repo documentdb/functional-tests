@@ -106,6 +106,21 @@ class TestExtractSkipReason:
         }
         assert extract_skip_reason(result) == "Requires auditing to be enabled"
 
+    def test_reads_double_quoted_reason(self):
+        # repr double-quotes the reason when it contains an apostrophe.
+        longrepr = str(("/path/test_x.py", 17, "Skipped: doesn't apply here"))
+        result = {"setup": {"outcome": "skipped", "longrepr": longrepr}}
+        assert extract_skip_reason(result) == "doesn't apply here"
+
+    def test_reads_reason_behind_xdist_worker_banner(self):
+        # Under xdist the worker prepends a banner line before the tuple.
+        longrepr = (
+            "[gw1] linux -- Python 3.12.13 /opt/hostedtoolcache/bin/python\n"
+            "('/path/test_x.py', 17, 'Skipped: Requires auditing to be enabled')"
+        )
+        result = {"setup": {"outcome": "skipped", "longrepr": longrepr}}
+        assert extract_skip_reason(result) == "Requires auditing to be enabled"
+
     def test_reads_reason_from_call_longrepr_for_runtime_skip(self):
         # A pytest.skip() inside the test body skips in the call phase, not setup.
         result = {
