@@ -6,6 +6,8 @@ markdown (headings, tables, and - in later sections - collapsible details).
 Presentation only; no selection logic lives here.
 """
 
+import html
+import re
 from typing import Any, Dict, List
 
 from .report_content import (
@@ -18,6 +20,23 @@ from .report_content import (
     pass_rate,
     skipped_tests,
 )
+
+
+def _table_cell(text: str) -> str:
+    """Escape a value for a markdown table cell: a raw | would split the row."""
+    return text.replace("|", "\\|")
+
+
+def _fenced_block(text: str) -> List[str]:
+    """
+    Wrap text in a code fence the text cannot terminate early.
+
+    A traceback can contain ``` (repr'd test data), so size the fence past the
+    longest backtick run inside.
+    """
+    longest_run = max((len(m) for m in re.findall(r"`+", text)), default=0)
+    fence = "`" * max(3, longest_run + 1)
+    return [fence, text, fence]
 
 
 def _verdict_heading(analysis: Dict[str, Any]) -> str:
@@ -96,16 +115,14 @@ def _needs_attention_lines(analysis: Dict[str, Any]) -> List[str]:
 
 def _failure_details(test: Dict[str, Any]) -> List[str]:
     """One collapsible entry: summary line + traceback in a code block."""
-    name = test.get("name", "")
+    name = html.escape(test.get("name", ""))
     outcome = test.get("outcome", "")
     traceback = test.get("error") or "(no traceback captured)"
     return [
         "<details>",
         f"<summary>{outcome}: <code>{name}</code></summary>",
         "",
-        "```",
-        traceback.rstrip(),
-        "```",
+        *_fenced_block(traceback.rstrip()),
         "</details>",
         "",
     ]
@@ -136,8 +153,8 @@ def _known_gaps_lines(analysis: Dict[str, Any]) -> List[str]:
     lines.append("| Test | Reason |")
     lines.append("|---|---|")
     for gap in gaps:
-        reason = gap["reason"] or "-"
-        lines.append(f"| `{gap['name']}` | {reason} |")
+        reason = _table_cell(gap["reason"]) or "-"
+        lines.append(f"| `{_table_cell(gap['name'])}` | {reason} |")
     lines.append("")
     lines.append("</details>")
     return lines
@@ -165,8 +182,8 @@ def _skipped_lines(analysis: Dict[str, Any]) -> List[str]:
     lines.append("| Test | Reason |")
     lines.append("|---|---|")
     for test in skipped:
-        reason = test["reason"] or "-"
-        lines.append(f"| `{test['name']}` | {reason} |")
+        reason = _table_cell(test["reason"]) or "-"
+        lines.append(f"| `{_table_cell(test['name'])}` | {reason} |")
     lines.append("")
     lines.append("</details>")
     return lines
