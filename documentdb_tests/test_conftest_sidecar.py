@@ -46,3 +46,9 @@ class TestWriteDeselectedSidecar:
         report = tmp_path / "not-yet" / "report.json"
         _write_deselected_sidecar(_config(str(report)), {})
         assert (tmp_path / "not-yet" / "report.json.deselected.json").exists()
+
+    def test_leaves_no_temp_files_behind(self, tmp_path):
+        report = tmp_path / "report.json"
+        _write_deselected_sidecar(_config(str(report)), {"n": {"cap": True}})
+        leftovers = [p.name for p in tmp_path.iterdir() if p.name.endswith(".tmp")]
+        assert leftovers == []

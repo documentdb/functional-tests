@@ -375,6 +375,10 @@ def _write_deselected_sidecar(config, deselected_reasons: dict) -> None:
     The report's directory may not exist yet: this runs at collection time, while
     pytest-json-report creates the directory later, when it writes the report at
     session end. Create it here so the sidecar isn't lost.
+
+    Under xdist every worker writes this same path with identical contents, but
+    concurrent truncate-and-write can tear the file, so write a per-process temp
+    file and os.replace it into place.
     """
     report_path = getattr(config.option, "json_report_file", None)
     # json_report_file defaults to ".report.json" even when the plugin is off,
@@ -382,16 +386,20 @@ def _write_deselected_sidecar(config, deselected_reasons: dict) -> None:
     if not getattr(config.option, "json_report", False) or not report_path:
         return
     import json
+    import os
 
     sidecar = Path(f"{report_path}.deselected.json")
+    temp_path = f"{sidecar}.{os.getpid()}.tmp"
     try:
         sidecar.parent.mkdir(parents=True, exist_ok=True)
-        with open(sidecar, "w") as f:
+        with open(temp_path, "w") as f:
             json.dump(deselected_reasons, f)
+        os.replace(temp_path, sidecar)
     except OSError as exc:
         # Warn rather than fail: the sidecar only enriches the report, so a run
         # should still complete without it. Staying silent here once hid its
         # absence for a whole CI cycle, leaving the report quietly incomplete.
+        Path(temp_path).unlink(missing_ok=True)
         warnings.warn(
             f"Could not write the deselected-tests sidecar {sidecar}: {exc}. "
             "The report will not be able to explain deselected (unsupported) tests.",
