@@ -377,7 +377,9 @@ def _write_deselected_sidecar(config, deselected_reasons: dict) -> None:
     session end. Create it here so the sidecar isn't lost.
     """
     report_path = getattr(config.option, "json_report_file", None)
-    if not report_path:
+    # json_report_file defaults to ".report.json" even when the plugin is off,
+    # so gate on the --json-report flag itself.
+    if not getattr(config.option, "json_report", False) or not report_path:
         return
     import json
 
@@ -441,7 +443,8 @@ def pytest_collection_modifyitems(session, config, items):
     if requires_deselected:
         config.hook.pytest_deselected(items=requires_deselected)
         items[:] = kept
-        _write_deselected_sidecar(config, deselected_reasons)
+    # Written even when empty, or a stale sidecar from a previous run survives.
+    _write_deselected_sidecar(config, deselected_reasons)
 
     # Deselect no_parallel tests when running under xdist
     is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")
@@ -680,6 +683,11 @@ def pytest_sessionfinish(session, exitstatus):
             print(f"⚠️  Failed to merge JSON reports: {e}", file=sys.stderr)
         finally:
             os.unlink(phase2_json)
+            # Phase 2 collection writes a redundant sidecar next to its temp
+            # report; clean it up too.
+            phase2_sidecar = f"{phase2_json}.deselected.json"
+            if os.path.exists(phase2_sidecar):
+                os.unlink(phase2_sidecar)
 
     if phase2_junit and os.path.exists(phase2_junit):
         try:
