@@ -109,6 +109,27 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "validate_repair",
         }
     ),
+    # Amazon DocumentDB. A managed, replicated deployment: it presents the
+    # DocumentDB capability surface and, being backed by a replica set,
+    # additionally has the replication-dependent capabilities the reference
+    # server gates behind one (oplog access). Exposed as a single deployment
+    # form, so its one topology is named ``replica_set``.
+    ("amazon-documentdb", "replica_set"): frozenset(
+        {
+            "change_streams",
+            "transactions",
+            "queryable_encryption",
+            "cluster_admin",
+            "cluster_time",
+            "cluster_read_concern",
+            "quorum_write_concern",
+            "oplog",
+            "unforced_compact",
+            "reindex",
+            "replication",
+            "validate_repair",
+        }
+    ),
 }
 
 # The single marker tests use to declare capability requirements.
@@ -159,6 +180,12 @@ def _detect_topology(engine: str, client: MongoClient) -> str:
         # and resolves to no capabilities rather than the full set.
         client.admin.command("hello")
         return "standalone"
+    if engine == "amazon-documentdb":
+        # Amazon DocumentDB is exposed as a single, replicated deployment form.
+        # Issue hello so an unreachable target raises here and resolves to no
+        # capabilities rather than the full set.
+        client.admin.command("hello")
+        return "replica_set"
     raise ValueError(f"unknown engine {engine!r}; cannot classify topology")
 
 
