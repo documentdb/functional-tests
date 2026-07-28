@@ -340,6 +340,12 @@ class TestFeaturePath:
     def test_missing_root_returns_empty(self):
         assert feature_path("some/other/path/test_x.py::test_y") == []
 
+    def test_directory_ending_in_tests_is_not_the_root(self):
+        assert feature_path("documentdb_tests/framework/test_x.py::test_y") == []
+
+    def test_root_at_start_of_relative_nodeid(self):
+        assert feature_path("tests/core/test_x.py::test_y") == ["core", "test_x.py"]
+
 
 # group_by_feature.
 

@@ -285,7 +285,8 @@ def build_reconciliation(native_summary: Dict[str, Any]) -> Dict[str, Any]:
 # The test root under which the feature taxonomy begins. A nodeid looks like
 # "documentdb_tests/compatibility/tests/core/operator/.../test_x.py::test_y";
 # everything after this prefix is the feature path (core, operator, ...).
-_TESTS_ROOT = "tests/"
+# Anchored to a path-component boundary so "documentdb_tests/" can't match.
+_TESTS_ROOT_PATTERN = re.compile(r"(?:^|/)tests/")
 
 
 def feature_path(nodeid: str) -> List[str]:
@@ -308,10 +309,10 @@ def feature_path(nodeid: str) -> List[str]:
         the root isn't found.
     """
     path = nodeid.split("::", 1)[0]
-    root_index = path.rfind(_TESTS_ROOT)
-    if root_index == -1:
+    matches = list(_TESTS_ROOT_PATTERN.finditer(path))
+    if not matches:
         return []
-    relative = path[root_index + len(_TESTS_ROOT) :]
+    relative = path[matches[-1].end() :]
     return relative.split("/")
 
 
