@@ -115,13 +115,14 @@ jobs:
         if: always()
         run: |
           REPORT=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-report.json
-          ANALYSIS=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-analysis.txt
+          ANALYSIS=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-analysis.md
           if [ -f "$REPORT" ]; then
-            python -m documentdb_tests.compatibility.result_analyzer -i "$REPORT" -o "$ANALYSIS" -f text || true
+            # Emit GitHub-flavored markdown (tables + collapsible <details>) and
+            # write it unfenced so the step summary renders it, rather than
+            # dumping preformatted text inside a code block.
+            python -m documentdb_tests.compatibility.result_analyzer -i "$REPORT" -o "$ANALYSIS" -f markdown || true
             echo "## ${{ matrix.target.name }} Test Results" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
             cat "$ANALYSIS" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
   # Crash tests kill the server, so each runs in isolation in its own job (one
