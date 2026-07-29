@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 from .analyzer import ResultAnalyzer
+from .report_content import VERDICT_PASS, determine_verdict
 from .report_generator import generate_report, print_summary
 
 
@@ -28,6 +29,9 @@ Examples:
 
   # Generate text report
   %(prog)s --output report.txt --format text
+
+  # Generate a markdown report (for a GitHub step summary)
+  %(prog)s --output report.md --format markdown
 
   # Generate JSON analysis
   %(prog)s --output analysis.json --format json
@@ -51,9 +55,9 @@ Examples:
     parser.add_argument(
         "-f",
         "--format",
-        choices=["text", "json"],
+        choices=["text", "json", "markdown"],
         default="text",
-        help="Output format: text or json (default: text)",
+        help="Output format: text, json, or markdown (default: text)",
     )
 
     parser.add_argument(
@@ -95,10 +99,10 @@ Examples:
             if not args.quiet:
                 print(f"\nReport saved to: {args.output}")
 
-        # Return exit code based on test results
-        if analysis["summary"]["failed"] > 0:
-            return 1
-        return 0
+        # Exit with the report's own verdict, which also fails on raw xpasses
+        # and empty runs.
+        verdict, _ = determine_verdict(analysis["reconciliation"])
+        return 0 if verdict == VERDICT_PASS else 1
 
     except Exception as e:
         print(f"Error analyzing results: {e}", file=sys.stderr)
