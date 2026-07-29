@@ -3,6 +3,9 @@
 import pytest
 from bson import Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -229,13 +232,15 @@ TODOUBLE_NAN_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TODOUBLE_NUMERIC_TESTS = (
+TODOUBLE_NUMERIC_TESTS = with_convert_variants(
     TODOUBLE_NULL_MISSING_TESTS
     + TODOUBLE_BOOL_TESTS
     + TODOUBLE_INT32_TESTS
     + TODOUBLE_INT64_TESTS
     + TODOUBLE_DOUBLE_IDENTITY_TESTS
-    + TODOUBLE_NAN_TESTS
+    + TODOUBLE_NAN_TESTS,
+    "$toDouble",
+    "double",
 )
 
 

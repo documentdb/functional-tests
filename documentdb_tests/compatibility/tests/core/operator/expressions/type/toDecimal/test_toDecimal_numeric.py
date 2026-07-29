@@ -3,6 +3,9 @@
 import pytest
 from bson import Decimal128, Int64
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -165,11 +168,13 @@ TODECIMAL_INT64_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-TODECIMAL_NUMERIC_TESTS = (
+TODECIMAL_NUMERIC_TESTS = with_convert_variants(
     TODECIMAL_NULL_MISSING_TESTS
     + TODECIMAL_BOOL_TESTS
     + TODECIMAL_INT32_TESTS
-    + TODECIMAL_INT64_TESTS
+    + TODECIMAL_INT64_TESTS,
+    "$toDecimal",
+    "decimal",
 )
 
 

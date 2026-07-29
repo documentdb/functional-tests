@@ -126,3 +126,15 @@ A pytest hook auto-validates during collection:
 - Must use assertion helpers, not plain `assert`
 - One assertion per test function
 - Must use `execute_command()` or helpers from utils
+
+## Remote-Target Tests
+
+Some tests are only meaningful when the client is connecting to a remote server — for example, commands whose behavior differs depending on whether the connection is local. Gate these with the `requires` marker and the `remote_target` capability:
+
+```python
+@pytest.mark.requires(remote_target=True)
+def test_shutdown_remote_only(collection):
+    ...
+```
+
+The harness detects the connection source from the server-side `whatsmyuri` command. If the server reports a localhost address (`localhost`, `127.0.0.1`, `::1`, `0.0.0.0`) or the target cannot be reached, the test is deselected rather than run.

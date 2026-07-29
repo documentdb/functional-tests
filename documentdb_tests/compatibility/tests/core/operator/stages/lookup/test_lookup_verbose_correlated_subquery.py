@@ -59,6 +59,71 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         ),
     ),
     LookupTestCase(
+        "per_doc_variation_distinct_let_values",
+        foreign_docs=[
+            {"_id": 10, "type": "A", "val": 1},
+            {"_id": 11, "type": "B", "val": 2},
+            {"_id": 12, "type": "B", "val": 3},
+        ],
+        docs=[
+            {"_id": 1, "cat": "A"},
+            {"_id": 2, "cat": "B"},
+            {"_id": 3, "cat": "C"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"c": "$cat"},
+                    "pipeline": [{"$match": {"$expr": {"$eq": ["$type", "$$c"]}}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "cat": "A", "joined": [{"_id": 10, "type": "A", "val": 1}]},
+            {
+                "_id": 2,
+                "cat": "B",
+                "joined": [
+                    {"_id": 11, "type": "B", "val": 2},
+                    {"_id": 12, "type": "B", "val": 3},
+                ],
+            },
+            {"_id": 3, "cat": "C", "joined": []},
+        ],
+        msg=(
+            "$lookup correlated join should produce different results per outer"
+            " document based on each document's let variable value"
+        ),
+    ),
+    LookupTestCase(
+        "per_doc_duplicate_let_values_same_result",
+        foreign_docs=[{"_id": 10, "type": "A"}],
+        docs=[
+            {"_id": 1, "cat": "A"},
+            {"_id": 2, "cat": "A"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"c": "$cat"},
+                    "pipeline": [{"$match": {"$expr": {"$eq": ["$type", "$$c"]}}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "cat": "A", "joined": [{"_id": 10, "type": "A"}]},
+            {"_id": 2, "cat": "A", "joined": [{"_id": 10, "type": "A"}]},
+        ],
+        msg=(
+            "$lookup correlated join with duplicate let values should produce"
+            " identical joined results for both outer documents"
+        ),
+    ),
+    LookupTestCase(
         "let_variable_in_match_without_expr_is_literal_string",
         docs=[{"_id": 1, "val": "a"}],
         foreign_docs=[
@@ -355,6 +420,169 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
         ),
     ),
     LookupTestCase(
+        "let_variable_values_can_be_constants",
+        foreign_docs=[
+            {"_id": 10, "n": 7, "s": "hello"},
+            {"_id": 11, "n": 7, "s": "other"},
+        ],
+        docs=[{"_id": 1}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"num": 7, "word": "hello"},
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$and": [
+                                        {"$eq": ["$n", "$$num"]},
+                                        {"$eq": ["$s", "$$word"]},
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[{"_id": 1, "joined": [{"_id": 10, "n": 7, "s": "hello"}]}],
+        msg=(
+            "$lookup let variable values should support literal constants,"
+            " including a string treated as a literal rather than a field path"
+        ),
+    ),
+    LookupTestCase(
+        "let_constant_values_all_bson_types",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {
+                        "k_double": 3.14,
+                        "k_int32": 42,
+                        "k_int64": Int64(2**40),
+                        "k_decimal": Decimal128("123.456"),
+                        "k_string": "hello",
+                        "k_bool": True,
+                        "k_null": None,
+                        "k_date": datetime.datetime(2024, 6, 15, 12, 0, 0),
+                        "k_oid": ObjectId("507f1f77bcf86cd799439011"),
+                        "k_binary": Binary(b"\x00\x01\x02", 0),
+                        "k_regex": Regex("^abc", "i"),
+                        "k_code": Code("function() {}"),
+                        "k_timestamp": Timestamp(1000, 1),
+                        "k_minkey": MinKey(),
+                        "k_maxkey": MaxKey(),
+                        "k_arr": [1, "two", 3],
+                        "k_doc": {"nested": "doc"},
+                    },
+                    "pipeline": [
+                        {
+                            "$addFields": {
+                                "r_double": "$$k_double",
+                                "r_int32": "$$k_int32",
+                                "r_int64": "$$k_int64",
+                                "r_decimal": "$$k_decimal",
+                                "r_string": "$$k_string",
+                                "r_bool": "$$k_bool",
+                                "r_null": "$$k_null",
+                                "r_date": "$$k_date",
+                                "r_oid": "$$k_oid",
+                                "r_binary": "$$k_binary",
+                                "r_regex": "$$k_regex",
+                                "r_code": "$$k_code",
+                                "r_timestamp": "$$k_timestamp",
+                                "r_minkey": "$$k_minkey",
+                                "r_maxkey": "$$k_maxkey",
+                                "r_arr": "$$k_arr",
+                                "r_doc": "$$k_doc",
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {
+                "_id": 1,
+                "joined": [
+                    {
+                        "_id": 10,
+                        "r_double": 3.14,
+                        "r_int32": 42,
+                        "r_int64": Int64(2**40),
+                        "r_decimal": Decimal128("123.456"),
+                        "r_string": "hello",
+                        "r_bool": True,
+                        "r_null": None,
+                        "r_date": datetime.datetime(
+                            2024, 6, 15, 12, 0, 0, tzinfo=datetime.timezone.utc
+                        ),
+                        "r_oid": ObjectId("507f1f77bcf86cd799439011"),
+                        "r_binary": b"\x00\x01\x02",
+                        "r_regex": Regex("^abc", 2),
+                        "r_code": Code("function() {}"),
+                        "r_timestamp": Timestamp(1000, 1),
+                        "r_minkey": MinKey(),
+                        "r_maxkey": MaxKey(),
+                        "r_arr": [1, "two", 3],
+                        "r_doc": {"nested": "doc"},
+                    }
+                ],
+            }
+        ],
+        msg=(
+            "$lookup let variable values should support literal constants of every"
+            " BSON type, carried through to the sub-pipeline unchanged"
+        ),
+    ),
+    LookupTestCase(
+        "let_mixed_forms_constant_field_expression",
+        foreign_docs=[
+            {"_id": 10, "c": 5, "f": 7, "e": 3},
+            {"_id": 11, "c": 5, "f": 8, "e": 3},
+        ],
+        docs=[{"_id": 1, "x": 7}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {
+                        "konst": 5,
+                        "from_field": "$x",
+                        "expr": {"$add": [1, 2]},
+                    },
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$and": [
+                                        {"$eq": ["$c", "$$konst"]},
+                                        {"$eq": ["$f", "$$from_field"]},
+                                        {"$eq": ["$e", "$$expr"]},
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 1, "x": 7, "joined": [{"_id": 10, "c": 5, "f": 7, "e": 3}]},
+        ],
+        msg=(
+            "$lookup should resolve a let document that mixes constant, field"
+            " reference, and expression values in a single binding"
+        ),
+    ),
+    LookupTestCase(
         "let_null_behaves_like_omitting_let",
         docs=[{"_id": 1}],
         foreign_docs=[{"_id": 10, "val": "a"}, {"_id": 11, "val": "b"}],
@@ -559,6 +787,24 @@ LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS: list[LookupTestCase] = [
         ],
         error_code=BAD_VALUE_ERROR,
         msg="$lookup should propagate expression evaluation errors in let values",
+    ),
+    LookupTestCase(
+        "let_expr_error_for_some_docs_fails_all",
+        docs=[{"_id": 1, "x": 10}, {"_id": 2, "x": 0}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"inv": {"$divide": [1, "$x"]}},
+                    "pipeline": [{"$addFields": {"val": "$$inv"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        error_code=BAD_VALUE_ERROR,
+        msg="$lookup should fail the entire aggregate when a let expression errors "
+        "for any single outer document",
     ),
 ]
 

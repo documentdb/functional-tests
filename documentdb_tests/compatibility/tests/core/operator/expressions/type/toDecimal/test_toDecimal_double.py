@@ -3,6 +3,9 @@
 import pytest
 from bson import Decimal128
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -138,7 +141,10 @@ TODECIMAL_DOUBLE_TESTS: list[ExpressionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(TODECIMAL_DOUBLE_TESTS))
+@pytest.mark.parametrize(
+    "test",
+    pytest_params(with_convert_variants(TODECIMAL_DOUBLE_TESTS, "$toDecimal", "decimal")),
+)
 def test_toDecimal_double(collection, test: ExpressionTestCase):
     """$toDecimal converts double inputs to Decimal128 with 15 significant digits."""
     result = execute_expression(collection, test.expression)
