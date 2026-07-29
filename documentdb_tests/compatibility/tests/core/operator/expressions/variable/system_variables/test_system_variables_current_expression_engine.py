@@ -18,40 +18,9 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     execute_expression_with_insert,
 )
-from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
-    StageTestCase,
-    populate_collection,
-)
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-# Property [Expression Engine Wiring]: $$CURRENT resolves to the document as it stands
-# at that point in the pipeline wherever the expression engine accepts an expression.
-CURRENT_EXPRESSION_ENGINE_TESTS: list[StageTestCase] = [
-    StageTestCase(
-        id="current_in_add_fields",
-        docs=[{"_id": 1, "a": 1}],
-        pipeline=[
-            {"$addFields": {"doc": "$$CURRENT"}},
-            {"$project": {"_id": 0, "doc": 1}},
-        ],
-        expected=[{"doc": {"_id": 1, "a": 1}}],
-        msg="$$CURRENT in $addFields should capture the document as it stands at that stage",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(CURRENT_EXPRESSION_ENGINE_TESTS))
-def test_current_expression_engine(collection, test: StageTestCase):
-    """$$CURRENT resolves to the current document across shared expression-engine contexts."""
-    populate_collection(collection, test)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test.pipeline, "cursor": {}},
-    )
-    assertSuccess(result, test.expected, msg=test.msg)
-
 
 # Property [Sub-expression Wiring]: $$CURRENT resolves correctly when nested inside an
 # object expression, an array expression, or as an operator operand — not just as a
@@ -88,9 +57,6 @@ def test_current_in_subexpression(collection, test: ExpressionTestCase):
     assertSuccess(result, [{"result": test.expected}], msg=test.msg)
 
 
-# Property [Equivalence Wiring]: in the default (unrebound) context, a bare field path,
-# $$CURRENT.<field>, and $$ROOT.<field> all resolve to the same value, and unmodified
-# $$CURRENT equals $$ROOT.
 def test_current_equivalence_with_bare_field_and_root(collection):
     """$<field>, $$CURRENT.<field>, $$ROOT.<field>, and $$CURRENT itself all agree."""
     result = execute_expression_with_insert(
@@ -114,4 +80,25 @@ def test_current_equivalence_with_bare_field_and_root(collection):
             }
         ],
         msg="Bare field, $$CURRENT.<field>, and $$ROOT.<field> should all resolve identically",
+    )
+
+
+def test_current_expression_engine(collection):
+    """$$CURRENT resolves to the current document across shared expression-engine contexts."""
+    collection.insert_one({"_id": 1, "a": 1})
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$addFields": {"doc": "$$CURRENT"}},
+                {"$project": {"_id": 0, "doc": 1}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [{"doc": {"_id": 1, "a": 1}}],
+        msg="$$CURRENT in $addFields should capture the document as it stands at that stage",
     )
