@@ -368,6 +368,9 @@ docdb-analyze --input custom-results.json
 # Generate text report
 docdb-analyze --output report.txt --format text
 
+# Generate a markdown report (for a GitHub step summary)
+docdb-analyze --output report.md --format markdown
+
 # Generate JSON analysis
 docdb-analyze --output analysis.json --format json
 
@@ -394,6 +397,9 @@ print_summary(analysis)
 
 # Generate text report
 generate_report(analysis, "report.txt", format="text")
+
+# Generate a markdown report (for a GitHub step summary)
+generate_report(analysis, "report.md", format="markdown")
 
 # Generate JSON report
 generate_report(analysis, "report.json", format="json")
