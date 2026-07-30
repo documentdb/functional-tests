@@ -177,12 +177,14 @@ REDACT_DEFINED_VARIABLE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[{"$redact": var}],
         error_code=REDACT_NON_SENTINEL_ERROR,
         msg=f"$redact should reject the defined system variable {var} as a non-sentinel",
+        marks=marks,
     )
-    for label, var in [
-        ("root", "$$ROOT"),
-        ("current", "$$CURRENT"),
-        ("remove", "$$REMOVE"),
-        ("now", "$$NOW"),
+    for label, var, marks in [
+        ("root", "$$ROOT", ()),
+        ("current", "$$CURRENT", ()),
+        ("remove", "$$REMOVE", ()),
+        ("now", "$$NOW", ()),
+        ("cluster_time", "$$CLUSTER_TIME", (pytest.mark.requires(cluster_time=True),)),
     ]
 ]
 
