@@ -1,9 +1,9 @@
 """
 $$NOW error and rejection cases: malformed variable names, command surfaces that
 reject it outright, and positions requiring a literal, a field name, or a numeric
-value rather than an expression (literal-only stage parameters, $geoNear,
-partial-filter index, TTL expiry, $redact). Validator rejection lives alongside its
-accept-path sibling in test_now_write_paths.py instead.
+value rather than an expression (literal-only stage parameters, partial-filter
+index, TTL expiry, $redact). Validator rejection lives alongside its accept-path
+sibling in test_now_write_paths.py instead.
 """
 
 from dataclasses import dataclass
@@ -26,7 +26,6 @@ from documentdb_tests.framework.error_codes import (
     CANNOT_CREATE_INDEX_ERROR,
     DENSIFY_RANGE_BOUNDS_TYPE_ERROR,
     FIELD_PATH_DOLLAR_PREFIX_ERROR,
-    GEO_NEAR_NEAR_TYPE_ERROR,
     INVALID_NAMESPACE_ERROR,
     LET_SYSTEM_VARIABLE_IN_VALUE_ERROR,
     LET_UNDEFINED_VARIABLE_ERROR,
@@ -35,7 +34,6 @@ from documentdb_tests.framework.error_codes import (
     REDACT_NON_SENTINEL_ERROR,
     SAMPLE_SIZE_NOT_NUMERIC_ERROR,
     SKIP_INVALID_ARGUMENT_ERROR,
-    TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -229,51 +227,6 @@ def test_now_rejected_in_literal_only_stage_parameter(collection, test: Rejected
 
     result = execute_command(
         collection, {"aggregate": collection.name, "pipeline": test.pipeline, "cursor": {}}
-    )
-
-    assertFailureCode(result, test.error_code, msg=test.msg)
-
-
-@dataclass(frozen=True)
-class GeoNearCase(BaseTestCase):
-    """A $geoNear parameter object that should reject $$NOW."""
-
-    geo_near: Optional[dict[str, Any]] = None
-    error_code: int = 0
-
-
-# $geoNear needs a geospatial index before its parameters are validated, so these
-# cases build one first to reach the parameter check rather than an index error.
-GEO_NEAR_CASES: list[GeoNearCase] = [
-    GeoNearCase(
-        id="geo_near_near",
-        geo_near={"near": "$$NOW", "distanceField": "d"},
-        error_code=GEO_NEAR_NEAR_TYPE_ERROR,
-        msg="$geoNear should reject $$NOW as its near point",
-    ),
-    GeoNearCase(
-        id="geo_near_max_distance",
-        geo_near={
-            "near": {"type": "Point", "coordinates": [0, 0]},
-            "distanceField": "d",
-            "maxDistance": "$$NOW",
-        },
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$geoNear should reject $$NOW as its max distance",
-    ),
-]
-
-
-@pytest.mark.aggregate
-@pytest.mark.parametrize("test", pytest_params(GEO_NEAR_CASES))
-def test_now_rejected_in_geo_near_parameter(collection, test: GeoNearCase):
-    """Test $geoNear rejects $$NOW in its point and distance parameters."""
-    collection.insert_one({"_id": 1, "loc": {"type": "Point", "coordinates": [0, 0]}})
-    collection.create_index([("loc", "2dsphere")])
-
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": [{"$geoNear": test.geo_near}], "cursor": {}},
     )
 
     assertFailureCode(result, test.error_code, msg=test.msg)
