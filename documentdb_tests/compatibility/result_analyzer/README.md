@@ -1,106 +1,67 @@
 # Result Analyzer
 
-The Result Analyzer automatically processes pytest JSON reports and categorizes results by registered test markers.
+Processes a pytest JSON report and generates a compatibility report, grouped by
+feature, for a target engine.
 
-## Features
+## What it produces
 
-- **Dynamic Marker Loading**: Reads markers directly from `pytest.ini` configuration
-- **Single Source of Truth**: Markers defined only in `pytest.ini`
-- **Configurable**: Can analyze reports from different projects with different marker configurations
-- **CLI Tool**: `docdb-analyze` command for quick analysis
-- **Class-Based API**: Testable, multi-context support
+From a pytest-json-report file it builds:
 
-## Marker Detection
+- A **verdict** (PASS / FAIL) with a one-line reason.
+- A **breakdown** reconciling the run: collected = unsupported (deselected) +
+  executed, and executed = passed + failed + errored + skipped + known gaps.
+- **Needs attention**: failures and errors grouped by failure type, each with
+  its traceback (capped for mass failures).
+- **Known gaps**: xfailed tests (documented incompatibilities) with their reasons.
+- **Skipped**: skipped tests with their reasons.
+- **Feature breakdown**: a collapsible tree of pass/fail counts per feature,
+  derived from each test's path (`core/operator/expressions/...`), down to the
+  test file.
 
-The analyzer uses a **whitelist approach** by reading registered markers from `pytest.ini`:
+## Feature grouping
 
-1. Parses the `[pytest]` markers section in `pytest.ini`
-2. Extracts all registered marker names
-3. Only includes markers that are explicitly registered
-4. Automatically ignores pytest internals, test names, file paths, etc.
+Grouping comes from the test's node id path, not from markers: the directory
+tree under `tests/` *is* the feature taxonomy. Each path component is a tier
+(area → category → family → operator → file), so no marker registration or
+configuration is needed.
 
-### Registered Markers
-All markers used for categorization must be registered in `pytest.ini`:
+## Failure categorization
 
-```ini
-[pytest]
-markers =
-    find: Find operation tests
-    insert: Insert operation tests
-    aggregate: Aggregation pipeline tests
-    smoke: Quick smoke tests
-    slow: Tests that take longer to execute
-```
+Failures/errors are tagged by the framework's assertion prefix (e.g.
+`RESULT_MISMATCH`, `ERROR_MISMATCH`), or `INFRA_ERROR` when the exception type is
+a known infrastructure type, or `UNKNOWN` when neither applies.
 
-### Result
-Only registered markers are used for categorization:
-- Horizontal tags: `find`, `insert`, `update`, `delete`, `aggregate`, `index`, `admin`, `collection_mgmt`
-- Vertical tags: `rbac`, `decimal128`, `collation`, `transactions`, `geospatial`, `text_search`, `validation`, `ttl`
-- Special tags: `smoke`, `slow`
+## Not applicable (unsupported) tests
 
-## Adding New Markers
-
-1. Add the marker to `pytest.ini`:
-   ```ini
-   markers =
-       mynewfeature: Description of my feature
-   ```
-
-2. Use it in your tests:
-   ```python
-   @pytest.mark.mynewfeature
-   def test_something():
-       pass
-   ```
-
-The analyzer will automatically include it in reports - no code changes needed!
-
-## Failure Categorization
-
-Tests are categorized into four types:
-
-1. **PASS**: Test succeeded
-2. **FAIL**: Test failed, feature exists but behaves incorrectly
-3. **UNSUPPORTED**: Feature not implemented (skipped tests)
-4. **INFRA_ERROR**: Infrastructure issue (connection, timeout, etc.)
+Tests deselected at collection because the target lacks a required capability
+(via `requires(...)`) are counted as "unsupported". A sidecar written next to
+the report at collection time (`<report>.deselected.json`) records which
+capability each needed, so the feature tree can explain why an area didn't run.
 
 ## Usage
 
 ### CLI
+
 ```bash
-# Quick analysis
+# Analyze the default report and print a summary
 docdb-analyze
 
-# Custom input/output
-docdb-analyze --input results.json --output report.txt
+# Write a markdown report (for a GitHub step summary)
+docdb-analyze --input results.json --output report.md --format markdown
+
+# Other formats
+docdb-analyze --output report.txt --format text
+docdb-analyze --output analysis.json --format json
 ```
 
 ### Programmatic
-```python
-from result_analyzer import ResultAnalyzer, generate_report
 
-# Create analyzer and run analysis
+```python
+from result_analyzer import ResultAnalyzer, generate_report, print_summary
+
 analyzer = ResultAnalyzer()
 analysis = analyzer.analyze_results("report.json")
 
-# Generate report
-generate_report(analysis, "report.txt", format="text")
+print_summary(analysis)
+generate_report(analysis, "report.md", format="markdown")
 ```
-
-## Maintenance
-
-The heuristic-based approach means:
-- ✅ **No maintenance** for new test markers
-- ✅ **Automatic adaptation** to new patterns
-- ⚠️ **May need updates** if new fixture patterns emerge (e.g., new engine names)
-
-To add a new fixture marker or engine name to exclude, update the filter in `analyzer.py`:
-
-```python
-# Skip fixture markers
-if marker in {"documents", "mynewfixture"}:
-    continue
-    
-# Skip engine names
-if marker in {"documentdb", "mongodb", "mynewengine"}:
-    continue
