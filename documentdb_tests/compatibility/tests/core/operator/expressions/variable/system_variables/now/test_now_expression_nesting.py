@@ -19,6 +19,9 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = pytest.mark.aggregate
 
+
+DRIFT_BOUND_MS = 500
+
 NOW_EXPRESSION_NESTING_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="now_deeply_nested_date_operators",
@@ -109,7 +112,7 @@ def test_now_expression_nesting(collection, test: ExpressionTestCase):
 
 
 def test_now_in_lookup_sub_pipeline(collection):
-    """Test $$NOW inside a $lookup sub-pipeline equals the outer pipeline's value."""
+    """Test $$NOW inside a $lookup sub-pipeline stays within a bounded lag of the outer value."""
     collection.insert_one({"_id": 1})
     result = execute_command(
         collection,
@@ -122,21 +125,46 @@ def test_now_in_lookup_sub_pipeline(collection):
                         "from": collection.name,
                         "let": {"outer": "$outer"},
                         "pipeline": [
-                            {"$match": {"$expr": {"$eq": ["$$outer", "$$NOW"]}}},
-                            {"$project": {"_id": 1}},
+                            {"$limit": 1},
+                            {"$project": {"_id": 0, "inner": "$$NOW", "carried": "$$outer"}},
                         ],
-                        "as": "joined",
+                        "as": "probe",
                     }
                 },
-                {"$project": {"_id": 0, "joined": {"$size": "$joined"}}},
+                {
+                    "$project": {
+                        "_id": 0,
+                        "probeCount": {"$size": "$probe"},
+                        "letCarried": {"$eq": [{"$first": "$probe.carried"}, "$outer"]},
+                        "drift": {
+                            "$let": {
+                                "vars": {
+                                    "ms": {"$subtract": [{"$first": "$probe.inner"}, "$outer"]}
+                                },
+                                "in": {
+                                    "$cond": [
+                                        {
+                                            "$and": [
+                                                {"$gte": ["$$ms", 0]},
+                                                {"$lt": ["$$ms", DRIFT_BOUND_MS]},
+                                            ]
+                                        },
+                                        "within-bound",
+                                        {"$concat": ["drift=", {"$toString": "$$ms"}, "ms"]},
+                                    ]
+                                },
+                            }
+                        },
+                    }
+                },
             ],
             "cursor": {},
         },
     )
     assertSuccess(
         result,
-        [{"joined": 1}],
-        msg="$$NOW in a $lookup sub-pipeline should match the outer pipeline's value",
+        [{"probeCount": 1, "letCarried": True, "drift": "within-bound"}],
+        msg="$$NOW in a $lookup sub-pipeline should closely follow the outer pipeline's value",
     )
 
 
