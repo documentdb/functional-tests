@@ -231,32 +231,14 @@ def test_cluster_time_unavailable_in_find_expr(collection):
     )
 
 
+# A standalone server gates $$CLUSTER_TIME on the read paths but not here: the
+# pipeline-form write path resolves it and persists a real timestamp, so the
+# clock is reachable even where aggregate and find report it unavailable.
 @pytest.mark.requires(cluster_time=False)
 @pytest.mark.update
-def test_cluster_time_unavailable_in_update_pipeline(collection):
-    """Test a pipeline-form update referencing $$CLUSTER_TIME fails without a cluster clock."""
+def test_cluster_time_resolves_in_update_pipeline_without_a_cluster_clock(collection):
+    """Test a pipeline-form update resolves $$CLUSTER_TIME even with no cluster clock."""
     collection.insert_one({"_id": 1})
-
-    result = execute_command(
-        collection,
-        {
-            "update": collection.name,
-            "updates": [{"q": {}, "u": [{"$addFields": {"t": "$$CLUSTER_TIME"}}], "multi": True}],
-        },
-    )
-
-    assertFailureCode(
-        result,
-        CLUSTER_TIME_NOT_AVAILABLE_ERROR,
-        msg="A pipeline-form update referencing $$CLUSTER_TIME should fail",
-    )
-
-
-@pytest.mark.requires(cluster_time=False)
-@pytest.mark.update
-def test_cluster_time_unavailable_update_applies_no_writes(collection):
-    """Test a failed pipeline-form update leaves every document unmodified."""
-    collection.insert_many([{"_id": 1}, {"_id": 2}])
     execute_command(
         collection,
         {
@@ -266,23 +248,30 @@ def test_cluster_time_unavailable_update_applies_no_writes(collection):
     )
 
     result = execute_command(
-        collection, {"find": collection.name, "filter": {"t": {"$exists": True}}}
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [{"$project": {"_id": 1, "kind": {"$type": "$t"}}}],
+            "cursor": {},
+        },
     )
 
     assertSuccess(
         result,
-        [],
-        msg="A failed $$CLUSTER_TIME update should not partially apply writes",
+        [{"_id": 1, "kind": "timestamp"}],
+        msg="A pipeline-form update should store a timestamp even with no cluster clock",
     )
 
 
+# A standalone server resolves $$CLUSTER_TIME here
+# rather than rejecting it, so the unavailability error is confined to the read
+# paths and does not describe the pipeline-form write surface.
 @pytest.mark.requires(cluster_time=False)
 @pytest.mark.update
-def test_cluster_time_unavailable_in_find_and_modify_pipeline(collection):
-    """Test findAndModify with a $$CLUSTER_TIME pipeline fails without a cluster clock."""
+def test_cluster_time_resolves_in_find_and_modify_pipeline_without_a_cluster_clock(collection):
+    """Test findAndModify with a pipeline update resolves $$CLUSTER_TIME with no cluster clock."""
     collection.insert_one({"_id": 1})
-
-    result = execute_command(
+    execute_command(
         collection,
         {
             "findAndModify": collection.name,
@@ -291,10 +280,19 @@ def test_cluster_time_unavailable_in_find_and_modify_pipeline(collection):
         },
     )
 
-    assertFailureCode(
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [{"$project": {"_id": 1, "kind": {"$type": "$t"}}}],
+            "cursor": {},
+        },
+    )
+
+    assertSuccess(
         result,
-        CLUSTER_TIME_NOT_AVAILABLE_ERROR,
-        msg="findAndModify with a $$CLUSTER_TIME pipeline should fail",
+        [{"_id": 1, "kind": "timestamp"}],
+        msg="findAndModify with a pipeline update should store a timestamp with no cluster clock",
     )
 
 
