@@ -1,0 +1,244 @@
+"""
+Tests for $documentNumber argument validation in window context.
+
+$documentNumber is a frameless rank operator with a fixed accepted shape:
+- Its value must be exactly the empty object `{}` — any other value is rejected.
+- It takes no other arguments, so a `window` key (or any extra key) is rejected.
+- It requires a top-level `sortBy` with exactly one element — omitted, empty,
+  and multi-field sortBy are all rejected.
+"""
+
+import pytest
+
+from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
+from documentdb_tests.framework.error_codes import (
+    RANK_STYLE_WINDOW_EXTRA_ARGS_ERROR,
+    RANK_STYLE_WINDOW_NON_EMPTY_ARG_ERROR,
+    RANK_STYLE_WINDOW_SORTBY_ONE_ELEMENT_ERROR,
+)
+from documentdb_tests.framework.executor import execute_command
+
+SINGLE_DOC = [{"_id": 1, "partition": "A", "value": 10}]
+
+
+def run_stage(collection, stage, docs=SINGLE_DOC):
+    """Insert docs and execute a single $setWindowFields stage."""
+    if docs:
+        collection.insert_many([dict(d) for d in docs])
+    return execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [{"$setWindowFields": stage}],
+            "cursor": {},
+        },
+    )
+
+
+# Property [Accepted Shape]: $documentNumber takes exactly `{}` and no other arguments.
+
+
+def test_documentNumber_empty_object_accepted(collection):
+    """$documentNumber with `{}` as its value is the valid form."""
+    result = run_stage(
+        collection,
+        {
+            "partitionBy": "$partition",
+            "sortBy": {"_id": 1},
+            "output": {"docNumber": {"$documentNumber": {}}},
+        },
+    )
+    expected = [{"_id": 1, "partition": "A", "value": 10, "docNumber": 1}]
+    assertSuccess(result, expected, msg="$documentNumber accepts empty object")
+
+
+# Property [Non-Empty Value Rejected]: any value other than `{}` errors with 5371603.
+
+NON_EMPTY_ARGS = [
+    ("non_empty_object", {"a": 1}),
+    ("field_path_string", "$value"),
+    ("empty_string", ""),
+    ("integer", 1),
+    ("zero", 0),
+    ("double", 1.5),
+    ("bool_true", True),
+    ("bool_false", False),
+    ("null", None),
+    ("empty_array", []),
+    ("non_empty_array", [1, 2]),
+]
+
+
+@pytest.mark.parametrize("case_id,arg", NON_EMPTY_ARGS, ids=[c[0] for c in NON_EMPTY_ARGS])
+def test_documentNumber_non_empty_value_errors(collection, case_id, arg):
+    """$documentNumber rejects any value that is not the empty object."""
+    result = run_stage(
+        collection,
+        {
+            "partitionBy": "$partition",
+            "sortBy": {"_id": 1},
+            "output": {"docNumber": {"$documentNumber": arg}},
+        },
+    )
+    assertFailureCode(
+        result,
+        RANK_STYLE_WINDOW_NON_EMPTY_ARG_ERROR,
+        msg=f"$documentNumber rejects {case_id} value — only '{{}}' is valid",
+    )
+
+
+# Property [Frameless]: $documentNumber takes no other arguments, including `window`.
+
+
+@pytest.mark.parametrize(
+    "case_id,window",
+    [
+        ("documents_cumulative", {"documents": ["unbounded", "current"]}),
+        ("documents_whole_partition", {"documents": ["unbounded", "unbounded"]}),
+        ("documents_sliding", {"documents": [-1, 1]}),
+        ("range_bounds", {"range": ["unbounded", "current"]}),
+    ],
+    ids=["documents_cumulative", "documents_whole_partition", "documents_sliding", "range_bounds"],
+)
+def test_documentNumber_window_key_errors(collection, case_id, window):
+    """$documentNumber is frameless — specifying a `window` key is rejected."""
+    result = run_stage(
+        collection,
+        {
+            "partitionBy": "$partition",
+            "sortBy": {"_id": 1},
+            "output": {"docNumber": {"$documentNumber": {}, "window": window}},
+        },
+    )
+    assertFailureCode(
+        result,
+        RANK_STYLE_WINDOW_EXTRA_ARGS_ERROR,
+        msg=f"$documentNumber rejects a {case_id} window — it is frameless",
+    )
+
+
+def test_documentNumber_unknown_key_in_output_field_errors(collection):
+    """An unknown key alongside $documentNumber in the output field is rejected."""
+    result = run_stage(
+        collection,
+        {
+            "partitionBy": "$partition",
+            "sortBy": {"_id": 1},
+            "output": {"docNumber": {"$documentNumber": {}, "unknownKey": 1}},
+        },
+    )
+    assertFailureCode(
+        result,
+        RANK_STYLE_WINDOW_EXTRA_ARGS_ERROR,
+        msg="unknown key alongside $documentNumber rejected",
+    )
+
+
+def test_documentNumber_second_operator_in_output_field_errors(collection):
+    """Another window operator in the same output field as $documentNumber is rejected."""
+    result = run_stage(
+        collection,
+        {
+            "partitionBy": "$partition",
+            "sortBy": {"_id": 1},
+            "output": {"docNumber": {"$documentNumber": {}, "$rank": {}}},
+        },
+    )
+    assertFailureCode(
+        result,
+        RANK_STYLE_WINDOW_EXTRA_ARGS_ERROR,
+        msg="a second window operator alongside $documentNumber rejected",
+    )
+
+
+def test_documentNumber_window_key_errors_on_empty_collection(collection):
+    """The `window` rejection is a parse-time error — it fires with no documents."""
+    result = run_stage(
+        collection,
+        {
+            "partitionBy": "$partition",
+            "sortBy": {"_id": 1},
+            "output": {
+                "docNumber": {
+                    "$documentNumber": {},
+                    "window": {"documents": ["unbounded", "current"]},
+                }
+            },
+        },
+        docs=[],
+    )
+    assertFailureCode(
+        result,
+        RANK_STYLE_WINDOW_EXTRA_ARGS_ERROR,
+        msg="parse-time window rejection fires on an empty collection",
+    )
+
+
+# Property [sortBy Requirement]: $documentNumber needs a top-level sortBy with one element.
+
+
+def test_documentNumber_sortBy_omitted_errors(collection):
+    """$documentNumber requires sortBy — omitting it is rejected."""
+    result = run_stage(
+        collection,
+        {
+            "partitionBy": "$partition",
+            "output": {"docNumber": {"$documentNumber": {}}},
+        },
+    )
+    assertFailureCode(
+        result,
+        RANK_STYLE_WINDOW_SORTBY_ONE_ELEMENT_ERROR,
+        msg="$documentNumber requires a sortBy expression",
+    )
+
+
+def test_documentNumber_sortBy_empty_object_errors(collection):
+    """An empty sortBy object has no elements, so $documentNumber rejects it."""
+    result = run_stage(
+        collection,
+        {
+            "partitionBy": "$partition",
+            "sortBy": {},
+            "output": {"docNumber": {"$documentNumber": {}}},
+        },
+    )
+    assertFailureCode(
+        result,
+        RANK_STYLE_WINDOW_SORTBY_ONE_ELEMENT_ERROR,
+        msg="$documentNumber rejects an empty sortBy object",
+    )
+
+
+def test_documentNumber_multi_field_sortBy_errors(collection):
+    """$documentNumber requires exactly one sortBy element — two fields are rejected."""
+    result = run_stage(
+        collection,
+        {
+            "partitionBy": "$partition",
+            "sortBy": {"value": -1, "_id": 1},
+            "output": {"docNumber": {"$documentNumber": {}}},
+        },
+    )
+    assertFailureCode(
+        result,
+        RANK_STYLE_WINDOW_SORTBY_ONE_ELEMENT_ERROR,
+        msg="$documentNumber rejects a multi-field sortBy",
+    )
+
+
+def test_documentNumber_sortBy_error_on_empty_collection(collection):
+    """The sortBy requirement is validated at parse time — it fires with no documents."""
+    result = run_stage(
+        collection,
+        {
+            "partitionBy": "$partition",
+            "output": {"docNumber": {"$documentNumber": {}}},
+        },
+        docs=[],
+    )
+    assertFailureCode(
+        result,
+        RANK_STYLE_WINDOW_SORTBY_ONE_ELEMENT_ERROR,
+        msg="parse-time sortBy validation fires on an empty collection",
+    )
