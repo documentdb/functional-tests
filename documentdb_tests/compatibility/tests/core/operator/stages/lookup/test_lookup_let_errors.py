@@ -495,9 +495,8 @@ LOOKUP_LET_VARIABLE_NAME_ERROR_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# Property [let Variable Reference Errors]: self-referencing and
-# cross-referencing between sibling let variable definitions produce an
-# undefined variable error.
+# Property [let Variable Reference Errors]: referencing undefined variables
+# in let definitions or the sub-pipeline produces an undefined variable error.
 LOOKUP_LET_VARIABLE_REFERENCE_ERROR_TESTS: list[LookupTestCase] = [
     LookupTestCase(
         "let_self_referencing_variable",
@@ -532,6 +531,24 @@ LOOKUP_LET_VARIABLE_REFERENCE_ERROR_TESTS: list[LookupTestCase] = [
         ],
         error_code=LET_UNDEFINED_VARIABLE_ERROR,
         msg="$lookup should reject cross-referencing between sibling let variable definitions",
+    ),
+    LookupTestCase(
+        "undefined_var_in_pipeline_errors",
+        docs=[{"_id": 1}],
+        foreign_docs=[{"_id": 10}],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "let": {"x": "$_id"},
+                    "pipeline": [{"$addFields": {"val": "$$undefined_var"}}],
+                    "as": "joined",
+                }
+            }
+        ],
+        error_code=LET_UNDEFINED_VARIABLE_ERROR,
+        msg="$lookup should reject a sub-pipeline reference to a variable that is "
+        "not defined in let",
     ),
 ]
 

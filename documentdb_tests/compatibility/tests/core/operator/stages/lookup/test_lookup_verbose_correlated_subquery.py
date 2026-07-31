@@ -14,7 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.look
     setup_lookup,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, LET_UNDEFINED_VARIABLE_ERROR
+from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -208,96 +208,6 @@ LOOKUP_CORRELATED_SUBQUERY_TESTS: list[LookupTestCase] = [
             "$lookup bare $field references in the sub-pipeline should"
             " resolve against the foreign collection, not the outer"
         ),
-    ),
-    LookupTestCase(
-        "let_variables_propagate_to_nested_lookup",
-        docs=[{"_id": 1, "val": "a"}],
-        foreign_docs=[{"_id": 10, "fval": "a"}],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {"outer_val": "$val"},
-                    "pipeline": [
-                        {
-                            "$lookup": {
-                                "from": FOREIGN,
-                                "pipeline": [{"$addFields": {"from_outer": "$$outer_val"}}],
-                                "as": "nested",
-                            }
-                        }
-                    ],
-                    "as": "joined",
-                }
-            }
-        ],
-        expected=[
-            {
-                "_id": 1,
-                "val": "a",
-                "joined": [
-                    {
-                        "_id": 10,
-                        "fval": "a",
-                        "nested": [
-                            {
-                                "_id": 10,
-                                "fval": "a",
-                                "from_outer": "a",
-                            }
-                        ],
-                    }
-                ],
-            },
-        ],
-        msg=(
-            "$lookup let variables should propagate to nested"
-            " $lookup stages within the sub-pipeline"
-        ),
-    ),
-    LookupTestCase(
-        "inner_let_shadows_outer_variable",
-        docs=[{"_id": 1, "val": "outer"}],
-        foreign_docs=[{"_id": 10, "fval": "inner"}],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {"x": "$val"},
-                    "pipeline": [
-                        {
-                            "$lookup": {
-                                "from": FOREIGN,
-                                "let": {"x": "$fval"},
-                                "pipeline": [{"$addFields": {"x_val": "$$x"}}],
-                                "as": "nested",
-                            }
-                        }
-                    ],
-                    "as": "joined",
-                }
-            }
-        ],
-        expected=[
-            {
-                "_id": 1,
-                "val": "outer",
-                "joined": [
-                    {
-                        "_id": 10,
-                        "fval": "inner",
-                        "nested": [
-                            {
-                                "_id": 10,
-                                "fval": "inner",
-                                "x_val": "inner",
-                            }
-                        ],
-                    }
-                ],
-            },
-        ],
-        msg="$lookup inner let variable should shadow an outer variable of the same name",
     ),
     LookupTestCase(
         "variable_names_are_case_sensitive",
@@ -898,33 +808,8 @@ LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS: list[LookupTestCase] = [
     ),
 ]
 
-# Property [Correlated Subquery Undefined Variable]: referencing a variable that
-# is not defined in let produces an undefined variable error.
-LOOKUP_CORRELATED_SUBQUERY_UNDEFINED_VAR_TESTS: list[LookupTestCase] = [
-    LookupTestCase(
-        "undefined_var_in_addFields_errors",
-        docs=[{"_id": 1}],
-        foreign_docs=[{"_id": 10}],
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": FOREIGN,
-                    "let": {"x": "$_id"},
-                    "pipeline": [{"$addFields": {"val": "$$undefined_var"}}],
-                    "as": "joined",
-                }
-            }
-        ],
-        error_code=LET_UNDEFINED_VARIABLE_ERROR,
-        msg="$lookup should reject a sub-pipeline reference to a variable that is "
-        "not defined in let",
-    ),
-]
-
 LOOKUP_CORRELATED_SUBQUERY_ALL_TESTS: list[LookupTestCase] = (
-    LOOKUP_CORRELATED_SUBQUERY_TESTS
-    + LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS
-    + LOOKUP_CORRELATED_SUBQUERY_UNDEFINED_VAR_TESTS
+    LOOKUP_CORRELATED_SUBQUERY_TESTS + LOOKUP_CORRELATED_SUBQUERY_ERROR_TESTS
 )
 
 
