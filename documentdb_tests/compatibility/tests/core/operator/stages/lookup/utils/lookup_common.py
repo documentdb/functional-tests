@@ -59,24 +59,34 @@ def _substitute_foreign(
     pipeline: list[dict[str, Any]],
     foreign_name: str,
 ) -> list[dict[str, Any]]:
-    """Replace FOREIGN sentinel in $lookup 'from' fields, including nested pipelines."""
+    """Replace the FOREIGN sentinel in $lookup and $graphLookup 'from' fields.
+
+    Recurses into nested $lookup sub-pipelines.
+    """
     result = list(pipeline)
     for i, stage in enumerate(result):
-        if not isinstance(stage, dict) or "$lookup" not in stage:
+        if not isinstance(stage, dict):
             continue
-        spec = stage["$lookup"]
-        if not isinstance(spec, dict):
-            continue
-        changed = False
-        spec = dict(spec)
-        if spec.get("from") is FOREIGN:
-            spec["from"] = foreign_name
-            changed = True
-        if isinstance(spec.get("pipeline"), list):
-            spec["pipeline"] = _substitute_foreign(spec["pipeline"], foreign_name)
-            changed = True
-        if changed:
-            result[i] = {"$lookup": spec}
+        if "$lookup" in stage:
+            spec = stage["$lookup"]
+            if not isinstance(spec, dict):
+                continue
+            changed = False
+            spec = dict(spec)
+            if spec.get("from") is FOREIGN:
+                spec["from"] = foreign_name
+                changed = True
+            if isinstance(spec.get("pipeline"), list):
+                spec["pipeline"] = _substitute_foreign(spec["pipeline"], foreign_name)
+                changed = True
+            if changed:
+                result[i] = {"$lookup": spec}
+        elif "$graphLookup" in stage:
+            spec = stage["$graphLookup"]
+            if isinstance(spec, dict) and spec.get("from") is FOREIGN:
+                spec = dict(spec)
+                spec["from"] = foreign_name
+                result[i] = {"$graphLookup": spec}
     return result
 
 
