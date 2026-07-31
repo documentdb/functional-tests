@@ -7,63 +7,49 @@ numbers for the same documents. Positions restart at 1 in every partition. Each
 document in the partition gets assigned a unique document number.
 """
 
+from documentdb_tests.compatibility.tests.core.operator.window.utils.window_test_case import (
+    BASIC_DOCS,
+    run_window_operator,
+)
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.executor import execute_command
-
-SORTED_PROJECTION = [{"$sort": {"_id": 1}}, {"$project": {"_id": 1, "docNumber": 1}}]
-
-BASIC_DOCS = [
-    {"_id": 1, "partition": "A", "value": 10},
-    {"_id": 2, "partition": "A", "value": 20},
-    {"_id": 3, "partition": "A", "value": 30},
-    {"_id": 4, "partition": "A", "value": 40},
-    {"_id": 5, "partition": "A", "value": 50},
-]
-
-
-def run_document_number(collection, docs, sort_by, partition_by="$partition", extra_stages=None):
-    """Insert docs and run $documentNumber, optionally omitting partitionBy."""
-    if docs:
-        collection.insert_many([dict(d) for d in docs])
-
-    stage = {"sortBy": sort_by, "output": {"docNumber": {"$documentNumber": {}}}}
-    if partition_by is not None:
-        stage["partitionBy"] = partition_by
-
-    pipeline = [{"$setWindowFields": stage}]
-    pipeline.extend(SORTED_PROJECTION if extra_stages is None else extra_stages)
-
-    return execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
-    )
-
 
 # Property [Order Dependence]: changing sortBy changes the assigned positions.
 
 
 def test_documentNumber_ascending_sort(collection):
     """Ascending sort assigns positions in ascending order of the sort field."""
-    result = run_document_number(collection, BASIC_DOCS, {"_id": 1})
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        BASIC_DOCS,
+        sort_by={"_id": 1},
+        expression={},
+    )
     expected = [
-        {"_id": 1, "docNumber": 1},
-        {"_id": 2, "docNumber": 2},
-        {"_id": 3, "docNumber": 3},
-        {"_id": 4, "docNumber": 4},
-        {"_id": 5, "docNumber": 5},
+        {"_id": 1, "partition": "A", "value": 10, "result": 1},
+        {"_id": 2, "partition": "A", "value": 20, "result": 2},
+        {"_id": 3, "partition": "A", "value": 30, "result": 3},
+        {"_id": 4, "partition": "A", "value": 40, "result": 4},
+        {"_id": 5, "partition": "A", "value": 50, "result": 5},
     ]
     assertSuccess(result, expected, msg="ascending sort numbers documents 1..5 in _id order")
 
 
 def test_documentNumber_descending_sort(collection):
     """Descending sort reverses the assigned positions — order-dependent operator."""
-    result = run_document_number(collection, BASIC_DOCS, {"_id": -1})
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        BASIC_DOCS,
+        sort_by={"_id": -1},
+        expression={},
+    )
     expected = [
-        {"_id": 1, "docNumber": 5},
-        {"_id": 2, "docNumber": 4},
-        {"_id": 3, "docNumber": 3},
-        {"_id": 4, "docNumber": 2},
-        {"_id": 5, "docNumber": 1},
+        {"_id": 5, "partition": "A", "value": 50, "result": 1},
+        {"_id": 4, "partition": "A", "value": 40, "result": 2},
+        {"_id": 3, "partition": "A", "value": 30, "result": 3},
+        {"_id": 2, "partition": "A", "value": 20, "result": 4},
+        {"_id": 1, "partition": "A", "value": 10, "result": 5},
     ]
     assertSuccess(
         result,
@@ -79,13 +65,19 @@ def test_documentNumber_sort_on_different_field(collection):
         {"_id": 2, "partition": "A", "value": 10},
         {"_id": 3, "partition": "A", "value": 30},
     ]
-    result = run_document_number(collection, docs, {"value": 1})
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        docs,
+        sort_by={"value": 1},
+        expression={},
+    )
     expected = [
-        {"_id": 1, "docNumber": 3},
-        {"_id": 2, "docNumber": 1},
-        {"_id": 3, "docNumber": 2},
+        {"_id": 2, "partition": "A", "value": 10, "result": 1},
+        {"_id": 3, "partition": "A", "value": 30, "result": 2},
+        {"_id": 1, "partition": "A", "value": 50, "result": 3},
     ]
-    assertSuccess(result, expected, msg="positions follow the value sort order, not _id order")
+    assertSuccess(result, expected, msg="output follows the value sort order; positions 1..3 by value")
 
 
 # Property [Partition Isolation]: numbering restarts at 1 in each partition.
@@ -100,13 +92,19 @@ def test_documentNumber_restarts_per_partition(collection):
         {"_id": 4, "partition": "B", "value": 40},
         {"_id": 5, "partition": "B", "value": 50},
     ]
-    result = run_document_number(collection, docs, {"_id": 1})
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        docs,
+        sort_by={"_id": 1},
+        expression={},
+    )
     expected = [
-        {"_id": 1, "docNumber": 1},
-        {"_id": 2, "docNumber": 2},
-        {"_id": 3, "docNumber": 1},
-        {"_id": 4, "docNumber": 2},
-        {"_id": 5, "docNumber": 3},
+        {"_id": 1, "partition": "A", "value": 10, "result": 1},
+        {"_id": 2, "partition": "A", "value": 20, "result": 2},
+        {"_id": 3, "partition": "B", "value": 30, "result": 1},
+        {"_id": 4, "partition": "B", "value": 40, "result": 2},
+        {"_id": 5, "partition": "B", "value": 50, "result": 3},
     ]
     assertSuccess(result, expected, msg="numbering restarts at 1 in each partition")
 
@@ -118,11 +116,18 @@ def test_documentNumber_without_partitionBy(collection):
         {"_id": 2, "partition": "B", "value": 20},
         {"_id": 3, "partition": "C", "value": 30},
     ]
-    result = run_document_number(collection, docs, {"_id": 1}, partition_by=None)
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        docs,
+        sort_by={"_id": 1},
+        partition_by=None,
+        expression={},
+    )
     expected = [
-        {"_id": 1, "docNumber": 1},
-        {"_id": 2, "docNumber": 2},
-        {"_id": 3, "docNumber": 3},
+        {"_id": 1, "partition": "A", "value": 10, "result": 1},
+        {"_id": 2, "partition": "B", "value": 20, "result": 2},
+        {"_id": 3, "partition": "C", "value": 30, "result": 3},
     ]
     assertSuccess(
         result, expected, msg="omitted partitionBy numbers the whole collection continuously"
@@ -134,13 +139,27 @@ def test_documentNumber_without_partitionBy(collection):
 
 def test_documentNumber_single_document_partition(collection):
     """A single-document partition gets position 1."""
-    result = run_document_number(
-        collection, [{"_id": 1, "partition": "A", "value": 10}], {"_id": 1}
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        [{"_id": 1, "partition": "A", "value": 10}],
+        sort_by={"_id": 1},
+        expression={},
     )
-    assertSuccess(result, [{"_id": 1, "docNumber": 1}], msg="single-document partition gets 1")
+    assertSuccess(
+        result,
+        [{"_id": 1, "partition": "A", "value": 10, "result": 1}],
+        msg="single-document partition gets 1",
+    )
 
 
 def test_documentNumber_empty_collection(collection):
     """$documentNumber on an empty collection returns no documents without error."""
-    result = run_document_number(collection, [], {"_id": 1})
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        [],
+        sort_by={"_id": 1},
+        expression={},
+    )
     assertSuccess(result, [], msg="empty collection produces no documents")

@@ -9,32 +9,10 @@ whether the sortBy values tie. This is the distinguishing behavior from $rank
 beginning, middle, and end of a partition.
 """
 
+from documentdb_tests.compatibility.tests.core.operator.window.utils.window_test_case import (
+    run_window_operator,
+)
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.executor import execute_command
-
-SORTED_PROJECTION = [{"$sort": {"_id": 1}}, {"$project": {"_id": 1, "docNumber": 1}}]
-
-
-def run_document_number(collection, docs, sort_by):
-    """Insert docs and run $documentNumber over one partition sorted by sort_by."""
-    collection.insert_many([dict(d) for d in docs])
-    return execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {
-                    "$setWindowFields": {
-                        "partitionBy": "$partition",
-                        "sortBy": sort_by,
-                        "output": {"docNumber": {"$documentNumber": {}}},
-                    }
-                },
-                *SORTED_PROJECTION,
-            ],
-            "cursor": {},
-        },
-    )
 
 
 def test_documentNumber_no_ties(collection):
@@ -46,13 +24,19 @@ def test_documentNumber_no_ties(collection):
         {"_id": 4, "partition": "A", "score": 40},
         {"_id": 5, "partition": "A", "score": 50},
     ]
-    result = run_document_number(collection, docs, {"score": 1})
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        docs,
+        sort_by={"score": 1},
+        expression={},
+    )
     expected = [
-        {"_id": 1, "docNumber": 1},
-        {"_id": 2, "docNumber": 2},
-        {"_id": 3, "docNumber": 3},
-        {"_id": 4, "docNumber": 4},
-        {"_id": 5, "docNumber": 5},
+        {"_id": 1, "partition": "A", "score": 10, "result": 1},
+        {"_id": 2, "partition": "A", "score": 20, "result": 2},
+        {"_id": 3, "partition": "A", "score": 30, "result": 3},
+        {"_id": 4, "partition": "A", "score": 40, "result": 4},
+        {"_id": 5, "partition": "A", "score": 50, "result": 5},
     ]
     assertSuccess(result, expected, msg="distinct sort values get sequential positions")
 
@@ -65,12 +49,18 @@ def test_documentNumber_all_ties(collection):
         {"_id": 3, "partition": "A", "score": 50},
         {"_id": 4, "partition": "A", "score": 50},
     ]
-    result = run_document_number(collection, docs, {"score": 1})
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        docs,
+        sort_by={"score": 1},
+        expression={},
+    )
     expected = [
-        {"_id": 1, "docNumber": 1},
-        {"_id": 2, "docNumber": 2},
-        {"_id": 3, "docNumber": 3},
-        {"_id": 4, "docNumber": 4},
+        {"_id": 1, "partition": "A", "score": 50, "result": 1},
+        {"_id": 2, "partition": "A", "score": 50, "result": 2},
+        {"_id": 3, "partition": "A", "score": 50, "result": 3},
+        {"_id": 4, "partition": "A", "score": 50, "result": 4},
     ]
     assertSuccess(result, expected, msg="all-tie partition still gets unique positions")
 
@@ -83,12 +73,18 @@ def test_documentNumber_partial_tie_at_beginning(collection):
         {"_id": 3, "partition": "A", "score": 20},
         {"_id": 4, "partition": "A", "score": 30},
     ]
-    result = run_document_number(collection, docs, {"score": 1})
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        docs,
+        sort_by={"score": 1},
+        expression={},
+    )
     expected = [
-        {"_id": 1, "docNumber": 1},
-        {"_id": 2, "docNumber": 2},
-        {"_id": 3, "docNumber": 3},
-        {"_id": 4, "docNumber": 4},
+        {"_id": 1, "partition": "A", "score": 10, "result": 1},
+        {"_id": 2, "partition": "A", "score": 10, "result": 2},
+        {"_id": 3, "partition": "A", "score": 20, "result": 3},
+        {"_id": 4, "partition": "A", "score": 30, "result": 4},
     ]
     assertSuccess(result, expected, msg="tie at beginning yields unique positions")
 
@@ -101,12 +97,18 @@ def test_documentNumber_partial_tie_in_middle(collection):
         {"_id": 3, "partition": "A", "score": 20},
         {"_id": 4, "partition": "A", "score": 30},
     ]
-    result = run_document_number(collection, docs, {"score": 1})
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        docs,
+        sort_by={"score": 1},
+        expression={},
+    )
     expected = [
-        {"_id": 1, "docNumber": 1},
-        {"_id": 2, "docNumber": 2},
-        {"_id": 3, "docNumber": 3},
-        {"_id": 4, "docNumber": 4},
+        {"_id": 1, "partition": "A", "score": 10, "result": 1},
+        {"_id": 2, "partition": "A", "score": 20, "result": 2},
+        {"_id": 3, "partition": "A", "score": 20, "result": 3},
+        {"_id": 4, "partition": "A", "score": 30, "result": 4},
     ]
     assertSuccess(result, expected, msg="tie in middle yields unique positions")
 
@@ -119,11 +121,17 @@ def test_documentNumber_partial_tie_at_end(collection):
         {"_id": 3, "partition": "A", "score": 30},
         {"_id": 4, "partition": "A", "score": 30},
     ]
-    result = run_document_number(collection, docs, {"score": 1})
+    result = run_window_operator(
+        collection,
+        "$documentNumber",
+        docs,
+        sort_by={"score": 1},
+        expression={},
+    )
     expected = [
-        {"_id": 1, "docNumber": 1},
-        {"_id": 2, "docNumber": 2},
-        {"_id": 3, "docNumber": 3},
-        {"_id": 4, "docNumber": 4},
+        {"_id": 1, "partition": "A", "score": 10, "result": 1},
+        {"_id": 2, "partition": "A", "score": 20, "result": 2},
+        {"_id": 3, "partition": "A", "score": 30, "result": 3},
+        {"_id": 4, "partition": "A", "score": 30, "result": 4},
     ]
     assertSuccess(result, expected, msg="tie at end yields unique positions")

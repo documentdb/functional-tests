@@ -10,6 +10,9 @@ $documentNumber is a frameless rank operator with a fixed accepted shape:
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.window.utils.window_test_case import (
+    run_window_operator,
+)
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.error_codes import (
     RANK_STYLE_WINDOW_EXTRA_ARGS_ERROR,
@@ -21,34 +24,13 @@ from documentdb_tests.framework.executor import execute_command
 SINGLE_DOC = [{"_id": 1, "partition": "A", "value": 10}]
 
 
-def run_stage(collection, stage, docs=SINGLE_DOC):
-    """Insert docs and execute a single $setWindowFields stage."""
-    if docs:
-        collection.insert_many([dict(d) for d in docs])
-    return execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$setWindowFields": stage}],
-            "cursor": {},
-        },
-    )
-
-
 # Property [Accepted Shape]: $documentNumber takes exactly `{}` and no other arguments.
 
 
 def test_documentNumber_empty_object_accepted(collection):
     """$documentNumber with `{}` as its value is the valid form."""
-    result = run_stage(
-        collection,
-        {
-            "partitionBy": "$partition",
-            "sortBy": {"_id": 1},
-            "output": {"docNumber": {"$documentNumber": {}}},
-        },
-    )
-    expected = [{"_id": 1, "partition": "A", "value": 10, "docNumber": 1}]
+    result = run_window_operator(collection, "$documentNumber", SINGLE_DOC, expression={})
+    expected = [{"_id": 1, "partition": "A", "value": 10, "result": 1}]
     assertSuccess(result, expected, msg="$documentNumber accepts empty object")
 
 
@@ -72,14 +54,7 @@ NON_EMPTY_ARGS = [
 @pytest.mark.parametrize("case_id,arg", NON_EMPTY_ARGS, ids=[c[0] for c in NON_EMPTY_ARGS])
 def test_documentNumber_non_empty_value_errors(collection, case_id, arg):
     """$documentNumber rejects any value that is not the empty object."""
-    result = run_stage(
-        collection,
-        {
-            "partitionBy": "$partition",
-            "sortBy": {"_id": 1},
-            "output": {"docNumber": {"$documentNumber": arg}},
-        },
-    )
+    result = run_window_operator(collection, "$documentNumber", SINGLE_DOC, expression=arg)
     assertFailureCode(
         result,
         RANK_STYLE_WINDOW_NON_EMPTY_ARG_ERROR,
@@ -102,13 +77,8 @@ def test_documentNumber_non_empty_value_errors(collection, case_id, arg):
 )
 def test_documentNumber_window_key_errors(collection, case_id, window):
     """$documentNumber is frameless — specifying a `window` key is rejected."""
-    result = run_stage(
-        collection,
-        {
-            "partitionBy": "$partition",
-            "sortBy": {"_id": 1},
-            "output": {"docNumber": {"$documentNumber": {}, "window": window}},
-        },
+    result = run_window_operator(
+        collection, "$documentNumber", SINGLE_DOC, window=window, expression={}
     )
     assertFailureCode(
         result,
@@ -119,12 +89,17 @@ def test_documentNumber_window_key_errors(collection, case_id, window):
 
 def test_documentNumber_unknown_key_in_output_field_errors(collection):
     """An unknown key alongside $documentNumber in the output field is rejected."""
-    result = run_stage(
+    collection.insert_many(SINGLE_DOC)
+    result = execute_command(
         collection,
         {
-            "partitionBy": "$partition",
-            "sortBy": {"_id": 1},
-            "output": {"docNumber": {"$documentNumber": {}, "unknownKey": 1}},
+            "aggregate": collection.name,
+            "pipeline": [{"$setWindowFields": {
+                        "partitionBy": "$partition",
+                        "sortBy": {"_id": 1},
+                        "output": {"result": {"$documentNumber": {}, "unknownKey": 1}},
+                    }}],
+            "cursor": {},
         },
     )
     assertFailureCode(
@@ -136,12 +111,17 @@ def test_documentNumber_unknown_key_in_output_field_errors(collection):
 
 def test_documentNumber_second_operator_in_output_field_errors(collection):
     """Another window operator in the same output field as $documentNumber is rejected."""
-    result = run_stage(
+    collection.insert_many(SINGLE_DOC)
+    result = execute_command(
         collection,
         {
-            "partitionBy": "$partition",
-            "sortBy": {"_id": 1},
-            "output": {"docNumber": {"$documentNumber": {}, "$rank": {}}},
+            "aggregate": collection.name,
+            "pipeline": [{"$setWindowFields": {
+                        "partitionBy": "$partition",
+                        "sortBy": {"_id": 1},
+                        "output": {"result": {"$documentNumber": {}, "$rank": {}}},
+                    }}],
+            "cursor": {},
         },
     )
     assertFailureCode(
@@ -153,19 +133,12 @@ def test_documentNumber_second_operator_in_output_field_errors(collection):
 
 def test_documentNumber_window_key_errors_on_empty_collection(collection):
     """The `window` rejection is a parse-time error — it fires with no documents."""
-    result = run_stage(
+    result = run_window_operator(
         collection,
-        {
-            "partitionBy": "$partition",
-            "sortBy": {"_id": 1},
-            "output": {
-                "docNumber": {
-                    "$documentNumber": {},
-                    "window": {"documents": ["unbounded", "current"]},
-                }
-            },
-        },
-        docs=[],
+        "$documentNumber",
+        [],
+        window={"documents": ["unbounded", "current"]},
+        expression={},
     )
     assertFailureCode(
         result,
@@ -179,11 +152,16 @@ def test_documentNumber_window_key_errors_on_empty_collection(collection):
 
 def test_documentNumber_sortBy_omitted_errors(collection):
     """$documentNumber requires sortBy — omitting it is rejected."""
-    result = run_stage(
+    collection.insert_many(SINGLE_DOC)
+    result = execute_command(
         collection,
         {
-            "partitionBy": "$partition",
-            "output": {"docNumber": {"$documentNumber": {}}},
+            "aggregate": collection.name,
+            "pipeline": [{"$setWindowFields": {
+                        "partitionBy": "$partition",
+                        "output": {"result": {"$documentNumber": {}}},
+                    }}],
+            "cursor": {},
         },
     )
     assertFailureCode(
@@ -195,13 +173,8 @@ def test_documentNumber_sortBy_omitted_errors(collection):
 
 def test_documentNumber_sortBy_empty_object_errors(collection):
     """An empty sortBy object has no elements, so $documentNumber rejects it."""
-    result = run_stage(
-        collection,
-        {
-            "partitionBy": "$partition",
-            "sortBy": {},
-            "output": {"docNumber": {"$documentNumber": {}}},
-        },
+    result = run_window_operator(
+        collection, "$documentNumber", SINGLE_DOC, sort_by={}, expression={}
     )
     assertFailureCode(
         result,
@@ -212,13 +185,8 @@ def test_documentNumber_sortBy_empty_object_errors(collection):
 
 def test_documentNumber_multi_field_sortBy_errors(collection):
     """$documentNumber requires exactly one sortBy element — two fields are rejected."""
-    result = run_stage(
-        collection,
-        {
-            "partitionBy": "$partition",
-            "sortBy": {"value": -1, "_id": 1},
-            "output": {"docNumber": {"$documentNumber": {}}},
-        },
+    result = run_window_operator(
+        collection, "$documentNumber", SINGLE_DOC, sort_by={"value": -1, "_id": 1}, expression={}
     )
     assertFailureCode(
         result,
@@ -229,13 +197,16 @@ def test_documentNumber_multi_field_sortBy_errors(collection):
 
 def test_documentNumber_sortBy_error_on_empty_collection(collection):
     """The sortBy requirement is validated at parse time — it fires with no documents."""
-    result = run_stage(
+    result = execute_command(
         collection,
         {
-            "partitionBy": "$partition",
-            "output": {"docNumber": {"$documentNumber": {}}},
+            "aggregate": collection.name,
+            "pipeline": [{"$setWindowFields": {
+                        "partitionBy": "$partition",
+                        "output": {"result": {"$documentNumber": {}}},
+                    }}],
+            "cursor": {},
         },
-        docs=[],
     )
     assertFailureCode(
         result,
