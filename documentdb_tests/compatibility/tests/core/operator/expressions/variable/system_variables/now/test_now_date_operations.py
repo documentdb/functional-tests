@@ -1,5 +1,6 @@
-"""$$NOW as a date operand: component extraction, round-trips, and per-numeric-type
-arithmetic. Per-unit/timezone/error depth lives in the date operators' own folders.
+"""$$NOW as a date operand: acceptance by the date-operator family, round-trips, and
+per-numeric-type arithmetic. Per-operator return types, per-unit/timezone behavior, and
+error depth live in the date operators' own folders.
 """
 
 from datetime import datetime, timezone
@@ -27,61 +28,13 @@ NOW_DATE_OPERATOR_TESTS: list[ExpressionTestCase] = [
         id="date_component_type_year",
         expression={"$type": {"$year": "$$NOW"}},
         expected="int",
-        msg="$year on $$NOW should return an int",
-    ),
-    ExpressionTestCase(
-        id="date_component_type_month",
-        expression={"$type": {"$month": "$$NOW"}},
-        expected="int",
-        msg="$month on $$NOW should return an int",
-    ),
-    ExpressionTestCase(
-        id="date_component_type_dayOfMonth",
-        expression={"$type": {"$dayOfMonth": "$$NOW"}},
-        expected="int",
-        msg="$dayOfMonth on $$NOW should return an int",
-    ),
-    ExpressionTestCase(
-        id="date_component_type_dayOfWeek",
-        expression={"$type": {"$dayOfWeek": "$$NOW"}},
-        expected="int",
-        msg="$dayOfWeek on $$NOW should return an int",
-    ),
-    ExpressionTestCase(
-        id="date_component_type_dayOfYear",
-        expression={"$type": {"$dayOfYear": "$$NOW"}},
-        expected="int",
-        msg="$dayOfYear on $$NOW should return an int",
-    ),
-    ExpressionTestCase(
-        id="date_component_type_hour",
-        expression={"$type": {"$hour": "$$NOW"}},
-        expected="int",
-        msg="$hour on $$NOW should return an int",
-    ),
-    ExpressionTestCase(
-        id="date_component_type_minute",
-        expression={"$type": {"$minute": "$$NOW"}},
-        expected="int",
-        msg="$minute on $$NOW should return an int",
-    ),
-    ExpressionTestCase(
-        id="date_component_type_second",
-        expression={"$type": {"$second": "$$NOW"}},
-        expected="int",
-        msg="$second on $$NOW should return an int",
-    ),
-    ExpressionTestCase(
-        id="date_component_type_millisecond",
-        expression={"$type": {"$millisecond": "$$NOW"}},
-        expected="int",
-        msg="$millisecond on $$NOW should return an int",
+        msg="$$NOW should be accepted as the date operand of an int-returning date operator",
     ),
     ExpressionTestCase(
         id="iso_week_year_component_type",
         expression={"$type": {"$isoWeekYear": "$$NOW"}},
         expected="long",
-        msg="$isoWeekYear on $$NOW should return a long",
+        msg="$$NOW should be accepted as the date operand of a long-returning date operator",
     ),
     ExpressionTestCase(
         id="date_to_string_round_trip",
@@ -154,7 +107,7 @@ NOW_DATE_OPERATOR_TESTS: list[ExpressionTestCase] = [
 
 @pytest.mark.parametrize("test", pytest_params(NOW_DATE_OPERATOR_TESTS))
 def test_now_date_operators(collection, test: ExpressionTestCase):
-    """Test date operators applied to $$NOW behave correctly (types, round-trips, errors)."""
+    """Test date operators accept $$NOW as their date operand (round-trips, no-ops, types)."""
     result = execute_expression(collection, test.expression)
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
