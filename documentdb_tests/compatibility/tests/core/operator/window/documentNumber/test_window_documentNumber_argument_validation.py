@@ -94,11 +94,15 @@ def test_documentNumber_unknown_key_in_output_field_errors(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$setWindowFields": {
+            "pipeline": [
+                {
+                    "$setWindowFields": {
                         "partitionBy": "$partition",
                         "sortBy": {"_id": 1},
                         "output": {"result": {"$documentNumber": {}, "unknownKey": 1}},
-                    }}],
+                    }
+                }
+            ],
             "cursor": {},
         },
     )
@@ -116,11 +120,15 @@ def test_documentNumber_second_operator_in_output_field_errors(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$setWindowFields": {
+            "pipeline": [
+                {
+                    "$setWindowFields": {
                         "partitionBy": "$partition",
                         "sortBy": {"_id": 1},
                         "output": {"result": {"$documentNumber": {}, "$rank": {}}},
-                    }}],
+                    }
+                }
+            ],
             "cursor": {},
         },
     )
@@ -157,10 +165,14 @@ def test_documentNumber_sortBy_omitted_errors(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$setWindowFields": {
+            "pipeline": [
+                {
+                    "$setWindowFields": {
                         "partitionBy": "$partition",
                         "output": {"result": {"$documentNumber": {}}},
-                    }}],
+                    }
+                }
+            ],
             "cursor": {},
         },
     )
@@ -201,10 +213,14 @@ def test_documentNumber_sortBy_error_on_empty_collection(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$setWindowFields": {
+            "pipeline": [
+                {
+                    "$setWindowFields": {
                         "partitionBy": "$partition",
                         "output": {"result": {"$documentNumber": {}}},
-                    }}],
+                    }
+                }
+            ],
             "cursor": {},
         },
     )

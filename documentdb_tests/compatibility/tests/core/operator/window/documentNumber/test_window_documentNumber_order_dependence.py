@@ -77,7 +77,9 @@ def test_documentNumber_sort_on_different_field(collection):
         {"_id": 3, "partition": "A", "value": 30, "result": 2},
         {"_id": 1, "partition": "A", "value": 50, "result": 3},
     ]
-    assertSuccess(result, expected, msg="output follows the value sort order; positions 1..3 by value")
+    assertSuccess(
+        result, expected, msg="output follows the value sort order; positions 1..3 by value"
+    )
 
 
 # Property [Partition Isolation]: numbering restarts at 1 in each partition.
