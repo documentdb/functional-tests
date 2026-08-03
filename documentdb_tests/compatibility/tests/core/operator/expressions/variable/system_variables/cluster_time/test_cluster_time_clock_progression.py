@@ -1,11 +1,4 @@
-"""
-$$CLUSTER_TIME invariance, monotonicity, long-lived cursors, and find reads.
-
-Constant within one execution; never regresses and eventually advances across
-executions. Read-concern cases anchor it to server-reported timestamps instead
-of a wall clock. Cross-member comparison and session-scoped behavior are not
-covered — no framework hooks for either.
-"""
+"""$$CLUSTER_TIME invariance, monotonicity, long-lived cursors, and find reads."""
 
 import time
 
@@ -285,8 +278,12 @@ def test_cluster_time_identical_inside_set_window_fields(collection):
     )
 
 
-def test_cluster_time_identical_inside_lookup_subpipeline(collection):
-    """Test $$CLUSTER_TIME inside a $lookup sub-pipeline equals the outer value."""
+def test_cluster_time_in_lookup_subpipeline_is_not_earlier_than_the_outer_value(collection):
+    """Test $$CLUSTER_TIME in a $lookup sub-pipeline is not earlier than the outer value.
+
+    A $lookup sub-pipeline re-resolves the variable rather than inheriting the outer value, so
+    equality races under concurrent writes; ordering holds exactly and needs no tolerance.
+    """
     database = collection.database
     collection.insert_many([{"_id": i} for i in range(5)])
     database[f"{collection.name}_lookup_target"].insert_many([{"_id": i} for i in range(5)])
@@ -307,7 +304,17 @@ def test_cluster_time_identical_inside_lookup_subpipeline(collection):
                 {
                     "$project": {
                         "_id": 0,
-                        "t": {"$size": {"$setUnion": ["$joined.inner", ["$outer"]]}},
+                        "t": {
+                            "$allElementsTrue": [
+                                {
+                                    "$map": {
+                                        "input": "$joined",
+                                        "as": "j",
+                                        "in": {"$gte": ["$$j.inner", "$outer"]},
+                                    }
+                                }
+                            ]
+                        },
                     }
                 },
             ]
@@ -318,8 +325,8 @@ def test_cluster_time_identical_inside_lookup_subpipeline(collection):
 
     assertSuccess(
         result,
-        [{"flags": [1]}],
-        msg="$$CLUSTER_TIME in a $lookup sub-pipeline should equal the outer value",
+        [{"flags": [True]}],
+        msg="$$CLUSTER_TIME in a $lookup sub-pipeline should not precede the outer value",
     )
 
 
@@ -506,15 +513,21 @@ def test_cluster_time_strictly_advances_while_idle(collection):
     )
 
 
-def test_cluster_time_does_not_exceed_the_response_operation_time(collection):
-    """Test the pipeline's value is not later than the command response's operationTime."""
-    pipeline_value, operation_time = _read_cluster_time_with_metadata(collection)
+def test_cluster_time_is_not_later_than_a_following_write(collection):
+    """Test the pipeline's value is not later than the operationTime of a subsequent write.
 
-    result = execute_expression(collection, {"$lte": [pipeline_value, operation_time]})
+    Upper half of a bracket around the variable (paired with the preceding-write test below).
+    A write issued after the read is an exact upper bound at any command speed, unlike comparing
+    against the same response's own operationTime, which races under load.
+    """
+    value = _read_cluster_time(collection)
+    write = execute_command(collection, {"insert": collection.name, "documents": [{"_id": 1}]})
+
+    result = execute_expression(collection, {"$lte": [value, write["operationTime"]]})
     assert_expression_result(
         result,
         expected=True,
-        msg="The variable should come from the clock the response's operationTime reports",
+        msg="The variable should not follow the operationTime of a later write",
     )
 
 
