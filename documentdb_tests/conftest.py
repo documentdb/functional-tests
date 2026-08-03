@@ -14,6 +14,7 @@ import pytest
 # Enable assertion rewriting BEFORE importing framework modules
 pytest.register_assert_rewrite("documentdb_tests.framework.assertions")
 
+import warnings  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 from documentdb_tests.framework import fixtures  # noqa: E402
@@ -28,6 +29,9 @@ from documentdb_tests.framework.error_codes_validator import (  # noqa: E402
 from documentdb_tests.framework.large_payload_guard import (  # noqa: E402
     PARAM_SIZE_LIMIT_BYTES,
     exceeds_size_limit,
+)
+from documentdb_tests.framework.marker_reason_validator import (  # noqa: E402
+    validate_marker_reasons,
 )
 from documentdb_tests.framework.preconditions import (  # noqa: E402
     REQUIRES_MARKER,
@@ -163,10 +167,15 @@ def pytest_runtest_setup(item):
     engine = target.engine if target is not None else None
     for marker in item.iter_markers("engine_xfail"):
         if engine == marker.kwargs.get("engine"):
+            # strict=True so a documented gap that the server has since fixed
+            # becomes a hard failure (an unexpected pass), not a silently
+            # tolerated xpass. That forces the stale marker to be removed and the
+            # test to resume guarding real behavior.
             item.add_marker(
                 pytest.mark.xfail(
                     reason=marker.kwargs.get("reason", ""),
                     raises=marker.kwargs.get("raises", AssertionError),
+                    strict=True,
                 )
             )
     # A crash test kills the server, so it is skipped against the engine it
@@ -176,6 +185,28 @@ def pytest_runtest_setup(item):
     for marker in item.iter_markers("engine_xcrash"):
         if engine == marker.kwargs.get("engine") and not run_crash_tests:
             pytest.skip(marker.kwargs.get("reason", "crashes the server"))
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_json_runtest_metadata(item, call):
+    """Record the xfail reason in the JSON report so it isn't lost.
+
+    The reason lives on the marker but is absent from the default JSON report.
+    Keying off the resolved ``xfail`` marker (added in setup above for the
+    matching engine) captures it only when xfail is actually in effect, and
+    covers both the xfailed test and a strict-xpass that became a failure.
+
+    ``optionalhook`` so this is ignored when pytest-json-report isn't active
+    (e.g. a plain unit-test run without --json-report), rather than erroring as
+    an unknown hook.
+    """
+    if call.when != "setup":
+        return {}
+    marker = item.get_closest_marker("xfail")
+    if marker is None:
+        return {}
+    reason = marker.kwargs.get("reason")
+    return {"xfail_reason": reason} if reason else {}
 
 
 @pytest.fixture(scope="session")
@@ -331,6 +362,51 @@ def register_db_cleanup(engine_client):
             fixtures.cleanup_database(engine_client, name)
 
 
+def _write_deselected_sidecar(config, deselected_reasons: dict) -> None:
+    """
+    Record why tests were deselected, alongside the JSON report.
+
+    Deselected tests are dropped before the run, so they never appear in the
+    pytest JSON report. Writing a sidecar next to it (``<report>.deselected.json``)
+    lets the result analyzer explain the collected-vs-executed gap — e.g. which
+    features were not applicable to this target — rather than showing a bare
+    count. No-op when the JSON report isn't enabled.
+
+    The report's directory may not exist yet: this runs at collection time, while
+    pytest-json-report creates the directory later, when it writes the report at
+    session end. Create it here so the sidecar isn't lost.
+
+    Under xdist every worker writes this same path with identical contents, but
+    concurrent truncate-and-write can tear the file, so write a per-process temp
+    file and os.replace it into place.
+    """
+    report_path = getattr(config.option, "json_report_file", None)
+    # json_report_file defaults to ".report.json" even when the plugin is off,
+    # so gate on the --json-report flag itself.
+    if not getattr(config.option, "json_report", False) or not report_path:
+        return
+    import json
+    import os
+
+    sidecar = Path(f"{report_path}.deselected.json")
+    temp_path = f"{sidecar}.{os.getpid()}.tmp"
+    try:
+        sidecar.parent.mkdir(parents=True, exist_ok=True)
+        with open(temp_path, "w") as f:
+            json.dump(deselected_reasons, f)
+        os.replace(temp_path, sidecar)
+    except OSError as exc:
+        # Warn rather than fail: the sidecar only enriches the report, so a run
+        # should still complete without it. Staying silent here once hid its
+        # absence for a whole CI cycle, leaving the report quietly incomplete.
+        Path(temp_path).unlink(missing_ok=True)
+        warnings.warn(
+            f"Could not write the deselected-tests sidecar {sidecar}: {exc}. "
+            "The report will not be able to explain deselected (unsupported) tests.",
+            stacklevel=2,
+        )
+
+
 def pytest_collection_modifyitems(session, config, items):
     """
     Combined pytest hook to validate test structure, format, and framework invariants.
@@ -343,8 +419,9 @@ def pytest_collection_modifyitems(session, config, items):
     Tests carrying a ``requires`` marker are deselected when their target's
     capabilities do not match what the test requires, so they do not run against
     a target they do not apply to (rather than appearing as skips). A target's
-    capabilities are determined by its engine and topology, resolved per target
-    at runtime (see ``framework.preconditions``).
+    capabilities are determined by its engine, topology, and connection source,
+    resolved per target at runtime (see ``framework.preconditions``).
+
     """
     # Deselect a capability-gated test when its target's capabilities do not
     # match its requires(...) marker. Each item is parametrized over a target;
@@ -352,6 +429,8 @@ def pytest_collection_modifyitems(session, config, items):
     capabilities_by_target: dict[str, frozenset[str]] = {}
     kept: list = []
     requires_deselected: list = []
+    # nodeid -> the requirements the target did not meet, for the report sidecar.
+    deselected_reasons: dict[str, dict] = {}
     for item in items:
         marker = item.get_closest_marker(REQUIRES_MARKER)
         if marker is None or not marker.kwargs:
@@ -367,11 +446,14 @@ def pytest_collection_modifyitems(session, config, items):
             capabilities_by_target[target.connection_string] = capabilities
         if unmet_requirements(marker.kwargs, capabilities):
             requires_deselected.append(item)
+            deselected_reasons[item.nodeid] = unmet_requirements(marker.kwargs, capabilities)
         else:
             kept.append(item)
     if requires_deselected:
         config.hook.pytest_deselected(items=requires_deselected)
         items[:] = kept
+    # Written even when empty, or a stale sidecar from a previous run survives.
+    _write_deselected_sidecar(config, deselected_reasons)
 
     # Deselect no_parallel tests when running under xdist
     is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")
@@ -389,6 +471,7 @@ def pytest_collection_modifyitems(session, config, items):
 
     structure_errors = []
     format_errors = {}
+    marker_reason_errors = {}
 
     # Validate file structure for all files under "tests" folder
     if items:
@@ -410,6 +493,9 @@ def pytest_collection_modifyitems(session, config, items):
         file_errors = validate_test_format(file_path)
         if file_errors:
             format_errors[file_path] = file_errors
+        reason_errors = validate_marker_reasons(file_path)
+        if reason_errors:
+            marker_reason_errors[file_path] = reason_errors
 
     # Validate framework error code invariants
     structure_errors.extend(validate_error_codes_sorted())
@@ -430,7 +516,7 @@ def pytest_collection_modifyitems(session, config, items):
                 )
                 break
 
-    if structure_errors or format_errors or large_param_errors:
+    if structure_errors or format_errors or marker_reason_errors or large_param_errors:
         import sys
 
         if structure_errors:
@@ -444,6 +530,20 @@ def pytest_collection_modifyitems(session, config, items):
                 print(f"\n{file_path}:", file=sys.stderr)
                 print("\n".join(file_errors), file=sys.stderr)
             print("\nSee docs/testing/TEST_FORMAT.md for rules.\n", file=sys.stderr)
+
+        if marker_reason_errors:
+            print("\n❌ Marker Reason Violations:", file=sys.stderr)
+            for file_path, file_errors in marker_reason_errors.items():
+                print(f"\n{file_path}:", file=sys.stderr)
+                print("\n".join(file_errors), file=sys.stderr)
+            print(
+                "\nMarkers that skip or reclassify a test (skip/skipif/xfail/"
+                "engine_xfail/engine_xcrash) must carry a reason=, and runtime "
+                "pytest.skip()/fail()/xfail() calls must pass a message, so the "
+                "outcome is never unexplained. See docs/testing/TEST_FORMAT.md "
+                "for rules.\n",
+                file=sys.stderr,
+            )
 
         if large_param_errors:
             print("\n❌ Large Test Payloads:", file=sys.stderr)
@@ -470,7 +570,9 @@ def _merge_json_reports(phase1_path, phase2_path):
     p1["duration"] = p1.get("duration", 0) + p2.get("duration", 0)
     p1_summary = p1.setdefault("summary", {})
     p2_summary = p2.get("summary", {})
-    for key in ("passed", "failed", "error", "skipped", "total"):
+    # Sum every per-test outcome bucket; omitting one leaves the merged summary
+    # inconsistent with the merged "tests" array (xfailed/xpassed were once lost).
+    for key in ("passed", "failed", "error", "skipped", "xfailed", "xpassed", "total"):
         if key in p2_summary:
             p1_summary[key] = p1_summary.get(key, 0) + p2_summary[key]
     # Phase 2 runs without xdist, so its collected reflects the true count
@@ -590,6 +692,11 @@ def pytest_sessionfinish(session, exitstatus):
             print(f"⚠️  Failed to merge JSON reports: {e}", file=sys.stderr)
         finally:
             os.unlink(phase2_json)
+            # Phase 2 collection writes a redundant sidecar next to its temp
+            # report; clean it up too.
+            phase2_sidecar = f"{phase2_json}.deselected.json"
+            if os.path.exists(phase2_sidecar):
+                os.unlink(phase2_sidecar)
 
     if phase2_junit and os.path.exists(phase2_junit):
         try:

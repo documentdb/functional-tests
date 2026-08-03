@@ -49,7 +49,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Start ${{ matrix.target.name }} target
-        run: docker compose -f dev/compose.yaml --profile ${{ matrix.target.profile }} up -d --wait
+        run: dev/compose-up.sh "${{ matrix.target.profile }}"
 
       - name: Run compatibility tests against ${{ matrix.target.name }}
         run: |
@@ -115,13 +115,14 @@ jobs:
         if: always()
         run: |
           REPORT=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-report.json
-          ANALYSIS=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-analysis.txt
+          ANALYSIS=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-analysis.md
           if [ -f "$REPORT" ]; then
-            python -m documentdb_tests.compatibility.result_analyzer -i "$REPORT" -o "$ANALYSIS" -f text || true
+            # Emit GitHub-flavored markdown (tables + collapsible <details>) and
+            # write it unfenced so the step summary renders it, rather than
+            # dumping preformatted text inside a code block.
+            python -m documentdb_tests.compatibility.result_analyzer -i "$REPORT" -o "$ANALYSIS" -f markdown || true
             echo "## ${{ matrix.target.name }} Test Results" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
             cat "$ANALYSIS" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
   # Crash tests kill the server, so each runs in isolation in its own job (one
@@ -161,7 +162,7 @@ jobs:
           PAIRS='[]'
           for row in $(echo "$TARGETS" | jq -c '.[]'); do
             PROFILE=$(echo "$row" | jq -r .profile)
-            docker compose -f dev/compose.yaml --profile "$PROFILE" up -d --wait
+            dev/compose-up.sh "$PROFILE"
             # Bring a replica-set target up to a writable primary so topology
             # detection classifies it correctly (collection does not initiate).
             python -m documentdb_tests.framework.engine_registry
@@ -212,7 +213,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Start ${{ matrix.pair.target.name }} target
-        run: docker compose -f dev/compose.yaml --profile ${{ matrix.pair.target.profile }} up -d --wait
+        run: dev/compose-up.sh "${{ matrix.pair.target.profile }}"
 
       - name: "Run: ${{ matrix.pair.test }} against ${{ matrix.pair.target.name }}"
         run: |

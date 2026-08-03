@@ -2,6 +2,9 @@
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.type.utils.convert_variants import (  # noqa: E501
+    with_convert_variants,
+)
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expression_test_case import (  # noqa: E501
     ExpressionTestCase,
 )
@@ -294,7 +297,12 @@ TODOUBLE_STRING_SIZE_LIMIT_TESTS: list[ExpressionTestCase] = [
 
 
 @pytest.mark.parametrize(
-    "test", pytest_params(TODOUBLE_STRING_TESTS + TODOUBLE_STRING_SIZE_LIMIT_TESTS)
+    "test",
+    pytest_params(
+        with_convert_variants(
+            TODOUBLE_STRING_TESTS + TODOUBLE_STRING_SIZE_LIMIT_TESTS, "$toDouble", "double"
+        )
+    ),
 )
 def test_toDouble_string(collection, test: ExpressionTestCase):
     """$toDouble parses valid numeric strings and rejects malformed ones."""
