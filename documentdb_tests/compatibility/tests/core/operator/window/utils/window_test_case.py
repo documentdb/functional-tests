@@ -33,9 +33,9 @@ def run_window_operator(
     collection,
     operator: str,
     docs: list[dict],
-    window: dict[str, Any],
+    window: dict[str, Any] | None = None,
     sort_by: dict[str, Any] | None = None,
-    partition_by: str = "$partition",
+    partition_by: str | None = "$partition",
     extra_stages: list[dict[str, Any]] | None = None,
     expression: str | dict = "$value",
 ) -> Any:
@@ -46,10 +46,28 @@ def run_window_operator(
         operator: The window operator string (e.g. "$stdDevPop").
         docs: Documents to insert into the collection.
         window: The window specification (e.g. {"documents": ["unbounded", "current"]}).
+            Omitted from the output field when None, as frameless operators require.
         sort_by: The sortBy specification. Defaults to {"_id": 1}.
-        partition_by: The partitionBy expression. Defaults to "$partition".
+        partition_by: The partitionBy expression. Defaults to "$partition". Omitted
+            from the stage when None, making the whole collection one partition.
         extra_stages: Additional pipeline stages to append after $setWindowFields.
         expression: The operator expression. Defaults to "$value".
+
+    The assembled stage, with every argument at its default, looks like:
+
+        {"$setWindowFields": {
+            "partitionBy": "$partition",
+            "sortBy": {"_id": 1},
+            "output": {"result": {"$stdDevPop": "$value",
+                                  "window": {"documents": ["unbounded", "current"]}}},
+        }}
+
+    A frameless operator (window=None, partition_by=None) collapses to:
+
+        {"$setWindowFields": {
+            "sortBy": {"_id": 1},
+            "output": {"result": {"$documentNumber": {}}},
+        }}
 
     Returns:
         The result from execute_command (result dict or Exception).
@@ -57,22 +75,20 @@ def run_window_operator(
     if sort_by is None:
         sort_by = {"_id": 1}
 
-    collection.insert_many(docs)
+    if docs:
+        collection.insert_many(docs)
 
-    pipeline: list[dict[str, Any]] = [
-        {
-            "$setWindowFields": {
-                "partitionBy": partition_by,
-                "sortBy": sort_by,
-                "output": {
-                    "result": {
-                        operator: expression,
-                        "window": window,
-                    }
-                },
-            }
-        },
-    ]
+    output_spec: dict[str, Any] = {operator: expression}
+    if window is not None:
+        output_spec["window"] = window
+
+    stage: dict[str, Any] = {}
+    if partition_by is not None:
+        stage["partitionBy"] = partition_by
+    stage["sortBy"] = sort_by
+    stage["output"] = {"result": output_spec}
+
+    pipeline: list[dict[str, Any]] = [{"$setWindowFields": stage}]
 
     if extra_stages:
         pipeline.extend(extra_stages)
