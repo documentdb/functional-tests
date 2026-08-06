@@ -39,6 +39,12 @@ def execute_project(collection, project):
     """
     Execute a projection with literal input values.
 
+    Evaluates the projection against a single empty document. The document is
+    inserted into the collection and the pipeline runs over that collection,
+    rather than synthesizing the row with a ``$documents`` stage. This keeps the
+    helper free of any dependency on ``$documents`` support while producing the
+    same single-row input the projection sees.
+
     Args:
         collection: MongoDB collection object
         project: Fields to project. Do not include _id; the function always
@@ -51,12 +57,12 @@ def execute_project(collection, project):
         >>> execute_project(collection, {"sum": {"$add": [1, 2]}})
         # Returns result with {"sum": 3} in firstBatch
     """
+    collection.insert_one({})
     return execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {"$project": {**materialize(project), "_id": 0}},
             ],
             "cursor": {},
@@ -100,10 +106,15 @@ def execute_project_with_insert(collection, document, project):
 
 def execute_expression(collection, expression):
     """
-    Execute an aggregation expression using $documents stage.
+    Execute an aggregation expression against a single empty document.
 
-    Evaluates an expression against an empty document using the $documents
-    stage. Useful for testing expressions with literal values.
+    Evaluates an expression against an empty document. The document is inserted
+    into the collection and the pipeline runs over that collection, rather than
+    synthesizing the row with a ``$documents`` stage. This keeps the helper free
+    of any dependency on ``$documents`` support while producing the same
+    single-row input the expression is evaluated against. Useful for testing
+    expressions with literal values; field references resolve to missing, just
+    as they would against a ``$documents: [{}]`` row.
 
     Args:
         collection: MongoDB collection object
@@ -117,12 +128,12 @@ def execute_expression(collection, expression):
         >>> execute_expression(collection, {"$add": [1, 2]})
         # Returns result with {"result": 3} in firstBatch
     """
+    collection.insert_one({})
     return execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {"$project": {"_id": 0, "result": expression}},
             ],
             "cursor": {},
