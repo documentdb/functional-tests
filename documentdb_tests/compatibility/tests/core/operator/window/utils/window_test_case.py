@@ -28,6 +28,14 @@ BASIC_DOCS: list[dict[str, Any]] = [
     {"_id": 5, "partition": "A", "value": 50},
 ]
 
+COVAR_DOCS: list[dict[str, Any]] = [
+    {"_id": 1, "partition": "A", "x": 1, "y": 2},
+    {"_id": 2, "partition": "A", "x": 2, "y": 4},
+    {"_id": 3, "partition": "A", "x": 3, "y": 6},
+    {"_id": 4, "partition": "A", "x": 4, "y": 8},
+    {"_id": 5, "partition": "A", "x": 5, "y": 10},
+]
+
 
 def run_window_operator(
     collection,

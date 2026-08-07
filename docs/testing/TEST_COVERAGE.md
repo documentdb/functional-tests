@@ -575,7 +575,7 @@ Same shape as §11, applied to a different axis: §11 covers expression operator
 **Per-operator tests** (under `tests/core/operator/window/$operator/`):
 - **Documents-mode frame computation**: operator's computed result under whole-partition ["unbounded", "unbounded"], cumulative ["unbounded", "current"], reverse-cumulative ["current","unbounded"], and sliding frame shapes [-1,1] — verifies the operator produces correct values *given* a set of documents in the frame. This is distinct from stage-level frame boundary tests which verify that the correct documents are *selected into* the frame.
 - **Field paths**: operator handles nested fields (`"a.b.c"`), missing fields, field exists with `null` value (distinct from missing), array fields, arrays at intermediate path level (`"arr.nested.value"` where `arr` is an array of objects), and numeric path components (`"arr.0.field"`)
-- **Numeric precision**: type mixing (Int32/Int64/Double/Decimal128), overflow, catastrophic cancellation
+- **Numeric precision**: type mixing (Int32/Int64/Double/Decimal128), overflow, catastrophic cancellation. For operators computed by an incremental/online update over the frame (`$avg`, `$stdDevPop`, `$stdDevSamp`, `$covariancePop`, `$covarianceSamp`), overflow of an *intermediate* value is distinct from overflow of the result and must be tested separately — see the multi-expression operator notes under **Category applicability** for the required cases and why a single "large values" test is insufficient.
 - **Special floats**: NaN/Infinity propagation in removable vs non-removable windows
 - **Non-numeric handling**: null, missing, string, boolean, date, object, array values in the expression field
 - **Argument validation**: operator rejects invalid input shapes — unknown keys in the operator spec, wrong argument type (e.g. string where object expected), missing required parameters, and extra parameters. Each operator defines its accepted shape (empty object for rank operators, expression for accumulators, named params for $shift/$expMovingAvg/etc.); anything outside that shape must error with the correct code.
@@ -615,6 +615,20 @@ Same shape as §11, applied to a different axis: §11 covers expression operator
 
 - **Multi-expression operators** ($covariancePop, $covarianceSamp): take two expressions `["$x", "$y"]`. Test null/missing/type-mixing per expression position independently. $covarianceSamp with single element → null (N-1 divisor).
 
+  **Overflow requirements.** Covariance is computed by an online (Welford-style) update whose *intermediate* values — the per-row deviation `xᵢ - x̄`, the running mean, and the deviation product — can overflow independently of whether the final result is representable. Overflow tests must therefore distinguish four cases, because a single "large values" test cannot tell them apart and passing one says nothing about the others. Required for both `$covariancePop` and `$covarianceSamp`, on both the double and Decimal128 paths (`DOUBLE_NEAR_MAX` / `1e308`; `DECIMAL128_MAX` / `DECIMAL128_MIN`):
+
+  1. **Identical large values — no overflow in the formula.** All `xᵢ` equal at maximum magnitude (e.g. `x=[DECIMAL128_MAX]×3`, `y=[1,2,3]`). Every deviation `xᵢ - x̄` is exactly `0` regardless of magnitude, so the formula never requires `Σxᵢ`. The server nonetheless derives the mean from a running sum and reports a signed Infinity once that sum overflows, which makes its result **count-dependent**: `n=2` returns `0` while `n≥3` returns an Infinity, for input whose mathematical value is the same either way. Cover both counts and mirror on the `y` side, and record the observed value per count rather than assuming a single expectation covers the shape.
+
+  2. **Intermediate deviation overflow, representable result.** Opposing maximum magnitudes in the *same* column (e.g. `x=[DECIMAL128_MAX, DECIMAL128_MIN]`), so that `xᵢ - x̄` overflows while the mathematical result is within range. This is the only shape that exercises deviation overflow, and it must assert the **sign** of the result, not merely that it is non-finite — an implementation whose overflowing deviation corrupts the running mean can invert the sign of the deviation product, and `+Infinity` where `-Infinity` is expected would satisfy a non-finiteness-only assertion. Cover both a positively-correlated pair (`x=y=[MAX, MIN]`, limit `+∞`) and an anti-correlated pair (`x=[MAX, MIN]`, `y=[MIN, MAX]`, limit `-∞`).
+
+  3. **Product overflow with finite deviations.** Opposing magnitudes large enough that the deviation *product* overflows but each deviation stays finite (e.g. `x=y=[1e200, -1e200]`). Keeping this separate from case 2 is what distinguishes an overflow arising in the deviation step from one arising in the product step; collapsed together, a failure cannot be attributed to either.
+
+  4. **Result exceeds type range.** Mathematical result beyond the type's maximum.
+
+  Cases 1 and 2 must not be collapsed into one test: case 1's expected value is finite and case 2's is infinite, and the two have opposite failure modes. Note also that a literal `Infinity` *input* does not exercise any of these — non-finite inputs are typically short-circuited into counters before the online update runs, so Infinity-input tests belong under **Special floats**, not here.
+
+  As everywhere in this document, expected values are the reference server's observed behavior (§ *Target Spec Version*), including where that behavior is an artifact of its accumulation strategy rather than the mathematically exact answer. Verify each expectation against a live reference instance rather than deriving it from the formula.
+
 - **Gap-filler operators** ($locf, $linearFill): core dimension is **gap definition and boundary behavior** — null/missing as gaps, first value in partition is gap (no prior anchor → null), last value is gap, consecutive gaps, partition boundary isolation. $linearFill requires at least two non-null numeric anchors to interpolate.
 
 - **Calculus operators** ($derivative, $integral): require `unit` parameter (time unit string) when sortBy is date, omit `unit` when sortBy is numeric. Test zero delta in sortBy (division by zero for $derivative), single document in frame → null.
@@ -653,7 +667,7 @@ For any DocumentDB feature, ensure coverage of:
 - [ ] **Field lookup**: simple, nested, array, non-existent, composite, composite array
 - [ ] **Sign handling**: positive, negative, zero
 - [ ] **Type conversion**: all numeric type combinations
-- [ ] **Overflow handling**: `INT32_MAX`, `INT64_MAX` boundaries
+- [ ] **Overflow handling**: `INT32_MAX`, `INT64_MAX` boundaries; for operators with incremental intermediate state, also intermediate-value overflow with a **signed** expectation (§22)
 - [ ] **Underflow handling**: `INT32_MIN`, `INT64_MIN` boundaries
 - [ ] **Decimal128 precision**: high precision, boundaries (if applicable)
 - [ ] **Error codes**: correct error codes for invalid operations
