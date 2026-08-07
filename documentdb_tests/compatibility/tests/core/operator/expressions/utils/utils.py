@@ -45,6 +45,13 @@ def execute_project(collection, project):
     helper free of any dependency on ``$documents`` support while producing the
     same single-row input the projection sees.
 
+    Note: the inserted document carries an auto-generated ``_id`` and the helper
+    aggregates over the whole collection. The output projection excludes ``_id``,
+    so literal expressions and missing-field references behave identically to a
+    ``$documents: [{}]`` row. Callers that need a truly field-less input (e.g.
+    ``$$ROOT`` must be ``{}``) or exactly one row over a pre-populated collection
+    must shape their own pipeline instead of using this helper.
+
     Args:
         collection: MongoDB collection object
         project: Fields to project. Do not include _id; the function always
@@ -115,6 +122,13 @@ def execute_expression(collection, expression):
     single-row input the expression is evaluated against. Useful for testing
     expressions with literal values; field references resolve to missing, just
     as they would against a ``$documents: [{}]`` row.
+
+    Note: the inserted document carries an auto-generated ``_id`` and the helper
+    aggregates over the whole collection. The output projection excludes ``_id``,
+    so literal expressions and missing-field references are unaffected. Callers
+    that need a truly field-less input (e.g. ``$$ROOT`` must be ``{}``) or exactly
+    one row over a pre-populated collection must shape their own pipeline instead
+    of using this helper.
 
     Args:
         collection: MongoDB collection object
