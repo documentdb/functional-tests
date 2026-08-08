@@ -5,7 +5,7 @@ distinction rules, NaN/Infinity handling, and negative zero equivalence.
 """
 
 import pytest
-from bson import Decimal128, Int64
+from bson import Binary, Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.update.utils import UpdateTestCase
 from documentdb_tests.framework.assertions import assertSuccess, assertSuccessNaN
@@ -102,6 +102,14 @@ BSON_TYPE_DISTINCTION_TESTS: list[UpdateTestCase] = [
         update={"$addToSet": {"arr": ""}},
         expected={"_id": 1, "arr": [None, ""]},
         msg="empty string should not be duplicate of null — distinct types",
+    ),
+    UpdateTestCase(
+        "binary_equal_value_dedups",
+        setup_docs=[{"_id": 1, "arr": [Binary(b"hello", 0)]}],
+        query={"_id": 1},
+        update={"$addToSet": {"arr": Binary(b"hello", 0)}},
+        expected={"_id": 1, "arr": [b"hello"]},
+        msg="Equal Binary (same subtype and payload) should dedup by value",
     ),
 ]
 
