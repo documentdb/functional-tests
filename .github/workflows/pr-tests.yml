@@ -83,13 +83,56 @@ jobs:
             | sed -u 's/^/resource-monitor out-of-memory /' ) &
           trap 'kill %1 %2 2>/dev/null || true' EXIT
 
+          # Fail fast if the target dies mid-run. If a server crashes, every
+          # remaining test otherwise blocks on connection timeouts against a
+          # dead target one by one, and the job burns the full 6h runner limit
+          # before failing. This watchdog polls the profile's containers and, if
+          # any expected service stops running, terminates the test run so the
+          # job fails in about a minute instead of hours.
+          PROFILE='${{ matrix.target.profile }}'
+          watch_target() {
+            set +e
+            local pid=$1 expected
+            expected=$(docker compose -f dev/compose.yaml --profile "$PROFILE" config --services | grep -c .)
+            # Sanity-check the probe once. The stack is already up (compose
+            # --wait), so every service should read as running; if it does not,
+            # the ps query is unreliable on this runner and the watchdog steps
+            # aside rather than risk a false abort.
+            if [ "$(docker compose -f dev/compose.yaml --profile "$PROFILE" ps --status running -q 2>/dev/null | grep -c .)" -lt "$expected" ]; then
+              echo "resource-monitor target-watchdog disabled: could not read a healthy baseline"
+              return
+            fi
+            while kill -0 "$pid" 2>/dev/null; do
+              if [ "$(docker compose -f dev/compose.yaml --profile "$PROFILE" ps --status running -q 2>/dev/null | grep -c .)" -lt "$expected" ]; then
+                echo "::error::A $PROFILE target container exited mid-run (likely a server crash). Aborting the test run so the job fails fast instead of timing out every remaining test against a dead target."
+                docker compose -f dev/compose.yaml --profile "$PROFILE" ps -a
+                kill -TERM "$pid" 2>/dev/null; sleep 10; kill -KILL "$pid" 2>/dev/null
+                return
+              fi
+              sleep 15
+            done
+          }
+
+          # --timeout caps any single hung test as a backstop independent of the
+          # watchdog: a wedged query fails its own test (default signal method,
+          # as the crash-test job uses) instead of stalling a worker forever.
           pytest documentdb_tests/compatibility/tests \
             --connection-string "${{ matrix.target.connection_string }}" \
             --engine-name "${{ matrix.target.engine }}" \
             -n auto \
             -v \
+            --timeout=120 \
             --json-report --json-report-file=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-report.json \
-            --junitxml=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-results.xml
+            --junitxml=${{ github.workspace }}/.test-results/${{ matrix.target.name }}-results.xml &
+          pytest_pid=$!
+          watch_target "$pytest_pid" &
+          watch_pid=$!
+          set +e
+          wait "$pytest_pid"
+          status=$?
+          set -e
+          kill "$watch_pid" 2>/dev/null || true
+          exit "$status"
 
       - name: Dump container logs
         if: always()
