@@ -92,7 +92,7 @@ jobs:
           PROFILE='${{ matrix.target.profile }}'
           watch_target() {
             set +e
-            local pid=$1 expected
+            local pid=$1 expected running low=0
             expected=$(docker compose -f dev/compose.yaml --profile "$PROFILE" config --services | grep -c .)
             # Sanity-check the probe once. The stack is already up (compose
             # --wait), so every service should read as running; if it does not,
@@ -103,11 +103,22 @@ jobs:
               return
             fi
             while kill -0 "$pid" 2>/dev/null; do
-              if [ "$(docker compose -f dev/compose.yaml --profile "$PROFILE" ps --status running -q 2>/dev/null | grep -c .)" -lt "$expected" ]; then
-                echo "::error::A $PROFILE target container exited mid-run (likely a server crash). Aborting the test run so the job fails fast instead of timing out every remaining test against a dead target."
-                docker compose -f dev/compose.yaml --profile "$PROFILE" ps -a
-                kill -TERM "$pid" 2>/dev/null; sleep 10; kill -KILL "$pid" 2>/dev/null
-                return
+              running=$(docker compose -f dev/compose.yaml --profile "$PROFILE" ps --status running -q 2>/dev/null | grep -c .)
+              # Require two consecutive low readings before aborting. A single
+              # low count can be a transient docker-CLI hiccup on this
+              # resource-heavy runner (a failed query reads as 0); a real crash
+              # stays low, so demanding two polls in a row rules out a false
+              # abort while adding only one poll interval to a genuine one.
+              if [ "$running" -lt "$expected" ]; then
+                low=$((low + 1))
+                if [ "$low" -ge 2 ]; then
+                  echo "::error::A $PROFILE target container exited mid-run (likely a server crash). Aborting the test run so the job fails fast instead of timing out every remaining test against a dead target."
+                  docker compose -f dev/compose.yaml --profile "$PROFILE" ps -a
+                  kill -TERM "$pid" 2>/dev/null; sleep 10; kill -KILL "$pid" 2>/dev/null
+                  return
+                fi
+              else
+                low=0
               fi
               sleep 15
             done

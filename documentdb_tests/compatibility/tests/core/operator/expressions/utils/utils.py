@@ -45,12 +45,14 @@ def execute_project(collection, project):
     helper free of any dependency on ``$documents`` support while producing the
     same single-row input the projection sees.
 
-    Note: the inserted document carries an auto-generated ``_id`` and the helper
-    aggregates over the whole collection. The output projection excludes ``_id``,
-    so literal expressions and missing-field references behave identically to a
-    ``$documents: [{}]`` row. Callers that need a truly field-less input (e.g.
-    ``$$ROOT`` must be ``{}``) or exactly one row over a pre-populated collection
-    must shape their own pipeline instead of using this helper.
+    Note: the inserted document carries an auto-generated ``_id``, so the input
+    row is ``{_id: <ObjectId>}`` rather than the field-less row ``$documents:
+    [{}]`` produces. Literal expressions and references to any other (missing)
+    field behave identically, and the output projection excludes ``_id``; but an
+    expression that reads ``$_id``, ``$$ROOT``, or ``$$CURRENT`` sees that id and
+    will diverge. Callers that need a truly field-less input (e.g. ``$$ROOT`` must
+    be ``{}``) or exactly one row over a pre-populated collection must shape their
+    own pipeline instead of using this helper.
 
     Args:
         collection: MongoDB collection object
@@ -120,15 +122,17 @@ def execute_expression(collection, expression):
     synthesizing the row with a ``$documents`` stage. This keeps the helper free
     of any dependency on ``$documents`` support while producing the same
     single-row input the expression is evaluated against. Useful for testing
-    expressions with literal values; field references resolve to missing, just
-    as they would against a ``$documents: [{}]`` row.
+    expressions with literal values; references to fields other than ``_id``
+    resolve to missing, just as they would against a ``$documents: [{}]`` row.
 
-    Note: the inserted document carries an auto-generated ``_id`` and the helper
-    aggregates over the whole collection. The output projection excludes ``_id``,
-    so literal expressions and missing-field references are unaffected. Callers
-    that need a truly field-less input (e.g. ``$$ROOT`` must be ``{}``) or exactly
-    one row over a pre-populated collection must shape their own pipeline instead
-    of using this helper.
+    Note: the inserted document carries an auto-generated ``_id``, so the input
+    row is ``{_id: <ObjectId>}`` rather than the field-less row ``$documents:
+    [{}]`` produces. Literal expressions and references to any other (missing)
+    field are unaffected, and the output projection excludes ``_id``; but an
+    expression that reads ``$_id``, ``$$ROOT``, or ``$$CURRENT`` sees that id and
+    will diverge. Callers that need a truly field-less input (e.g. ``$$ROOT`` must
+    be ``{}``) or exactly one row over a pre-populated collection must shape their
+    own pipeline instead of using this helper.
 
     Args:
         collection: MongoDB collection object
