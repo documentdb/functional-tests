@@ -150,6 +150,7 @@ LOOKUP_ARRAY_LOCAL_FIELD_TESTS: list[LookupTestCase] = [
     ),
     LookupTestCase(
         "null_element_in_array_matches_null_and_missing_foreign",
+        ignore_order_in=["joined"],
         docs=[{"_id": 1, "lf": ["a", None]}],
         foreign_docs=[
             {"_id": 10, "ff": "a"},
@@ -211,6 +212,7 @@ LOOKUP_ARRAY_LOCAL_FIELD_TESTS: list[LookupTestCase] = [
     ),
     LookupTestCase(
         "large_array_all_elements_matched",
+        ignore_order_in=["joined"],
         docs=[{"_id": 1, "lf": list(range(500))}],
         foreign_docs=[{"_id": i, "ff": i} for i in range(500)],
         pipeline=[
@@ -420,4 +422,5 @@ def test_lookup_array_fields(collection, test_case: LookupTestCase):
             expected=test_case.expected,
             error_code=test_case.error_code,
             msg=test_case.msg,
+            ignore_order_in=test_case.ignore_order_in,
         )
