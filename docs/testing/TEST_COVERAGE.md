@@ -424,6 +424,7 @@ For each invalid_type in [string, object, array, ...]:
 - Pass-through stages (`$limit`, `$skip`, `$sort`, `$match`) must preserve all BSON types unchanged, including deprecated types
 - Reshaping stages (`$project`, `$set`, `$unset`, `$addFields`) must be tested with all BSON types as values
 - New-document stages (`$count`, `$group`, `$bucket`, `$sortByCount`) must verify output field names and types
+- `_id`-synthesizing stages (`$bucket`, `$bucketAuto`) must verify `_id` in `output`: `$bucket` rejects it; `$bucketAuto` lets an `_id` accumulator override the default `{min, max}` boundary
 
 **Stage Interactions**:
 - Multi-stage interaction tests belong in the parent `stages/` directory, not in individual stage folders. Per `FOLDER_STRUCTURE.md`, interactions between same-level features go in the parent folder (e.g., `stages/test_stages_combination_sort.py`, `stages/test_stages_position_match.py`).

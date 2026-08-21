@@ -198,11 +198,26 @@ BUCKET_AUTO_OUTPUT_NOT_ACCUMULATOR_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [Output Field _id Must Be Accumulator]: unlike $bucket, which reserves
+# _id and rejects it in output entirely, $bucketAuto permits _id in output but
+# still requires it to be an accumulator object; a non-accumulator _id is rejected
+# with the same error as any other non-accumulator output field.
+BUCKET_AUTO_OUTPUT_ID_NOT_ACCUMULATOR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "output_id_non_accumulator_int",
+        docs=[{"_id": 1}],
+        pipeline=_out({"_id": 5}),
+        error_code=BUCKET_OUTPUT_NOT_ACCUMULATOR_ERROR,
+        msg="$bucketAuto should reject a non-accumulator _id value in output",
+    ),
+]
+
 BUCKET_AUTO_OUTPUT_ERROR_TESTS = (
     BUCKET_AUTO_OUTPUT_TYPE_TESTS
     + BUCKET_AUTO_OUTPUT_DOLLAR_PREFIX_TESTS
     + BUCKET_AUTO_OUTPUT_DOT_TESTS
     + BUCKET_AUTO_OUTPUT_NOT_ACCUMULATOR_TESTS
+    + BUCKET_AUTO_OUTPUT_ID_NOT_ACCUMULATOR_TESTS
 )
 
 
