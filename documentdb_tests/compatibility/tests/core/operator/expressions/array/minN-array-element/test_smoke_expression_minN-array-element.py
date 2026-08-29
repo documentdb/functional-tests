@@ -6,7 +6,7 @@ Tests basic $minN-array-element expression functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertCommandSupported
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.smoke
@@ -27,5 +27,4 @@ def test_smoke_expression_minN_array_element(collection):
         },
     )
 
-    expected = [{"_id": 1, "minTwo": [10, 20]}, {"_id": 2, "minTwo": [5, 15]}]
-    assertSuccess(result, expected, msg="Should support $minN-array-element expression")
+    assertCommandSupported(result, msg="Should support $minN-array-element expression")

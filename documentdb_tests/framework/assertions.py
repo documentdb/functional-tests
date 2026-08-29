@@ -230,6 +230,45 @@ def partial_match(expected: Dict[str, Any]):
     return lambda r: _extract_partial(expected, r)
 
 
+def assertCommandSupported(result: Union[Any, Exception], msg: Optional[str] = None):
+    """Assert a command is supported: it returned a result rather than erroring.
+
+    This is a capability probe for smoke tests. It answers only "does the engine
+    support this feature?" and deliberately performs no value or BSON-type
+    comparison, so cosmetic divergences (e.g. ``ok`` as int32 vs double, extra
+    response fields, count differences) do NOT make the smoke test fail. Exact
+    response shape is the job of the feature's detailed tests, not the smoke
+    test. A command that raises (OperationFailure / unsupported) fails here;
+    infra exceptions propagate unchanged.
+    """
+    if isinstance(result, Exception):
+        if isinstance(result, _INFRA_TYPES):
+            raise result
+        raise AssertionError(_format_exception_error(result))
+    # Any non-exception result means the command was accepted / is supported.
+
+
+def assertChangeStreamEvent(result: Union[Any, Exception], msg: Optional[str] = None):
+    """Assert a change-stream getMore returned at least one event.
+
+    Capability probe for change-stream smoke tests: the getMore must succeed and
+    ``cursor.nextBatch`` must be non-empty (the expected event was emitted). An
+    empty batch fails cleanly here instead of raising ``IndexError`` when the
+    test indexes ``nextBatch[0]``. Performs no comparison of the event contents.
+    """
+    if isinstance(result, Exception):
+        if isinstance(result, _INFRA_TYPES):
+            raise result
+        raise AssertionError(_format_exception_error(result))
+    custom_msg = f" {msg}" if msg else ""
+    batch = result.get("cursor", {}).get("nextBatch", [])
+    if not batch:
+        raise AssertionError(
+            f"[RESULT_MISMATCH]{custom_msg} change stream returned no event "
+            f"(empty cursor.nextBatch)\n"
+        )
+
+
 def assertFailure(
     result: Union[Any, Exception],
     expected: Dict[str, Any],

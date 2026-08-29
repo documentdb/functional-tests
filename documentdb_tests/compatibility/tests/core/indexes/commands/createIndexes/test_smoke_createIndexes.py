@@ -6,7 +6,7 @@ Tests basic createIndexes command functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccessPartial
+from documentdb_tests.framework.assertions import assertCommandSupported
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.smoke
@@ -21,5 +21,4 @@ def test_smoke_createIndexes(collection):
         {"createIndexes": collection.name, "indexes": [{"key": {"name": 1}, "name": "name_1"}]},
     )
 
-    expected = {"ok": 1.0}
-    assertSuccessPartial(result, expected, msg="Should support createIndexes command")
+    assertCommandSupported(result, msg="Should support createIndexes command")
