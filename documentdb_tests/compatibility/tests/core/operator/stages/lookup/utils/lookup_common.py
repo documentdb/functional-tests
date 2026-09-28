@@ -10,6 +10,7 @@ from typing import Any
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
 )
+from documentdb_tests.framework.lazy_payload import materialize
 
 FOREIGN = object()
 
@@ -38,13 +39,13 @@ def setup_lookup(
     if test_case.docs is not None:
         db.create_collection(collection.name)
         if test_case.docs:
-            collection.insert_many(test_case.docs)
+            collection.insert_many(materialize(test_case.docs))
 
     # Set up foreign collection
     if test_case.foreign_docs is not None:
         db.create_collection(foreign_name)
         if test_case.foreign_docs:
-            db[foreign_name].insert_many(test_case.foreign_docs)
+            db[foreign_name].insert_many(materialize(test_case.foreign_docs))
     if test_case.foreign_indexes:
         db[foreign_name].create_indexes(test_case.foreign_indexes)
 
@@ -58,24 +59,34 @@ def _substitute_foreign(
     pipeline: list[dict[str, Any]],
     foreign_name: str,
 ) -> list[dict[str, Any]]:
-    """Replace FOREIGN sentinel in $lookup 'from' fields, including nested pipelines."""
+    """Replace the FOREIGN sentinel in $lookup and $graphLookup 'from' fields.
+
+    Recurses into nested $lookup sub-pipelines.
+    """
     result = list(pipeline)
     for i, stage in enumerate(result):
-        if not isinstance(stage, dict) or "$lookup" not in stage:
+        if not isinstance(stage, dict):
             continue
-        spec = stage["$lookup"]
-        if not isinstance(spec, dict):
-            continue
-        changed = False
-        spec = dict(spec)
-        if spec.get("from") is FOREIGN:
-            spec["from"] = foreign_name
-            changed = True
-        if isinstance(spec.get("pipeline"), list):
-            spec["pipeline"] = _substitute_foreign(spec["pipeline"], foreign_name)
-            changed = True
-        if changed:
-            result[i] = {"$lookup": spec}
+        if "$lookup" in stage:
+            spec = stage["$lookup"]
+            if not isinstance(spec, dict):
+                continue
+            changed = False
+            spec = dict(spec)
+            if spec.get("from") is FOREIGN:
+                spec["from"] = foreign_name
+                changed = True
+            if isinstance(spec.get("pipeline"), list):
+                spec["pipeline"] = _substitute_foreign(spec["pipeline"], foreign_name)
+                changed = True
+            if changed:
+                result[i] = {"$lookup": spec}
+        elif "$graphLookup" in stage:
+            spec = stage["$graphLookup"]
+            if isinstance(spec, dict) and spec.get("from") is FOREIGN:
+                spec = dict(spec)
+                spec["from"] = foreign_name
+                result[i] = {"$graphLookup": spec}
     return result
 
 

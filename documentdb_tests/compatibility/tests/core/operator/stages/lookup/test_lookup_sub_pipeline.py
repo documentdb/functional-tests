@@ -78,6 +78,7 @@ LOOKUP_RESTRICTED_STAGES_TESTS: list[LookupTestCase] = [
         ],
         error_code=CHANGE_STREAM_NOT_ALLOWED_ERROR,
         msg="$lookup should reject $changeStream in the sub-pipeline",
+        marks=(pytest.mark.requires(change_streams=False),),
     ),
     LookupTestCase(
         "current_op_in_sub_pipeline",

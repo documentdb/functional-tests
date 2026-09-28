@@ -116,6 +116,7 @@ WRITECONCERN_W_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="w=object with numeric tag value should succeed",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
 ]
 
@@ -154,6 +155,7 @@ WRITECONCERN_W_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=null should coerce to empty string and fail with bad value",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "w_objectid",
@@ -466,6 +468,7 @@ WRITECONCERN_W_STANDALONE_REJECTION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=2 on standalone should fail with bad value",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "w_custom_string",
@@ -477,6 +480,7 @@ WRITECONCERN_W_STANDALONE_REJECTION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w='custom' on standalone should fail with bad value",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "w_majority_case_sensitive",
@@ -488,6 +492,7 @@ WRITECONCERN_W_STANDALONE_REJECTION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w='Majority' (wrong case) on standalone should fail with bad value",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "w_decimal128_1_5",
@@ -499,6 +504,7 @@ WRITECONCERN_W_STANDALONE_REJECTION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=Decimal128('1.5') rounds to 2 and should fail with bad value on standalone",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         "w_empty_string",
@@ -510,6 +516,7 @@ WRITECONCERN_W_STANDALONE_REJECTION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w=empty string should fail with bad value",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
 ]
 

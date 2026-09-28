@@ -265,6 +265,7 @@ COMPACT_BOOL_TYPE_ERROR_TESTS: list[CommandTestCase] = (
 )
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_BOOL_TYPE_ERROR_TESTS))
 def test_compact_bool_type_errors(database_client, collection, test):

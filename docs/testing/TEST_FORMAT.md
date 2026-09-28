@@ -118,6 +118,49 @@ def test_divide(collection, test):
 - `msg` is **required** — describes expected behavior, not input
 - Use constants from `framework.test_constants` (`INT32_MAX`, `FLOAT_NAN`, etc.) and `framework.error_codes` (`TYPE_MISMATCH_ERROR`, etc.)
 
+## Marker Reasons
+
+Markers that suppress or reclassify a test's outcome must always explain why, so a
+run never has an unexplained skipped/xfailed test. This is checked statically at
+collection time.
+
+```python
+# ✅ Good
+@pytest.mark.skip(reason="Requires Atlas Search configuration")
+@pytest.mark.engine_xfail(engine="mongodb", reason="MongoDB misparses multi-digit years")
+
+# ❌ Bad — no reason
+@pytest.mark.skip
+@pytest.mark.engine_xfail(engine="mongodb")
+```
+
+Applies to `skip`, `skipif`, `xfail`, `engine_xfail`, and `engine_xcrash`. The
+same rule covers runtime `pytest.skip()` / `fail()` / `xfail()` calls, via their
+message argument:
+
+```python
+# ✅ Good
+pytest.skip("Engine supports this; skipping not-supported test")
+pytest.skip(f"Unrecognized os.type {os_type!r}; skipping platform-specific check")
+
+# ❌ Bad — no message
+pytest.skip()
+```
+
+The explanation must be **present**, and if written as a string literal it must be
+**non-empty**. A non-literal explanation (a shared constant or an f-string) is
+accepted — a static check can't resolve its value — so a reason constant reused
+across cases and a runtime message embedding dynamic context are both fine.
+
+## Strict xfail
+
+`engine_xfail` is **strict**: the marked test is expected to fail on that engine,
+and if it *passes* the run fails with an `[XPASS(strict)]` error rather than
+silently tolerating the unexpected pass. This is deliberate — a documented gap
+that the server has since fixed should surface loudly so the stale marker is
+removed and the test resumes guarding real behavior. If a test starts failing
+with `[XPASS(strict)]`, delete its `engine_xfail` marker.
+
 ## Validation
 
 A pytest hook auto-validates during collection:
@@ -126,3 +169,18 @@ A pytest hook auto-validates during collection:
 - Must use assertion helpers, not plain `assert`
 - One assertion per test function
 - Must use `execute_command()` or helpers from utils
+- Outcome-suppressing markers must carry a `reason=`, and runtime
+  `pytest.skip()`/`fail()`/`xfail()` calls must pass a message (see Marker Reasons)
+
+## Remote-Target Tests
+
+Some tests are only meaningful when the client is connecting to a remote server — for example, commands whose behavior differs depending on whether the connection is local. Gate these with the `requires` marker and the `remote_target` capability:
+
+```python
+@pytest.mark.requires(remote_target=True)
+def test_shutdown_remote_only(collection):
+    ...
+```
+
+The harness detects the connection source from the server-side `whatsmyuri` command. If the server reports a localhost address (`localhost`, `127.0.0.1`, `::1`, `0.0.0.0`) or the target cannot be reached, the test is deselected rather than run.
+

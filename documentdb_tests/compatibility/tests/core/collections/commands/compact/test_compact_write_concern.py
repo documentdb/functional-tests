@@ -97,6 +97,7 @@ COMPACT_WRITE_CONCERN_REJECTION_TESTS: list[CommandTestCase] = [
 ]
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_WRITE_CONCERN_REJECTION_TESTS))
 def test_compact_write_concern(database_client, collection, test):

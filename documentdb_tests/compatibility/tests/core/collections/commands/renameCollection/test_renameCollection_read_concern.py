@@ -316,6 +316,7 @@ RENAME_RC_AFTER_CLUSTER_TIME_TESTS: list[CommandTestCase] = [
         },
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="afterClusterTime should be rejected on standalone",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
     CommandTestCase(
         "rc_after_cluster_time_null",

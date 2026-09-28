@@ -29,6 +29,7 @@ from documentdb_tests.framework.assertions import (
     assertSuccess,
 )
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Write Behavior - Auto-Generated _id]: documents with _id removed
@@ -266,7 +267,7 @@ def test_out_bson_round_trip(collection, test_case: OutTestCase):
 OUT_LARGE_DOCUMENT_TESTS: list[OutTestCase] = [
     OutTestCase(
         "large_doc",
-        docs=[{"_id": 1, "data": "x" * (15 * 1_024 * 1_024)}],
+        docs=lazy(lambda: [{"_id": 1, "data": "x" * (15 * 1_024 * 1_024)}]),
         expected=[{"_id": 1}],
         msg="$out should successfully write a 15 MB document",
     ),

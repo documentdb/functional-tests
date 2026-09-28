@@ -310,6 +310,7 @@ COMPACT_FREESPACE_TESTS: list[CommandTestCase] = (
 )
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_FREESPACE_TESTS))
 def test_compact_freespace(database_client, collection, test):

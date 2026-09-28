@@ -5,6 +5,7 @@
 black>=23.7.0  # Code formatting
 flake8>=6.1.0  # Linting
 mypy>=1.5.0  # Type checking
+types-PyYAML>=6.0  # Type stubs for PyYAML (no inline types; ships separately)
 isort>=5.12.0  # Import sorting
 
 # Testing

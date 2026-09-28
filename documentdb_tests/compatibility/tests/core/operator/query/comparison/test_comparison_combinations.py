@@ -4,6 +4,10 @@ Tests for combining comparison query operators in the same query.
 Covers range combinations ($gt/$lt/$gte/$lte), range with exclusions ($ne/$nin),
 $in/$nin with comparisons, $not with comparisons, $or disjoint ranges,
 multi-field combinations, and array field interactions.
+
+Also covers $eq compound interactions: $eq with $and/$or/$nor/$elemMatch,
+$not inversion of $eq, $eq alongside $exists/$type/$gt on the same field,
+and $eq treating a nested operator document as a literal value.
 """
 
 import pytest
@@ -334,6 +338,166 @@ MISSING_PAIR_TESTS: list[QueryTestCase] = [
 ]
 
 
+EQ_LOGICAL_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="eq_with_and",
+        filter={"$and": [{"a": {"$eq": 1}}, {"b": {"$eq": 2}}]},
+        doc=[{"_id": 1, "a": 1, "b": 2}, {"_id": 2, "a": 1, "b": 3}, {"_id": 3, "a": 2, "b": 2}],
+        expected=[{"_id": 1, "a": 1, "b": 2}],
+        msg="$eq combined with $and",
+    ),
+    QueryTestCase(
+        id="eq_with_or",
+        filter={"$or": [{"a": {"$eq": 1}}, {"a": {"$eq": 2}}]},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "a": 2}, {"_id": 3, "a": 3}],
+        expected=[{"_id": 1, "a": 1}, {"_id": 2, "a": 2}],
+        msg="$eq combined with $or",
+    ),
+    QueryTestCase(
+        id="eq_with_nor",
+        filter={"$nor": [{"a": {"$eq": 1}}]},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "a": 2}, {"_id": 3, "a": 3}],
+        expected=[{"_id": 2, "a": 2}, {"_id": 3, "a": 3}],
+        msg="$eq combined with $nor",
+    ),
+]
+
+EQ_ELEMMATCH_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="eq_inside_elemmatch_scalar",
+        filter={"arr": {"$elemMatch": {"$eq": 1}}},
+        doc=[{"_id": 1, "arr": [1, 2, 3]}, {"_id": 2, "arr": [4, 5]}],
+        expected=[{"_id": 1, "arr": [1, 2, 3]}],
+        msg="$eq inside $elemMatch on scalar array",
+    ),
+    QueryTestCase(
+        id="eq_inside_elemmatch_nested",
+        filter={"arr": {"$elemMatch": {"x": {"$eq": 1}}}},
+        doc=[{"_id": 1, "arr": [{"x": 1}, {"x": 2}]}, {"_id": 2, "arr": [{"x": 3}]}],
+        expected=[{"_id": 1, "arr": [{"x": 1}, {"x": 2}]}],
+        msg="$eq inside $elemMatch on array of objects",
+    ),
+]
+
+EQ_NOT_INVERSION_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="not_eq_matches_not_equal",
+        filter={"a": {"$not": {"$eq": 1}}},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "a": 2}, {"_id": 3, "a": 3}],
+        expected=[{"_id": 2, "a": 2}, {"_id": 3, "a": 3}],
+        msg="{$not: {$eq: 1}} matches documents where field != 1",
+    ),
+    QueryTestCase(
+        id="not_eq_matches_null_field",
+        filter={"a": {"$not": {"$eq": 1}}},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "a": None}],
+        expected=[{"_id": 2, "a": None}],
+        msg="{$not: {$eq: 1}} matches documents where field is null",
+    ),
+    QueryTestCase(
+        id="not_eq_matches_missing_field",
+        filter={"a": {"$not": {"$eq": 1}}},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2}],
+        expected=[{"_id": 2}],
+        msg="{$not: {$eq: 1}} matches documents where field is missing",
+    ),
+    QueryTestCase(
+        id="not_eq_null_matches_non_null",
+        filter={"a": {"$not": {"$eq": None}}},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "a": None}, {"_id": 3}],
+        expected=[{"_id": 1, "a": 1}],
+        msg="{$not: {$eq: null}} matches documents where field exists and is not null",
+    ),
+    QueryTestCase(
+        id="not_eq_null_does_not_match_null",
+        filter={"a": {"$not": {"$eq": None}}},
+        doc=[{"_id": 1, "a": None}],
+        expected=[],
+        msg="{$not: {$eq: null}} does NOT match null field",
+    ),
+    QueryTestCase(
+        id="not_eq_null_does_not_match_missing",
+        filter={"a": {"$not": {"$eq": None}}},
+        doc=[{"_id": 1}],
+        expected=[],
+        msg="{$not: {$eq: null}} does NOT match missing field",
+    ),
+]
+
+EQ_COMBINATION_TESTS: list[QueryTestCase] = [
+    QueryTestCase(
+        id="eq_with_exists_same_field",
+        filter={"a": {"$eq": 1, "$exists": True}},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "a": None}, {"_id": 3}],
+        expected=[{"_id": 1, "a": 1}],
+        msg="$eq combined with $exists on same field",
+    ),
+    QueryTestCase(
+        id="eq_nested_gt_operator_treated_as_literal",
+        filter={"a": {"$eq": {"$gt": 5}}},
+        doc=[{"_id": 1, "a": {"$gt": 5}}, {"_id": 2, "a": 10}],
+        expected=[{"_id": 1, "a": {"$gt": 5}}],
+        msg="$eq nested $gt is a literal document match: matches stored {$gt:5}, not values > 5",
+    ),
+    QueryTestCase(
+        id="eq_nested_gt_operator_as_literal",
+        filter={"a": {"$eq": {"$gt": 1}}},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "a": {"$gt": 1}}],
+        expected=[{"_id": 2, "a": {"$gt": 1}}],
+        msg="$eq with nested $gt treats it as literal document match",
+    ),
+    QueryTestCase(
+        id="eq_nested_in_operator_as_literal",
+        filter={"a": {"$eq": {"$in": [1, 2]}}},
+        doc=[{"_id": 1, "a": 1}],
+        expected=[],
+        msg="$eq with nested $in treats it as literal document match",
+    ),
+    QueryTestCase(
+        id="eq_nested_exists_operator_as_literal",
+        filter={"a": {"$eq": {"$exists": True}}},
+        doc=[{"_id": 1, "a": 1}],
+        expected=[],
+        msg="$eq with $exists as value treats it as literal document match",
+    ),
+    QueryTestCase(
+        id="eq_on_two_different_fields",
+        filter={"a": {"$eq": 1}, "b": {"$eq": 2}},
+        doc=[
+            {"_id": 1, "a": 1, "b": 2},
+            {"_id": 2, "a": 1, "b": 3},
+            {"_id": 3, "a": 2, "b": 2},
+        ],
+        expected=[{"_id": 1, "a": 1, "b": 2}],
+        msg="$eq on two different fields — implicit AND",
+    ),
+    QueryTestCase(
+        id="eq_on_three_fields",
+        filter={"a": {"$eq": 1}, "b": {"$eq": 2}, "c": {"$eq": 3}},
+        doc=[
+            {"_id": 1, "a": 1, "b": 2, "c": 3},
+            {"_id": 2, "a": 1, "b": 2, "c": 4},
+        ],
+        expected=[{"_id": 1, "a": 1, "b": 2, "c": 3}],
+        msg="$eq on three fields — all must match",
+    ),
+    QueryTestCase(
+        id="eq_with_gt_on_same_field",
+        filter={"a": {"$eq": 5, "$gt": 3}},
+        doc=[{"_id": 1, "a": 5}, {"_id": 2, "a": 3}],
+        expected=[{"_id": 1, "a": 5}],
+        msg="$eq combined with $gt on same field",
+    ),
+    QueryTestCase(
+        id="eq_with_type_on_same_field",
+        filter={"a": {"$eq": 1, "$type": "int"}},
+        doc=[{"_id": 1, "a": 1}, {"_id": 2, "a": "1"}],
+        expected=[{"_id": 1, "a": 1}],
+        msg="$eq combined with $type on same field",
+    ),
+]
+
+
 ALL_TESTS = (
     RANGE_TESTS
     + RANGE_EXCLUSION_TESTS
@@ -343,6 +507,10 @@ ALL_TESTS = (
     + OR_DISJOINT_RANGE_TESTS
     + ARRAY_RANGE_TESTS
     + MISSING_PAIR_TESTS
+    + EQ_LOGICAL_TESTS
+    + EQ_ELEMMATCH_TESTS
+    + EQ_NOT_INVERSION_TESTS
+    + EQ_COMBINATION_TESTS
 )
 
 

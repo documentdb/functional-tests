@@ -376,7 +376,7 @@ ALL_MATCHING_TESTS = (
 )
 
 
-UTC_CODEC = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
+UTC_CODEC: CodecOptions = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
 
 
 @pytest.mark.parametrize("test", pytest_params(ALL_MATCHING_TESTS))

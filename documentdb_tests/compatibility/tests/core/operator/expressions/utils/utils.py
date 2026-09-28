@@ -7,6 +7,7 @@ expressions and operators in test scenarios.
 
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import materialize
 
 
 def build_nested_expr(value, operator, depth):
@@ -56,7 +57,7 @@ def execute_project(collection, project):
             "aggregate": 1,
             "pipeline": [
                 {"$documents": [{}]},
-                {"$project": {**project, "_id": 0}},
+                {"$project": {**materialize(project), "_id": 0}},
             ],
             "cursor": {},
         },
@@ -84,13 +85,13 @@ def execute_project_with_insert(collection, document, project):
         ... )
         # Returns result with {"quotient": 3.33...} in firstBatch
     """
-    collection.insert_one(document or {})
+    collection.insert_one(materialize(document) or {})
     return execute_command(
         collection,
         {
             "aggregate": collection.name,
             "pipeline": [
-                {"$project": {**project, "_id": 0}},
+                {"$project": {**materialize(project), "_id": 0}},
             ],
             "cursor": {},
         },
@@ -145,7 +146,7 @@ def execute_expression_with_insert(collection, expression, document):
         Result from execute_command with structure:
         {"cursor": {"firstBatch": [{"result": <value>}]}}
     """
-    collection.insert_one(document or {})
+    collection.insert_one(materialize(document) or {})
     return execute_command(
         collection,
         {

@@ -15,7 +15,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(queryable_encryption=True)
 def test_smoke_encryption(collection):
     """Test basic encryption behavior."""
     result = execute_command(

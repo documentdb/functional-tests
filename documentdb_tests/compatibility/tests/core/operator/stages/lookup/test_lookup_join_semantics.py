@@ -145,6 +145,36 @@ LOOKUP_LEFT_OUTER_JOIN_TESTS: list[LookupTestCase] = [
             " documents with all fields preserved"
         ),
     ),
+    LookupTestCase(
+        "outer_document_order_preserved",
+        docs=[
+            {"_id": 3, "lf": "c"},
+            {"_id": 1, "lf": "a"},
+            {"_id": 2, "lf": "b"},
+        ],
+        foreign_docs=[
+            {"_id": 10, "ff": "a"},
+            {"_id": 11, "ff": "b"},
+            {"_id": 12, "ff": "c"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "localField": "lf",
+                    "foreignField": "ff",
+                    "as": "joined",
+                }
+            }
+        ],
+        expected=[
+            {"_id": 3, "lf": "c", "joined": [{"_id": 12, "ff": "c"}]},
+            {"_id": 1, "lf": "a", "joined": [{"_id": 10, "ff": "a"}]},
+            {"_id": 2, "lf": "b", "joined": [{"_id": 11, "ff": "b"}]},
+        ],
+        msg="$lookup should preserve the input document order in the output, not "
+        "sort by _id or join result",
+    ),
 ]
 
 # Property [Null and Missing Field Matching]: missing fields and explicit null

@@ -8,6 +8,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_project_with_insert,
 )
 from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -123,7 +124,7 @@ INDEXOFBYTES_RETURN_TYPE_TESTS: list[IndexOfBytesTest] = [
     ),
     IndexOfBytesTest(
         "return_type_large_index",
-        args=["a" * (STRING_SIZE_LIMIT_BYTES - 2) + "b", "b"],
+        args=lazy(lambda: ["a" * (STRING_SIZE_LIMIT_BYTES - 2) + "b", "b"]),
         msg="$indexOfBytes should return int type for large index value",
     ),
 ]

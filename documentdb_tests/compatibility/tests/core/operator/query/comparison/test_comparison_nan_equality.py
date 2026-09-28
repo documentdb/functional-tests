@@ -33,6 +33,20 @@ NAN_EQUALITY_TESTS: list[QueryTestCase] = [
         msg="$eq matches Decimal128 NaN to Decimal128 NaN",
     ),
     QueryTestCase(
+        id="eq_float_nan_matches_decimal128_nan",
+        filter={"a": {"$eq": FLOAT_NAN}},
+        doc=[{"_id": 1, "a": DECIMAL128_NAN}, {"_id": 2, "a": Decimal128("1")}],
+        expected=[{"_id": 1, "a": DECIMAL128_NAN}],
+        msg="$eq matches float NaN query to stored Decimal128 NaN (cross-type NaN equality)",
+    ),
+    QueryTestCase(
+        id="eq_decimal128_nan_matches_float_nan",
+        filter={"a": {"$eq": DECIMAL128_NAN}},
+        doc=[{"_id": 1, "a": FLOAT_NAN}, {"_id": 2, "a": 1}],
+        expected=[{"_id": 1, "a": FLOAT_NAN}],
+        msg="$eq matches Decimal128 NaN query to stored float NaN (cross-type NaN equality)",
+    ),
+    QueryTestCase(
         id="gte_float_nan",
         filter={"a": {"$gte": FLOAT_NAN}},
         doc=[{"_id": 1, "a": FLOAT_NAN}, {"_id": 2, "a": 1}],

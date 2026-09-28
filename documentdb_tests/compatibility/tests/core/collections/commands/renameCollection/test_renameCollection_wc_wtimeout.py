@@ -18,6 +18,7 @@ from documentdb_tests.framework.error_codes import (
 )
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.property_checks import Eq
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
     DECIMAL128_NAN,
@@ -93,7 +94,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": 0},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=0 should be accepted",
     ),
     CommandTestCase(
@@ -104,7 +105,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": 1000},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=1000 should be accepted",
     ),
     CommandTestCase(
@@ -115,7 +116,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": INT32_OVERFLOW - 1},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=INT32_MAX should be accepted",
     ),
     CommandTestCase(
@@ -126,7 +127,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": -1},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=-1 (negative) should be accepted",
     ),
     CommandTestCase(
@@ -137,7 +138,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": FLOAT_NEGATIVE_INFINITY},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=-Infinity should be accepted",
     ),
     CommandTestCase(
@@ -148,7 +149,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": FLOAT_NAN},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=NaN should be accepted",
     ),
     CommandTestCase(
@@ -159,7 +160,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": "1000"},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout as string should be accepted",
     ),
     CommandTestCase(
@@ -170,7 +171,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": True},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout as bool should be accepted",
     ),
     CommandTestCase(
@@ -181,7 +182,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": None},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=null should be accepted",
     ),
     CommandTestCase(
@@ -192,7 +193,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": [1000]},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout as array should be accepted",
     ),
     CommandTestCase(
@@ -203,7 +204,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": {"ms": 1000}},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout as object should be accepted",
     ),
     CommandTestCase(
@@ -214,7 +215,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": Int64(1000)},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout as Int64 should be accepted",
     ),
     CommandTestCase(
@@ -225,7 +226,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": Decimal128("1000")},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout as Decimal128 should be accepted",
     ),
     CommandTestCase(
@@ -236,7 +237,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": FLOAT_NEGATIVE_NAN},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=negative NaN should be accepted",
     ),
     CommandTestCase(
@@ -247,7 +248,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": DECIMAL128_NAN},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=Decimal128('NaN') should be accepted",
     ),
     CommandTestCase(
@@ -258,7 +259,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": DECIMAL128_NEGATIVE_NAN},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=Decimal128 negative NaN should be accepted",
     ),
     CommandTestCase(
@@ -269,7 +270,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": DECIMAL128_NEGATIVE_INFINITY},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=Decimal128('-Infinity') should be accepted",
     ),
     CommandTestCase(
@@ -280,7 +281,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": DOUBLE_NEGATIVE_ZERO},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=-0.0 should be accepted",
     ),
     CommandTestCase(
@@ -291,7 +292,7 @@ RENAME_WC_WTIMEOUT_SUCCESS_TESTS: list[CommandTestCase] = [
             "to": f"{ctx.database}.{ctx.collection}_dest",
             "writeConcern": {"wtimeout": DECIMAL128_NEGATIVE_ZERO},
         },
-        expected={"ok": 1.0},
+        expected={"ok": Eq(1.0)},
         msg="wtimeout=Decimal128('-0') should be accepted",
     ),
 ]

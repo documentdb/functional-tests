@@ -1,12 +1,12 @@
-"""
-Smoke test for compactStructuredEncryptionData command.
+"""Smoke test for compactStructuredEncryptionData command.
 
 Tests basic compactStructuredEncryptionData functionality.
 """
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertFailure
+from documentdb_tests.framework.assertions import assertFailureCode
+from documentdb_tests.framework.error_codes import NOT_ENCRYPTED_COLLECTION_ERROR
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.smoke
@@ -20,5 +20,8 @@ def test_smoke_compactStructuredEncryptionData(collection):
         collection, {"compactStructuredEncryptionData": collection.name, "compactionTokens": {}}
     )
 
-    expected = {"code": 6346807, "msg": "Target namespace is not an encrypted collection"}
-    assertFailure(result, expected, msg="Should support compactStructuredEncryptionData command")
+    assertFailureCode(
+        result,
+        NOT_ENCRYPTED_COLLECTION_ERROR,
+        msg="compactStructuredEncryptionData should reject non-encrypted collection",
+    )

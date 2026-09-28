@@ -12,6 +12,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.look
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Large Result Sets]: joining many matching documents succeeds
@@ -39,7 +40,9 @@ LOOKUP_LARGE_RESULT_SET_TESTS: list[LookupTestCase] = [
     LookupTestCase(
         "joined_array_exceeds_16mb",
         docs=[{"_id": 1, "lf": "m"}],
-        foreign_docs=[{"_id": i, "ff": "m", "data": "x" * 1_000_000} for i in range(20)],
+        foreign_docs=lazy(
+            lambda: [{"_id": i, "ff": "m", "data": "x" * 1_000_000} for i in range(20)]
+        ),
         pipeline=[
             {
                 "$lookup": {

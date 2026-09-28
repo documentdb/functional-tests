@@ -1,4 +1,4 @@
-"""Shared test case for collection command tests."""
+"""Shared test case for collection and admin command tests."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pymongo import IndexModel
 from pymongo.collection import Collection
 from pymongo.database import Database
 
+from documentdb_tests.framework.lazy_payload import materialize
 from documentdb_tests.framework.target_collection import (
     SiblingCollection,
     TargetCollection,
@@ -26,12 +27,16 @@ class CommandContext:
         database: The resolved database name.
         namespace: The full namespace string (``database.collection``).
         uuids: Mapping of collection names to their server-assigned UUIDs.
+        setup_results: Results from setup commands, populated by the runner.
+            Mutable even in a frozen dataclass so runners can append after
+            construction.
     """
 
     collection: str
     database: str
     namespace: str
     uuids: dict[str, Any] = field(default_factory=dict)
+    setup_results: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def from_collection(cls, collection: Collection) -> CommandContext:
@@ -102,7 +107,7 @@ class CommandTestCase(BaseTestCase):
             if target.name not in target.database.list_collection_names():
                 target.database.create_collection(target.name)
             if self.docs:
-                target.insert_many(self.docs)
+                target.insert_many(materialize(self.docs))
         if self.siblings:
             for sibling in self.siblings:
                 sibling.create(db, resolved)

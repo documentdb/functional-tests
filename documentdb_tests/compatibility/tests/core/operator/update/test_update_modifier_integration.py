@@ -337,6 +337,14 @@ EACH_INTEGRATION_TESTS: list[UpdateTestCase] = [
         expected=[{"_id": 1, "arr": [3, 2, 1]}],
         msg="Sort descending with negative slice should keep last 3 of sorted desc array",
     ),
+    UpdateTestCase(
+        id="sort_slice_removes_new_elements",
+        setup_docs=[{"_id": 1, "arr": [1, 2, 3]}],
+        query={"_id": 1},
+        update={"$push": {"arr": {"$each": [10, 20], "$sort": 1, "$slice": 3}}},
+        expected=[{"_id": 1, "arr": [1, 2, 3]}],
+        msg="$sort + $slice where slice removes newly added elements",
+    ),
 ]
 
 

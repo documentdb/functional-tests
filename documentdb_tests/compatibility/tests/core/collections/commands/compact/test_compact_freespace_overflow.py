@@ -89,6 +89,7 @@ COMPACT_FREESPACE_OVERFLOW_TESTS: list[CommandTestCase] = [
 ]
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_FREESPACE_OVERFLOW_TESTS))
 def test_compact_freespace_overflow(database_client, collection, test):

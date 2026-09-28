@@ -110,6 +110,7 @@ CREATE_WC_DOCUMENT_AND_W_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="w as tagged object with numeric values should succeed",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
 ]
 

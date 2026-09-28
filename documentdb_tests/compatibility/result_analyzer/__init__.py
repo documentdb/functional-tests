@@ -2,7 +2,7 @@
 Result Analyzer for DocumentDB Functional Tests.
 
 This module provides tools for analyzing pytest test results and generating
-reports categorized by feature tags.
+reports grouped by feature (derived from each test's path).
 """
 
 from .analyzer import ResultAnalyzer, categorize_outcome

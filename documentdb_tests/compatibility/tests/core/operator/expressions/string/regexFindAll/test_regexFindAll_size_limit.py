@@ -7,6 +7,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import REGEX_BAD_PATTERN_ERROR, STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     REGEX_PATTERN_LIMIT_BYTES,
@@ -22,21 +23,25 @@ from .utils.regexFindAll_common import (
 REGEXFINDALL_SIZE_LIMIT_SUCCESS_TESTS: list[RegexFindAllTest] = [
     RegexFindAllTest(
         "size_one_under",
-        input="a" * (STRING_SIZE_LIMIT_BYTES - 4) + "XYZ",
+        input=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 4) + "XYZ"),
         regex="XYZ",
-        expected=[{"match": "XYZ", "idx": STRING_SIZE_LIMIT_BYTES - 4, "captures": []}],
+        expected=lazy(
+            lambda: [{"match": "XYZ", "idx": STRING_SIZE_LIMIT_BYTES - 4, "captures": []}]
+        ),
         msg="$regexFindAll should accept input one byte under the size limit",
     ),
     RegexFindAllTest(
         "size_regex_at_pattern_limit",
-        input="a" * REGEX_PATTERN_LIMIT_BYTES,
-        regex="a" * REGEX_PATTERN_LIMIT_BYTES,
-        expected=[{"match": "a" * REGEX_PATTERN_LIMIT_BYTES, "idx": 0, "captures": []}],
+        input=lazy(lambda: "a" * REGEX_PATTERN_LIMIT_BYTES),
+        regex=lazy(lambda: "a" * REGEX_PATTERN_LIMIT_BYTES),
+        expected=lazy(
+            lambda: [{"match": "a" * REGEX_PATTERN_LIMIT_BYTES, "idx": 0, "captures": []}]
+        ),
         msg="$regexFindAll should accept regex at the pattern length limit",
     ),
     RegexFindAllTest(
         "size_two_matches",
-        input="XY" + "a" * (STRING_SIZE_LIMIT_BYTES - 5) + "XY",
+        input=lazy(lambda: "XY" + "a" * (STRING_SIZE_LIMIT_BYTES - 5) + "XY"),
         regex="XY",
         expected=[
             {"match": "XY", "idx": 0, "captures": []},
@@ -52,7 +57,7 @@ REGEXFINDALL_SIZE_LIMIT_SUCCESS_TESTS: list[RegexFindAllTest] = [
 REGEXFINDALL_SIZE_LIMIT_ERROR_TESTS: list[RegexFindAllTest] = [
     RegexFindAllTest(
         "size_at_limit",
-        input="a" * STRING_SIZE_LIMIT_BYTES,
+        input=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         regex="a",
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$regexFindAll should reject input at the size limit",
@@ -60,7 +65,7 @@ REGEXFINDALL_SIZE_LIMIT_ERROR_TESTS: list[RegexFindAllTest] = [
     RegexFindAllTest(
         "size_regex_over_pattern_limit",
         input="a",
-        regex="a" * (REGEX_PATTERN_LIMIT_BYTES + 1),
+        regex=lazy(lambda: "a" * (REGEX_PATTERN_LIMIT_BYTES + 1)),
         error_code=REGEX_BAD_PATTERN_ERROR,
         msg="$regexFindAll should reject regex over the pattern length limit",
     ),

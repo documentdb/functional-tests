@@ -35,7 +35,7 @@ CREATE_ENCRYPTED_FIELDS_STRUCTURE_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="Minimal encryptedFields with path and keyId should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="optional_bson_type",
@@ -53,7 +53,7 @@ CREATE_ENCRYPTED_FIELDS_STRUCTURE_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="encryptedFields with optional bsonType should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="optional_queries_object",
@@ -72,7 +72,7 @@ CREATE_ENCRYPTED_FIELDS_STRUCTURE_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="encryptedFields with queries as object should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="optional_queries_array",
@@ -91,7 +91,7 @@ CREATE_ENCRYPTED_FIELDS_STRUCTURE_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="encryptedFields with queries as array should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
 ]
 
@@ -109,7 +109,7 @@ CREATE_ENCRYPTED_FIELDS_CUSTOM_COLLECTIONS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="Custom escCollection with valid naming pattern should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="ecoc_collection_custom",
@@ -122,7 +122,7 @@ CREATE_ENCRYPTED_FIELDS_CUSTOM_COLLECTIONS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="Custom ecocCollection with valid naming pattern should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="ecc_collection_custom",
@@ -135,7 +135,7 @@ CREATE_ENCRYPTED_FIELDS_CUSTOM_COLLECTIONS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="eccCollection does not have naming pattern validation",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="null_elements_in_fields_array",
@@ -151,7 +151,7 @@ CREATE_ENCRYPTED_FIELDS_CUSTOM_COLLECTIONS_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="Null elements in fields array should be silently accepted",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
 ]
 
@@ -168,7 +168,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="encryptedFields with clusteredIndex should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="compatible_with_expire_after_seconds",
@@ -180,7 +180,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="encryptedFields with expireAfterSeconds should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="compatible_with_storage_engine",
@@ -191,7 +191,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="encryptedFields with storageEngine should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="compatible_with_validator",
@@ -202,7 +202,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="encryptedFields with validator should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="compatible_with_collation",
@@ -213,7 +213,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="encryptedFields with collation should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
     CommandTestCase(
         id="compatible_with_change_stream_pre_post_images",
@@ -224,7 +224,7 @@ CREATE_ENCRYPTED_FIELDS_COMPATIBILITY_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="encryptedFields with changeStreamPreAndPostImages should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
 ]
 

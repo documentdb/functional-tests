@@ -1,0 +1,32 @@
+# mongot configuration for the mongo-replset target (dev/compose.yaml service
+# "mongot"). mongot is MongoDB Search Community Edition (SSPL), the same license
+# as the server. It runs alongside the replica set's mongod and serves the
+# search and vector search surfaces.
+#
+# mongot replicates from the mongod replica set as a sync source. It requires an
+# authenticated connection (it has no unauthenticated mode), so it logs in as a
+# dedicated user holding the searchCoordinator role. That user and its password
+# file are provisioned by the target's startup (see dev/compose.yaml).
+syncSource:
+  replicaSet:
+    hostAndPort: "mongo-replset:27017"
+    scramAuth:
+      username: "searchSyncUser"
+      authSource: "admin"
+      passwordFile: "/mongot-secrets/passwordFile"
+      tls:
+        enabled: false
+storage:
+  dataPath: "/var/lib/mongot"
+server:
+  grpc:
+    # mongod reaches mongot here (see mongotHost / searchIndexManagementHostAndPort
+    # on the mongo-replset service). Bound on all interfaces so the mongod
+    # container can connect over the compose network.
+    address: "0.0.0.0:27028"
+    tls:
+      mode: "disabled"
+healthCheck:
+  address: "0.0.0.0:8080"
+logging:
+  verbosity: INFO

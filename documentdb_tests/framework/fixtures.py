@@ -24,7 +24,7 @@ def create_engine_client(connection_string: str, engine_name: str = "default"):
     Raises:
         ConnectionError: If unable to connect to the database
     """
-    client = MongoClient(connection_string)
+    client: MongoClient = MongoClient(connection_string)
 
     # Verify connection
     try:

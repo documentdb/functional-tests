@@ -118,6 +118,54 @@ COLLATION_PULLALL_TESTS: list[CommandTestCase] = [
         msg="$pullAll with strength 2 should remove case-variant elements",
     ),
     CommandTestCase(
+        "pullall_accent_insensitive",
+        docs=[{"_id": 1, "tags": ["cafe", "caf\u00e9", "tea"]}],
+        command=lambda ctx: {
+            "update": ctx.collection,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$pullAll": {"tags": ["cafe"]}},
+                    "collation": {"locale": "en", "strength": 1},
+                }
+            ],
+        },
+        expected={"ok": 1.0, "n": 1, "nModified": 1},
+        msg="$pullAll with strength 1 should remove accent-variant elements",
+    ),
+    CommandTestCase(
+        "pullall_strength3_no_case_match",
+        docs=[{"_id": 1, "tags": ["Apple", "apple", "banana"]}],
+        command=lambda ctx: {
+            "update": ctx.collection,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$pullAll": {"tags": ["Apple"]}},
+                    "collation": {"locale": "en", "strength": 3},
+                }
+            ],
+        },
+        expected={"ok": 1.0, "n": 1, "nModified": 1},
+        msg="$pullAll with strength 3 should not match case variants",
+    ),
+    CommandTestCase(
+        "pullall_numeric_ordering",
+        docs=[{"_id": 1, "vals": ["1", "2", "10", "20"]}],
+        command=lambda ctx: {
+            "update": ctx.collection,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$pullAll": {"vals": ["10"]}},
+                    "collation": {"locale": "en", "numericOrdering": True},
+                }
+            ],
+        },
+        expected={"ok": 1.0, "n": 1, "nModified": 1},
+        msg="$pullAll with numericOrdering should match numeric string values",
+    ),
+    CommandTestCase(
         "pullall_no_collation_binary",
         docs=[{"_id": 1, "tags": ["Apple", "apple", "banana"]}],
         command=lambda ctx: {
@@ -131,6 +179,39 @@ COLLATION_PULLALL_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0, "n": 1, "nModified": 1},
         msg="$pullAll without collation should use binary comparison",
+    ),
+    CommandTestCase(
+        "pullall_collection_default_collation",
+        target_collection=CustomCollection(options={"collation": {"locale": "en", "strength": 2}}),
+        docs=[{"_id": 1, "tags": ["Apple", "banana"]}],
+        command=lambda ctx: {
+            "update": ctx.collection,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$pullAll": {"tags": ["apple"]}},
+                }
+            ],
+        },
+        expected={"ok": 1.0, "n": 1, "nModified": 1},
+        msg="$pullAll should inherit collection default collation",
+    ),
+    CommandTestCase(
+        "pullall_explicit_overrides_collection_default",
+        target_collection=CustomCollection(options={"collation": {"locale": "en", "strength": 2}}),
+        docs=[{"_id": 1, "tags": ["Apple", "apple", "banana"]}],
+        command=lambda ctx: {
+            "update": ctx.collection,
+            "updates": [
+                {
+                    "q": {"_id": 1},
+                    "u": {"$pullAll": {"tags": ["apple"]}},
+                    "collation": {"locale": "en", "strength": 3},
+                }
+            ],
+        },
+        expected={"ok": 1.0, "n": 1, "nModified": 1},
+        msg="$pullAll explicit collation should override collection default",
     ),
 ]
 

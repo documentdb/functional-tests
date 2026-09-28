@@ -27,6 +27,7 @@ from documentdb_tests.framework.error_codes import (
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Exists
 from documentdb_tests.framework.target_collection import ViewCollection
@@ -120,7 +121,9 @@ AGGREGATE_ALLOWDISKUSE_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     ),
     CommandTestCase(
         "allowdiskuse_true_memory_exceeded",
-        docs=[{"_id": i, "data": "x" * 100_000, "sort_key": 1050 - i} for i in range(1050)],
+        docs=lazy(
+            lambda: [{"_id": i, "data": "x" * 100_000, "sort_key": 1050 - i} for i in range(1050)]
+        ),
         command=lambda ctx: {
             "aggregate": ctx.collection,
             "pipeline": [{"$sort": {"sort_key": 1}}],
@@ -170,7 +173,9 @@ AGGREGATE_ALLOWDISKUSE_REJECTION_TESTS: list[CommandTestCase] = [
     ],
     CommandTestCase(
         "allowdiskuse_reject_memory_exceeded",
-        docs=[{"_id": i, "data": "x" * 100_000, "sort_key": 1050 - i} for i in range(1050)],
+        docs=lazy(
+            lambda: [{"_id": i, "data": "x" * 100_000, "sort_key": 1050 - i} for i in range(1050)]
+        ),
         command=lambda ctx: {
             "aggregate": ctx.collection,
             "pipeline": [{"$sort": {"sort_key": 1}}],

@@ -28,4 +28,4 @@ def test_smoke_expression_slice(collection):
     )
 
     expected = [{"_id": 1, "sliced": [1, 2]}, {"_id": 2, "sliced": [10, 20]}]
-    assertSuccess(result, expected, msg="Should support $slice expression")
+    assertSuccess(result, expected, "$slice should return the first n elements in $project")

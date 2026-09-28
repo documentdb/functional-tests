@@ -170,6 +170,7 @@ COMPACT_COLLECTION_TYPE_ALL_TESTS: list[CommandTestCase] = (
 )
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_COLLECTION_TYPE_ALL_TESTS))
 def test_compact_collection_types(database_client, collection, test):

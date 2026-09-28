@@ -3,7 +3,8 @@ Tests for $expr in $match stage.
 
 Covers $expr basic matching, combined with regular query operators,
 $and with multiple $expr, truthiness, error handling, implicit array
-behavior, and $match with $expr after other pipeline stages.
+behavior, $match with $expr after other pipeline stages, and $$ROOT
+inside $expr.
 """
 
 from documentdb_tests.framework.assertions import (
@@ -192,6 +193,24 @@ def test_expr_match_with_aggregate_let(collection):
             "pipeline": [{"$match": {"$expr": {"$eq": ["$a", "$$target"]}}}],
             "cursor": {},
             "let": {"target": 5},
+        },
+    )
+    assertSuccess(result, [{"_id": 1, "a": 5, "b": 3}])
+
+
+def test_expr_match_with_root(collection):
+    """Test $$ROOT inside $match $expr — wiring sample only.
+
+    $$ROOT's own contract (what it resolves to, field path resolution) is
+    owned by expressions/variable/system-variables/root/.
+    """
+    collection.insert_many(BASIC_DOCS)
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [{"$match": {"$expr": {"$eq": ["$$ROOT.a", 5]}}}],
+            "cursor": {},
         },
     )
     assertSuccess(result, [{"_id": 1, "a": 5, "b": 3}])

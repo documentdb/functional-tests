@@ -282,6 +282,7 @@ CREATE_VIEW_DISALLOWED_STAGE_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=CHANGE_STREAM_NOT_ALLOWED_ERROR,
         msg="$changeStream in view pipeline should fail",
+        marks=(pytest.mark.requires(change_streams=False),),
     ),
     CommandTestCase(
         id="current_op_stage",

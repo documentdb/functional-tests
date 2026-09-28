@@ -473,7 +473,7 @@ CREATE_CLUSTERED_COMPATIBILITY_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": Eq(1.0)},
         msg="Clustered with encryptedFields should succeed",
-        marks=(pytest.mark.replica_set,),
+        marks=(pytest.mark.requires(queryable_encryption=True),),
     ),
 ]
 

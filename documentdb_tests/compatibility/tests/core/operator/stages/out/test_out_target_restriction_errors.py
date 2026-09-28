@@ -24,6 +24,7 @@ from documentdb_tests.framework.error_codes import (
     DUPLICATE_KEY_ERROR,
     ILLEGAL_OPERATION_ERROR,
     INVALID_OPTIONS_ERROR,
+    OPERATION_NOT_SUPPORTED_IN_TRANSACTION_ERROR,
     OPTION_NOT_SUPPORTED_ON_VIEW_ERROR,
     OUT_CAPPED_COLLECTION_ERROR,
     OUT_TIMESERIES_COLLECTION_TYPE_ERROR,
@@ -420,8 +421,9 @@ OUT_TRANSACTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "transaction_out",
         docs=[{"_id": 1, "value": 10}],
-        error_code=ILLEGAL_OPERATION_ERROR,
+        error_code=OPERATION_NOT_SUPPORTED_IN_TRANSACTION_ERROR,
         msg="$out inside a transaction should produce an error",
+        marks=(pytest.mark.requires(transactions=True),),
     ),
 ]
 

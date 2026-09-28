@@ -219,6 +219,7 @@ core,operator,expressions,type,-,toUUID
 core,operator,expressions,type,-,toDate
 core,operator,expressions,type,-,type
 core,operator,expressions,variable,-,let
+core,operator,expressions,variable,system-variables,root
 core,operator,projection,-,-,elemMatch
 core,operator,projection,-,-,positional
 core,operator,projection,-,-,slice

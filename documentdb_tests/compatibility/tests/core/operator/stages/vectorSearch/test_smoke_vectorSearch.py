@@ -1,7 +1,9 @@
 """
 Smoke test for $vectorSearch stage.
 
-Tests basic $vectorSearch stage functionality.
+Tests basic $vectorSearch stage functionality against a mongot-backed search
+target. Gated with requires(search=True) so it is deselected on non-search
+targets rather than unconditionally skipped.
 """
 
 import pytest
@@ -9,28 +11,40 @@ import pytest
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
-pytestmark = pytest.mark.smoke
+from .utils.vectorSearch_common import wait_for_search_index_ready
+
+pytestmark = [pytest.mark.smoke, pytest.mark.requires(search=True)]
 
 
-@pytest.mark.skip(reason="Requires Atlas Search configuration - not available on standard MongoDB")
+@pytest.mark.aggregate
 def test_smoke_vectorSearch(collection):
     """Test basic $vectorSearch stage behavior."""
-    # Create vector index with vectorOptions
+    collection.insert_many([{"_id": 1, "name": "test", "embedding": [0.1, 0.2, 0.3]}])
+
     execute_command(
         collection,
         {
-            "createIndexes": collection.name,
+            "createSearchIndexes": collection.name,
             "indexes": [
                 {
-                    "key": {"embedding": "vector"},
                     "name": "embedding_vector",
-                    "vectorOptions": {"type": "hnsw", "dimensions": 3.0, "similarity": "euclidean"},
+                    "type": "vectorSearch",
+                    "definition": {
+                        "fields": [
+                            {
+                                "type": "vector",
+                                "path": "embedding",
+                                "numDimensions": 3,
+                                "similarity": "euclidean",
+                            }
+                        ]
+                    },
                 }
             ],
         },
     )
 
-    collection.insert_many([{"_id": 1, "name": "test", "embedding": [0.1, 0.2, 0.3]}])
+    wait_for_search_index_ready(collection)
 
     result = execute_command(
         collection,
@@ -39,11 +53,11 @@ def test_smoke_vectorSearch(collection):
             "pipeline": [
                 {
                     "$vectorSearch": {
-                        "queryVector": [0.1, 0.2, 0.3],
-                        "path": "embedding",
-                        "numCandidates": 10.0,
-                        "limit": 5.0,
                         "index": "embedding_vector",
+                        "path": "embedding",
+                        "queryVector": [0.1, 0.2, 0.3],
+                        "numCandidates": 10,
+                        "limit": 5,
                     }
                 }
             ],

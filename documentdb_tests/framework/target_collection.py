@@ -15,6 +15,8 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.operations import IndexModel
 
+from documentdb_tests.framework.lazy_payload import materialize
+
 
 @dataclass(frozen=True)
 class TargetCollection:
@@ -406,6 +408,6 @@ class SiblingCollection:
         if self.indexes:
             db[name].create_indexes(self.indexes)
         if self.docs:
-            db[name].insert_many(self.docs)
+            db[name].insert_many(materialize(self.docs))
         if self.indexes:
             db[name].create_indexes(self.indexes)

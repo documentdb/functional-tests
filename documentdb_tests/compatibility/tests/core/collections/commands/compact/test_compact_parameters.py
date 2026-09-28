@@ -11,7 +11,8 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Null and Missing Behavior]: null values for optional parameters
-# are accepted and treated identically to omitting the field.
+# are accepted and treated identically to omitting the field. These omit force,
+# so they are gated on the precondition that compact succeeds without it.
 COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "dry_run_null",
@@ -19,6 +20,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "dryRun": None},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="null dryRun should be treated as omitted (defaults to false)",
+        marks=(pytest.mark.requires(unforced_compact=True),),
     ),
     CommandTestCase(
         "force_null",
@@ -26,6 +28,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "force": None},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="null force should be treated as omitted",
+        marks=(pytest.mark.requires(unforced_compact=True),),
     ),
     CommandTestCase(
         "free_space_target_mb_null",
@@ -33,6 +36,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": None},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="null freeSpaceTargetMB should be treated as omitted",
+        marks=(pytest.mark.requires(unforced_compact=True),),
     ),
     CommandTestCase(
         "comment_null",
@@ -40,6 +44,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": None},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="null comment should be accepted",
+        marks=(pytest.mark.requires(unforced_compact=True),),
     ),
     CommandTestCase(
         "all_null",
@@ -53,6 +58,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="All-null optional parameters should be treated as all omitted",
+        marks=(pytest.mark.requires(unforced_compact=True),),
     ),
     CommandTestCase(
         "write_concern_null",
@@ -60,11 +66,13 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "writeConcern": None},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="null writeConcern should be treated as omitted",
+        marks=(pytest.mark.requires(unforced_compact=True),),
     ),
 ]
 
 # Property [Response Format]: the response structure differs based on
-# whether dryRun is enabled.
+# whether dryRun is enabled. These omit force, so they are gated on the
+# precondition that compact succeeds without it.
 COMPACT_RESPONSE_FORMAT_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "without_dry_run",
@@ -72,6 +80,7 @@ COMPACT_RESPONSE_FORMAT_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Should return bytesFreed and ok when dryRun is omitted",
+        marks=(pytest.mark.requires(unforced_compact=True),),
     ),
     CommandTestCase(
         "dry_run_false",
@@ -79,6 +88,7 @@ COMPACT_RESPONSE_FORMAT_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "dryRun": False},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Should return bytesFreed and ok when dryRun is false",
+        marks=(pytest.mark.requires(unforced_compact=True),),
     ),
     CommandTestCase(
         "dry_run_true",
@@ -86,11 +96,12 @@ COMPACT_RESPONSE_FORMAT_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "dryRun": True},
         expected={"estimatedBytesFreed": 0, "ok": 1.0},
         msg="Should return estimatedBytesFreed when dryRun is true",
+        marks=(pytest.mark.requires(unforced_compact=True),),
     ),
 ]
 
-# Property [force Behavior]: force=true is accepted on standalone with no
-# observable difference from force=false or omitted.
+# Property [force Behavior]: force=true is accepted with no observable
+# difference from force=false or omitted.
 COMPACT_FORCE_BEHAVIOR_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "force_true",
@@ -105,6 +116,7 @@ COMPACT_FORCE_BEHAVIOR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "force": False},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="force=false should be accepted with same response as omitted",
+        marks=(pytest.mark.requires(unforced_compact=True),),
     ),
 ]
 

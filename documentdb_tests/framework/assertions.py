@@ -11,9 +11,36 @@ from typing import Any, Callable, Dict, Optional, Union
 from bson import Decimal128, Int64
 
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
+from documentdb_tests.framework.lazy_payload import materialize
 from documentdb_tests.framework.property_checks import _FIELD_ABSENT, Check, PerDoc
 
 _MAX_REPR_LEN = 1000
+
+# Top-level fields that a replica set / sharded topology appends to command
+# responses as cluster and replication gossip. They appear on the connected
+# server's responses regardless of the command and are never the subject of a
+# compatibility test, so they are stripped from a raw command result before
+# comparison. This keeps assertions exact across topologies: on a standalone
+# server these fields are absent (stripping is a no-op), and on a replica set
+# they no longer cause spurious mismatches.
+#
+# Stripping is TOP-LEVEL ONLY and limited to this fixed, audited set. Behavioral
+# fields that only appear on a replica set (e.g. createIndexes' commitQuorum) are
+# NOT included and remain asserted, as does any nested occurrence of these names
+# (e.g. the opTime nested in a hello response), so topology-specific behavior
+# stays testable.
+_REPLICATION_GOSSIP_FIELDS = frozenset({"$clusterTime", "operationTime", "electionId", "opTime"})
+
+
+def _strip_replication_gossip(result: Any) -> Any:
+    """Remove top-level replication/cluster gossip fields from a raw result.
+
+    Only the fixed ``_REPLICATION_GOSSIP_FIELDS`` are removed, and only at the
+    top level of a dict result. Non-dict results are returned unchanged.
+    """
+    if not isinstance(result, dict):
+        return result
+    return {k: v for k, v in result.items() if k not in _REPLICATION_GOSSIP_FIELDS}
 
 
 def _truncate_repr(obj: Any) -> str:
@@ -139,6 +166,7 @@ def assertSuccess(
         transform: Optional callback to transform result before comparison
         ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
     """
+    expected = materialize(expected)
     if isinstance(result, Exception):
         if isinstance(result, _INFRA_TYPES):
             raise result
@@ -146,6 +174,14 @@ def assertSuccess(
 
     if not raw_res:
         result = result["cursor"]["firstBatch"]
+    else:
+        # Raw command result: drop replica-set/cluster gossip fields so the
+        # comparison stays exact across topologies. Strip the expected side too,
+        # since some tests pass another raw command result as the expected value
+        # (e.g. consistency checks comparing two responses).
+        result = _strip_replication_gossip(result)
+        if isinstance(expected, dict):
+            expected = _strip_replication_gossip(expected)
 
     if transform:
         result = transform(result)
@@ -304,6 +340,7 @@ def assertResult(
         assertResult(result, expected=[{"r": [3, 1, 2]}], ignore_order_in=["r"])
         assertResult(result, expected={"ok": 1.0}, raw_res=True)  # Raw command result
     """
+    expected = materialize(expected)
     if error_code is not None:
         assertFailureCode(result, error_code, msg)
     elif isinstance(expected, PerDoc) or (

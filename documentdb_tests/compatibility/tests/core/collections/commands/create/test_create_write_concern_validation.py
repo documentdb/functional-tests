@@ -110,6 +110,7 @@ CREATE_WC_W_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="w:null coerced to empty string should fail",
+        marks=(pytest.mark.requires(quorum_write_concern=False),),
     ),
     CommandTestCase(
         id="wc_w_negative",

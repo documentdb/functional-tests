@@ -12,6 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
+@pytest.mark.requires(unforced_compact=True)
 def test_smoke_compact(collection):
     """Test basic compact command behavior."""
     collection.insert_many([{"_id": 1, "value": 10}, {"_id": 2, "value": 20}])

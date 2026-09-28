@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(change_streams=True)
 def test_smoke_changeStream(collection):
     """Test basic $changeStream system stage behavior."""
     result = execute_command(

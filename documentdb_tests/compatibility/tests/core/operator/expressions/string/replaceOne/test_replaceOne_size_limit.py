@@ -7,6 +7,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -21,25 +22,25 @@ from .utils.replaceOne_common import (
 REPLACEONE_SIZE_LIMIT_SUCCESS_TESTS: list[ReplaceOneTest] = [
     ReplaceOneTest(
         "size_success_input_max",
-        input="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        input=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         find="xyz",
         replacement="abc",
-        expected="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        expected=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         msg="$replaceOne size limit: success input max",
     ),
     # Large input with a shrinking replacement stays under the limit.
     ReplaceOneTest(
         "size_success_shrinking_replacement",
-        input="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        input=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         find="a",
         replacement="",
-        expected="a" * (STRING_SIZE_LIMIT_BYTES - 2),
+        expected=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 2)),
         msg="$replaceOne size limit: success shrinking replacement",
     ),
     ReplaceOneTest(
         "size_success_find_max",
         input="hello",
-        find="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        find=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         replacement="X",
         expected="hello",
         msg="$replaceOne size limit: success find max",
@@ -47,40 +48,44 @@ REPLACEONE_SIZE_LIMIT_SUCCESS_TESTS: list[ReplaceOneTest] = [
     # Replace at start of a near-limit string.
     ReplaceOneTest(
         "size_find_at_start",
-        input="X" + "a" * (STRING_SIZE_LIMIT_BYTES - 2),
+        input=lazy(lambda: "X" + "a" * (STRING_SIZE_LIMIT_BYTES - 2)),
         find="X",
         replacement="Y",
-        expected="Y" + "a" * (STRING_SIZE_LIMIT_BYTES - 2),
+        expected=lazy(lambda: "Y" + "a" * (STRING_SIZE_LIMIT_BYTES - 2)),
         msg="$replaceOne size limit: find at start",
     ),
     # Replace at end of a near-limit string.
     ReplaceOneTest(
         "size_find_at_end",
-        input="a" * (STRING_SIZE_LIMIT_BYTES - 2) + "X",
+        input=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 2) + "X"),
         find="X",
         replacement="Y",
-        expected="a" * (STRING_SIZE_LIMIT_BYTES - 2) + "Y",
+        expected=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 2) + "Y"),
         msg="$replaceOne size limit: find at end",
     ),
     # Replace in middle of a near-limit string.
     ReplaceOneTest(
         "size_find_in_middle",
-        input="a" * ((STRING_SIZE_LIMIT_BYTES - 2) // 2)
-        + "X"
-        + "a" * ((STRING_SIZE_LIMIT_BYTES - 2) // 2),
+        input=lazy(
+            lambda: "a" * ((STRING_SIZE_LIMIT_BYTES - 2) // 2)
+            + "X"
+            + "a" * ((STRING_SIZE_LIMIT_BYTES - 2) // 2)
+        ),
         find="X",
         replacement="Y",
-        expected="a" * ((STRING_SIZE_LIMIT_BYTES - 2) // 2)
-        + "Y"
-        + "a" * ((STRING_SIZE_LIMIT_BYTES - 2) // 2),
+        expected=lazy(
+            lambda: "a" * ((STRING_SIZE_LIMIT_BYTES - 2) // 2)
+            + "Y"
+            + "a" * ((STRING_SIZE_LIMIT_BYTES - 2) // 2)
+        ),
         msg="$replaceOne size limit: find in middle",
     ),
     # Large find string replaces entire input. Both at half-limit because two
     # near-limit strings in one command would exceed the BSON document size.
     ReplaceOneTest(
         "size_large_find",
-        input="a" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2),
-        find="a" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2),
+        input=lazy(lambda: "a" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2)),
+        find=lazy(lambda: "a" * ((STRING_SIZE_LIMIT_BYTES - 1) // 2)),
         replacement="X",
         expected="X",
         msg="$replaceOne size limit: large find",
@@ -90,8 +95,8 @@ REPLACEONE_SIZE_LIMIT_SUCCESS_TESTS: list[ReplaceOneTest] = [
         "size_large_replacement",
         input="X",
         find="X",
-        replacement="a" * (STRING_SIZE_LIMIT_BYTES - 1),
-        expected="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        replacement=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
+        expected=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         msg="$replaceOne size limit: large replacement",
     ),
 ]
@@ -104,7 +109,7 @@ REPLACEONE_SIZE_LIMIT_ERROR_TESTS: list[ReplaceOneTest] = [
     # Exactly at the limit.
     ReplaceOneTest(
         "size_error_input_at_limit",
-        input="a" * STRING_SIZE_LIMIT_BYTES,
+        input=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         find="a",
         replacement="b",
         error_code=STRING_SIZE_LIMIT_ERROR,
@@ -113,7 +118,7 @@ REPLACEONE_SIZE_LIMIT_ERROR_TESTS: list[ReplaceOneTest] = [
     # 2-byte chars at the limit.
     ReplaceOneTest(
         "size_error_byte_based_2byte",
-        input="\u00e9" * (STRING_SIZE_LIMIT_BYTES // 2),
+        input=lazy(lambda: "\u00e9" * (STRING_SIZE_LIMIT_BYTES // 2)),
         find="\u00e9",
         replacement="e",
         error_code=STRING_SIZE_LIMIT_ERROR,
@@ -122,7 +127,7 @@ REPLACEONE_SIZE_LIMIT_ERROR_TESTS: list[ReplaceOneTest] = [
     # 4-byte chars at the limit.
     ReplaceOneTest(
         "size_error_byte_based_4byte",
-        input="\U0001f600" * (STRING_SIZE_LIMIT_BYTES // 4),
+        input=lazy(lambda: "\U0001f600" * (STRING_SIZE_LIMIT_BYTES // 4)),
         find="\U0001f600",
         replacement="x",
         error_code=STRING_SIZE_LIMIT_ERROR,
@@ -131,7 +136,7 @@ REPLACEONE_SIZE_LIMIT_ERROR_TESTS: list[ReplaceOneTest] = [
     # Input literal rejected even when replacement would shrink the result.
     ReplaceOneTest(
         "size_error_input_shrinking_rejected",
-        input="a" * STRING_SIZE_LIMIT_BYTES,
+        input=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         find="a" * 100,
         replacement="",
         error_code=STRING_SIZE_LIMIT_ERROR,
@@ -140,7 +145,7 @@ REPLACEONE_SIZE_LIMIT_ERROR_TESTS: list[ReplaceOneTest] = [
     # Result amplification: input under limit, replacement grows result to limit.
     ReplaceOneTest(
         "size_error_result_amplification",
-        input="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        input=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         find="a",
         replacement="aa",
         error_code=STRING_SIZE_LIMIT_ERROR,
@@ -150,7 +155,7 @@ REPLACEONE_SIZE_LIMIT_ERROR_TESTS: list[ReplaceOneTest] = [
     ReplaceOneTest(
         "size_error_find_at_limit",
         input="hello",
-        find="a" * STRING_SIZE_LIMIT_BYTES,
+        find=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         replacement="b",
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$replaceOne size limit: error find at limit",

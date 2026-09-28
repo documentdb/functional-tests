@@ -261,6 +261,7 @@ AGGREGATE_READCONCERN_SUBFIELD_AFTERCLUSTERTIME_TESTS: list[CommandTestCase] = [
         },
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="aggregate should reject non-zero afterClusterTime on standalone",
+        marks=(pytest.mark.requires(cluster_read_concern=False),),
     ),
 ]
 

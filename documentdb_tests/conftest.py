@@ -7,16 +7,38 @@ This module provides fixtures for:
 - Test isolation
 """
 
+from __future__ import annotations
+
 import pytest
 
 # Enable assertion rewriting BEFORE importing framework modules
 pytest.register_assert_rewrite("documentdb_tests.framework.assertions")
 
+import warnings  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 from documentdb_tests.framework import fixtures  # noqa: E402
+from documentdb_tests.framework.engine_registry import (  # noqa: E402
+    Target,
+    ensure_initiated,
+    live_targets,
+)
 from documentdb_tests.framework.error_codes_validator import (  # noqa: E402
     validate_error_codes_sorted,
+)
+from documentdb_tests.framework.large_payload_guard import (  # noqa: E402
+    PARAM_SIZE_LIMIT_BYTES,
+    exceeds_size_limit,
+)
+from documentdb_tests.framework.marker_reason_validator import (  # noqa: E402
+    validate_marker_reasons,
+)
+from documentdb_tests.framework.preconditions import (  # noqa: E402
+    REQUIRES_MARKER,
+    detect_capabilities,
+    known_engines,
+    marker_spec,
+    unmet_requirements,
 )
 from documentdb_tests.framework.test_format_validator import validate_test_format  # noqa: E402
 from documentdb_tests.framework.test_structure_validator import (  # noqa: E402
@@ -39,68 +61,211 @@ def pytest_addoption(parser):
         default="default",
         help="Optional engine identifier for metadata. " "Example: --engine-name documentdb",
     )
+    parser.addoption(
+        "--run-crash-tests",
+        action="store_true",
+        default=False,
+        help="Run tests marked engine_xcrash against the engine they crash. They "
+        "are skipped by default because they kill the server; enable this only "
+        "in an isolated job that can tolerate (and expects) a server crash.",
+    )
 
 
 def pytest_configure(config):
-    """Configure pytest with custom settings."""
-    # Get connection string and engine name
+    """Configure pytest with custom settings.
+
+    Resolves the set of test targets the session will run against and stores it
+    on the config as ``test_targets``:
+
+    - If ``--connection-string`` is given, it pins a single ad-hoc target using
+      that string and ``--engine-name`` (used by CI and for pointing at an
+      arbitrary instance not in the registry). Discovery is bypassed.
+    - Otherwise the live targets from the dev compose registry are discovered
+      and the session runs against each (the zero-config local workflow).
+
+    Tests are parametrized over these targets in ``pytest_generate_tests``.
+    """
     connection_string = config.getoption("--connection-string")
     engine_name = config.getoption("--engine-name")
 
-    # Store in config for access by fixtures
-    config.connection_string = connection_string
-    config.engine_name = engine_name
+    if connection_string:
+        # Explicit override: a single pinned target, discovery bypassed. The
+        # engine must be a known one so its preconditions can be resolved the
+        # same way as for an auto-discovered target.
+        if engine_name not in known_engines():
+            raise pytest.UsageError(
+                f"--engine-name must be one of {sorted(known_engines())} when "
+                f"--connection-string is given, got {engine_name!r}"
+            )
+        config.test_targets = [
+            Target(
+                name=engine_name,
+                engine=engine_name,
+                connection_string=connection_string,
+            )
+        ]
+    else:
+        # Zero-config: run against whichever registered targets are live.
+        config.test_targets = live_targets()
 
-    # If no connection string specified, default to localhost
-    if not connection_string:
-        config.connection_string = "mongodb://localhost:27017"
+    # A target started as a replica set member accepts connections (so it is
+    # discovered as live) but is not usable until the set is initiated. Initiate
+    # it here, once, before tests run: idempotent, and a no-op for an
+    # already-initiated set or a standalone server. Under xdist this runs on the
+    # controller before workers fork, so there is no cross-worker race.
+    #
+    # Collection must work without a live server, so skip initiation when only
+    # collecting. An unreachable target at run time surfaces as a per-test
+    # connection error via the engine_client fixture.
+    if not hasattr(config, "workerinput") and not config.option.collectonly:
+        for target in config.test_targets:
+            ensure_initiated(target.connection_string)
+
+    # Register the requires marker from its single source of truth so it need
+    # not be duplicated in the pytest configuration file.
+    config.addinivalue_line("markers", marker_spec())
+
+
+def pytest_generate_tests(metafunc):
+    """Parametrize tests over the resolved test targets.
+
+    Every test that reaches a live engine does so through the ``engine_client``
+    fixture, so parametrizing that fixture (indirectly) fans each test out into
+    one instance per target. The target name is the parametrization id, so a
+    failure is reported against the specific target it occurred on.
+    """
+    if "engine_client" not in metafunc.fixturenames:
+        return
+    targets = getattr(metafunc.config, "test_targets", [])
+    metafunc.parametrize(
+        "engine_client",
+        targets,
+        ids=[t.name for t in targets],
+        indirect=True,
+    )
+
+
+def _item_target(item) -> Target | None:
+    """Return the Target a parametrized item is bound to, or None.
+
+    Each test is parametrized over the session's targets via the indirect
+    ``engine_client`` param, so the bound Target is the ``engine_client`` value
+    in the item's callspec.
+    """
+    callspec = getattr(item, "callspec", None)
+    if callspec is None:
+        return None
+    target = callspec.params.get("engine_client")
+    # Only a real Target counts; other param types (or pytest's NOTSET sentinel
+    # for tests not parametrized over engine_client) are not targets.
+    return target if isinstance(target, Target) else None
 
 
 def pytest_runtest_setup(item):
-    """Apply engine-specific xfail and xcrash markers."""
+    """Apply engine-specific xfail and xcrash markers for the item's target."""
+    target = _item_target(item)
+    engine = target.engine if target is not None else None
     for marker in item.iter_markers("engine_xfail"):
-        if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
+        if engine == marker.kwargs.get("engine"):
+            # strict=True so a documented gap that the server has since fixed
+            # becomes a hard failure (an unexpected pass), not a silently
+            # tolerated xpass. That forces the stale marker to be removed and the
+            # test to resume guarding real behavior.
             item.add_marker(
                 pytest.mark.xfail(
                     reason=marker.kwargs.get("reason", ""),
                     raises=marker.kwargs.get("raises", AssertionError),
+                    strict=True,
                 )
             )
+    # A crash test kills the server, so it is skipped against the engine it
+    # crashes unless the run-crash-tests option opts in. The dedicated crash job
+    # sets it and runs each such test in isolation against a server it can lose.
+    run_crash_tests = item.config.getoption("--run-crash-tests")
     for marker in item.iter_markers("engine_xcrash"):
-        if getattr(item.config, "engine_name", None) == marker.kwargs.get("engine"):
+        if engine == marker.kwargs.get("engine") and not run_crash_tests:
             pytest.skip(marker.kwargs.get("reason", "crashes the server"))
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_json_runtest_metadata(item, call):
+    """Record the xfail reason in the JSON report so it isn't lost.
+
+    The reason lives on the marker but is absent from the default JSON report.
+    Keying off the resolved ``xfail`` marker (added in setup above for the
+    matching engine) captures it only when xfail is actually in effect, and
+    covers both the xfailed test and a strict-xpass that became a failure.
+
+    ``optionalhook`` so this is ignored when pytest-json-report isn't active
+    (e.g. a plain unit-test run without --json-report), rather than erroring as
+    an unknown hook.
+    """
+    if call.when != "setup":
+        return {}
+    marker = item.get_closest_marker("xfail")
+    if marker is None:
+        return {}
+    reason = marker.kwargs.get("reason")
+    return {"xfail_reason": reason} if reason else {}
 
 
 @pytest.fixture(scope="session")
 def engine_client(request):
     """
-    Create a MongoDB client for the configured engine.
+    Create a database client for the test's target engine.
 
-    Session-scoped for performance - MongoClient is thread-safe and maintains
-    an internal connection pool. This significantly improves test execution speed
-    by eliminating redundant connection overhead.
+    The target is supplied indirectly by ``pytest_generate_tests``, which
+    parametrizes this fixture over the session's resolved targets. Session-scoped
+    for performance: pytest creates one client per distinct target and shares it
+    across the session. The client is thread-safe and pools connections, so this
+    avoids redundant connection overhead.
 
-    Per-test isolation is maintained through database_client and collection fixtures
-    which create unique databases/collections for each test.
+    Per-test isolation is maintained through the database_client and collection
+    fixtures, which create unique databases/collections for each test.
 
     Args:
-        request: pytest request object
+        request: pytest request object; ``request.param`` is the Target.
 
     Yields:
-        MongoClient: Connected MongoDB client (shared across session)
+        MongoClient: Connected client for the target (shared across session).
 
     Raises:
         ConnectionError: If unable to connect to the database
     """
-    connection_string = request.config.connection_string
-    engine_name = request.config.engine_name
+    target: Target = request.param
 
-    client = fixtures.create_engine_client(connection_string, engine_name)
+    client = fixtures.create_engine_client(target.connection_string, target.engine)
 
     yield client
 
     # Cleanup: close connection
     client.close()
+
+
+@pytest.fixture
+def engine_name(request) -> str:
+    """Return the engine name of the target the current test runs against.
+
+    Tests are parametrized over targets via the indirect ``engine_client``
+    fixture, so the engine is per-target. Tests that gate on the engine (e.g.
+    skip unless a specific engine) read this fixture.
+    """
+    target = _item_target(request.node)
+    assert target is not None, "engine_name requires a test parametrized over a target"
+    return target.engine
+
+
+@pytest.fixture
+def connection_string(request) -> str:
+    """Return the connection string of the target the current test runs against.
+
+    Tests are parametrized over targets via the indirect ``engine_client``
+    fixture, so the connection string is per-target. Tests that open an
+    additional connection to the same target read this fixture.
+    """
+    target = _item_target(request.node)
+    assert target is not None, "connection_string requires a test parametrized over a target"
+    return target.connection_string
 
 
 @pytest.fixture(scope="session")
@@ -197,6 +362,51 @@ def register_db_cleanup(engine_client):
             fixtures.cleanup_database(engine_client, name)
 
 
+def _write_deselected_sidecar(config, deselected_reasons: dict) -> None:
+    """
+    Record why tests were deselected, alongside the JSON report.
+
+    Deselected tests are dropped before the run, so they never appear in the
+    pytest JSON report. Writing a sidecar next to it (``<report>.deselected.json``)
+    lets the result analyzer explain the collected-vs-executed gap — e.g. which
+    features were not applicable to this target — rather than showing a bare
+    count. No-op when the JSON report isn't enabled.
+
+    The report's directory may not exist yet: this runs at collection time, while
+    pytest-json-report creates the directory later, when it writes the report at
+    session end. Create it here so the sidecar isn't lost.
+
+    Under xdist every worker writes this same path with identical contents, but
+    concurrent truncate-and-write can tear the file, so write a per-process temp
+    file and os.replace it into place.
+    """
+    report_path = getattr(config.option, "json_report_file", None)
+    # json_report_file defaults to ".report.json" even when the plugin is off,
+    # so gate on the --json-report flag itself.
+    if not getattr(config.option, "json_report", False) or not report_path:
+        return
+    import json
+    import os
+
+    sidecar = Path(f"{report_path}.deselected.json")
+    temp_path = f"{sidecar}.{os.getpid()}.tmp"
+    try:
+        sidecar.parent.mkdir(parents=True, exist_ok=True)
+        with open(temp_path, "w") as f:
+            json.dump(deselected_reasons, f)
+        os.replace(temp_path, sidecar)
+    except OSError as exc:
+        # Warn rather than fail: the sidecar only enriches the report, so a run
+        # should still complete without it. Staying silent here once hid its
+        # absence for a whole CI cycle, leaving the report quietly incomplete.
+        Path(temp_path).unlink(missing_ok=True)
+        warnings.warn(
+            f"Could not write the deselected-tests sidecar {sidecar}: {exc}. "
+            "The report will not be able to explain deselected (unsupported) tests.",
+            stacklevel=2,
+        )
+
+
 def pytest_collection_modifyitems(session, config, items):
     """
     Combined pytest hook to validate test structure, format, and framework invariants.
@@ -206,26 +416,44 @@ def pytest_collection_modifyitems(session, config, items):
         pytest -m no_parallel -p no:xdist
     Or run them manually with: pytest -m no_parallel -p no:xdist
 
-    Tests marked 'replica_set' are skipped when the server is not a replica set member.
-    """
-    # Skip replica_set tests when not connected to a replica set
-    conn_str = getattr(config, "connection_string", "") or ""
-    try:
-        from pymongo import MongoClient
+    Tests carrying a ``requires`` marker are deselected when their target's
+    capabilities do not match what the test requires, so they do not run against
+    a target they do not apply to (rather than appearing as skips). A target's
+    capabilities are determined by its engine, topology, and connection source,
+    resolved per target at runtime (see ``framework.preconditions``).
 
-        client = MongoClient(conn_str, serverSelectionTimeoutMS=5000, directConnection=True)
-        is_replica_set = bool(client.admin.command("hello").get("setName"))
-        client.close()
-    except Exception:
-        is_replica_set = False
-    if not is_replica_set:
-        for item in items:
-            if item.get_closest_marker("replica_set"):
-                item.add_marker(
-                    pytest.mark.skip(
-                        reason="requires replica set " "(server is not a replica set member)"
-                    )
-                )
+    """
+    # Deselect a capability-gated test when its target's capabilities do not
+    # match its requires(...) marker. Each item is parametrized over a target;
+    # probe each distinct target once.
+    capabilities_by_target: dict[str, frozenset[str]] = {}
+    kept: list = []
+    requires_deselected: list = []
+    # nodeid -> the requirements the target did not meet, for the report sidecar.
+    deselected_reasons: dict[str, dict] = {}
+    for item in items:
+        marker = item.get_closest_marker(REQUIRES_MARKER)
+        if marker is None or not marker.kwargs:
+            kept.append(item)
+            continue
+        target = _item_target(item)
+        if target is None:
+            kept.append(item)
+            continue
+        capabilities = capabilities_by_target.get(target.connection_string)
+        if capabilities is None:
+            capabilities = detect_capabilities(target.engine, target.connection_string)
+            capabilities_by_target[target.connection_string] = capabilities
+        if unmet_requirements(marker.kwargs, capabilities):
+            requires_deselected.append(item)
+            deselected_reasons[item.nodeid] = unmet_requirements(marker.kwargs, capabilities)
+        else:
+            kept.append(item)
+    if requires_deselected:
+        config.hook.pytest_deselected(items=requires_deselected)
+        items[:] = kept
+    # Written even when empty, or a stale sidecar from a previous run survives.
+    _write_deselected_sidecar(config, deselected_reasons)
 
     # Deselect no_parallel tests when running under xdist
     is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")
@@ -243,6 +471,7 @@ def pytest_collection_modifyitems(session, config, items):
 
     structure_errors = []
     format_errors = {}
+    marker_reason_errors = {}
 
     # Validate file structure for all files under "tests" folder
     if items:
@@ -264,11 +493,30 @@ def pytest_collection_modifyitems(session, config, items):
         file_errors = validate_test_format(file_path)
         if file_errors:
             format_errors[file_path] = file_errors
+        reason_errors = validate_marker_reasons(file_path)
+        if reason_errors:
+            marker_reason_errors[file_path] = reason_errors
 
     # Validate framework error code invariants
     structure_errors.extend(validate_error_codes_sorted())
 
-    if structure_errors or format_errors:
+    # No test may embed a large payload in its parametrized data. Such values are
+    # duplicated across xdist workers and held for the whole session; they belong
+    # behind Lazy so they are built at test time.
+    large_param_errors = []
+    for item in items:
+        callspec = getattr(item, "callspec", None)
+        if callspec is None:
+            continue
+        for value in callspec.params.values():
+            if exceeds_size_limit(value):
+                large_param_errors.append(
+                    f"  {item.nodeid} exceeds the {PARAM_SIZE_LIMIT_BYTES:,}-byte "
+                    "parametrized-data limit"
+                )
+                break
+
+    if structure_errors or format_errors or marker_reason_errors or large_param_errors:
         import sys
 
         if structure_errors:
@@ -282,6 +530,29 @@ def pytest_collection_modifyitems(session, config, items):
                 print(f"\n{file_path}:", file=sys.stderr)
                 print("\n".join(file_errors), file=sys.stderr)
             print("\nSee docs/testing/TEST_FORMAT.md for rules.\n", file=sys.stderr)
+
+        if marker_reason_errors:
+            print("\n❌ Marker Reason Violations:", file=sys.stderr)
+            for file_path, file_errors in marker_reason_errors.items():
+                print(f"\n{file_path}:", file=sys.stderr)
+                print("\n".join(file_errors), file=sys.stderr)
+            print(
+                "\nMarkers that skip or reclassify a test (skip/skipif/xfail/"
+                "engine_xfail/engine_xcrash) must carry a reason=, and runtime "
+                "pytest.skip()/fail()/xfail() calls must pass a message, so the "
+                "outcome is never unexplained. See docs/testing/TEST_FORMAT.md "
+                "for rules.\n",
+                file=sys.stderr,
+            )
+
+        if large_param_errors:
+            print("\n❌ Large Test Payloads:", file=sys.stderr)
+            print("\n".join(large_param_errors), file=sys.stderr)
+            print(
+                "\nWrap large values in lazy(...) so they are built at test time "
+                "instead of held in the collected test data.\n",
+                file=sys.stderr,
+            )
 
         pytest.exit("Test validation failed", returncode=1)
 
@@ -299,7 +570,9 @@ def _merge_json_reports(phase1_path, phase2_path):
     p1["duration"] = p1.get("duration", 0) + p2.get("duration", 0)
     p1_summary = p1.setdefault("summary", {})
     p2_summary = p2.get("summary", {})
-    for key in ("passed", "failed", "error", "skipped", "total"):
+    # Sum every per-test outcome bucket; omitting one leaves the merged summary
+    # inconsistent with the merged "tests" array (xfailed/xpassed were once lost).
+    for key in ("passed", "failed", "error", "skipped", "xfailed", "xpassed", "total"):
         if key in p2_summary:
             p1_summary[key] = p1_summary.get(key, 0) + p2_summary[key]
     # Phase 2 runs without xdist, so its collected reflects the true count
@@ -372,8 +645,13 @@ def pytest_sessionfinish(session, exitstatus):
         cmd.extend(["-m", f"no_parallel and ({user_marker})"])
     else:
         cmd.extend(["-m", "no_parallel"])
-    cmd.extend(["--connection-string", config.connection_string])
-    cmd.extend(["--engine-name", config.engine_name])
+    # Pass through the engine selection so Phase 2 targets the same engines as
+    # Phase 1. If an explicit connection string was given (override / CI), pass
+    # it through; otherwise Phase 2 re-discovers live targets the same way.
+    override_conn = config.getoption("--connection-string")
+    if override_conn:
+        cmd.extend(["--connection-string", override_conn])
+        cmd.extend(["--engine-name", config.getoption("--engine-name")])
 
     # Detect Phase 1 report paths and set up Phase 2 temp report files
     phase1_json = getattr(config.option, "json_report_file", None)
@@ -414,6 +692,11 @@ def pytest_sessionfinish(session, exitstatus):
             print(f"⚠️  Failed to merge JSON reports: {e}", file=sys.stderr)
         finally:
             os.unlink(phase2_json)
+            # Phase 2 collection writes a redundant sidecar next to its temp
+            # report; clean it up too.
+            phase2_sidecar = f"{phase2_json}.deselected.json"
+            if os.path.exists(phase2_sidecar):
+                os.unlink(phase2_sidecar)
 
     if phase2_junit and os.path.exists(phase2_junit):
         try:

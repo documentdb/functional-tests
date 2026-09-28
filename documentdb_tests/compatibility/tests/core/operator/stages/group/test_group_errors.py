@@ -284,6 +284,7 @@ GROUP_STRING_ID_REFERENCE_ERROR_TESTS: list[StageTestCase] = [
         msg="Bare '$$' in _id should produce a failed-to-parse error",
     ),
     StageTestCase(
+        marks=(pytest.mark.requires(cluster_time=False),),
         id="cluster_time_in_id_standalone",
         docs=[{"_id": 1}],
         pipeline=[{"$group": {"_id": "$$CLUSTER_TIME"}}],

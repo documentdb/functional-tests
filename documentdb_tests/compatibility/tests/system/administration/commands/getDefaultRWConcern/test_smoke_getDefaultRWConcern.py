@@ -12,7 +12,7 @@ from documentdb_tests.framework.executor import execute_admin_command
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.replica_set
+@pytest.mark.requires(cluster_admin=True)
 def test_smoke_getDefaultRWConcern(collection):
     """Test basic getDefaultRWConcern behavior."""
     result = execute_admin_command(collection, {"getDefaultRWConcern": 1})

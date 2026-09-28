@@ -18,6 +18,7 @@ INFRA_EXCEPTION_NAMES = {
     "pymongo.errors.NetworkTimeout",
     "pymongo.errors.AutoReconnect",
     "pymongo.errors.ExecutionTimeout",
+    "pymongo.errors._OperationCancelled",
 }
 
 

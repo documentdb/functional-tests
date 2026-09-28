@@ -32,6 +32,7 @@ COMPACT_UNRECOGNIZED_FIELDS_TESTS: list[CommandTestCase] = [
 ]
 
 
+@pytest.mark.requires(unforced_compact=True)
 @pytest.mark.collection_mgmt
 @pytest.mark.parametrize("test", pytest_params(COMPACT_UNRECOGNIZED_FIELDS_TESTS))
 def test_compact_unrecognized_fields(database_client, collection, test):

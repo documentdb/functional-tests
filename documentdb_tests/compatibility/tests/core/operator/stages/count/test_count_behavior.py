@@ -10,6 +10,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Core Counting Behavior]: the output is exactly one document whose
@@ -31,7 +32,7 @@ COUNT_CORE_TESTS: list[StageTestCase] = [
     ),
     StageTestCase(
         "core_large_collection",
-        docs=[{"_id": i} for i in range(10_000)],
+        docs=lazy(lambda: [{"_id": i} for i in range(10_000)]),
         pipeline=[{"$count": "total"}],
         expected=[{"total": 10_000}],
         msg="$count should return correct count for a large number of documents",
@@ -90,7 +91,7 @@ COUNT_RETURN_TYPE_TESTS: list[StageTestCase] = [
     ),
     StageTestCase(
         "return_type_multiple",
-        docs=[{"_id": i} for i in range(10_000)],
+        docs=lazy(lambda: [{"_id": i} for i in range(10_000)]),
         pipeline=[
             {"$count": "n"},
             {"$addFields": {"type": {"$type": "$n"}}},

@@ -1,0 +1,402 @@
+"""Tests for $searchMeta facet boundary, numBuckets, and token-mapping errors."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+import pytest
+from bson import (
+    Binary,
+    Code,
+    Decimal128,
+    MaxKey,
+    MinKey,
+    ObjectId,
+    Regex,
+    Timestamp,
+)
+
+from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
+    StageTestCase,
+)
+from documentdb_tests.framework.assertions import assertResult
+from documentdb_tests.framework.error_codes import UNKNOWN_ERROR
+from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+
+pytestmark = pytest.mark.requires(search=True)
+
+
+# Property [Facet Number Boundaries Validation]: number-facet boundaries must be
+# two to a thousand distinct numbers in ascending order, so too few, too many,
+# non-ascending, duplicate adjacent, or non-numeric boundaries are rejected.
+SEARCHMETA_FACET_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "boundaries_single_element",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {"facets": {"nf": {"type": "number", "path": "n", "boundaries": [0]}}}
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject a number facet with fewer than two boundaries",
+    ),
+    StageTestCase(
+        "boundaries_above_max",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "number",
+                                "path": "n",
+                                "boundaries": list(range(1_001)),
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject a number facet with more than the maximum boundary count",
+    ),
+    StageTestCase(
+        "boundaries_unsorted",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "number", "path": "n", "boundaries": [40, 0, 20]}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject non-ascending number facet boundaries",
+    ),
+    StageTestCase(
+        "boundaries_duplicate_adjacent",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "number", "path": "n", "boundaries": [0, 0, 25]}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject duplicate adjacent number facet boundaries as not distinct",
+    ),
+    StageTestCase(
+        "boundaries_non_numeric",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "number", "path": "n", "boundaries": ["a", "b"]}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject non-numeric number facet boundaries",
+    ),
+]
+
+# Property [Facet Date Boundaries Validation]: date-facet boundaries must be two
+# to a thousand distinct datetimes in ascending order, and numeric (non-datetime)
+# boundaries are rejected. Too few, non-ascending, and duplicate adjacent
+# boundaries are rejected as they are for number facets.
+SEARCHMETA_FACET_DATE_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "date_boundaries_numeric",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "date", "path": "n", "boundaries": [0, 25]}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject numeric boundaries for a date facet",
+    ),
+    StageTestCase(
+        "date_boundaries_single_element",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "date",
+                                "path": "n",
+                                "boundaries": [datetime(2024, 1, 1, tzinfo=timezone.utc)],
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject a date facet with fewer than two boundaries",
+    ),
+    StageTestCase(
+        "date_boundaries_unsorted",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "date",
+                                "path": "n",
+                                "boundaries": [
+                                    datetime(2024, 12, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 6, 1, tzinfo=timezone.utc),
+                                ],
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject non-ascending date facet boundaries",
+    ),
+    StageTestCase(
+        "date_boundaries_duplicate_adjacent",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "date",
+                                "path": "n",
+                                "boundaries": [
+                                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 6, 1, tzinfo=timezone.utc),
+                                ],
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject duplicate adjacent date facet boundaries as not distinct",
+    ),
+]
+
+# Property [Facet NumBuckets Bounds]: a string-facet numBuckets outside
+# [1..1000] is rejected.
+SEARCHMETA_FACET_NUMBUCKETS_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "numbuckets_zero",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {"facets": {"nf": {"type": "string", "path": "cat", "numBuckets": 0}}}
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject a numBuckets below the lower bound",
+    ),
+    StageTestCase(
+        "numbuckets_above_max",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "string", "path": "cat", "numBuckets": 1001}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject a numBuckets above the upper bound",
+    ),
+]
+
+# Property [Facet NumBuckets Type]: numBuckets must be a whole-number integer, so
+# non-integer-typed values, including fractional doubles and decimals, are
+# rejected. A null numBuckets is treated as the default, so it is excluded.
+SEARCHMETA_FACET_NUMBUCKETS_TYPE_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        f"numbuckets_type_{tid}",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "string", "path": "cat", "numBuckets": val}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg=f"$searchMeta should reject a {tid} numBuckets as not a whole-number integer",
+    )
+    for tid, val in [
+        ("string", "2"),
+        ("double_fractional", 2.5),
+        ("decimal128", Decimal128("2")),
+        ("bool", True),
+        ("object", {"a": 1}),
+        ("array", [2]),
+        ("objectid", ObjectId("0123456789abcdef01234567")),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(1, 1)),
+        ("binary", Binary(b"\x01\x02\x03")),
+        ("regex", Regex(".*", "i")),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
+]
+
+# Property [Facet String Boundaries Unrecognized]: a string facet rejects the
+# boundaries field as unrecognized.
+SEARCHMETA_FACET_STRING_BOUNDARIES_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "string_facet_with_boundaries",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "string", "path": "cat", "boundaries": [0, 25]}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject boundaries on a string facet as an unrecognized field",
+    ),
+]
+
+# Property [Facet Number NumBuckets Unrecognized]: a number facet rejects the
+# numBuckets field as unrecognized.
+SEARCHMETA_FACET_NUMBER_NUMBUCKETS_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "number_facet_with_numbuckets",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "number",
+                                "path": "n",
+                                "boundaries": [0, 25],
+                                "numBuckets": 1,
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject numBuckets on a number facet as an unrecognized field",
+    ),
+]
+
+# Property [Facet String Default Unrecognized]: a string facet rejects the
+# default field as unrecognized, since only number and date facets carry a
+# default overflow bucket.
+SEARCHMETA_FACET_STRING_DEFAULT_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "string_facet_with_default",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {"nf": {"type": "string", "path": "cat", "default": "other"}}
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject default on a string facet as an unrecognized field",
+    ),
+]
+
+# Property [Facet Date NumBuckets Unrecognized]: a date facet rejects the
+# numBuckets field as unrecognized, since only string facets carry numBuckets.
+SEARCHMETA_FACET_DATE_NUMBUCKETS_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "date_facet_with_numbuckets",
+        pipeline=[
+            {
+                "$searchMeta": {
+                    "facet": {
+                        "facets": {
+                            "nf": {
+                                "type": "date",
+                                "path": "d",
+                                "boundaries": [
+                                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                                    datetime(2024, 6, 1, tzinfo=timezone.utc),
+                                ],
+                                "numBuckets": 2,
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject numBuckets on a date facet as an unrecognized field",
+    ),
+]
+
+# Property [Facet Token Mapping]: a string facet on a dynamically-indexed field
+# is rejected because dynamic mapping does not token-index string fields.
+SEARCHMETA_FACET_TOKEN_MAPPING_ERROR_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "string_facet_dynamic_field",
+        pipeline=[
+            {"$searchMeta": {"facet": {"facets": {"nf": {"type": "string", "path": "cat"}}}}}
+        ],
+        error_code=UNKNOWN_ERROR,
+        msg="$searchMeta should reject string faceting on a dynamically-indexed string field",
+    ),
+]
+
+SEARCHMETA_SPEC_FACET_BOUNDARY_ERROR_TESTS: list[StageTestCase] = (
+    SEARCHMETA_FACET_BOUNDARIES_ERROR_TESTS
+    + SEARCHMETA_FACET_DATE_BOUNDARIES_ERROR_TESTS
+    + SEARCHMETA_FACET_NUMBUCKETS_ERROR_TESTS
+    + SEARCHMETA_FACET_NUMBUCKETS_TYPE_ERROR_TESTS
+    + SEARCHMETA_FACET_STRING_BOUNDARIES_ERROR_TESTS
+    + SEARCHMETA_FACET_NUMBER_NUMBUCKETS_ERROR_TESTS
+    + SEARCHMETA_FACET_STRING_DEFAULT_ERROR_TESTS
+    + SEARCHMETA_FACET_DATE_NUMBUCKETS_ERROR_TESTS
+    + SEARCHMETA_FACET_TOKEN_MAPPING_ERROR_TESTS
+)
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(SEARCHMETA_SPEC_FACET_BOUNDARY_ERROR_TESTS))
+def test_searchMeta_spec_facet_boundary_errors(search_collection, test_case: StageTestCase):
+    """Test $searchMeta facet boundary, numBuckets, and token-mapping errors."""
+    result = execute_command(
+        search_collection,
+        {
+            "aggregate": search_collection.name,
+            "pipeline": test_case.pipeline,
+            "cursor": {},
+        },
+    )
+    assertResult(
+        result,
+        error_code=test_case.error_code,
+        msg=test_case.msg,
+    )

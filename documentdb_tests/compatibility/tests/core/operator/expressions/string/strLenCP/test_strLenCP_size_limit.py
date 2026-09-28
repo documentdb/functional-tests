@@ -7,6 +7,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression,
 )
 from documentdb_tests.framework.error_codes import STRING_SIZE_LIMIT_ERROR
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import STRING_SIZE_LIMIT_BYTES
 
@@ -19,13 +20,13 @@ from .utils.strLenCP_common import (
 STRLENCP_SIZE_LIMIT_SUCCESS_TESTS: list[StrLenCPTest] = [
     StrLenCPTest(
         "size_one_under",
-        value="a" * (STRING_SIZE_LIMIT_BYTES - 1),
+        value=lazy(lambda: "a" * (STRING_SIZE_LIMIT_BYTES - 1)),
         expected=STRING_SIZE_LIMIT_BYTES - 1,
         msg="$strLenCP should handle a string one byte under the size limit",
     ),
     StrLenCPTest(
         "size_one_under_3byte",
-        value="寿" * ((STRING_SIZE_LIMIT_BYTES - 1) // 3),
+        value=lazy(lambda: "寿" * ((STRING_SIZE_LIMIT_BYTES - 1) // 3)),
         expected=(STRING_SIZE_LIMIT_BYTES - 1) // 3,
         msg="$strLenCP should count 3-byte chars as code points near the size limit",
     ),
@@ -36,7 +37,7 @@ STRLENCP_SIZE_LIMIT_SUCCESS_TESTS: list[StrLenCPTest] = [
 STRLENCP_SIZE_LIMIT_ERROR_TESTS: list[StrLenCPTest] = [
     StrLenCPTest(
         "size_at_limit",
-        value="a" * STRING_SIZE_LIMIT_BYTES,
+        value=lazy(lambda: "a" * STRING_SIZE_LIMIT_BYTES),
         error_code=STRING_SIZE_LIMIT_ERROR,
         msg="$strLenCP should reject a string at the size limit",
     ),

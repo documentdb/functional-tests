@@ -13,6 +13,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.lookup.utils.look
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.lazy_payload import lazy
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DOUBLE_ZERO
 
@@ -256,7 +257,9 @@ LOOKUP_PIPELINE_POSITION_TESTS: list[LookupTestCase] = [
     LookupTestCase(
         "lookup_then_unwind_exceeds_16mb",
         docs=[{"_id": 1, "lf": "m"}],
-        foreign_docs=[{"_id": i, "ff": "m", "data": "x" * 1_000_000} for i in range(20)],
+        foreign_docs=lazy(
+            lambda: [{"_id": i, "ff": "m", "data": "x" * 1_000_000} for i in range(20)]
+        ),
         pipeline=[
             {
                 "$lookup": {
@@ -318,6 +321,37 @@ LOOKUP_PIPELINE_POSITION_TESTS: list[LookupTestCase] = [
         ],
         expected=[{"_id": 10, "ff": "a", "x": 42}],
         msg="$replaceRoot after $lookup should promote first joined doc to root",
+    ),
+    LookupTestCase(
+        "lookup_unwind_replace_root_merge_objects",
+        docs=[{"_id": 1, "lf": "a", "q": 3}],
+        foreign_docs=[
+            {"_id": 10, "ff": "a", "label": "X"},
+            {"_id": 20, "ff": "b", "label": "Y"},
+        ],
+        pipeline=[
+            {
+                "$lookup": {
+                    "from": FOREIGN,
+                    "localField": "lf",
+                    "foreignField": "ff",
+                    "as": "j",
+                }
+            },
+            {"$unwind": "$j"},
+            {"$replaceRoot": {"newRoot": {"$mergeObjects": ["$$ROOT", "$j"]}}},
+        ],
+        expected=[
+            {
+                "_id": 10,
+                "lf": "a",
+                "q": 3,
+                "j": {"_id": 10, "ff": "a", "label": "X"},
+                "ff": "a",
+                "label": "X",
+            },
+        ],
+        msg="$replaceRoot with $mergeObjects should merge a joined doc onto the original root",
     ),
     # Multi-stage combinations.
     LookupTestCase(
