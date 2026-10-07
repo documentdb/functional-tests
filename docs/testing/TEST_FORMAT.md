@@ -54,6 +54,37 @@ assertSuccess(result, expected, ignore_doc_order=True)
 assertFailureCode(result, 14)
 ```
 
+### `assertResult` selectors and modifiers
+
+`assertResult` is the single entry point the other helpers wrap. Give it
+**exactly one** expectation per call — passing more than one raises
+`TestSetupError` rather than silently honoring one by precedence:
+
+| Expectation | Meaning |
+|---|---|
+| `expected=<value>` | success; compare the result (or `cursor.firstBatch`) to the value |
+| `expected=<checks>` / `properties=True` | success; apply `property_checks` by dotted path |
+| `error={"code": c, "msg": m}` | failure; exact code **and** message |
+| `error_code=<int>` | failure; check the code only |
+| `exception_type=<cls>` | client-side exception of that type (e.g. `InvalidBSON`) |
+| `not_error=True` | only assert the result is not an error |
+
+The remaining keywords shape **how** the chosen expectation is compared; they are
+not expectation selectors and may be combined with one:
+
+| Modifier | Effect |
+|---|---|
+| `raw_res=True` | compare the raw command result instead of `cursor.firstBatch` |
+| `partial=True` | compare only the fields present in `expected` (implies `raw_res`) |
+| `nan=True` | treat `NaN == NaN` as equal |
+| `transform=<fn>` | transform the actual value before comparison |
+| `ignore_order_in=[...]` | sort the named fields' list values before comparing |
+| `ignore_doc_order=True` | compare top-level lists ignoring order |
+| `msg=<str>` | prefix for the failure message |
+
+`partial` cannot be combined with `nan` or `transform`, and `nan` cannot be
+combined with `transform`; those also raise `TestSetupError`.
+
 **One assertion per test function.** Split multiple assertions into separate tests.
 
 ## Fixtures

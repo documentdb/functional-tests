@@ -517,8 +517,43 @@ def assertResult(
         assertResult(result, error_code=16555)  # Error case
         assertResult(result, expected=[{"r": [3, 1, 2]}], ignore_order_in=["r"])
         assertResult(result, expected={"ok": 1.0}, raw_res=True)  # Raw command result
+
+    Exactly one expectation may be given: a success/property ``expected`` (or
+    ``properties=True``), ``error``, ``error_code``, ``exception_type``, or
+    ``not_error``. Passing more than one raises ``TestSetupError`` instead of
+    resolving the conflict by silent precedence -- ``assertResult`` is public and
+    hand-callable, so an ambiguous call is a setup bug, not a precedence
+    question. The remaining keywords (``msg``, ``raw_res``, ``transform``,
+    ``partial``, ``nan``, ``ignore_order_in``, ``ignore_doc_order``) only shape
+    how the chosen expectation is compared; they are not expectation selectors.
     """
     expected = materialize(expected)
+
+    # Reject multiple mutually-exclusive expectation selectors. Each one below
+    # chooses a different branch of the if/elif chain, so passing two (e.g.
+    # ``error_code=`` beside ``exception_type=``, or ``expected=`` beside
+    # ``error_code=``) would silently honor the first and drop the rest. A
+    # success/property ``expected`` and ``properties=True`` are one selector (the
+    # success/property branch), not two.
+    _expectation_selectors = [
+        name
+        for name, active in (
+            ("expected/properties", expected is not None or bool(properties)),
+            ("error", error is not None),
+            ("error_code", error_code is not None),
+            ("exception_type", exception_type is not None),
+            ("not_error", not_error),
+        )
+        if active
+    ]
+    if len(_expectation_selectors) > 1:
+        raise TestSetupError(
+            "[TEST_EXCEPTION] assertResult received multiple mutually-exclusive "
+            f"expectation selectors ({', '.join(_expectation_selectors)}); pass "
+            "exactly one of expected/properties, error, error_code, "
+            "exception_type, or not_error"
+        )
+
     if not_error:
         _assert_not_error(result, msg)
     elif exception_type is not None:
