@@ -37,6 +37,23 @@
 # cache keeps the combined footprint within the VM. There is intentionally no
 # per-container mem_limit: that caps total process memory (not just cache) and a
 # transient working-set spike then kills mongod even when the VM has room.
+#
+# Open files: each mongod raises its open-file limit (ulimits.nofile). The suite
+# creates and drops tens of thousands of collections in a run, and WiredTiger
+# holds an open file descriptor per table (collection + indexes) in its handle
+# cache, closing idle ones only lazily. On the replica set a dropped collection
+# also becomes a drop-pending ident whose files linger until the drop timestamp
+# is majority-committed and swept, so descriptors accumulate faster than they
+# are reclaimed. WiredTiger also keeps a file handle open per table it has
+# touched and closes idle ones only very lazily, so the descriptor count tracks
+# the number of collections created over the run, not the number live at once.
+# The replica set peaks near 60k open files partway through the suite; when that
+# reaches the ceiling mongod runs out of descriptors mid-run, which surfaces
+# inside WiredTiger as a WT_PANIC and crashes the server (EMFILE -> fassert).
+# 64000 was not enough headroom (the suite crashed at ~31k collections against
+# it), so this is set to 1048576 -- the limit MongoDB's own packaging ships and
+# well above the suite's peak. Standalone reclaims dropped files immediately so
+# it never approaches the ceiling, but the limit is raised on both for parity.
 
 services:
   # mongo-standalone: a single standalone server.
@@ -44,6 +61,12 @@ services:
     image: mongo:8.2.4
     profiles: ["mongo-standalone", "all"]
     command: ["--wiredTigerCacheSizeGB", "1.5"]
+    # Raise the open-file limit above the container default so the suite's
+    # collection churn cannot exhaust mongod's descriptors (see header note).
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
     ports:
       - "27017:27017"
     healthcheck:
@@ -80,6 +103,14 @@ services:
       - "skipAuthenticationToMongot=true"
       - "--setParameter"
       - "skipAuthenticationToSearchIndexManagementServer=true"
+    # Raise the open-file limit well above the peak. This matters most here: the
+    # replica set defers dropped-collection files as drop-pending idents, so
+    # descriptors accumulate under churn and exhaust a lower limit mid-run,
+    # crashing mongod with a WT_PANIC (see header note).
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
     ports:
       - "27018:27017"
     healthcheck:

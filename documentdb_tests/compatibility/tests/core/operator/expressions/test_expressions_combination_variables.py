@@ -160,12 +160,12 @@ def test_let_nested_combinations(collection, test):
 # ---------------------------------------------------------------------------
 def test_let_two_lets_same_projection(collection):
     """Test two separate $let expressions in same projection with same variable name."""
+    collection.insert_one({})
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {
                     "$project": {
                         "_id": 0,
@@ -248,12 +248,12 @@ def test_let_across_multiple_documents(collection):
 
 def test_let_error_cross_let_variable_ref(collection):
     """Test $let where variable defined in one $let is referenced in sibling $let."""
+    collection.insert_one({})
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {
                     "$project": {
                         "_id": 0,
