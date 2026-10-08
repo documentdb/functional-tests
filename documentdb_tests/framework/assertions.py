@@ -4,6 +4,7 @@ Custom assertion helpers for functional tests.
 Provides convenient assertion methods for common test scenarios.
 """
 
+import functools
 import math
 import pprint
 from typing import Any, Callable, Dict, Optional, Union
@@ -12,9 +13,34 @@ from bson import Decimal128, Int64
 
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
 from documentdb_tests.framework.lazy_payload import materialize
+from documentdb_tests.framework.override_hook import consult_override
 from documentdb_tests.framework.property_checks import _FIELD_ABSENT, Check, PerDoc
 
 _MAX_REPR_LEN = 1000
+
+
+def _overridable(fn: Callable) -> Callable:
+    """Let a registered override provider handle ``assertResult`` first.
+
+    Applied to ``assertResult`` ONLY. Every other public helper is a thin wrapper
+    that calls ``assertResult``, so this is the single point where a test's
+    assertion reaches the override hook -- exactly once per public call, however
+    the test chose to spell it. A new helper needs no decorator: writing it as a
+    wrapper around ``assertResult`` is enough.
+
+    Inert unless a provider is registered (see ``override_hook``): the wrapper
+    then simply calls ``fn``. The undecorated function stays reachable as
+    ``fn.__wrapped__`` for providers that need to run the plain comparison.
+    """
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        if consult_override(fn, args, kwargs):
+            return None
+        return fn(*args, **kwargs)
+
+    return wrapper
+
 
 # Top-level fields that a replica set / sharded topology appends to command
 # responses as cluster and replication gossip. They appear on the connected
@@ -132,7 +158,7 @@ def _format_exception_error(result: Exception) -> str:
     )
 
 
-def assertNotError(result: Union[Any, Exception], msg: Optional[str] = None):
+def _assert_not_error(result: Union[Any, Exception], msg: Optional[str] = None):
     """Assert that the command did not return an error.
 
     Only checks that the result is not an Exception. Does not validate
@@ -145,7 +171,7 @@ def assertNotError(result: Union[Any, Exception], msg: Optional[str] = None):
         raise AssertionError(fail_msg)
 
 
-def assertSuccess(
+def _assert_success(
     result: Union[Any, Exception],
     expected: Any,
     msg: Optional[str] = None,
@@ -209,13 +235,6 @@ def assertSuccess(
         assert _strict_equal(result, expected), error_text
 
 
-def assertSuccessPartial(
-    result: Union[Any, Exception], expected: Dict[str, Any], msg: Optional[str] = None
-):
-    """Assert command succeeded and check only specified fields."""
-    assertSuccess(result, expected, msg, raw_res=True, transform=partial_match(expected))
-
-
 def _extract_partial(expected, actual):
     """Recursively extract only the keys/elements present in expected from actual."""
     if isinstance(expected, dict) and isinstance(actual, dict):
@@ -230,7 +249,7 @@ def partial_match(expected: Dict[str, Any]):
     return lambda r: _extract_partial(expected, r)
 
 
-def assertFailure(
+def _assert_failure(
     result: Union[Any, Exception],
     expected: Dict[str, Any],
     msg: Optional[str] = None,
@@ -291,12 +310,6 @@ def assertFailure(
         assert _strict_equal(actual, expected), error_text
 
 
-def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Optional[str] = None):
-    """Assert command failed and check only the code field."""
-    expected = {"code": expected_code}
-    assertFailure(result, expected, msg, transform=partial_match(expected))
-
-
 def _is_property_spec(value: Any) -> bool:
     """Return True if a value in an ``expected`` dict denotes property checks.
 
@@ -310,55 +323,7 @@ def _is_property_spec(value: Any) -> bool:
     return False
 
 
-def assertResult(
-    result: Union[Any, Exception],
-    expected: Any = None,
-    error_code: Optional[int] = None,
-    msg: Optional[str] = None,
-    ignore_order_in: Optional[list[str]] = None,
-    ignore_doc_order: bool = False,
-    raw_res: bool = False,
-):
-    """
-    Universal assertion that handles success and error cases.
-
-    Args:
-        result: Result from execute_command
-        expected: Expected result documents (for success cases)
-        error_code: Expected error code (for error cases)
-        msg: Custom assertion message (optional)
-        ignore_order_in: Field names whose list values should be sorted before
-            comparison (for fields like set operation results where element
-            order is unspecified)
-        ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
-        raw_res: If True, compare the raw result dict instead of
-            extracting cursor.firstBatch
-
-    Usage:
-        assertResult(result, expected=[{"_id": 1}])  # Success case
-        assertResult(result, error_code=16555)  # Error case
-        assertResult(result, expected=[{"r": [3, 1, 2]}], ignore_order_in=["r"])
-        assertResult(result, expected={"ok": 1.0}, raw_res=True)  # Raw command result
-    """
-    expected = materialize(expected)
-    if error_code is not None:
-        assertFailureCode(result, error_code, msg)
-    elif isinstance(expected, PerDoc) or (
-        isinstance(expected, dict) and any(_is_property_spec(v) for v in expected.values())
-    ):
-        assertProperties(result, expected, msg=msg, raw_res=raw_res)
-    else:
-        assertSuccess(
-            result,
-            expected,
-            msg,
-            raw_res=raw_res,
-            ignore_order_in=ignore_order_in,
-            ignore_doc_order=ignore_doc_order,
-        )
-
-
-def assertExceptionType(
+def _assert_exception_type(
     result: Union[Any, Exception], expected_type: type, msg: Optional[str] = None
 ):
     """Assert that the result is an exception of the expected type.
@@ -389,24 +354,6 @@ def _replace_nan(val: Any) -> Any:
     return val
 
 
-def assertSuccessNaN(
-    result: Union[Any, Exception],
-    expected: Any,
-    msg: Optional[str] = None,
-    ignore_doc_order: bool = False,
-    ignore_order_in: Optional[list[str]] = None,
-):
-    """Assert command succeeded, treating NaN == NaN as True."""
-    assertSuccess(
-        result,
-        _replace_nan(expected),
-        msg=msg,
-        ignore_doc_order=ignore_doc_order,
-        ignore_order_in=ignore_order_in,
-        transform=_replace_nan,
-    )
-
-
 def _walk_path(doc: dict, path: str) -> Any:
     """Walk doc along a dotted path, returning _FIELD_ABSENT if absent.
 
@@ -428,7 +375,7 @@ def _walk_path(doc: dict, path: str) -> Any:
     return current
 
 
-def assertProperties(
+def _assert_properties(
     result: Union[Any, Exception],
     checks: Union[Dict[str, Any], PerDoc],
     msg: Optional[str] = None,
@@ -505,3 +452,234 @@ def assertProperties(
         prefix = f" {msg}" if msg else ""
         detail = "\n  ".join(failures)
         raise AssertionError(f"[PROPERTY_MISMATCH]{prefix}\n  {detail}")
+
+
+# ---------------------------------------------------------------------------
+# Public assertion API.
+#
+# ``assertResult`` is the single entry point: every other public helper is a thin
+# wrapper that calls it, and only ``assertResult`` carries ``@_overridable``. Its
+# parameters fall in two groups:
+#
+#   * what the test EXPECTS -- ``expected`` (plus ``properties``), ``error_code``,
+#     ``error``, ``exception_type``, ``not_error``;
+#   * HOW the result is compared -- ``msg``, ``raw_res``, ``transform``,
+#     ``partial``, ``nan``, ``ignore_order_in``, ``ignore_doc_order``.
+#
+# A new helper is written as another wrapper that fixes some of these. If it
+# needs a new way of comparing, it adds a keyword to ``assertResult`` below.
+# ---------------------------------------------------------------------------
+
+
+@_overridable
+def assertResult(
+    result: Union[Any, Exception],
+    expected: Any = None,
+    error_code: Optional[int] = None,
+    msg: Optional[str] = None,
+    ignore_order_in: Optional[list[str]] = None,
+    ignore_doc_order: bool = False,
+    raw_res: bool = False,
+    *,
+    error: Optional[Dict[str, Any]] = None,
+    exception_type: Optional[type] = None,
+    not_error: bool = False,
+    properties: Optional[bool] = None,
+    transform: Optional[Callable] = None,
+    partial: bool = False,
+    nan: bool = False,
+):
+    """
+    Universal assertion that handles success and error cases.
+
+    Args:
+        result: Result from execute_command
+        expected: Expected result documents (for success cases)
+        error_code: Expected error code (for error cases)
+        msg: Custom assertion message (optional)
+        ignore_order_in: Field names whose list values should be sorted before
+            comparison (for fields like set operation results where element
+            order is unspecified)
+        ignore_doc_order: If True, compare lists ignoring order (duplicates still matter)
+        raw_res: If True, compare the raw result dict instead of
+            extracting cursor.firstBatch
+        error: Expected error dict with 'code' and 'msg' keys (exact error match)
+        exception_type: Expected client-side exception class (e.g. InvalidBSON)
+        not_error: If True, only check that the result is not an exception
+        properties: Treat ``expected`` as property checks (True), as a plain
+            value (False), or decide from its contents (None, the default)
+        transform: Optional callback applied to the actual value before comparison
+        partial: Compare only the fields present in ``expected`` (implies raw_res)
+        nan: Treat NaN == NaN as True
+
+    Usage:
+        assertResult(result, expected=[{"_id": 1}])  # Success case
+        assertResult(result, error_code=16555)  # Error case
+        assertResult(result, expected=[{"r": [3, 1, 2]}], ignore_order_in=["r"])
+        assertResult(result, expected={"ok": 1.0}, raw_res=True)  # Raw command result
+
+    Exactly one expectation may be given: a success/property ``expected`` (or
+    ``properties=True``), ``error``, ``error_code``, ``exception_type``, or
+    ``not_error``. Passing more than one raises ``TestSetupError`` instead of
+    resolving the conflict by silent precedence -- ``assertResult`` is public and
+    hand-callable, so an ambiguous call is a setup bug, not a precedence
+    question. The remaining keywords (``msg``, ``raw_res``, ``transform``,
+    ``partial``, ``nan``, ``ignore_order_in``, ``ignore_doc_order``) only shape
+    how the chosen expectation is compared; they are not expectation selectors.
+    """
+    expected = materialize(expected)
+
+    # Reject multiple mutually-exclusive expectation selectors. Each one below
+    # chooses a different branch of the if/elif chain, so passing two (e.g.
+    # ``error_code=`` beside ``exception_type=``, or ``expected=`` beside
+    # ``error_code=``) would silently honor the first and drop the rest. A
+    # success/property ``expected`` and ``properties=True`` are one selector (the
+    # success/property branch), not two.
+    _expectation_selectors = [
+        name
+        for name, active in (
+            ("expected/properties", expected is not None or bool(properties)),
+            ("error", error is not None),
+            ("error_code", error_code is not None),
+            ("exception_type", exception_type is not None),
+            ("not_error", not_error),
+        )
+        if active
+    ]
+    if len(_expectation_selectors) > 1:
+        raise TestSetupError(
+            "[TEST_EXCEPTION] assertResult received multiple mutually-exclusive "
+            f"expectation selectors ({', '.join(_expectation_selectors)}); pass "
+            "exactly one of expected/properties, error, error_code, "
+            "exception_type, or not_error"
+        )
+
+    if not_error:
+        _assert_not_error(result, msg)
+    elif exception_type is not None:
+        _assert_exception_type(result, exception_type, msg)
+    elif error is not None:
+        _assert_failure(result, error, msg, transform=transform)
+    elif error_code is not None:
+        code_only = {"code": error_code}
+        _assert_failure(result, code_only, msg, transform=partial_match(code_only))
+    elif (
+        properties
+        if properties is not None
+        else isinstance(expected, PerDoc)
+        or (isinstance(expected, dict) and any(_is_property_spec(v) for v in expected.values()))
+    ):
+        _assert_properties(result, expected, msg=msg, raw_res=raw_res)
+    else:
+        if partial and (nan or transform):
+            raise TestSetupError(
+                "[TEST_EXCEPTION] partial cannot be combined with nan or transform"
+            )
+        if nan and transform:
+            raise TestSetupError("[TEST_EXCEPTION] nan cannot be combined with transform")
+        if partial:
+            raw_res, transform = True, partial_match(expected)
+        if nan:
+            expected, transform = _replace_nan(expected), _replace_nan
+        _assert_success(
+            result,
+            expected,
+            msg,
+            raw_res=raw_res,
+            transform=transform,
+            ignore_doc_order=ignore_doc_order,
+            ignore_order_in=ignore_order_in,
+        )
+
+
+def assertNotError(result: Union[Any, Exception], msg: Optional[str] = None):
+    """Assert that the command did not return an error.
+
+    Only checks that the result is not an Exception. Does not validate
+    the actual result value.
+    """
+    assertResult(result, msg=msg, not_error=True)
+
+
+def assertSuccess(
+    result: Union[Any, Exception],
+    expected: Any,
+    msg: Optional[str] = None,
+    raw_res: bool = False,
+    transform: Optional[Callable] = None,
+    ignore_doc_order: bool = False,
+    ignore_order_in: Optional[list[str]] = None,
+):
+    """Assert command succeeded and check the result (see ``_assert_success``)."""
+    assertResult(
+        result,
+        expected,
+        msg=msg,
+        raw_res=raw_res,
+        transform=transform,
+        ignore_doc_order=ignore_doc_order,
+        ignore_order_in=ignore_order_in,
+        properties=False,
+    )
+
+
+def assertSuccessPartial(
+    result: Union[Any, Exception], expected: Dict[str, Any], msg: Optional[str] = None
+):
+    """Assert command succeeded and check only specified fields."""
+    assertResult(result, expected, msg=msg, partial=True, properties=False)
+
+
+def assertSuccessNaN(
+    result: Union[Any, Exception],
+    expected: Any,
+    msg: Optional[str] = None,
+    ignore_doc_order: bool = False,
+    ignore_order_in: Optional[list[str]] = None,
+):
+    """Assert command succeeded, treating NaN == NaN as True."""
+    assertResult(
+        result,
+        expected,
+        msg=msg,
+        ignore_doc_order=ignore_doc_order,
+        ignore_order_in=ignore_order_in,
+        nan=True,
+        properties=False,
+    )
+
+
+def assertFailure(
+    result: Union[Any, Exception],
+    expected: Dict[str, Any],
+    msg: Optional[str] = None,
+    transform: Optional[Callable] = None,
+):
+    """Assert command failed with expected error (see ``_assert_failure``)."""
+    assertResult(result, msg=msg, error=expected, transform=transform)
+
+
+def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Optional[str] = None):
+    """Assert command failed and check only the code field."""
+    assertResult(result, error_code=expected_code, msg=msg)
+
+
+def assertExceptionType(
+    result: Union[Any, Exception], expected_type: type, msg: Optional[str] = None
+):
+    """Assert that the result is an exception of the expected type.
+
+    Useful for client-side errors (e.g. InvalidBSON) that don't carry a
+    server error code.
+    """
+    assertResult(result, msg=msg, exception_type=expected_type)
+
+
+def assertProperties(
+    result: Union[Any, Exception],
+    checks: Union[Dict[str, Any], PerDoc],
+    msg: Optional[str] = None,
+    raw_res: bool = False,
+) -> None:
+    """Assert that a result document satisfies property checks (see ``_assert_properties``)."""
+    assertResult(result, checks, msg=msg, raw_res=raw_res, properties=True)
