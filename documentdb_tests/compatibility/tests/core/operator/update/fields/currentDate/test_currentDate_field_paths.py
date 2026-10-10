@@ -14,7 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.update.utils import Upda
 from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import IsType
+from documentdb_tests.framework.property_checks import Exists, IsType, Len
 
 # ---------------------------------------------------------------------------
 # Property [Field Creation]: $currentDate creates non-existent fields
@@ -235,3 +235,43 @@ def test_currentDate_array_index(collection):
 
     result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
     assertProperties(result, {"arr": {"0": IsType("date")}}, msg="Array index 0 should become Date")
+
+
+def test_currentDate_dotted_into_array_element_by_index_sets_field(collection):
+    """Test $currentDate on a field within an array element via `tags.0.ts`."""
+    collection.insert_one({"_id": 1, "tags": [{"a": 1}]})
+
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"tags.0.ts": True}}}],
+        },
+    )
+
+    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
+    assertProperties(
+        result,
+        {"tags.0.ts": IsType("date")},
+        msg="Dotted path through an array index should add a Date to that element",
+    )
+
+
+def test_currentDate_dotted_past_array_end_pads_with_nulls(collection):
+    """`tags.10` on a 2-element array pads with nulls and sets a Date at index 10."""
+    collection.insert_one({"_id": 1, "tags": [10, 20]})
+
+    execute_command(
+        collection,
+        {
+            "update": collection.name,
+            "updates": [{"q": {"_id": 1}, "u": {"$currentDate": {"tags.10": True}}}],
+        },
+    )
+
+    result = execute_command(collection, {"find": collection.name, "filter": {"_id": 1}})
+    assertProperties(
+        result,
+        {"tags": Len(11), "tags.0": Exists(), "tags.1": Exists(), "tags.10": IsType("date")},
+        msg="Dotted path past the end of an array should pad with nulls and set the Date",
+    )
