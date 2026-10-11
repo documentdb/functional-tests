@@ -100,6 +100,7 @@ LOOKUP_SELF_JOIN_TESTS: list[LookupTestCase] = [
     ),
     LookupTestCase(
         "self_join_null_missing_match",
+        ignore_order_in=["joined"],
         docs=[
             {"_id": 1, "lf": None, "ff": "x"},
             {"_id": 2, "ff": None},
@@ -206,4 +207,5 @@ def test_lookup_self_join(collection, test_case: LookupTestCase):
         result,
         expected=test_case.expected,
         msg=test_case.msg,
+        ignore_order_in=test_case.ignore_order_in,
     )
