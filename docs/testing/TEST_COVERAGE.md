@@ -648,6 +648,106 @@ Same shape as §11, applied to a different axis: §11 covers expression operator
 
 - **$median and $percentile**: `method` parameter ("approximate" is the only valid value). $percentile additionally takes `p` (array of doubles in [0,1], non-empty). Test boundary percentiles (p=0, p=1, p=0.5), multiple percentiles in single call, invalid `p` values.
 
+### 23. Change Stream Event Coverage
+
+**Rule**: Test each change stream event type on seven axes. For each event, list
+the cases for every axis. Use the event reference page and the reference page
+for the command that produces the event. Coverage is complete when every case
+is tested or marked not applicable, with the reason recorded in the docstring
+of the test file that covers that axis. Put the tests in
+`tests/changeStreams/$eventName/`.
+
+The test inputs are the triggering command, collection type, and
+`$changeStream` options. Section 1 applies only to events that carry user
+documents; it does not apply to metadata-only events. Use the reference
+server's behavior as the expected result.
+
+**1. Emission**
+
+- List and test each supported form of the triggering command.
+- Assert the exact number of events.
+- Do not assert the order of events produced by one command.
+
+**2. Non-emission**
+
+Test each case in which the event must not appear:
+
+- The command fails.
+- The command succeeds but changes nothing.
+- The server performs the change as a side effect of another operation.
+- A stream on a different namespace must not receive the event.
+
+**3. Gating options**
+
+Test each option that controls whether the event appears or which fields it
+contains, such as `showExpandedEvents` and `showSystemEvents`. Test `true`,
+`false`, and omitted. The command must have the same effect on the data in all
+three cases. If the event has no gating option, mark the case not applicable.
+
+**4. Event shape**
+
+- Check that every documented field is present and has the correct type.
+- Check that fields the event must not contain are absent.
+- Check field values when the event reference defines a value rule.
+- Transaction fields (`lsid` and `txnNumber`) are present only for events
+  produced inside a transaction.
+- Decode dates with a timezone-aware codec.
+
+**5. Payload fidelity**
+
+When event data comes from another feature, compare it with the output of that
+feature. Test one case for each distinct representation listed in the other
+feature's test folder. Do not repeat every option of the other feature
+(Section 19). If the command deletes or changes the data, read the expected
+value before running the command.
+
+**6. Scope and resumption**
+
+- Test collection, database, and cluster scopes. The event shape must be the
+  same at each scope.
+- Test `resumeAfter`, `startAfter`, and `startAtOperationTime`.
+- Resuming from an event token must return only later events.
+- If one command produces multiple events, verify that the tokens are distinct.
+  Resume from a middle token and verify that only later events are replayed.
+
+**7. Collection variants**
+
+Test each supported collection type: regular, capped, view, and time-series.
+Record whether the event is produced and what it contains. Do not retest the
+collection type's own semantics, such as capped eviction, view pipelines, or
+time-series bucketing. Mark a type not applicable when the event cannot occur
+on that type or the suite does not cover it.
+
+**Tested once in the shared change stream tests (Section 19)**
+
+- Resume-token format.
+- Cursor and `getMore` lifecycle.
+- `invalidate` behavior.
+- `fullDocument*` options.
+- `$changeStream` option validation.
+- Rejection of a stream opened on a view.
+- Pipeline stages following `$changeStream`.
+
+Test each event in its own folder. Do not test one event in another event's
+folder or repeat the shared cases in each event folder.
+
+**Out of scope**
+
+- Oplog rewrite and `$match` pushdown because they are not observable.
+- Engine-specific storage details.
+- Axes that require a topology the suite does not run. Mark these cases not
+  applicable.
+- Transaction fields for events that cannot occur inside a transaction. Mark
+  these cases not applicable.
+
+**Helpers**
+
+Put shared helpers in `tests/changeStreams/utils/`. These helpers open and close
+streams, read events through a marker document, and close cursors.
+
+**Applies to**: every `operationType` listed on the MongoDB Change Events
+reference page.
+
 ---
 
 ## Test Category Checklist
@@ -688,6 +788,7 @@ For any DocumentDB feature, ensure coverage of:
 - [ ] **System variables**: $$ROOT, $$CURRENT, $$REMOVE, $let — only if official documentation says supported
 - [ ] **Negative zero**: `DOUBLE_NEGATIVE_ZERO` and `DECIMAL128_NEGATIVE_ZERO` behavior (if numeric operator)
 - [ ] **Double precision boundaries**: `DOUBLE_NEAR_MAX`, `DOUBLE_MIN_SUBNORMAL`, `DOUBLE_NEAR_MIN` (if accepts double)
+- [ ] **Change stream event**: emission, non-emission, gating options, event shape, payload fidelity, scope and resumption, collection variants (if change stream event)
 
 ---
 
