@@ -41,6 +41,13 @@ ALL_TYPES_DOCS: list[dict] = [
     {"_id": 17, "x": MaxKey()},  # maxKey
 ]
 
+# ALL_TYPES_DOCS without the JavaScript document. Engines that do not support
+# the JavaScript BSON type reject the whole insert when it contains one, so
+# cases that are not about JavaScript use this set; the JavaScript cases keep
+# ALL_TYPES_DOCS. The expected results still index ALL_TYPES_DOCS, since both
+# lists hold the same document objects.
+TYPES_DOCS_WITHOUT_JS: list[dict] = [d for d in ALL_TYPES_DOCS if not isinstance(d["x"], Code)]
+
 MIXED_DOCS: list[dict] = [
     {"_id": 1, "x": 1.5},  # double
     {"_id": 2, "x": 42},  # int32
@@ -57,70 +64,70 @@ NUMERIC_CODE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="numeric_code_1_double",
         filter={"x": {"$type": 1}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[0]],
         msg="$type: 1 should match double fields",
     ),
     QueryTestCase(
         id="numeric_code_2_string",
         filter={"x": {"$type": 2}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[1]],
         msg="$type: 2 should match string fields",
     ),
     QueryTestCase(
         id="numeric_code_3_object",
         filter={"x": {"$type": 3}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[2]],
         msg="$type: 3 should match object fields",
     ),
     QueryTestCase(
         id="numeric_code_4_array",
         filter={"x": {"$type": 4}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[3]],
         msg="$type: 4 should match array fields",
     ),
     QueryTestCase(
         id="numeric_code_5_binData",
         filter={"x": {"$type": 5}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[{"_id": 5, "x": b"\x01\x02"}],
         msg="$type: 5 should match binData fields",
     ),
     QueryTestCase(
         id="numeric_code_7_objectId",
         filter={"x": {"$type": 7}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[5]],
         msg="$type: 7 should match objectId fields",
     ),
     QueryTestCase(
         id="numeric_code_8_bool",
         filter={"x": {"$type": 8}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[6]],
         msg="$type: 8 should match bool fields",
     ),
     QueryTestCase(
         id="numeric_code_9_date",
         filter={"x": {"$type": 9}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[7]],
         msg="$type: 9 should match date fields",
     ),
     QueryTestCase(
         id="numeric_code_10_null",
         filter={"x": {"$type": 10}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[8]],
         msg="$type: 10 should match null fields",
     ),
     QueryTestCase(
         id="numeric_code_11_regex",
         filter={"x": {"$type": 11}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[9]],
         msg="$type: 11 should match regex fields",
     ),
@@ -134,42 +141,42 @@ NUMERIC_CODE_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="numeric_code_16_int",
         filter={"x": {"$type": 16}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[3], ALL_TYPES_DOCS[11]],
         msg="$type: 16 should match int32 fields and arrays containing int32 elements",
     ),
     QueryTestCase(
         id="numeric_code_17_timestamp",
         filter={"x": {"$type": 17}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[12]],
         msg="$type: 17 should match timestamp fields",
     ),
     QueryTestCase(
         id="numeric_code_18_long",
         filter={"x": {"$type": 18}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[13]],
         msg="$type: 18 should match long fields",
     ),
     QueryTestCase(
         id="numeric_code_19_decimal",
         filter={"x": {"$type": 19}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[14]],
         msg="$type: 19 should match decimal128 fields",
     ),
     QueryTestCase(
         id="numeric_code_neg1_minKey",
         filter={"x": {"$type": -1}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[15]],
         msg="$type: -1 should match minKey fields",
     ),
     QueryTestCase(
         id="numeric_code_127_maxKey",
         filter={"x": {"$type": 127}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[16]],
         msg="$type: 127 should match maxKey fields",
     ),
@@ -179,70 +186,70 @@ STRING_ALIAS_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="string_alias_double",
         filter={"x": {"$type": "double"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[0]],
         msg="$type: 'double' should match double fields",
     ),
     QueryTestCase(
         id="string_alias_string",
         filter={"x": {"$type": "string"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[1]],
         msg="$type: 'string' should match string fields",
     ),
     QueryTestCase(
         id="string_alias_object",
         filter={"x": {"$type": "object"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[2]],
         msg="$type: 'object' should match object fields",
     ),
     QueryTestCase(
         id="string_alias_array",
         filter={"x": {"$type": "array"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[3]],
         msg="$type: 'array' should match array fields",
     ),
     QueryTestCase(
         id="string_alias_binData",
         filter={"x": {"$type": "binData"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[{"_id": 5, "x": b"\x01\x02"}],
         msg="$type: 'binData' should match binData fields",
     ),
     QueryTestCase(
         id="string_alias_objectId",
         filter={"x": {"$type": "objectId"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[5]],
         msg="$type: 'objectId' should match objectId fields",
     ),
     QueryTestCase(
         id="string_alias_bool",
         filter={"x": {"$type": "bool"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[6]],
         msg="$type: 'bool' should match bool fields",
     ),
     QueryTestCase(
         id="string_alias_date",
         filter={"x": {"$type": "date"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[7]],
         msg="$type: 'date' should match date fields",
     ),
     QueryTestCase(
         id="string_alias_null",
         filter={"x": {"$type": "null"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[8]],
         msg="$type: 'null' should match null fields",
     ),
     QueryTestCase(
         id="string_alias_regex",
         filter={"x": {"$type": "regex"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[9]],
         msg="$type: 'regex' should match regex fields",
     ),
@@ -256,42 +263,42 @@ STRING_ALIAS_TESTS: list[QueryTestCase] = [
     QueryTestCase(
         id="string_alias_int",
         filter={"x": {"$type": "int"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[3], ALL_TYPES_DOCS[11]],
         msg="$type: 'int' should match int32 fields and arrays containing int32 elements",
     ),
     QueryTestCase(
         id="string_alias_timestamp",
         filter={"x": {"$type": "timestamp"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[12]],
         msg="$type: 'timestamp' should match timestamp fields",
     ),
     QueryTestCase(
         id="string_alias_long",
         filter={"x": {"$type": "long"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[13]],
         msg="$type: 'long' should match long fields",
     ),
     QueryTestCase(
         id="string_alias_decimal",
         filter={"x": {"$type": "decimal"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[14]],
         msg="$type: 'decimal' should match decimal128 fields",
     ),
     QueryTestCase(
         id="string_alias_minKey",
         filter={"x": {"$type": "minKey"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[15]],
         msg="$type: 'minKey' should match minKey fields",
     ),
     QueryTestCase(
         id="string_alias_maxKey",
         filter={"x": {"$type": "maxKey"}},
-        doc=ALL_TYPES_DOCS,
+        doc=TYPES_DOCS_WITHOUT_JS,
         expected=[ALL_TYPES_DOCS[16]],
         msg="$type: 'maxKey' should match maxKey fields",
     ),
@@ -508,7 +515,7 @@ EQUIVALENCE_PAIRS = [
 )
 def test_type_numeric_string_equivalence(collection, alias, code):
     """Test that numeric type code and string alias return identical results."""
-    collection.insert_many(ALL_TYPES_DOCS)
+    collection.insert_many(ALL_TYPES_DOCS if alias == "javascript" else TYPES_DOCS_WITHOUT_JS)
     codec = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
     result_code = execute_command(
         collection,
