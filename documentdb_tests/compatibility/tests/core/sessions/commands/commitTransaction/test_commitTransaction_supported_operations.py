@@ -131,6 +131,37 @@ def test_create_collection_runs_in_transaction(collection):
     assertSuccessPartial(result, {"ok": 1.0})
 
 
+def test_insert_implicitly_creates_collection_in_transaction(collection):
+    """An insert into a collection that does not exist yet is accepted in a transaction.
+
+    The insert implicitly creates the collection inside the transaction. The
+    transaction is left uncommitted (it aborts when the session ends) so the
+    insert's own response is what is asserted.
+    """
+    new_collection = f"{collection.name}_new"
+    client = collection.database.client
+    with client.start_session() as session:
+        session.start_transaction()
+        result = execute_command(
+            collection,
+            {"insert": new_collection, "documents": [{"_id": 1}]},
+            session=session,
+        )
+    assertSuccessPartial(result, {"ok": 1.0, "n": 1})
+
+
+def test_implicitly_created_collection_persists_after_commit(collection):
+    """A collection implicitly created by an insert in a transaction exists after commit."""
+    new_collection = collection.database[f"{collection.name}_new"]
+    client = collection.database.client
+    with client.start_session() as session:
+        session.start_transaction()
+        new_collection.insert_one({"_id": 1}, session=session)
+        session.commit_transaction()
+    result = execute_command(collection, {"find": new_collection.name, "filter": {}})
+    assertSuccess(result, [{"_id": 1}])
+
+
 def test_createIndexes_on_new_collection_runs_in_transaction(collection):
     """createIndexes is accepted on a collection created earlier in the same transaction."""
     client = collection.database.client
