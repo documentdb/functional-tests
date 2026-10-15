@@ -110,7 +110,7 @@ def test_cross_command_filter(
         node = node.get("inputStage")
 
     assertProperties(
-        {"indexFilterSet": qp["indexFilterSet"], "winningIndex": winning_index},
+        {"indexFilterSet": qp.get("indexFilterSet"), "winningIndex": winning_index},
         {"indexFilterSet": Eq(True), "winningIndex": Eq(expected_index)},
         msg=f"filter should force {expected_index}",
         raw_res=True,
