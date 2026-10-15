@@ -58,6 +58,36 @@ def _event_token_of_type(collection, operation_type, seed, spec=None):
     return next(e["_id"] for e in batch if e["operationType"] == operation_type)
 
 
+def _first_event_token_or_error(collection, seed, spec=None):
+    """Like ``_first_event_token`` but return the engine error instead of crashing.
+
+    When opening or draining the token-capture stream fails, the exception is
+    returned so a caller can forward it to the test's single assertion rather
+    than indexing into it.
+    """
+    opened = _open_stream(collection, spec)
+    if isinstance(opened, Exception):
+        return opened
+    seed(collection)
+    result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+    if isinstance(result, Exception):
+        return result
+    return result["cursor"]["nextBatch"][0]["_id"]
+
+
+def _event_token_of_type_or_error(collection, operation_type, seed, spec=None):
+    """Like ``_event_token_of_type`` but return the engine error instead of crashing."""
+    opened = _open_stream(collection, spec)
+    if isinstance(opened, Exception):
+        return opened
+    seed(collection)
+    result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+    if isinstance(result, Exception):
+        return result
+    batch = result["cursor"]["nextBatch"]
+    return next((e["_id"] for e in batch if e["operationType"] == operation_type), None)
+
+
 def _high_water_mark(collection):
     """Return the postBatchResumeToken of a freshly opened, idle stream."""
     return _open_stream(collection)["cursor"]["postBatchResumeToken"]
@@ -310,14 +340,22 @@ def test_start_after_resumes_after_invalidate(collection):
         c.insert_one({"_id": 1})
         c.drop()
 
-    token = _event_token_of_type(collection, "invalidate", seed)
+    token = _event_token_of_type_or_error(collection, "invalidate", seed)
 
-    opened = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
-    )
-    collection.insert_one({"_id": 2})
-    result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+    if isinstance(token, Exception):
+        result = token
+    else:
+        opened = execute_command(
+            collection,
+            change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
+        )
+        if isinstance(opened, Exception):
+            result = opened
+        else:
+            collection.insert_one({"_id": 2})
+            result = execute_command(
+                collection, get_more_command(collection, opened["cursor"]["id"])
+            )
 
     assertResult(
         result,
@@ -388,14 +426,22 @@ def test_start_after_foreign_collection_token(collection, database_client):
     """Test $changeStream startAfter from a foreign-collection token."""
     other = database_client[f"{collection.name}_other"]
     database_client.create_collection(other.name)
-    token = _first_event_token(other, lambda c: c.insert_one({"_id": 1}))
+    token = _first_event_token_or_error(other, lambda c: c.insert_one({"_id": 1}))
 
-    opened = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
-    )
-    collection.insert_one({"_id": 99})
-    result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+    if isinstance(token, Exception):
+        result = token
+    else:
+        opened = execute_command(
+            collection,
+            change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
+        )
+        if isinstance(opened, Exception):
+            result = opened
+        else:
+            collection.insert_one({"_id": 99})
+            result = execute_command(
+                collection, get_more_command(collection, opened["cursor"]["id"])
+            )
 
     assertResult(
         result,

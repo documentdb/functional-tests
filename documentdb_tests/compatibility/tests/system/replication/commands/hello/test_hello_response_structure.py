@@ -157,9 +157,10 @@ def test_hello_response_topologyVersion_processId_stable(collection):
     """Test hello topologyVersion.processId is stable across calls."""
     r1 = execute_command(collection, {"hello": 1})
     r2 = execute_command(collection, {"hello": 1})
+    tv = r1.get("topologyVersion", {}) if isinstance(r1, dict) else {}
     assertResult(
         r2,
-        expected={"topologyVersion": {"processId": Eq(r1["topologyVersion"]["processId"])}},
+        expected={"topologyVersion": {"processId": Eq(tv.get("processId"))}},
         msg="hello should return stable topologyVersion.processId across calls",
         raw_res=True,
     )

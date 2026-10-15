@@ -210,7 +210,7 @@ def test_serverStatus_pid_consistent_across_calls(collection):
     result2 = execute_admin_command(collection, {"serverStatus": 1})
     assertProperties(
         result2,
-        {"pid": Eq(result1["pid"])},
+        {"pid": Eq(result1.get("pid") if isinstance(result1, dict) else None)},
         raw_res=True,
         msg="serverStatus should return the same pid across calls",
     )
@@ -247,10 +247,10 @@ def test_serverStatus_cross_database_same_core_fields(collection):
     assertProperties(
         db_result,
         {
-            "host": Eq(admin_result["host"]),
-            "version": Eq(admin_result["version"]),
-            "process": Eq(admin_result["process"]),
-            "pid": Eq(admin_result["pid"]),
+            "host": Eq(admin_result.get("host")),
+            "version": Eq(admin_result.get("version")),
+            "process": Eq(admin_result.get("process")),
+            "pid": Eq(admin_result.get("pid")),
         },
         raw_res=True,
         msg="serverStatus should return the same core fields regardless of database",

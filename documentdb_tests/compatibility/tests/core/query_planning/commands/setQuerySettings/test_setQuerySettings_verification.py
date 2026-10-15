@@ -326,7 +326,7 @@ def test_setQuerySettings_hash_same(collection, test):
         for cmd in test.build_setup(ctx):
             r = execute_admin_command(collection, cmd)
             ctx.setup_results.append(r)
-            if "queryShapeHash" in r:
+            if isinstance(r, dict) and "queryShapeHash" in r:
                 setup_hash = r["queryShapeHash"]
         result = execute_admin_command(collection, test.build_command(ctx))
         assertSuccessPartial(
@@ -352,12 +352,15 @@ def test_setQuerySettings_hash_different(collection, test):
         for cmd in test.build_setup(ctx):
             r = execute_admin_command(collection, cmd)
             ctx.setup_results.append(r)
-            if "queryShapeHash" in r:
+            if isinstance(r, dict) and "queryShapeHash" in r:
                 setup_hash = r["queryShapeHash"]
         result = execute_admin_command(collection, test.build_command(ctx))
-        hashes_differ = result["queryShapeHash"] != setup_hash
+        if isinstance(result, Exception):
+            actual = result
+        else:
+            actual = {"differ": result["queryShapeHash"] != setup_hash}
         assertSuccessPartial(
-            {"differ": hashes_differ},
+            actual,
             {"differ": True},
             msg=test.msg,
         )
@@ -412,12 +415,17 @@ def test_setQuerySettings_hash_format(collection, test):
     ctx = CommandContext.from_collection(collection)
     try:
         result = execute_admin_command(collection, test.build_command(ctx))
-        h = result.get("queryShapeHash", "")
-        is_valid = bool(re.fullmatch(r"[0-9A-Fa-f]{64}", h))
+        if isinstance(result, Exception):
+            actual = result
+            msg = test.msg
+        else:
+            h = result.get("queryShapeHash", "")
+            actual = {"valid": bool(re.fullmatch(r"[0-9A-Fa-f]{64}", h))}
+            msg = f"{test.msg}, got: {h!r}"
         assertSuccessPartial(
-            {"valid": is_valid},
+            actual,
             {"valid": True},
-            msg=f"{test.msg}, got: {h!r}",
+            msg=msg,
         )
     finally:
         for cmd in test.build_cleanup(ctx):
