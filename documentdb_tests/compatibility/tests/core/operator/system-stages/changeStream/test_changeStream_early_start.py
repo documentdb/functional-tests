@@ -85,6 +85,7 @@ CHANGESTREAM_EARLY_START_TESTS: list[ChangeStreamEarlyStartTestCase] = [
         expected={"ok": Eq(1.0)},
         msg="$changeStream should accept a startAtOperationTime five seconds before"
         " the oldest retained oplog entry",
+        marks=(pytest.mark.requires(oplog=True),),
     ),
 ]
 
