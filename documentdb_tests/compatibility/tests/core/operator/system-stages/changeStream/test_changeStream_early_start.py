@@ -36,15 +36,20 @@ def _oldest_oplog_ts(collection) -> Timestamp:
     return cast(Timestamp, oldest)
 
 
+def _seconds_before(ts: Timestamp, seconds: int) -> Timestamp:
+    return Timestamp(ts.time - seconds, ts.inc)
+
+
 @dataclass(frozen=True)
 class ChangeStreamEarlyStartTestCase(BaseTestCase):
     """Test case for a startAtOperationTime at or before the oldest oplog entry.
 
     Attributes:
-        compute_start: Receives the timestamp of the oldest retained oplog entry
-            captured at run time and returns the startAtOperationTime to test, so
-            the boundary case is expressed relative to the live oplog rather than
-            as a static value.
+        compute_start: Receives a zero-argument callable that returns the
+            timestamp of the oldest retained oplog entry, and returns the
+            startAtOperationTime to test. The oplog is read only when a case
+            calls it, so cases with a static start time do not depend on a
+            readable oplog.
     """
 
     compute_start: Any = None
@@ -76,7 +81,7 @@ CHANGESTREAM_EARLY_START_TESTS: list[ChangeStreamEarlyStartTestCase] = [
     ),
     ChangeStreamEarlyStartTestCase(
         "oldest_minus_5s",
-        compute_start=lambda oldest: Timestamp(oldest.time - 5, oldest.inc),
+        compute_start=lambda oldest: _seconds_before(oldest(), 5),
         expected={"ok": Eq(1.0)},
         msg="$changeStream should accept a startAtOperationTime five seconds before"
         " the oldest retained oplog entry",
@@ -91,7 +96,7 @@ def test_changeStream_early_start_collection_scope(
     collection, test_case: ChangeStreamEarlyStartTestCase
 ):
     """Test $changeStream accepts an early startAtOperationTime on a collection-scoped stream."""
-    start = test_case.compute_start(_oldest_oplog_ts(collection))
+    start = test_case.compute_start(lambda: _oldest_oplog_ts(collection))
     result = execute_command(
         collection,
         change_stream_command(
@@ -108,7 +113,7 @@ def test_changeStream_early_start_database_scope(
     collection, test_case: ChangeStreamEarlyStartTestCase
 ):
     """Test $changeStream accepts an early startAtOperationTime on a database-scoped stream."""
-    start = test_case.compute_start(_oldest_oplog_ts(collection))
+    start = test_case.compute_start(lambda: _oldest_oplog_ts(collection))
     result = execute_command(
         collection,
         change_stream_command(
@@ -127,7 +132,7 @@ def test_changeStream_early_start_cluster_scope(
     collection, test_case: ChangeStreamEarlyStartTestCase
 ):
     """Test $changeStream accepts an early startAtOperationTime on a cluster-wide stream."""
-    start = test_case.compute_start(_oldest_oplog_ts(collection))
+    start = test_case.compute_start(lambda: _oldest_oplog_ts(collection))
     spec = {"startAtOperationTime": start, "allChangesForCluster": True}
     # batchSize 0 opens the stream without materializing historical events, whose
     # resume tokens can exceed the BSON document size limit on a cluster-wide stream.
