@@ -44,6 +44,9 @@ def test_changeStream_required_image_event_read_error(collection, test_case):
     opened = execute_command(
         collection, change_stream_command(collection, pipeline=test_case.pipeline)
     )
-    collection.update_one({"_id": 1}, {"$set": {"a": 2}})
-    result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+    if isinstance(opened, Exception):
+        result = opened
+    else:
+        collection.update_one({"_id": 1}, {"$set": {"a": 2}})
+        result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
     assertResult(result, error_code=test_case.error_code, msg=test_case.msg, raw_res=True)
