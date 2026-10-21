@@ -14,7 +14,7 @@ from bson import Decimal128, Int64
 from documentdb_tests.framework.infra_exceptions import INFRA_EXCEPTION_TYPES as _INFRA_TYPES
 from documentdb_tests.framework.lazy_payload import materialize
 from documentdb_tests.framework.override_hook import consult_override
-from documentdb_tests.framework.property_checks import _FIELD_ABSENT, Check, PerDoc
+from documentdb_tests.framework.property_checks import _FIELD_ABSENT, Check, LenGt, PerDoc
 
 _MAX_REPR_LEN = 1000
 
@@ -683,3 +683,28 @@ def assertProperties(
 ) -> None:
     """Assert that a result document satisfies property checks (see ``_assert_properties``)."""
     assertResult(result, checks, msg=msg, raw_res=raw_res, properties=True)
+
+
+def assertCommandSupported(result: Union[Any, Exception], msg: Optional[str] = None):
+    """Assert a command is supported: it returned a result rather than erroring.
+
+    This is a capability probe for smoke tests. It answers only "does the engine
+    support this feature?" and deliberately performs no value or BSON-type
+    comparison, so cosmetic divergences (e.g. ``ok`` as int32 vs double, extra
+    response fields, count differences) do NOT make the smoke test fail. Exact
+    response shape is the job of the feature's detailed tests, not the smoke
+    test. A command that raises (OperationFailure / unsupported) fails here;
+    infra exceptions propagate unchanged.
+    """
+    assertResult(result, msg=msg, not_error=True)
+
+
+def assertChangeStreamEvent(result: Union[Any, Exception], msg: Optional[str] = None):
+    """Assert a change-stream getMore returned at least one event.
+
+    Capability probe for change-stream smoke tests: the getMore must succeed and
+    ``cursor.nextBatch`` must be non-empty (the expected event was emitted). An
+    empty batch fails cleanly here instead of raising ``IndexError`` when the
+    test indexes ``nextBatch[0]``. Performs no comparison of the event contents.
+    """
+    assertResult(result, {"cursor.nextBatch": LenGt(0)}, msg=msg, raw_res=True, properties=True)

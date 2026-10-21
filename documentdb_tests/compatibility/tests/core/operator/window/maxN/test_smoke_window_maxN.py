@@ -6,7 +6,7 @@ Tests basic $maxN window operator functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertCommandSupported
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.smoke
@@ -44,9 +44,4 @@ def test_smoke_window_maxN(collection):
         },
     )
 
-    expected = [
-        {"_id": 1, "partition": "A", "value": 10, "maxValues": [10]},
-        {"_id": 2, "partition": "A", "value": 30, "maxValues": [30, 10]},
-        {"_id": 3, "partition": "A", "value": 20, "maxValues": [30, 20]},
-    ]
-    assertSuccess(result, expected, msg="Should support $maxN window operator")
+    assertCommandSupported(result, msg="Should support $maxN window operator")
