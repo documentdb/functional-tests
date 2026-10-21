@@ -10,23 +10,26 @@ from typing import Any, Optional
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertProperties
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.explain_hash import (
+    PLAN_CACHE_SHAPE_HASH,
+    QUERY_SHAPE_HASH,
+    assert_hash_relation,
+)
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq, Ne
 from documentdb_tests.framework.test_case import BaseTestCase
 
 pytestmark = pytest.mark.admin
 
 
-def get_query_hash(
+def explain_find(
     collection,
     find_filter: dict,
     sort: Optional[dict] = None,
     projection: Optional[dict] = None,
     collation: Optional[dict] = None,
-) -> str:
-    """Return queryPlanner.planCacheShapeHash from explain for a find filter."""
+) -> Any:
+    """Run explain on a find and return the raw result (or the exception)."""
     cmd: dict[str, Any] = {"find": collection.name, "filter": find_filter}
     if sort is not None:
         cmd["sort"] = sort
@@ -34,36 +37,7 @@ def get_query_hash(
         cmd["projection"] = projection
     if collation is not None:
         cmd["collation"] = collation
-    result = execute_command(collection, {"explain": cmd, "verbosity": "queryPlanner"})
-    if isinstance(result, Exception):
-        raise RuntimeError(f"explain command failed: {result}")
-    query_planner = result.get("queryPlanner", {})
-    if "planCacheShapeHash" not in query_planner:
-        raise RuntimeError(f"explain did not return queryPlanner.planCacheShapeHash; got: {result}")
-    return str(query_planner["planCacheShapeHash"])
-
-
-def get_query_shape_hash(
-    collection,
-    find_filter: dict,
-    sort: Optional[dict] = None,
-    projection: Optional[dict] = None,
-    collation: Optional[dict] = None,
-) -> str:
-    """Return the top-level queryShapeHash from explain for a find filter."""
-    cmd: dict[str, Any] = {"find": collection.name, "filter": find_filter}
-    if sort is not None:
-        cmd["sort"] = sort
-    if projection is not None:
-        cmd["projection"] = projection
-    if collation is not None:
-        cmd["collation"] = collation
-    result = execute_command(collection, {"explain": cmd, "verbosity": "queryPlanner"})
-    if isinstance(result, Exception):
-        raise RuntimeError(f"explain command failed: {result}")
-    if "queryShapeHash" not in result:
-        raise RuntimeError(f"explain did not return queryShapeHash; got: {result}")
-    return str(result["queryShapeHash"])
+    return execute_command(collection, {"explain": cmd, "verbosity": "queryPlanner"})
 
 
 @dataclass(frozen=True)
@@ -297,18 +271,13 @@ def test_explain_queryhash_same_shape(collection, test):
     collection.insert_many(
         [{"_id": i, "a": i % 5, "b": i % 3, "arr": [i, i + 1], "s": str(i)} for i in range(20)]
     )
-    hash_a = get_query_hash(
+    result_a = explain_find(
         collection, test.filter_a, test.sort_a, test.projection_a, test.collation_a
     )
-    hash_b = get_query_hash(
+    result_b = explain_find(
         collection, test.filter_b, test.sort_b, test.projection_b, test.collation_b
     )
-    assertProperties(
-        {"planCacheShapeHash": hash_a},
-        {"planCacheShapeHash": Eq(hash_b)},
-        msg=test.msg,
-        raw_res=True,
-    )
+    assert_hash_relation(result_a, result_b, PLAN_CACHE_SHAPE_HASH, same=True, msg=test.msg)
 
 
 DIFF_SHAPE_TESTS: list[QueryHashCase] = [
@@ -516,18 +485,13 @@ def test_explain_queryhash_different_shape(collection, test):
     collection.insert_many(
         [{"_id": i, "a": i % 5, "b": i % 3, "arr": [i, i + 1], "s": str(i)} for i in range(20)]
     )
-    hash_a = get_query_hash(
+    result_a = explain_find(
         collection, test.filter_a, test.sort_a, test.projection_a, test.collation_a
     )
-    hash_b = get_query_hash(
+    result_b = explain_find(
         collection, test.filter_b, test.sort_b, test.projection_b, test.collation_b
     )
-    assertProperties(
-        {"planCacheShapeHash": hash_a},
-        {"planCacheShapeHash": Ne(hash_b)},
-        msg=test.msg,
-        raw_res=True,
-    )
+    assert_hash_relation(result_a, result_b, PLAN_CACHE_SHAPE_HASH, same=False, msg=test.msg)
 
 
 @pytest.mark.parametrize("test", pytest_params(SAME_SHAPE_TESTS))
@@ -542,16 +506,13 @@ def test_explain_queryshapehash_same_shape(collection, test):
     collection.insert_many(
         [{"_id": i, "a": i % 5, "b": i % 3, "arr": [i, i + 1], "s": str(i)} for i in range(20)]
     )
-    hash_a = get_query_shape_hash(
+    result_a = explain_find(
         collection, test.filter_a, test.sort_a, test.projection_a, test.collation_a
     )
-    hash_b = get_query_shape_hash(
+    result_b = explain_find(
         collection, test.filter_b, test.sort_b, test.projection_b, test.collation_b
     )
-    check = Eq(hash_b) if expected_same else Ne(hash_b)
-    assertProperties(
-        {"queryShapeHash": hash_a}, {"queryShapeHash": check}, msg=test.msg, raw_res=True
-    )
+    assert_hash_relation(result_a, result_b, QUERY_SHAPE_HASH, same=expected_same, msg=test.msg)
 
 
 @pytest.mark.parametrize("test", pytest_params(DIFF_SHAPE_TESTS))
@@ -565,13 +526,10 @@ def test_explain_queryshapehash_different_shape(collection, test):
     collection.insert_many(
         [{"_id": i, "a": i % 5, "b": i % 3, "arr": [i, i + 1], "s": str(i)} for i in range(20)]
     )
-    hash_a = get_query_shape_hash(
+    result_a = explain_find(
         collection, test.filter_a, test.sort_a, test.projection_a, test.collation_a
     )
-    hash_b = get_query_shape_hash(
+    result_b = explain_find(
         collection, test.filter_b, test.sort_b, test.projection_b, test.collation_b
     )
-    check = Eq(hash_b) if expected_same else Ne(hash_b)
-    assertProperties(
-        {"queryShapeHash": hash_a}, {"queryShapeHash": check}, msg=test.msg, raw_res=True
-    )
+    assert_hash_relation(result_a, result_b, QUERY_SHAPE_HASH, same=expected_same, msg=test.msg)

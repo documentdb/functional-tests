@@ -20,54 +20,34 @@ from typing import Any
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertProperties
+from documentdb_tests.compatibility.tests.system.diagnostic.utils.explain_hash import (
+    PLAN_CACHE_SHAPE_HASH,
+    QUERY_SHAPE_HASH,
+    assert_hash_relation,
+)
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq, Ne
 from documentdb_tests.framework.test_case import BaseTestCase
 
 pytestmark = pytest.mark.admin
 
 
-def _get_plan_cache_shape_hash(collection, pipeline: list) -> str:
-    """Return queryPlanner.planCacheShapeHash from explain for an aggregate pipeline."""
+# Explain reports planCacheShapeHash under queryPlanner for most pipelines, and
+# under stages.0.$cursor.queryPlanner when the pipeline ends in $out or $merge.
+PIPELINE_PLAN_CACHE_SHAPE_HASH = (
+    PLAN_CACHE_SHAPE_HASH,
+    f"stages.0.$cursor.{PLAN_CACHE_SHAPE_HASH}",
+)
+
+
+def _explain_aggregate(collection, pipeline: list) -> Any:
+    """Run explain on an aggregate pipeline and return the raw result (or the exception)."""
     cmd: dict[str, Any] = {
         "aggregate": collection.name,
         "pipeline": pipeline,
         "cursor": {},
     }
-    result = execute_command(collection, {"explain": cmd, "verbosity": "queryPlanner"})
-    if isinstance(result, Exception):
-        raise RuntimeError(f"explain command failed: {result}")
-    # Standard format: queryPlanner at top level.
-    query_planner = result.get("queryPlanner", {})
-    if "planCacheShapeHash" in query_planner:
-        return str(query_planner["planCacheShapeHash"])
-    # Stages format ($out/$merge): nested under stages.0.$cursor.queryPlanner.
-    stages = result.get("stages", [])
-    if stages:
-        cursor_stage = stages[0].get("$cursor", {})
-        qp = cursor_stage.get("queryPlanner", {})
-        if "planCacheShapeHash" in qp:
-            return str(qp["planCacheShapeHash"])
-    raise RuntimeError(
-        f"explain did not return planCacheShapeHash in expected location; got: {result}"
-    )
-
-
-def _get_query_shape_hash(collection, pipeline: list) -> str:
-    """Return the top-level queryShapeHash from explain for an aggregate pipeline."""
-    cmd: dict[str, Any] = {
-        "aggregate": collection.name,
-        "pipeline": pipeline,
-        "cursor": {},
-    }
-    result = execute_command(collection, {"explain": cmd, "verbosity": "queryPlanner"})
-    if isinstance(result, Exception):
-        raise RuntimeError(f"explain command failed: {result}")
-    if "queryShapeHash" not in result:
-        raise RuntimeError(f"explain did not return queryShapeHash; got: {result}")
-    return str(result["queryShapeHash"])
+    return execute_command(collection, {"explain": cmd, "verbosity": "queryPlanner"})
 
 
 @dataclass(frozen=True)
@@ -361,14 +341,10 @@ def test_pipeline_plancacheshapehash_stage_sensitivity(collection, test):
     collection.insert_many(
         [{"_id": i, "a": i % 5, "b": i % 3, "arr": [i, i + 1], "sub": {"x": i}} for i in range(20)]
     )
-    hash_a = _get_plan_cache_shape_hash(collection, list(test.pipeline_a))
-    hash_b = _get_plan_cache_shape_hash(collection, list(test.pipeline_b))
-    check = Eq(hash_b) if test.plan_cache_same else Ne(hash_b)
-    assertProperties(
-        {"planCacheShapeHash": hash_a},
-        {"planCacheShapeHash": check},
-        msg=test.msg,
-        raw_res=True,
+    result_a = _explain_aggregate(collection, list(test.pipeline_a))
+    result_b = _explain_aggregate(collection, list(test.pipeline_b))
+    assert_hash_relation(
+        result_a, result_b, PIPELINE_PLAN_CACHE_SHAPE_HASH, same=test.plan_cache_same, msg=test.msg
     )
 
 
@@ -378,12 +354,8 @@ def test_pipeline_queryshapehash_considers_all_stages(collection, test):
     collection.insert_many(
         [{"_id": i, "a": i % 5, "b": i % 3, "arr": [i, i + 1], "sub": {"x": i}} for i in range(20)]
     )
-    hash_a = _get_query_shape_hash(collection, list(test.pipeline_a))
-    hash_b = _get_query_shape_hash(collection, list(test.pipeline_b))
-    check = Eq(hash_b) if test.query_shape_same else Ne(hash_b)
-    assertProperties(
-        {"queryShapeHash": hash_a},
-        {"queryShapeHash": check},
-        msg=test.msg,
-        raw_res=True,
+    result_a = _explain_aggregate(collection, list(test.pipeline_a))
+    result_b = _explain_aggregate(collection, list(test.pipeline_b))
+    assert_hash_relation(
+        result_a, result_b, QUERY_SHAPE_HASH, same=test.query_shape_same, msg=test.msg
     )
