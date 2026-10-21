@@ -17,10 +17,10 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
-    execute_expression,
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DOUBLE_PRECISION_LOSS, INT64_MAX
 
@@ -122,27 +122,32 @@ def test_root_echoes_doc(collection, test):
 
 # Property [Empty Document]: $$ROOT is an empty object when the input document has
 # no fields.
-ROOT_EMPTY_DOCUMENT_TESTS: list[ExpressionTestCase] = [
-    ExpressionTestCase(
-        id="empty_document",
-        expression="$$ROOT",
-        doc=None,
-        expected={},
-        msg="$$ROOT should return an empty object when the input document has no fields",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(ROOT_EMPTY_DOCUMENT_TESTS))
-def test_root_empty_document(collection, test):
+def test_root_empty_document(collection):
     """$$ROOT over a field-less input document.
 
-    ``doc=None`` selects execute_expression, which evaluates the expression over
-    a ``$documents: [{}]`` stage rather than inserting a document, since an
-    inserted document would always be given an ``_id``.
+    This case needs a truly field-less input row, so it cannot use the shared
+    ``execute_expression`` helper: that helper inserts a document (which always
+    carries an auto-generated ``_id``), which would make ``$$ROOT`` a one-field
+    document. Instead a document is inserted and ``$replaceWith: {$literal: {}}``
+    strips it back to a field-less row before ``$$ROOT`` is read.
     """
-    result = execute_expression(collection, test.expression)
-    assert_expression_result(result, expected=test.expected, msg=test.msg)
+    collection.insert_one({})
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$replaceWith": {"$literal": {}}},
+                {"$project": {"_id": 0, "result": "$$ROOT"}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
+        result,
+        [{"result": {}}],
+        msg="$$ROOT should return an empty object when the input document has no fields",
+    )
 
 
 # Property [Reported Type]: $$ROOT always reports BSON type "object".
