@@ -17,7 +17,7 @@ pytest.register_assert_rewrite("documentdb_tests.framework.assertions")
 import warnings  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-from documentdb_tests.framework import fixtures  # noqa: E402
+from documentdb_tests.framework import executor, fixtures  # noqa: E402
 from documentdb_tests.framework.engine_registry import (  # noqa: E402
     Target,
     ensure_initiated,
@@ -305,7 +305,9 @@ def database_client(engine_client, request, worker_id):
 
     yield db
 
-    # Cleanup: drop test database
+    # Cleanup: close the server cursors the test left open, then drop the
+    # test database. Dropping does not close cursors on every engine.
+    executor.close_tracked_cursors()
     fixtures.cleanup_database(engine_client, db_name)
 
 
@@ -333,8 +335,21 @@ def collection(database_client, request, worker_id):
 
     yield coll
 
-    # Cleanup: drop collection
+    # Cleanup: close the server cursors the test left open, then drop the
+    # collection. Dropping does not close cursors on every engine.
+    executor.close_tracked_cursors()
     fixtures.cleanup_collection(database_client, collection_name)
+
+
+@pytest.fixture(autouse=True)
+def close_leaked_cursors():
+    """Close server cursors left open by tests that use neither fixture above.
+
+    Runs after every test. Tests that use ``collection`` or ``database_client``
+    have their cursors closed before the drop; this catches the rest.
+    """
+    yield
+    executor.close_tracked_cursors()
 
 
 @pytest.fixture(scope="function")
