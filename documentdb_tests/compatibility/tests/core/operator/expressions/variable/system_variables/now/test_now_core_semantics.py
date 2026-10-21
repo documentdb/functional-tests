@@ -198,10 +198,23 @@ def test_now_identical_across_getmore_batches(collection):
         seen.extend(doc["t"] for doc in batch["cursor"]["nextBatch"])
         cursor_id = batch["cursor"]["id"]
 
-    result = execute_expression(collection, {"$size": {"$setUnion": [seen]}})
-    assert_expression_result(
+    # The collection is pre-populated (300 docs), so ``execute_expression`` — which
+    # aggregates over the whole collection — would emit one row per document. A
+    # ``$limit: 1`` reduces it to the single row this assertion expects.
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$limit": 1},
+                {"$project": {"_id": 0, "result": {"$size": {"$setUnion": [seen]}}}},
+            ],
+            "cursor": {},
+        },
+    )
+    assertSuccess(
         result,
-        expected=1,
+        [{"result": 1}],
         msg="$$NOW should be identical across every getMore batch of one cursor",
     )
 
