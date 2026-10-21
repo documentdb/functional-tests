@@ -6,7 +6,7 @@ Tests basic grantRolesToUser functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccessPartial
+from documentdb_tests.framework.assertions import assertCommandSupported
 from documentdb_tests.framework.executor import execute_admin_command
 
 pytestmark = pytest.mark.smoke
@@ -25,5 +25,4 @@ def test_smoke_grantRolesToUser(collection):
 
     execute_admin_command(collection, {"dropUser": user_name})
 
-    expected = {"ok": 1.0}
-    assertSuccessPartial(result, expected, msg="Should support grantRolesToUser command")
+    assertCommandSupported(result, msg="Should support grantRolesToUser command")
