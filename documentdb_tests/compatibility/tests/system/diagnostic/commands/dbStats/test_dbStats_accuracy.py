@@ -79,15 +79,20 @@ def test_dbStats_scale_divides_data_size(collection):
     collection.insert_many([{"_id": i, "data": "x" * 1024} for i in range(50)])
     unscaled = execute_command(collection, {"dbStats": 1, "scale": 1})
     scaled = execute_command(collection, {"dbStats": 1, "scale": 1024})
-    expected_scaled = unscaled.get("dataSize") / 1024
-    actual_scaled = scaled.get("dataSize")
+    unscaled_data = unscaled.get("dataSize") if isinstance(unscaled, dict) else None
+    scaled_data = scaled.get("dataSize") if isinstance(scaled, dict) else None
+    matches = (
+        isinstance(unscaled_data, (int, float))
+        and isinstance(scaled_data, (int, float))
+        and scaled_data == pytest.approx(unscaled_data / 1024, abs=1.0)
+    )
     assertSuccess(
-        actual_scaled == pytest.approx(expected_scaled, abs=1.0),
+        matches,
         expected=True,
         raw_res=True,
         msg=(
-            f"scale=1024 dataSize ({actual_scaled}) should approximate "
-            f"unscaled dataSize / 1024 ({expected_scaled})"
+            f"scale=1024 dataSize ({scaled_data}) should approximate "
+            f"unscaled dataSize / 1024 (unscaled dataSize={unscaled_data})"
         ),
     )
 

@@ -119,9 +119,16 @@ def test_dbStats_avg_obj_size_equals_data_size_over_objects(collection):
     """Test avgObjSize equals dataSize divided by objects."""
     collection.insert_many([{"_id": i, "data": "x" * (i + 1)} for i in range(10)])
     result = execute_command(collection, {"dbStats": 1})
+    data_size = result.get("dataSize") if isinstance(result, dict) else None
+    objects = result.get("objects") if isinstance(result, dict) else None
+    expected_avg = (
+        data_size / objects
+        if isinstance(data_size, (int, float)) and isinstance(objects, (int, float)) and objects
+        else None
+    )
     assertProperties(
         result,
-        {"avgObjSize": Eq(result.get("dataSize") / result.get("objects"))},
+        {"avgObjSize": Eq(expected_avg)},
         raw_res=True,
         msg="avgObjSize should equal dataSize / objects",
     )
