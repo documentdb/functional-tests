@@ -272,7 +272,11 @@ def test_geospatial_2dsphere_valid_data(collection, test):
         collection,
         {"createIndexes": collection.name, "indexes": list(test.indexes)},
     )
-    collection.insert_many(list(test.doc))
+    # Load the documents through execute_command (not collection.insert_many) so a
+    # rejection by the engine is captured rather than raising BulkWriteError
+    # outside the assertion helper; a rejected insert then surfaces as the find
+    # result diverging from the expected documents in the single assertion below.
+    execute_command(collection, {"insert": collection.name, "documents": list(test.doc)})
     result = execute_command(
         collection, {"find": collection.name, "hint": test.indexes[0]["name"], "sort": {"_id": 1}}
     )

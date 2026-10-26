@@ -18,6 +18,24 @@ from documentdb_tests.framework.executor import execute_admin_command, execute_c
 pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
 
 
+def _commit_or_error(session, result):
+    """Commit the transaction, returning the engine error instead of raising.
+
+    When the operation under test already failed (``result`` is an exception),
+    the transaction cannot commit, so its failure is returned unchanged. When
+    the operation succeeded, a commit failure is captured and returned so the
+    single assertion surfaces the engine's real error instead of raising a bare
+    exception outside the assertion helper.
+    """
+    if isinstance(result, Exception):
+        return result
+    try:
+        session.commit_transaction()
+    except Exception as error:  # noqa: BLE001 - forwarded to the assertion helper
+        return error
+    return result
+
+
 def test_find_runs_in_transaction(collection):
     """A find issued inside a transaction returns the collection's documents."""
     collection.insert_one({"_id": 1})
@@ -117,7 +135,7 @@ def test_bulkWrite_runs_in_transaction(collection):
             },
             session=session,
         )
-        session.commit_transaction()
+        result = _commit_or_error(session, result)
     assertSuccessPartial(result, {"ok": 1.0})
 
 
@@ -127,7 +145,7 @@ def test_create_collection_runs_in_transaction(collection):
     with client.start_session() as session:
         session.start_transaction()
         result = execute_command(collection, {"create": f"{collection.name}_new"}, session=session)
-        session.commit_transaction()
+        result = _commit_or_error(session, result)
     assertSuccessPartial(result, {"ok": 1.0})
 
 
@@ -174,7 +192,7 @@ def test_createIndexes_on_new_collection_runs_in_transaction(collection):
             {"createIndexes": new_collection, "indexes": [{"key": {"x": 1}, "name": "x_1"}]},
             session=session,
         )
-        session.commit_transaction()
+        result = _commit_or_error(session, result)
     assertSuccessPartial(result, {"ok": 1.0})
 
 

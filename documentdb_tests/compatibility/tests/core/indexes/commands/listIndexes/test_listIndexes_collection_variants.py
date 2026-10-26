@@ -256,36 +256,40 @@ def test_listIndexes_comment_inherited_by_getMore(collection):
         },
     )
 
-    db.command({"profile": 2})
-
-    try:
-        result = execute_command(
-            collection,
-            {
-                "listIndexes": collection.name,
-                "cursor": {"batchSize": 1},
-                "comment": "getmore_inherit_test",
-            },
-        )
-        cursor_id = result["cursor"]["id"]
-        execute_command(collection, {"getMore": cursor_id, "collection": collection.name})
-
-        result = execute_command(
-            db["system.profile"],
-            {
-                "count": "system.profile",
-                "query": {
-                    "command.getMore": {"$exists": True},
-                    "command.comment": "getmore_inherit_test",
+    # Enabling the profiler can be rejected by the engine (profiling is not a
+    # supported feature on every target). Route that through the single
+    # assertion so it fails overridably with the real error instead of raising
+    # outside the helper. No cleanup is needed when it was never enabled.
+    profile_on = execute_command(collection, {"profile": 2})
+    if isinstance(profile_on, Exception):
+        result = profile_on
+    else:
+        try:
+            listed = execute_command(
+                collection,
+                {
+                    "listIndexes": collection.name,
+                    "cursor": {"batchSize": 1},
+                    "comment": "getmore_inherit_test",
                 },
-            },
-        )
-        assertSuccessPartial(
-            result, {"n": 1}, msg="Comment should be inherited by getMore in profiler"
-        )
-    finally:
-        db.command({"profile": 0})
-        db.system.profile.drop()
+            )
+            cursor_id = listed["cursor"]["id"]
+            execute_command(collection, {"getMore": cursor_id, "collection": collection.name})
+
+            result = execute_command(
+                db["system.profile"],
+                {
+                    "count": "system.profile",
+                    "query": {
+                        "command.getMore": {"$exists": True},
+                        "command.comment": "getmore_inherit_test",
+                    },
+                },
+            )
+        finally:
+            db.command({"profile": 0})
+            db.system.profile.drop()
+    assertSuccessPartial(result, {"n": 1}, msg="Comment should be inherited by getMore in profiler")
 
 
 def test_listIndexes_system_buckets_collection(database_client):
