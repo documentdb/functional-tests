@@ -5,6 +5,7 @@ from __future__ import annotations
 from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
     open_cursor,
     open_find_cursors,
+    open_find_cursors_or_error,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
@@ -221,13 +222,17 @@ def test_getMore_new_inserts_visible(collection):
 def test_getMore_updated_docs_show_new_value(collection):
     """Test getMore returns the new value of a document updated before it is reached."""
     collection.insert_many([{"_id": i, "v": i} for i in range(10)])
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=2)
-    # firstBatch returned _id 0,1; cursor is positioned at _id 2.
-    collection.update_one({"_id": 4}, {"$set": {"v": 999}})
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name, "batchSize": 10},
-    )
+    cursors = open_find_cursors_or_error(collection, 1, batch_size=2)
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        (cursor_id,) = cursors
+        # firstBatch returned _id 0,1; cursor is positioned at _id 2.
+        collection.update_one({"_id": 4}, {"$set": {"v": 999}})
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name, "batchSize": 10},
+        )
     assertResult(
         result,
         expected={
