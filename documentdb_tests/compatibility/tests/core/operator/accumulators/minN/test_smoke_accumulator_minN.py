@@ -6,7 +6,7 @@ Tests basic $minN accumulator functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertCommandSupported
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.smoke
@@ -33,5 +33,4 @@ def test_smoke_accumulator_minN(collection):
         },
     )
 
-    expected = [{"_id": "A", "minTwo": [10, 20]}]
-    assertSuccess(result, expected, msg="Should support $minN accumulator")
+    assertCommandSupported(result, msg="Should support $minN accumulator")

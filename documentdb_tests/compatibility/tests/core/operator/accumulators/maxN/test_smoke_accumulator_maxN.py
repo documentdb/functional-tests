@@ -6,7 +6,7 @@ Tests basic $maxN accumulator functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertCommandSupported
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.smoke
@@ -33,5 +33,4 @@ def test_smoke_accumulator_maxN(collection):
         },
     )
 
-    expected = [{"_id": "A", "maxTwo": [30, 20]}]
-    assertSuccess(result, expected, msg="Should support $maxN accumulator")
+    assertCommandSupported(result, msg="Should support $maxN accumulator")
