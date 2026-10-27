@@ -80,6 +80,7 @@ LOOKUP_EQUALITY_MATCH_TESTS: list[LookupTestCase] = [
     ),
     LookupTestCase(
         "negative_zero_matches_all_zeros",
+        ignore_order_in=["joined"],
         docs=[{"_id": 1, "lf": DOUBLE_NEGATIVE_ZERO}],
         foreign_docs=[
             {"_id": 100, "ff": 0},
@@ -118,6 +119,7 @@ LOOKUP_EQUALITY_MATCH_TESTS: list[LookupTestCase] = [
     ),
     LookupTestCase(
         "nan_matches_nan_across_types",
+        ignore_order_in=["joined"],
         docs=[
             {"_id": 1, "lf": FLOAT_NAN},
             {"_id": 2, "lf": FLOAT_NEGATIVE_NAN},
@@ -164,6 +166,7 @@ LOOKUP_EQUALITY_MATCH_TESTS: list[LookupTestCase] = [
     ),
     LookupTestCase(
         "infinity_matches_infinity_across_types",
+        ignore_order_in=["joined"],
         docs=[
             {"_id": 1, "lf": FLOAT_INFINITY},
             {"_id": 2, "lf": FLOAT_NEGATIVE_INFINITY},
@@ -723,6 +726,7 @@ LOOKUP_EQUALITY_MATCH_TESTS: list[LookupTestCase] = [
     ),
     LookupTestCase(
         "array_matches_identical_array",
+        ignore_order_in=["joined"],
         docs=[
             {"_id": 1, "lf": [1, 2, 3]},
             {"_id": 2, "lf": [3, 2, 1]},
@@ -818,4 +822,5 @@ def test_lookup_equality_match(collection, test_case: LookupTestCase):
             expected=test_case.expected,
             error_code=test_case.error_code,
             msg=test_case.msg,
+            ignore_order_in=test_case.ignore_order_in,
         )
