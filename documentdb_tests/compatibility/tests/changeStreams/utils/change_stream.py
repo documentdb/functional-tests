@@ -99,10 +99,18 @@ def open_change_stream(
 def collect_until_marker(
     stream: ChangeStreamCursor,
     marker_collection,
+    *,
+    marker_fields: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Insert a marker document and return all events through that insert."""
     marker = ObjectId()
-    marker_collection.insert_one({"_id": marker, "change_stream_test_marker": True})
+    marker_collection.insert_one(
+        {
+            **(marker_fields or {}),
+            "_id": marker,
+            "change_stream_test_marker": True,
+        }
+    )
 
     events = list(stream.initial_events)
     stream.initial_events.clear()
