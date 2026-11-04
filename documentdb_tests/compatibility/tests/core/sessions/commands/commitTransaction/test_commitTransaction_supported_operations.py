@@ -36,6 +36,20 @@ def _commit_or_error(session, result):
     return result
 
 
+def _apply_and_commit(session, operation):
+    """Run a driver write in the transaction and commit it.
+
+    Returns the engine error instead of raising, from either the write or the
+    commit, so the test's single assertion surfaces it. Returns None when both
+    succeed.
+    """
+    try:
+        operation()
+    except Exception as error:  # noqa: BLE001 - forwarded to the assertion helper
+        return error
+    return _commit_or_error(session, None)
+
+
 def test_find_runs_in_transaction(collection):
     """A find issued inside a transaction returns the collection's documents."""
     collection.insert_one({"_id": 1})
@@ -45,7 +59,7 @@ def test_find_runs_in_transaction(collection):
         result = execute_command(
             collection, {"find": collection.name, "filter": {}}, session=session
         )
-        session.commit_transaction()
+        result = _commit_or_error(session, result)
     assertSuccess(result, [{"_id": 1}])
 
 
@@ -60,7 +74,7 @@ def test_aggregate_count_runs_in_transaction(collection):
             {"aggregate": collection.name, "pipeline": [{"$count": "n"}], "cursor": {}},
             session=session,
         )
-        session.commit_transaction()
+        result = _commit_or_error(session, result)
     assertSuccess(result, [{"n": 2}])
 
 
@@ -70,9 +84,15 @@ def test_update_runs_in_transaction(collection):
     client = collection.database.client
     with client.start_session() as session:
         session.start_transaction()
-        collection.update_one({"_id": 1}, {"$set": {"x": "after"}}, session=session)
-        session.commit_transaction()
-    readback = execute_command(collection, {"find": collection.name, "filter": {}})
+        failed = _apply_and_commit(
+            session,
+            lambda: collection.update_one({"_id": 1}, {"$set": {"x": "after"}}, session=session),
+        )
+    readback = (
+        failed
+        if failed is not None
+        else execute_command(collection, {"find": collection.name, "filter": {}})
+    )
     assertSuccess(readback, [{"_id": 1, "x": "after"}])
 
 
@@ -82,9 +102,14 @@ def test_delete_runs_in_transaction(collection):
     client = collection.database.client
     with client.start_session() as session:
         session.start_transaction()
-        collection.delete_one({"_id": 1}, session=session)
-        session.commit_transaction()
-    readback = execute_command(collection, {"find": collection.name, "filter": {}})
+        failed = _apply_and_commit(
+            session, lambda: collection.delete_one({"_id": 1}, session=session)
+        )
+    readback = (
+        failed
+        if failed is not None
+        else execute_command(collection, {"find": collection.name, "filter": {}})
+    )
     assertSuccess(readback, [])
 
 
@@ -97,7 +122,7 @@ def test_distinct_runs_in_transaction(collection):
         result = execute_command(
             collection, {"distinct": collection.name, "key": "x"}, session=session
         )
-        session.commit_transaction()
+        result = _commit_or_error(session, result)
     assertSuccessPartial(result, {"ok": 1.0})
 
 
@@ -116,7 +141,7 @@ def test_findAndModify_runs_in_transaction(collection):
             },
             session=session,
         )
-        session.commit_transaction()
+        result = _commit_or_error(session, result)
     assertSuccessPartial(result, {"ok": 1.0})
 
 
@@ -174,9 +199,14 @@ def test_implicitly_created_collection_persists_after_commit(collection):
     client = collection.database.client
     with client.start_session() as session:
         session.start_transaction()
-        new_collection.insert_one({"_id": 1}, session=session)
-        session.commit_transaction()
-    result = execute_command(collection, {"find": new_collection.name, "filter": {}})
+        failed = _apply_and_commit(
+            session, lambda: new_collection.insert_one({"_id": 1}, session=session)
+        )
+    result = (
+        failed
+        if failed is not None
+        else execute_command(collection, {"find": new_collection.name, "filter": {}})
+    )
     assertSuccess(result, [{"_id": 1}])
 
 
@@ -213,7 +243,7 @@ def test_near_query_runs_in_transaction(collection):
             },
             session=session,
         )
-        session.commit_transaction()
+        result = _commit_or_error(session, result)
     assertSuccessPartial(result, {"ok": 1.0})
 
 
@@ -234,7 +264,7 @@ def test_nearSphere_query_runs_in_transaction(collection):
             },
             session=session,
         )
-        session.commit_transaction()
+        result = _commit_or_error(session, result)
     assertSuccessPartial(result, {"ok": 1.0})
 
 
@@ -262,5 +292,5 @@ def test_geoNear_stage_runs_in_transaction(collection):
             },
             session=session,
         )
-        session.commit_transaction()
+        result = _commit_or_error(session, result)
     assertSuccessPartial(result, {"ok": 1.0})

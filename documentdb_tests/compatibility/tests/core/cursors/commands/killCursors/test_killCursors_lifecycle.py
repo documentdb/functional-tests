@@ -11,7 +11,6 @@ from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_tes
     CursorCommandContext,
     CursorCommandTestCase,
     open_find_cursors,
-    open_find_cursors_or_error,
 )
 from documentdb_tests.framework import fixtures
 from documentdb_tests.framework.assertions import (
@@ -67,7 +66,7 @@ KILLCURSORS_CORE_TESTS: list[CursorCommandTestCase] = [
 def test_killCursors_lifecycle(database_client, collection, test):
     """Test killCursors cursor lifecycle."""
     collection = test.prepare(database_client, collection)
-    cursors = open_find_cursors_or_error(collection, test.cursor_count)
+    cursors = open_find_cursors(collection, test.cursor_count)
     if isinstance(cursors, Exception):
         result, expected = cursors, None
     else:
@@ -187,11 +186,15 @@ def test_killCursors_view_cursor(database_client, collection):
     )
     view = database_client[view_name]
     res = execute_command(view, {"find": view_name, "batchSize": 1})
-    cursor_id = res["cursor"]["id"]
-    result = execute_command(
-        view,
-        {"killCursors": view_name, "cursors": [cursor_id]},
-    )
+    if isinstance(res, Exception):
+        result = res
+        cursor_id = None
+    else:
+        cursor_id = res["cursor"]["id"]
+        result = execute_command(
+            view,
+            {"killCursors": view_name, "cursors": [cursor_id]},
+        )
     assertResult(
         result,
         expected={
@@ -251,11 +254,15 @@ def test_killCursors_tailable_cursor(database_client):
         capped,
         {"find": "capped_for_kill", "batchSize": 1, "tailable": True},
     )
-    cursor_id = res["cursor"]["id"]
-    result = execute_command(
-        capped,
-        {"killCursors": "capped_for_kill", "cursors": [cursor_id]},
-    )
+    if isinstance(res, Exception):
+        result = res
+        cursor_id = None
+    else:
+        cursor_id = res["cursor"]["id"]
+        result = execute_command(
+            capped,
+            {"killCursors": "capped_for_kill", "cursors": [cursor_id]},
+        )
     assertResult(
         result,
         expected={
@@ -275,15 +282,19 @@ def test_killCursors_tailable_cursor(database_client):
 def test_killCursors_getmore_after_kill(collection):
     """Test getMore fails after cursor is killed."""
     collection.insert_many([{"_id": i} for i in range(10)])
-    (cursor_id,) = open_find_cursors(collection, 1)
-    execute_command(
-        collection,
-        {"killCursors": collection.name, "cursors": [cursor_id]},
-    )
-    getmore = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name},
-    )
+    cursors = open_find_cursors(collection, 1)
+    if isinstance(cursors, Exception):
+        getmore = cursors
+    else:
+        (cursor_id,) = cursors
+        execute_command(
+            collection,
+            {"killCursors": collection.name, "cursors": [cursor_id]},
+        )
+        getmore = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name},
+        )
     assertFailureCode(
         getmore,
         CURSOR_NOT_FOUND_ERROR,
@@ -296,7 +307,7 @@ def test_killCursors_getmore_after_kill(collection):
 def test_killCursors_sibling_unaffected(collection):
     """Test killing one cursor does not affect siblings."""
     collection.insert_many([{"_id": i} for i in range(10)])
-    cursors = open_find_cursors_or_error(collection, 2)
+    cursors = open_find_cursors(collection, 2)
     if isinstance(cursors, Exception):
         getmore = cursors
     else:
@@ -318,7 +329,7 @@ def test_killCursors_sibling_unaffected(collection):
 def test_killCursors_atomic_precheck_cursor_survives(collection):
     """Test valid cursors survive when type validation fails."""
     collection.insert_many([{"_id": i} for i in range(10)])
-    cursors = open_find_cursors_or_error(collection, 1)
+    cursors = open_find_cursors(collection, 1)
     if isinstance(cursors, Exception):
         getmore = cursors
     else:
@@ -343,7 +354,7 @@ def test_killCursors_atomic_precheck_cursor_survives(collection):
 def test_killCursors_idempotency(collection):
     """Test killing the same cursor twice."""
     collection.insert_many([{"_id": i} for i in range(10)])
-    cursors = open_find_cursors_or_error(collection, 1)
+    cursors = open_find_cursors(collection, 1)
     if isinstance(cursors, Exception):
         result, expected = cursors, None
     else:
@@ -380,7 +391,7 @@ def test_killCursors_mixed_states(collection):
     """Test mixed active, killed, and non-existent cursor IDs."""
     collection.insert_many([{"_id": i} for i in range(10)])
 
-    cursors = open_find_cursors_or_error(collection, 2)
+    cursors = open_find_cursors(collection, 2)
     if isinstance(cursors, Exception):
         result, expected = cursors, None
     else:
@@ -421,7 +432,7 @@ def test_killCursors_mixed_states(collection):
 def test_killCursors_after_drop_collection(database_client, collection):
     """Test cursor remains killable after source collection is dropped."""
     collection.insert_many([{"_id": i} for i in range(10)])
-    cursors = open_find_cursors_or_error(collection, 1)
+    cursors = open_find_cursors(collection, 1)
     if isinstance(cursors, Exception):
         result, expected = cursors, None
     else:
@@ -453,21 +464,26 @@ def test_killCursors_after_rename_collection(
 ):
     """Test cursor remains killable after source collection is renamed."""
     collection.insert_many([{"_id": i} for i in range(10)])
-    (cursor_id,) = open_find_cursors(collection, 1)
+    cursors = open_find_cursors(collection, 1)
+    if isinstance(cursors, Exception):
+        result = cursors
+        cursor_id = None
+    else:
+        (cursor_id,) = cursors
 
-    renamed = collection.name + "_renamed"
-    register_db_cleanup(f"{database_client.name}.{renamed}")
-    engine_client.admin.command(
-        {
-            "renameCollection": f"{database_client.name}.{collection.name}",
-            "to": f"{database_client.name}.{renamed}",
-        }
-    )
+        renamed = collection.name + "_renamed"
+        register_db_cleanup(f"{database_client.name}.{renamed}")
+        engine_client.admin.command(
+            {
+                "renameCollection": f"{database_client.name}.{collection.name}",
+                "to": f"{database_client.name}.{renamed}",
+            }
+        )
 
-    result = execute_command(
-        collection,
-        {"killCursors": collection.name, "cursors": [cursor_id]},
-    )
+        result = execute_command(
+            collection,
+            {"killCursors": collection.name, "cursors": [cursor_id]},
+        )
     assertResult(
         result,
         expected={
@@ -485,7 +501,7 @@ def test_killCursors_after_rename_collection(
 def test_killCursors_after_recreate_collection(database_client, collection):
     """Test cursor remains killable after source collection is recreated."""
     collection.insert_many([{"_id": i} for i in range(10)])
-    cursors = open_find_cursors_or_error(collection, 1)
+    cursors = open_find_cursors(collection, 1)
     if isinstance(cursors, Exception):
         result, expected = cursors, None
     else:
@@ -516,14 +532,19 @@ def test_killCursors_after_recreate_collection(database_client, collection):
 def test_killCursors_after_drop_database(engine_client, database_client, collection):
     """Test cursor remains killable after source database is dropped."""
     collection.insert_many([{"_id": i} for i in range(10)])
-    (cursor_id,) = open_find_cursors(collection, 1)
+    cursors = open_find_cursors(collection, 1)
+    if isinstance(cursors, Exception):
+        result = cursors
+        cursor_id = None
+    else:
+        (cursor_id,) = cursors
 
-    engine_client.drop_database(database_client.name)
+        engine_client.drop_database(database_client.name)
 
-    result = execute_command(
-        collection,
-        {"killCursors": collection.name, "cursors": [cursor_id]},
-    )
+        result = execute_command(
+            collection,
+            {"killCursors": collection.name, "cursors": [cursor_id]},
+        )
     assertResult(
         result,
         expected={
@@ -543,7 +564,7 @@ def test_killCursors_after_drop_database(engine_client, database_client, collect
 def test_killCursors_cross_connection(connection_string, database_client, collection):
     """Test killing a cursor from a different connection."""
     collection.insert_many([{"_id": i} for i in range(10)])
-    cursors = open_find_cursors_or_error(collection, 1)
+    cursors = open_find_cursors(collection, 1)
     if isinstance(cursors, Exception):
         result, expected = cursors, None
     else:

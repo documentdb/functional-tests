@@ -454,8 +454,11 @@ def test_getMore_batch_size_coercion(collection, test_case: CursorCommandTestCas
     cursors = open_find_cursors(
         collection, test_case.cursor_count, batch_size=test_case.find_batch_size
     )
-    ctx = CursorCommandContext.from_collection(collection, cursors=cursors)
-    result = execute_command(collection, test_case.build_command(ctx))
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        ctx = CursorCommandContext.from_collection(collection, cursors=cursors)
+        result = execute_command(collection, test_case.build_command(ctx))
     assertResult(
         result,
         expected=test_case.expected,
@@ -473,11 +476,15 @@ def test_getMore_16mib_batch_limit(collection):
     big_val = "x" * 1_100_000
     docs = [{"_id": i, "data": big_val} for i in range(20)]
     collection.insert_many(docs)
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=2)
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name},
-    )
+    cursors = open_find_cursors(collection, 1, batch_size=2)
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        (cursor_id,) = cursors
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(15)}},
@@ -493,11 +500,15 @@ def test_getMore_16mib_batch_size_wins(collection):
     big_val = "x" * 1_100_000
     docs = [{"_id": i, "data": big_val} for i in range(20)]
     collection.insert_many(docs)
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=2)
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name, "batchSize": 3},
-    )
+    cursors = open_find_cursors(collection, 1, batch_size=2)
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        (cursor_id,) = cursors
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name, "batchSize": 3},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(3)}},

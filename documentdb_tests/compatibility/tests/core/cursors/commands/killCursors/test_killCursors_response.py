@@ -8,7 +8,7 @@ from bson import Int64
 from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
     CursorCommandContext,
     CursorCommandTestCase,
-    open_find_cursors_or_error,
+    open_find_cursors,
 )
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
     CommandContext,
@@ -174,7 +174,7 @@ KILLCURSORS_RESPONSE_CURSOR_TESTS: list[CursorCommandTestCase] = (
 def test_killCursors_response_cursor(database_client, collection, test):
     """Test killCursors response structure with active cursors."""
     collection = test.prepare(database_client, collection)
-    cursors = open_find_cursors_or_error(collection, test.cursor_count)
+    cursors = open_find_cursors(collection, test.cursor_count)
     if isinstance(cursors, Exception):
         result, expected = cursors, None
     else:

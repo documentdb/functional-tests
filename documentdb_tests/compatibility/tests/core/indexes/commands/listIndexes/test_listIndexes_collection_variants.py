@@ -273,19 +273,23 @@ def test_listIndexes_comment_inherited_by_getMore(collection):
                     "comment": "getmore_inherit_test",
                 },
             )
-            cursor_id = listed["cursor"]["id"]
-            execute_command(collection, {"getMore": cursor_id, "collection": collection.name})
-
-            result = execute_command(
-                db["system.profile"],
-                {
-                    "count": "system.profile",
-                    "query": {
-                        "command.getMore": {"$exists": True},
-                        "command.comment": "getmore_inherit_test",
+            if isinstance(listed, Exception):
+                result = listed
+            else:
+                execute_command(
+                    collection,
+                    {"getMore": listed["cursor"]["id"], "collection": collection.name},
+                )
+                result = execute_command(
+                    db["system.profile"],
+                    {
+                        "count": "system.profile",
+                        "query": {
+                            "command.getMore": {"$exists": True},
+                            "command.comment": "getmore_inherit_test",
+                        },
                     },
-                },
-            )
+                )
         finally:
             db.command({"profile": 0})
             db.system.profile.drop()

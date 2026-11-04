@@ -10,7 +10,7 @@ from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Rege
 from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
     CursorCommandContext,
     CursorCommandTestCase,
-    open_find_cursors_or_error,
+    open_find_cursors,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
@@ -88,7 +88,7 @@ GETMORE_TERM_TESTS = GETMORE_TERM_FIELD_ACCEPTED_TESTS + GETMORE_TERM_FIELD_TYPE
 def test_getMore_term(collection, test_case: CursorCommandTestCase):
     """Test getMore term field acceptance and type rejection."""
     collection.insert_many([{"_id": i, "v": i} for i in range(5)])
-    cursors = open_find_cursors_or_error(
+    cursors = open_find_cursors(
         collection, test_case.cursor_count, batch_size=test_case.find_batch_size
     )
     if isinstance(cursors, Exception):

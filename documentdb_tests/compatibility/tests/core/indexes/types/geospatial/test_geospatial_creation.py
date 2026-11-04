@@ -7,6 +7,7 @@ handling, and legacy formats.
 """
 
 import pytest
+from pymongo.errors import WriteError
 
 from documentdb_tests.compatibility.tests.core.indexes.commands.utils.index_test_case import (
     IndexTestCase,
@@ -272,14 +273,22 @@ def test_geospatial_2dsphere_valid_data(collection, test):
         collection,
         {"createIndexes": collection.name, "indexes": list(test.indexes)},
     )
-    # Load the documents through execute_command (not collection.insert_many) so a
-    # rejection by the engine is captured rather than raising BulkWriteError
-    # outside the assertion helper; a rejected insert then surfaces as the find
-    # result diverging from the expected documents in the single assertion below.
-    execute_command(collection, {"insert": collection.name, "documents": list(test.doc)})
-    result = execute_command(
-        collection, {"find": collection.name, "hint": test.indexes[0]["name"], "sort": {"_id": 1}}
-    )
+    # Load through execute_command (not collection.insert_many) so a document
+    # the engine rejects is captured instead of raising BulkWriteError outside
+    # the assertion helper. A rejected insert is forwarded to the assertion in
+    # place of the find result: a command error as is, and the first writeErrors
+    # entry of an ok: 1 reply as the WriteError the driver would raise for it.
+    inserted = execute_command(collection, {"insert": collection.name, "documents": list(test.doc)})
+    if isinstance(inserted, Exception):
+        result = inserted
+    elif inserted.get("writeErrors"):
+        first = inserted["writeErrors"][0]
+        result = WriteError(first["errmsg"], code=first["code"], details=first)
+    else:
+        result = execute_command(
+            collection,
+            {"find": collection.name, "hint": test.indexes[0]["name"], "sort": {"_id": 1}},
+        )
     assertSuccess(result, test.expected, msg=test.msg)
 
 

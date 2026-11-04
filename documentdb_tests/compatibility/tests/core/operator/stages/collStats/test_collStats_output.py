@@ -239,12 +239,14 @@ def test_collStats_output_histogram_structure(collection):
 
     if isinstance(result, Exception):
         # Route the engine error through the assertion helper so it fails
-        # overridably with the real result instead of raising outside it.
+        # overridably with the real result instead of raising outside it. An
+        # override provider may handle the call and return, so stop here.
         assertResult(
             result,
             not_error=True,
             msg="$collStats latencyStats histograms should succeed",
         )
+        return
     doc = result["cursor"]["firstBatch"][0]
     errors: list[str] = []
     for name in ["reads", "writes", "commands", "transactions"]:

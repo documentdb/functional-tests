@@ -24,12 +24,15 @@ def test_getMore_session_mismatch_different_session(collection):
         find_result = execute_command(
             collection, {"find": collection.name, "batchSize": 2}, session=session_a
         )
-        cursor_id = find_result["cursor"]["id"]
-        result = execute_command(
-            collection,
-            {"getMore": cursor_id, "collection": collection.name},
-            session=session_b,
-        )
+        if isinstance(find_result, Exception):
+            result = find_result
+        else:
+            cursor_id = find_result["cursor"]["id"]
+            result = execute_command(
+                collection,
+                {"getMore": cursor_id, "collection": collection.name},
+                session=session_b,
+            )
         assertResult(
             result,
             error_code=CURSOR_SESSION_MISMATCH_ERROR,
@@ -52,12 +55,15 @@ def test_getMore_session_same_session_succeeds(collection):
         find_result = execute_command(
             collection, {"find": collection.name, "batchSize": 2}, session=session_a
         )
-        cursor_id = find_result["cursor"]["id"]
-        result = execute_command(
-            collection,
-            {"getMore": cursor_id, "collection": collection.name},
-            session=session_a,
-        )
+        if isinstance(find_result, Exception):
+            result = find_result
+        else:
+            cursor_id = find_result["cursor"]["id"]
+            result = execute_command(
+                collection,
+                {"getMore": cursor_id, "collection": collection.name},
+                session=session_a,
+            )
         assertResult(
             result,
             expected={"ok": Eq(1.0)},
@@ -74,14 +80,18 @@ def test_getMore_session_implicit_cursor_explicit_getmore(collection):
     """Test getMore with explicit session on implicit session cursor succeeds."""
     collection.insert_many([{"_id": i} for i in range(10)])
     client = collection.database.client
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=2)
+    cursors = open_find_cursors(collection, 1, batch_size=2)
     session_b = client.start_session()
     try:
-        result = execute_command(
-            collection,
-            {"getMore": cursor_id, "collection": collection.name},
-            session=session_b,
-        )
+        if isinstance(cursors, Exception):
+            result = cursors
+        else:
+            (cursor_id,) = cursors
+            result = execute_command(
+                collection,
+                {"getMore": cursor_id, "collection": collection.name},
+                session=session_b,
+            )
         assertResult(
             result,
             expected={"ok": Eq(1.0)},
@@ -104,11 +114,14 @@ def test_getMore_session_explicit_cursor_implicit_getmore(collection):
         find_result = execute_command(
             collection, {"find": collection.name, "batchSize": 2}, session=session_a
         )
-        cursor_id = find_result["cursor"]["id"]
-        result = execute_command(
-            collection,
-            {"getMore": cursor_id, "collection": collection.name},
-        )
+        if isinstance(find_result, Exception):
+            result = find_result
+        else:
+            cursor_id = find_result["cursor"]["id"]
+            result = execute_command(
+                collection,
+                {"getMore": cursor_id, "collection": collection.name},
+            )
         assertResult(
             result,
             error_code=CURSOR_SESSION_MISMATCH_ERROR,
@@ -132,12 +145,15 @@ def test_getMore_session_survives_session_end(collection):
     find_result = execute_command(
         collection, {"find": collection.name, "batchSize": 2}, session=session_a
     )
-    cursor_id = find_result["cursor"]["id"]
-    session_a.end_session()
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name},
-    )
+    if isinstance(find_result, Exception):
+        result = find_result
+    else:
+        cursor_id = find_result["cursor"]["id"]
+        session_a.end_session()
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0)},
