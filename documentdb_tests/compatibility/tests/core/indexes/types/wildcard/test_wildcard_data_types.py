@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Timestamp
+from pymongo.errors import WriteError
 
 from documentdb_tests.compatibility.tests.core.indexes.commands.utils.index_test_case import (
     IndexQueryTestCase,
@@ -524,10 +525,21 @@ def test_wildcard_special_types(collection, test):
         collection,
         {"createIndexes": collection.name, "indexes": list(test.indexes)},
     )
-    collection.insert_many(list(test.doc))
-    result = execute_command(
-        collection, {"find": collection.name, "filter": test.filter, "hint": test.hint}
-    )
+    # Load through execute_command (not collection.insert_many) so a document
+    # the engine rejects is captured instead of raising BulkWriteError outside
+    # the assertion helper. A rejected insert is forwarded to the assertion in
+    # place of the find result: a command error as is, and the first writeErrors
+    # entry of an ok: 1 reply as the WriteError the driver would raise for it.
+    inserted = execute_command(collection, {"insert": collection.name, "documents": list(test.doc)})
+    if isinstance(inserted, Exception):
+        result = inserted
+    elif inserted.get("writeErrors"):
+        first = inserted["writeErrors"][0]
+        result = WriteError(first["errmsg"], code=first["code"], details=first)
+    else:
+        result = execute_command(
+            collection, {"find": collection.name, "filter": test.filter, "hint": test.hint}
+        )
     assertSuccess(result, test.expected, msg=test.msg)
 
 

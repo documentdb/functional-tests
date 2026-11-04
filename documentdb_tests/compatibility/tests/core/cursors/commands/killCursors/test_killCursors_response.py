@@ -175,11 +175,15 @@ def test_killCursors_response_cursor(database_client, collection, test):
     """Test killCursors response structure with active cursors."""
     collection = test.prepare(database_client, collection)
     cursors = open_find_cursors(collection, test.cursor_count)
-    ctx = CursorCommandContext.from_collection(collection, cursors=cursors)
-    result = execute_command(collection, test.build_command(ctx))
+    if isinstance(cursors, Exception):
+        result, expected = cursors, None
+    else:
+        ctx = CursorCommandContext.from_collection(collection, cursors=cursors)
+        result = execute_command(collection, test.build_command(ctx))
+        expected = test.build_expected(ctx)
     assertResult(
         result,
-        expected=test.build_expected(ctx),
+        expected=expected,
         error_code=test.error_code,
         msg=test.msg,
         raw_res=True,

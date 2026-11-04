@@ -16,11 +16,15 @@ from documentdb_tests.framework.test_constants import INT64_ZERO
 def test_getMore_response_structure(collection):
     """Test getMore response structure and field types."""
     collection.insert_many([{"_id": i} for i in range(5)])
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=2)
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name, "batchSize": 2},
-    )
+    cursors = open_find_cursors(collection, 1, batch_size=2)
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        (cursor_id,) = cursors
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name, "batchSize": 2},
+        )
     assertResult(
         result,
         expected={
@@ -44,16 +48,22 @@ def test_getMore_response_structure(collection):
 def test_getMore_exhausted_cursor_response(collection):
     """Test getMore response when cursor is exhausted."""
     collection.insert_many([{"_id": i} for i in range(4)])
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=2)
-    gm1 = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name, "batchSize": 2},
-    )
-    cursor_id2 = gm1["cursor"]["id"]
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id2, "collection": collection.name, "batchSize": 2},
-    )
+    cursors = open_find_cursors(collection, 1, batch_size=2)
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        (cursor_id,) = cursors
+        gm1 = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name, "batchSize": 2},
+        )
+        if isinstance(gm1, Exception):
+            result = gm1
+        else:
+            result = execute_command(
+                collection,
+                {"getMore": gm1["cursor"]["id"], "collection": collection.name, "batchSize": 2},
+            )
     assertResult(
         result,
         expected={

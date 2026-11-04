@@ -28,7 +28,7 @@ def test_rand_nested_in_multiply(collection):
 def test_rand_in_object_expression(collection):
     """Test rand in object expression context."""
     result = execute_project(collection, {"result": {"a": {"$rand": {}}}})
-    batch = result["cursor"]["firstBatch"]
+    batch = result["cursor"]["firstBatch"] if isinstance(result, dict) else None
     assertSuccess(result, batch, msg="Should produce object with rand field")
 
 

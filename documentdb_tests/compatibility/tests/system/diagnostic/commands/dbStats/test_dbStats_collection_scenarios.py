@@ -61,9 +61,16 @@ COLLECTION_SCENARIO_TESTS: list[DiagnosticTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(COLLECTION_SCENARIO_TESTS))
 def test_dbStats_collection_scenarios(collection, test):
     """Test dbStats database-level counts and sizes across collection variants and data shapes."""
+    # Forward a setup failure (e.g. an unsupported capped collection) to the
+    # single assertion so it fails through the helper with the engine's real
+    # error instead of raising outside it.
+    setup_failure = None
     for setup_command in test.setup:
         setup_result = execute_command(collection, setup_command)
         if isinstance(setup_result, Exception):
-            raise setup_result
-    result = execute_command(collection, test.command)
+            setup_failure = setup_result
+            break
+    result = (
+        setup_failure if setup_failure is not None else execute_command(collection, test.command)
+    )
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)

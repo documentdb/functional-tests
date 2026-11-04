@@ -24,11 +24,14 @@ def test_getMore_aggregate_cursor(collection):
         collection,
         {"aggregate": collection.name, "pipeline": [], "cursor": {"batchSize": 2}},
     )
-    cursor_id = agg_result["cursor"]["id"]
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name, "batchSize": 3},
-    )
+    if isinstance(agg_result, Exception):
+        result = agg_result
+    else:
+        cursor_id = agg_result["cursor"]["id"]
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name, "batchSize": 3},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(3)}},
@@ -45,11 +48,14 @@ def test_getMore_view_cursor(collection):
     view_name = f"{collection.name}_view"
     execute_command(collection, {"create": view_name, "viewOn": collection.name, "pipeline": []})
     find_result = execute_command(collection, {"find": view_name, "batchSize": 2})
-    cursor_id = find_result["cursor"]["id"]
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": view_name},
-    )
+    if isinstance(find_result, Exception):
+        result = find_result
+    else:
+        cursor_id = find_result["cursor"]["id"]
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": view_name},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(3)}},
@@ -75,11 +81,14 @@ def test_getMore_timeseries_cursor(collection):
         },
     )
     find_result = execute_command(collection, {"find": ts_name, "batchSize": 2})
-    cursor_id = find_result["cursor"]["id"]
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": ts_name, "batchSize": 3},
-    )
+    if isinstance(find_result, Exception):
+        result = find_result
+    else:
+        cursor_id = find_result["cursor"]["id"]
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": ts_name, "batchSize": 3},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(3)}},
@@ -98,11 +107,14 @@ def test_getMore_list_collections_cursor(collection):
         collection,
         {"listCollections": 1, "cursor": {"batchSize": 1}},
     )
-    cursor_id = list_result["cursor"]["id"]
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": "$cmd.listCollections"},
-    )
+    if isinstance(list_result, Exception):
+        result = list_result
+    else:
+        cursor_id = list_result["cursor"]["id"]
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": "$cmd.listCollections"},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0)},
@@ -128,11 +140,14 @@ def test_getMore_list_indexes_cursor(collection):
         collection,
         {"listIndexes": collection.name, "cursor": {"batchSize": 1}},
     )
-    cursor_id = list_result["cursor"]["id"]
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name},
-    )
+    if isinstance(list_result, Exception):
+        result = list_result
+    else:
+        cursor_id = list_result["cursor"]["id"]
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0)},

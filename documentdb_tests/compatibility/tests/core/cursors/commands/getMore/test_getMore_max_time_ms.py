@@ -172,9 +172,13 @@ def test_getMore_max_time_ms_accepted(collection, test_case: CursorCommandTestCa
     """Test getMore maxTimeMS accepted values on awaitData tailable cursor."""
     capped = CappedCollection().resolve(collection.database, collection)
     capped.insert_many([{"_id": i} for i in range(5)])
-    cursor_id = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 2})
-    ctx = CursorCommandContext.from_collection(capped, cursors=(cursor_id,))
-    result = execute_command(collection, test_case.build_command(ctx))
+    opened = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 2})
+    if isinstance(opened, Exception):
+        result = opened
+    else:
+        cursor_id = opened
+        ctx = CursorCommandContext.from_collection(capped, cursors=(cursor_id,))
+        result = execute_command(collection, test_case.build_command(ctx))
     assertResult(
         result,
         expected=test_case.expected,
@@ -222,8 +226,11 @@ def test_getMore_max_time_ms_semantic_non_tailable(collection, test_case: Cursor
     cursors = open_find_cursors(
         collection, test_case.cursor_count, batch_size=test_case.find_batch_size
     )
-    ctx = CursorCommandContext.from_collection(collection, cursors=cursors)
-    result = execute_command(collection, test_case.build_command(ctx))
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        ctx = CursorCommandContext.from_collection(collection, cursors=cursors)
+        result = execute_command(collection, test_case.build_command(ctx))
     assertResult(
         result,
         expected=test_case.expected,
@@ -254,9 +261,13 @@ def test_getMore_max_time_ms_semantic_tailable(collection, test_case: CursorComm
     """Test getMore rejects maxTimeMS on tailable cursors without awaitData."""
     capped = CappedCollection().resolve(collection.database, collection)
     capped.insert_many([{"_id": i} for i in range(5)])
-    cursor_id = open_cursor(capped, {"tailable": True, "batchSize": 2})
-    ctx = CursorCommandContext.from_collection(capped, cursors=(cursor_id,))
-    result = execute_command(collection, test_case.build_command(ctx))
+    opened = open_cursor(capped, {"tailable": True, "batchSize": 2})
+    if isinstance(opened, Exception):
+        result = opened
+    else:
+        cursor_id = opened
+        ctx = CursorCommandContext.from_collection(capped, cursors=(cursor_id,))
+        result = execute_command(collection, test_case.build_command(ctx))
     assertResult(
         result,
         expected=test_case.expected,
@@ -271,11 +282,15 @@ def test_getMore_max_time_ms_semantic_tailable(collection, test_case: CursorComm
 def test_getMore_max_time_ms_null_bypasses_semantic_check(collection):
     """Test getMore maxTimeMS=null bypasses the non-awaitData semantic check."""
     collection.insert_many([{"_id": i} for i in range(5)])
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=2)
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name, "maxTimeMS": None},
-    )
+    cursors = open_find_cursors(collection, 1, batch_size=2)
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        (cursor_id,) = cursors
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name, "maxTimeMS": None},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0)},
@@ -290,16 +305,22 @@ def test_getMore_max_time_ms_varies_between_calls(collection):
     """Test getMore accepts a different maxTimeMS on each successive call on the same cursor."""
     capped = CappedCollection().resolve(collection.database, collection)
     capped.insert_many([{"_id": i} for i in range(5)])
-    cursor_id = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 2})
-    r1 = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 50},
-    )
-    cursor_id2 = r1["cursor"]["id"]
-    r2 = execute_command(
-        collection,
-        {"getMore": cursor_id2, "collection": capped.name, "maxTimeMS": 200},
-    )
+    opened = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 2})
+    if isinstance(opened, Exception):
+        r2 = opened
+    else:
+        cursor_id = opened
+        r1 = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 50},
+        )
+        if isinstance(r1, Exception):
+            r2 = r1
+        else:
+            r2 = execute_command(
+                collection,
+                {"getMore": r1["cursor"]["id"], "collection": capped.name, "maxTimeMS": 200},
+            )
     assertResult(
         r2,
         expected={"ok": Eq(1.0)},
@@ -314,11 +335,15 @@ def test_getMore_max_time_ms_returns_immediately_with_data(collection):
     """Test getMore accepts maxTimeMS and returns available data."""
     capped = CappedCollection().resolve(collection.database, collection)
     capped.insert_many([{"_id": i} for i in range(5)])
-    cursor_id = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 2})
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 5_000},
-    )
+    opened = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 2})
+    if isinstance(opened, Exception):
+        result = opened
+    else:
+        cursor_id = opened
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 5_000},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(3)}},
@@ -333,12 +358,18 @@ def test_getMore_max_time_ms_no_data_empty_batch(collection):
     """Test getMore with maxTimeMS returns empty batch and keeps cursor open when no data."""
     capped = CappedCollection().resolve(collection.database, collection)
     capped.insert_many([{"_id": i} for i in range(5)])
-    cursor_id = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 10})
-    execute_command(collection, {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 0})
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 0},
-    )
+    opened = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 10})
+    if isinstance(opened, Exception):
+        result = opened
+    else:
+        cursor_id = opened
+        execute_command(
+            collection, {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 0}
+        )
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 0},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Eq([]), "id": Gte(1)}},
@@ -354,19 +385,25 @@ def test_getMore_max_time_ms_wait_elapsed_retains_cursor(collection):
     """Test a getMore whose awaitData wait elapses keeps the cursor open for later calls."""
     capped = CappedCollection().resolve(collection.database, collection)
     capped.insert_many([{"_id": i} for i in range(5)])
-    cursor_id = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 10})
-    # maxTimeMS=0 returns immediately (no wait), positioning the cursor at the tail.
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 0},
-    )
-    cursor_id = result["cursor"]["id"]
-    # maxTimeMS=100 lets the awaitData wait window elapse with no new data; the
-    # cursor must remain open afterward.
-    result2 = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 100},
-    )
+    opened = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 10})
+    if isinstance(opened, Exception):
+        result2 = opened
+    else:
+        cursor_id = opened
+        # maxTimeMS=0 returns immediately (no wait), positioning the cursor at the tail.
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": capped.name, "maxTimeMS": 0},
+        )
+        if isinstance(result, Exception):
+            result2 = result
+        else:
+            # maxTimeMS=100 lets the awaitData wait window elapse with no new data;
+            # the cursor must remain open afterward.
+            result2 = execute_command(
+                collection,
+                {"getMore": result["cursor"]["id"], "collection": capped.name, "maxTimeMS": 100},
+            )
     assertResult(
         result2,
         expected={"ok": Eq(1.0), "cursor": {"id": Gte(1)}},
@@ -381,8 +418,12 @@ def test_getMore_missing_max_time_ms_await_data(collection):
     """Test getMore succeeds with maxTimeMS omitted on awaitData tailable cursor."""
     capped = CappedCollection().resolve(collection.database, collection)
     capped.insert_many([{"_id": i} for i in range(5)])
-    cursor_id = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 2})
-    result = execute_command(collection, {"getMore": cursor_id, "collection": capped.name})
+    opened = open_cursor(capped, {"tailable": True, "awaitData": True, "batchSize": 2})
+    if isinstance(opened, Exception):
+        result = opened
+    else:
+        cursor_id = opened
+        result = execute_command(collection, {"getMore": cursor_id, "collection": capped.name})
     assertResult(
         result,
         expected={"ok": Eq(1.0)},
