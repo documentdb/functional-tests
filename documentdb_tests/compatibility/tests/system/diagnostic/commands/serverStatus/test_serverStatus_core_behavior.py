@@ -208,9 +208,10 @@ def test_serverStatus_pid_consistent_across_calls(collection):
     """Verify serverStatus pid is stable across calls."""
     result1 = execute_admin_command(collection, {"serverStatus": 1})
     result2 = execute_admin_command(collection, {"serverStatus": 1})
+    reference = result1 if isinstance(result1, dict) else {}
     assertProperties(
-        result2,
-        {"pid": Eq(result1.get("pid") if isinstance(result1, dict) else None)},
+        result1 if isinstance(result1, Exception) else result2,
+        {"pid": Eq(reference.get("pid"))},
         raw_res=True,
         msg="serverStatus should return the same pid across calls",
     )
@@ -220,9 +221,10 @@ def test_serverStatus_host_consistent_across_calls(collection):
     """Verify serverStatus host is stable across calls."""
     result1 = execute_admin_command(collection, {"serverStatus": 1})
     result2 = execute_admin_command(collection, {"serverStatus": 1})
+    reference = result1 if isinstance(result1, dict) else {}
     assertProperties(
-        result2,
-        {"host": Eq(result1["host"])},
+        result1 if isinstance(result1, Exception) else result2,
+        {"host": Eq(reference.get("host"))},
         raw_res=True,
         msg="serverStatus should return the same host across calls",
     )
@@ -232,9 +234,10 @@ def test_serverStatus_version_consistent_across_calls(collection):
     """Verify serverStatus version is stable across calls."""
     result1 = execute_admin_command(collection, {"serverStatus": 1})
     result2 = execute_admin_command(collection, {"serverStatus": 1})
+    reference = result1 if isinstance(result1, dict) else {}
     assertProperties(
-        result2,
-        {"version": Eq(result1["version"])},
+        result1 if isinstance(result1, Exception) else result2,
+        {"version": Eq(reference.get("version"))},
         raw_res=True,
         msg="serverStatus should return the same version across calls",
     )
@@ -244,13 +247,14 @@ def test_serverStatus_cross_database_same_core_fields(collection):
     """Verify serverStatus core identity fields match across databases."""
     admin_result = execute_admin_command(collection, {"serverStatus": 1})
     db_result = execute_command(collection, {"serverStatus": 1})
+    reference = admin_result if isinstance(admin_result, dict) else {}
     assertProperties(
-        db_result,
+        admin_result if isinstance(admin_result, Exception) else db_result,
         {
-            "host": Eq(admin_result.get("host")),
-            "version": Eq(admin_result.get("version")),
-            "process": Eq(admin_result.get("process")),
-            "pid": Eq(admin_result.get("pid")),
+            "host": Eq(reference.get("host")),
+            "version": Eq(reference.get("version")),
+            "process": Eq(reference.get("process")),
+            "pid": Eq(reference.get("pid")),
         },
         raw_res=True,
         msg="serverStatus should return the same core fields regardless of database",

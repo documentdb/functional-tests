@@ -86,8 +86,9 @@ def test_dbStats_scale_divides_data_size(collection):
         and isinstance(scaled_data, (int, float))
         and scaled_data == pytest.approx(unscaled_data / 1024, abs=1.0)
     )
+    failure = next((r for r in (unscaled, scaled) if isinstance(r, Exception)), None)
     assertSuccess(
-        matches,
+        failure if failure is not None else matches,
         expected=True,
         raw_res=True,
         msg=(

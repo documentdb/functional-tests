@@ -156,9 +156,10 @@ def test_hello_connectionId_stable(collection):
     """Test hello connectionId remains stable on same connection."""
     r1 = execute_command(collection, {"hello": 1})
     r2 = execute_command(collection, {"hello": 1})
+    reference = r1 if isinstance(r1, dict) else {}
     assertResult(
-        r2,
-        expected={"connectionId": Eq(r1.get("connectionId") if isinstance(r1, dict) else None)},
+        r1 if isinstance(r1, Exception) else r2,
+        expected={"connectionId": Eq(reference.get("connectionId"))},
         msg="hello should return stable connectionId on same connection",
         raw_res=True,
     )
@@ -172,7 +173,7 @@ def test_hello_legacy_isMaster_fields_match(collection):
     r_ismaster = execute_command(collection, {"isMaster": 1})
     h = r_hello if isinstance(r_hello, dict) else {}
     assertResult(
-        r_ismaster,
+        r_hello if isinstance(r_hello, Exception) else r_ismaster,
         expected={
             "maxBsonObjectSize": Eq(h.get("maxBsonObjectSize")),
             "maxMessageSizeBytes": Eq(h.get("maxMessageSizeBytes")),
