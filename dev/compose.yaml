@@ -40,14 +40,12 @@
 #
 # Open files: each mongod raises its open-file limit (ulimits.nofile). The suite
 # creates and drops tens of thousands of collections in a run, and WiredTiger
-# holds an open file descriptor per table (collection + indexes) in its handle
-# cache, closing idle ones only lazily. On the replica set a dropped collection
-# also becomes a drop-pending ident whose files linger until the drop timestamp
-# is majority-committed and swept, so descriptors accumulate faster than they
-# are reclaimed. WiredTiger also keeps a file handle open per table it has
-# touched and closes idle ones only very lazily, so the descriptor count tracks
-# the number of collections created over the run, not the number live at once.
-# The replica set peaks near 60k open files partway through the suite; when that
+# holds an open file descriptor per table (collection + indexes) it has touched,
+# closing idle ones only lazily, so the descriptor count tracks the number of
+# collections created over the run, not the number live at once. On the replica
+# set a dropped collection also becomes a drop-pending ident whose files linger
+# until the drop timestamp is majority-committed and swept, so descriptors
+# accumulate faster than they are reclaimed. The replica set peaks near 60k open files partway through the suite; when that
 # reaches the ceiling mongod runs out of descriptors mid-run, which surfaces
 # inside WiredTiger as a WT_PANIC and crashes the server (EMFILE -> fassert).
 # 64000 was not enough headroom (the suite crashed at ~31k collections against
