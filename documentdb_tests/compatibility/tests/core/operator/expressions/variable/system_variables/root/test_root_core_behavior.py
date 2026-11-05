@@ -128,7 +128,7 @@ def test_root_empty_document(collection):
     This case needs a truly field-less input row, so it cannot use the shared
     ``execute_expression`` helper: that helper inserts a document (which always
     carries an auto-generated ``_id``), which would make ``$$ROOT`` a one-field
-    document. Instead a document is inserted and ``$replaceWith: {$literal: {}}``
+    document. Instead a document is inserted and a ``{$project: {_id: 0}}`` stage
     strips it back to a field-less row before ``$$ROOT`` is read.
     """
     collection.insert_one({})
@@ -137,7 +137,7 @@ def test_root_empty_document(collection):
         {
             "aggregate": collection.name,
             "pipeline": [
-                {"$replaceWith": {"$literal": {}}},
+                {"$project": {"_id": 0}},
                 {"$project": {"_id": 0, "result": "$$ROOT"}},
             ],
             "cursor": {},

@@ -7,6 +7,7 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (  # noqa: E501
     assert_expression_result,
     execute_expression,
+    execute_expression_single_row,
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
@@ -398,29 +399,37 @@ def test_cluster_time_identical_across_thousand_references(collection):
     )
 
 
+def _clock_source(collection):
+    """Return a one-document side collection to read $$CLUSTER_TIME from.
+
+    Reads run over a separate collection in the same database so they never add
+    documents to the test's own collection, which later assertions inspect as a
+    whole. The side collection is seeded once, on the first read, so every later
+    read is write-free and an idle interval between reads stays idle.
+    """
+    source = collection.database[f"{collection.name}_clock"]
+    if source.find_one() is None:
+        source.insert_one({})
+    return source
+
+
 def _read_cluster_time(collection):
     """Return a single $$CLUSTER_TIME value from its own aggregation."""
-    result = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [{"$documents": [{}]}, {"$project": {"_id": 0, "t": "$$CLUSTER_TIME"}}],
-            "cursor": {},
-        },
-    )
-    return result["cursor"]["firstBatch"][0]["t"]
+    result = execute_expression_single_row(_clock_source(collection), "$$CLUSTER_TIME")
+    return result["cursor"]["firstBatch"][0]["result"]
 
 
 def _read_cluster_time_with_metadata(collection, command_extra=None):
     """Return the pipeline's value and the command response's own operationTime."""
+    source = _clock_source(collection)
     command = {
-        "aggregate": 1,
-        "pipeline": [{"$documents": [{}]}, {"$project": {"_id": 0, "t": "$$CLUSTER_TIME"}}],
+        "aggregate": source.name,
+        "pipeline": [{"$limit": 1}, {"$project": {"_id": 0, "t": "$$CLUSTER_TIME"}}],
         "cursor": {},
     }
     if command_extra:
         command.update(command_extra)
-    result = execute_command(collection, command)
+    result = execute_command(source, command)
     return result["cursor"]["firstBatch"][0]["t"], result["operationTime"]
 
 
@@ -429,17 +438,7 @@ def test_cluster_time_advances_after_a_write(collection):
     earlier = _read_cluster_time(collection)
     collection.insert_one({"_id": "advance"})
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": {"$gt": ["$$CLUSTER_TIME", earlier]}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$gt": ["$$CLUSTER_TIME", earlier]})
     assert_expression_result(
         result,
         expected=True,
@@ -455,17 +454,7 @@ def test_cluster_time_monotonic_across_repeated_executions(collection):
         collection.insert_one({"_id": i})
 
     non_decreasing = {"$eq": [{"$sortArray": {"input": observed, "sortBy": 1}}, observed]}
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": non_decreasing}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, non_decreasing)
     assert_expression_result(
         result,
         expected=True,
@@ -481,17 +470,7 @@ def test_cluster_time_not_frozen_across_repeated_executions(collection):
         collection.insert_one({"_id": i})
 
     saw_more_than_one_value = {"$gt": [{"$size": {"$setUnion": [observed]}}, 1]}
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": saw_more_than_one_value}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, saw_more_than_one_value)
     assert_expression_result(
         result,
         expected=True,
@@ -552,17 +531,7 @@ def test_cluster_time_is_not_later_than_a_following_write(collection):
     value = _read_cluster_time(collection)
     write = execute_command(collection, {"insert": collection.name, "documents": [{"_id": 1}]})
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": {"$lte": [value, write["operationTime"]]}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$lte": [value, write["operationTime"]]})
     assert_expression_result(
         result,
         expected=True,
@@ -575,17 +544,7 @@ def test_cluster_time_is_not_earlier_than_a_preceding_write(collection):
     write = execute_command(collection, {"insert": collection.name, "documents": [{"_id": 1}]})
     write_time = write["operationTime"]
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": {"$gte": ["$$CLUSTER_TIME", write_time]}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$gte": ["$$CLUSTER_TIME", write_time]})
     assert_expression_result(
         result,
         expected=True,
@@ -603,17 +562,7 @@ def test_cluster_time_is_not_earlier_than_after_cluster_time(collection):
         collection, {"readConcern": {"level": "majority", "afterClusterTime": after}}
     )
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": {"$gte": [pipeline_value, after]}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$gte": [pipeline_value, after]})
     assert_expression_result(
         result,
         expected=True,
@@ -624,12 +573,13 @@ def test_cluster_time_is_not_earlier_than_after_cluster_time(collection):
 @pytest.mark.requires(cluster_read_concern=True)
 def test_cluster_time_resolves_under_majority_read_concern(collection):
     """Test the variable resolves to a timestamp under majority read concern."""
+    collection.insert_one({})
+
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {"$project": {"_id": 0, "kind": {"$type": "$$CLUSTER_TIME"}}},
             ],
             "cursor": {},
@@ -780,17 +730,7 @@ def test_cursor_value_survives_writes_landing_between_batches(collection):
 
     values = _drain_cursor(collection, first, batch_size=3, write_between=True)
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": {"$size": {"$setUnion": [values]}}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$size": {"$setUnion": [values]}})
     assert_expression_result(
         result,
         expected=1,
@@ -812,17 +752,7 @@ def test_writes_between_batches_do_advance_the_deployment_clock(collection):
     cursor_value = first["cursor"]["firstBatch"][0]["t"]
     _drain_cursor(collection, first, batch_size=3, write_between=True)
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": {"$gt": ["$$CLUSTER_TIME", cursor_value]}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$gt": ["$$CLUSTER_TIME", cursor_value]})
     assert_expression_result(
         result,
         expected=True,
@@ -855,17 +785,7 @@ def test_idle_cursor_resumes_with_the_same_value(collection):
     )
     resumed_value = resumed["cursor"]["nextBatch"][0]["t"]
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": {"$eq": [first_value, resumed_value]}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$eq": [first_value, resumed_value]})
     assert_expression_result(
         result,
         expected=True,
@@ -898,17 +818,7 @@ def test_change_stream_resolves_the_variable_for_its_events(collection):
     )
     values = [doc["t"] for doc in batch["cursor"]["nextBatch"]]
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": {"$type": {"$arrayElemAt": [values, 0]}}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$type": {"$arrayElemAt": [values, 0]}})
     assert_expression_result(
         result,
         expected="timestamp",
@@ -942,17 +852,7 @@ def test_change_stream_value_is_frozen_for_the_life_of_the_stream(collection):
         batch = execute_command(collection, {"getMore": cursor_id, "collection": collection.name})
         observed.extend(doc["t"] for doc in batch["cursor"]["nextBatch"])
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$limit": 1},
-                {"$project": {"_id": 0, "result": {"$size": {"$setUnion": [observed]}}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$size": {"$setUnion": [observed]}})
     assert_expression_result(
         result,
         expected=1,
