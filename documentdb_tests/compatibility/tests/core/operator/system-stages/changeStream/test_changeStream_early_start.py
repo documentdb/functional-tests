@@ -22,6 +22,8 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 from documentdb_tests.framework.test_case import BaseTestCase
 
+pytestmark = pytest.mark.requires(change_streams=True)
+
 
 # Return the timestamp of the oldest retained oplog entry, so a start point can
 # be expressed relative to the live oplog rather than as a static value.
@@ -85,12 +87,13 @@ CHANGESTREAM_EARLY_START_TESTS: list[ChangeStreamEarlyStartTestCase] = [
         expected={"ok": Eq(1.0)},
         msg="$changeStream should accept a startAtOperationTime five seconds before"
         " the oldest retained oplog entry",
-        marks=(pytest.mark.requires(oplog=True),),
+        # The requires gate reads only the closest requires marker, so a case
+        # marker must restate the module-level change_streams requirement.
+        marks=(pytest.mark.requires(change_streams=True, oplog=True),),
     ),
 ]
 
 
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_EARLY_START_TESTS))
 def test_changeStream_early_start_collection_scope(
@@ -107,7 +110,6 @@ def test_changeStream_early_start_collection_scope(
     assertResult(result, expected=test_case.expected, msg=test_case.msg, raw_res=True)
 
 
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_EARLY_START_TESTS))
 def test_changeStream_early_start_database_scope(
@@ -126,7 +128,6 @@ def test_changeStream_early_start_database_scope(
     assertResult(result, expected=test_case.expected, msg=test_case.msg, raw_res=True)
 
 
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(CHANGESTREAM_EARLY_START_TESTS))
 def test_changeStream_early_start_cluster_scope(
