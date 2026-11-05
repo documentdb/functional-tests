@@ -131,8 +131,10 @@ def execute_expression(collection, expression):
     field are unaffected, and the output projection excludes ``_id``; but an
     expression that reads ``$_id``, ``$$ROOT``, or ``$$CURRENT`` sees that id and
     will diverge. Callers that need a truly field-less input (e.g. ``$$ROOT`` must
-    be ``{}``) or exactly one row over a pre-populated collection must shape their
-    own pipeline instead of using this helper.
+    be ``{}``) must shape their own pipeline instead of using this helper. Callers
+    whose collection is already populated should use
+    ``execute_expression_single_row``, since this helper would emit one row per
+    document.
 
     Args:
         collection: MongoDB collection object
@@ -152,6 +154,43 @@ def execute_expression(collection, expression):
         {
             "aggregate": collection.name,
             "pipeline": [
+                {"$project": {"_id": 0, "result": expression}},
+            ],
+            "cursor": {},
+        },
+    )
+
+
+def execute_expression_single_row(collection, expression):
+    """
+    Execute an aggregation expression once over an already-populated collection.
+
+    Evaluates the expression against the first document of the collection
+    (``$limit: 1``), so the result has exactly one row however many documents
+    the collection holds. Unlike ``execute_expression``, this helper does not
+    insert anything, so no write lands between the caller's own steps and the
+    evaluation. The collection must already hold at least one document; an
+    empty collection yields no rows.
+
+    Args:
+        collection: MongoDB collection object holding at least one document
+        expression: The expression to evaluate (e.g., {"$add": [1, 2]})
+
+    Returns:
+        Result from execute_command with structure:
+        {"cursor": {"firstBatch": [{"result": <value>}]}}
+
+    Example:
+        >>> collection.insert_many([{"_id": 1}, {"_id": 2}])
+        >>> execute_expression_single_row(collection, {"$add": [1, 2]})
+        # Returns result with a single {"result": 3} in firstBatch
+    """
+    return execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$limit": 1},
                 {"$project": {"_id": 0, "result": expression}},
             ],
             "cursor": {},
