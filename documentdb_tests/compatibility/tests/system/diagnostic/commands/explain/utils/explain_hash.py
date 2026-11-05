@@ -12,27 +12,14 @@ from __future__ import annotations
 
 from typing import Any, Union
 
-from documentdb_tests.framework.assertions import assertProperties
-from documentdb_tests.framework.property_checks import Eq, Ne, NonEmptyStr
+from documentdb_tests.framework.assertions import _walk_path, assertProperties
+from documentdb_tests.framework.property_checks import _FIELD_ABSENT, Eq, Ne, NonEmptyStr
 
 PLAN_CACHE_SHAPE_HASH = "queryPlanner.planCacheShapeHash"
 """Dotted path of the plan cache shape hash in a standard explain result."""
 
 QUERY_SHAPE_HASH = "queryShapeHash"
 """Dotted path of the top-level query shape hash in an explain result."""
-
-
-def _lookup(result: Any, path: str) -> Any:
-    """Return the value at a dotted path (dict keys and list indices), or None when absent."""
-    value: Any = result
-    for part in path.split("."):
-        if isinstance(value, list) and part.isdigit() and int(part) < len(value):
-            value = value[int(part)]
-        elif isinstance(value, dict) and part in value:
-            value = value[part]
-        else:
-            return None
-    return value
 
 
 def assert_hash_relation(
@@ -59,12 +46,14 @@ def assert_hash_relation(
             # so it is reported once rather than again as two missing hashes.
             assertProperties(result, {candidates[0]: NonEmptyStr()}, msg=msg, raw_res=True)
             return
-    hashes: dict[str, str] = {}
+    # Keep each hash as explain reported it, so NonEmptyStr sees its real type
+    # and a present-but-null hash is reported as None rather than as missing.
+    hashes: dict[str, Any] = {}
     for key, result in (("hash_a", result_a), ("hash_b", result_b)):
         for path in candidates:
-            value = _lookup(result, path)
-            if value is not None:
-                hashes[key] = str(value)
+            value = _walk_path(result, path)
+            if value is not _FIELD_ABSENT:
+                hashes[key] = value
                 break
     # Compare only when the second hash exists; its absence is reported on its own.
     checks_a: list[Any] = [NonEmptyStr()]
