@@ -133,6 +133,7 @@ core,operator,expressions,conditional,-,ifNull
 core,operator,expressions,conditional,-,switch
 core,operator,expressions,custom,-,function
 core,operator,expressions,custom,-,operator_accumulator
+core,operator,expressions,date,-,currentDate
 core,operator,expressions,date,-,dateAdd
 core,operator,expressions,date,-,dateDiff
 core,operator,expressions,date,-,dateFromParts
@@ -156,7 +157,10 @@ core,operator,expressions,date,-,week
 core,operator,expressions,date,-,year
 core,operator,expressions,misc,-,binarySize
 core,operator,expressions,misc,-,bsonSize
+core,operator,expressions,misc,-,createObjectId
 core,operator,expressions,misc,-,getField
+core,operator,expressions,misc,-,hash
+core,operator,expressions,misc,-,hexHash
 core,operator,expressions,misc,-,rand
 core,operator,expressions,misc,-,sampleRate
 core,operator,expressions,misc,-,toHashedIndexKey
@@ -208,12 +212,17 @@ core,operator,expressions,trigonometry,-,sinh
 core,operator,expressions,trigonometry,-,tan
 core,operator,expressions,trigonometry,-,tanh
 core,operator,expressions,type,-,convert
+core,operator,expressions,type,-,deserializeEJSON
 core,operator,expressions,type,-,isNumber
+core,operator,expressions,type,-,serializeEJSON
+core,operator,expressions,type,-,subtype
+core,operator,expressions,type,-,toArray
 core,operator,expressions,type,-,toBool
 core,operator,expressions,type,-,toDecimal
 core,operator,expressions,type,-,toDouble
 core,operator,expressions,type,-,toInt
 core,operator,expressions,type,-,toLong
+core,operator,expressions,type,-,toObject
 core,operator,expressions,type,-,toObjectId
 core,operator,expressions,type,-,toUUID
 core,operator,expressions,type,-,toDate
@@ -222,6 +231,7 @@ core,operator,expressions,variable,-,let
 core,operator,expressions,variable,system-variables,cluster_time
 core,operator,expressions,variable,system-variables,current
 core,operator,expressions,variable,system-variables,descend
+core,operator,expressions,variable,system-variables,idx
 core,operator,expressions,variable,system-variables,keep
 core,operator,expressions,variable,system-variables,now
 core,operator,expressions,variable,system-variables,prune
@@ -364,6 +374,7 @@ core,operator,window,-,-,locf
 core,operator,window,-,-,max
 core,operator,window,-,-,maxN
 core,operator,window,-,-,median
+core,operator,window,-,-,mergeObjects
 core,operator,window,-,-,min
 core,operator,window,-,-,minMaxScaler
 core,operator,window,-,-,minN
