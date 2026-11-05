@@ -431,6 +431,8 @@ def _emit_event(collection, test_case: ChangeStreamEventTestCase) -> dict[str, A
     The mutation happens after the stream is open, so its event is delivered by
     the first getMore. If opening the stream or reading the batch fails, the
     engine's exception is returned so the test's single assertion surfaces it.
+    If the batch has no event of the expected type, the getMore reply is
+    returned instead, so the assertion reports what the stream delivered.
     """
     mutation = test_case.mutation
     assert mutation is not None  # guaranteed by __post_init__
@@ -454,7 +456,9 @@ def _emit_event(collection, test_case: ChangeStreamEventTestCase) -> dict[str, A
         return batch_result
     batch = batch_result["cursor"]["nextBatch"]
     matching = [e for e in batch if e["operationType"] == mutation.operation_type]
-    assert matching, f"no {mutation.operation_type} event in batch: {batch!r}"
+    if not matching:
+        reply: dict[str, Any] = batch_result
+        return reply
     event: dict[str, Any] = matching[0]
     return event
 
