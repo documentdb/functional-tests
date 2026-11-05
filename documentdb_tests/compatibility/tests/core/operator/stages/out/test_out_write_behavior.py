@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 import uuid
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
@@ -88,29 +88,32 @@ def test_out_database_name_acceptance(collection, test_case: OutTestCase):
     client.drop_database(db_name)
     try:
         out_stage = test_case.build_out_stage(collection)
-        execute_command(
+        out_result = execute_command(
             collection,
             {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
         )
-        target_db = client[db_name]
-        result = execute_command(
-            target_db[target_coll_name],
-            {"listCollections": 1, "filter": {"name": target_coll_name}},
-        )
-        raw_doc = cast(dict, result)["cursor"]["firstBatch"][0]
-        assertSuccess(
-            result,
-            [
-                {
-                    "name": target_coll_name,
-                    "type": "collection",
-                    "options": {},
-                    "info": raw_doc["info"],
-                    "idIndex": raw_doc["idIndex"],
-                }
-            ],
-            msg=test_case.msg,
-        )
+        result: Any
+        expected_info: Any
+        if isinstance(out_result, Exception):
+            # The $out command itself failed; surface that error through the
+            # assertion rather than crashing on an empty listCollections batch.
+            result = out_result
+            expected_info = []
+        else:
+            target_db = client[db_name]
+            result = execute_command(
+                target_db[target_coll_name],
+                {"listCollections": 1, "filter": {"name": target_coll_name}},
+            )
+            raw_doc = cast(dict, result)["cursor"]["firstBatch"][0]
+            expected_info = {
+                "name": target_coll_name,
+                "type": "collection",
+                "options": {},
+                "info": raw_doc["info"],
+                "idIndex": raw_doc["idIndex"],
+            }
+        assertSuccess(result, [expected_info], msg=test_case.msg)
     finally:
         client.drop_database(db_name)
 
