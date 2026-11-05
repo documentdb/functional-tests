@@ -20,14 +20,15 @@ from typing import Any
 
 import pytest
 
-from documentdb_tests.compatibility.tests.system.diagnostic.utils.explain_hash import (
+from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.test_case import BaseTestCase
+
+from .utils.explain_hash import (
     PLAN_CACHE_SHAPE_HASH,
     QUERY_SHAPE_HASH,
     assert_hash_relation,
 )
-from documentdb_tests.framework.executor import execute_command
-from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.test_case import BaseTestCase
 
 pytestmark = pytest.mark.admin
 
