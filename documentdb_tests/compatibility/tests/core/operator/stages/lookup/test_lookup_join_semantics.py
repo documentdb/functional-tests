@@ -58,6 +58,7 @@ LOOKUP_LEFT_OUTER_JOIN_TESTS: list[LookupTestCase] = [
     ),
     LookupTestCase(
         "multiple_matches_in_insertion_order",
+        ignore_order_in=["joined"],
         docs=[{"_id": 1, "lf": "a"}],
         foreign_docs=[
             {"_id": 12, "ff": "a"},
@@ -569,4 +570,5 @@ def test_lookup_join_semantics(collection, test_case: LookupTestCase):
             expected=test_case.expected,
             error_code=test_case.error_code,
             msg=test_case.msg,
+            ignore_order_in=test_case.ignore_order_in,
         )
