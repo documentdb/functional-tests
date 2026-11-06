@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
+from pymongo.errors import PyMongoError
 
 from documentdb_tests.compatibility.tests.changeStreams.dropIndexes.utils.drop_indexes import (
     drop_index_events,
@@ -131,25 +134,36 @@ def test_dropIndexes_start_after_star_returns_remaining_events(collection):
             collection.database.name,
             collection.name,
         )
-        second_token = drops[1]["_id"]
         expected_remaining = sorted(
             event["operationDescription"]["indexes"][0]["name"] for event in drops[2:]
         )
 
-    with open_change_stream(
-        collection,
-        scope="database",
-        start_after=second_token,
-    ) as resumed:
-        replayed_events = collect_until_marker(resumed, collection)
+    # With fewer than two drop events there is no token to start after; the
+    # initial_count check below reports the short event list instead of an
+    # IndexError here. A failed startAfter open or getMore is passed to the
+    # assertion as the result.
+    observed: Any = None
+    replayed_names = None
+    if len(drops) >= 2:
+        try:
+            with open_change_stream(
+                collection,
+                scope="database",
+                start_after=drops[1]["_id"],
+            ) as resumed:
+                replayed_events = collect_until_marker(resumed, collection)
+            replayed_names = sorted(_event_names(replayed_events, collection))
+        except PyMongoError as error:
+            observed = error
 
-    summary = {
-        "drop_ok": drop_result.get("ok") if isinstance(drop_result, dict) else None,
-        "initial_count": len(drops),
-        "replayed_names": sorted(_event_names(replayed_events, collection)),
-    }
+    if observed is None:
+        observed = {
+            "drop_ok": drop_result.get("ok") if isinstance(drop_result, dict) else None,
+            "initial_count": len(drops),
+            "replayed_names": replayed_names,
+        }
     assertProperties(
-        summary,
+        observed,
         {
             "drop_ok": Eq(1.0),
             "initial_count": Eq(5),
