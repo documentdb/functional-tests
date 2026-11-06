@@ -39,6 +39,21 @@ def execute_project(collection, project):
     """
     Execute a projection with literal input values.
 
+    Evaluates the projection against a single empty document. The document is
+    inserted into the collection and the pipeline runs over that collection,
+    rather than synthesizing the row with a ``$documents`` stage. This keeps the
+    helper free of any dependency on ``$documents`` support while producing the
+    same single-row input the projection sees.
+
+    Note: the inserted document carries an auto-generated ``_id``, so the input
+    row is ``{_id: <ObjectId>}`` rather than the field-less row ``$documents:
+    [{}]`` produces. Literal expressions and references to any other (missing)
+    field behave identically, and the output projection excludes ``_id``; but an
+    expression that reads ``$_id``, ``$$ROOT``, or ``$$CURRENT`` sees that id and
+    will diverge. Callers that need a truly field-less input (e.g. ``$$ROOT`` must
+    be ``{}``) or exactly one row over a pre-populated collection must shape their
+    own pipeline instead of using this helper.
+
     Args:
         collection: MongoDB collection object
         project: Fields to project. Do not include _id; the function always
@@ -51,12 +66,12 @@ def execute_project(collection, project):
         >>> execute_project(collection, {"sum": {"$add": [1, 2]}})
         # Returns result with {"sum": 3} in firstBatch
     """
+    collection.insert_one({})
     return execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {"$project": {**materialize(project), "_id": 0}},
             ],
             "cursor": {},
@@ -100,10 +115,26 @@ def execute_project_with_insert(collection, document, project):
 
 def execute_expression(collection, expression):
     """
-    Execute an aggregation expression using $documents stage.
+    Execute an aggregation expression against a single empty document.
 
-    Evaluates an expression against an empty document using the $documents
-    stage. Useful for testing expressions with literal values.
+    Evaluates an expression against an empty document. The document is inserted
+    into the collection and the pipeline runs over that collection, rather than
+    synthesizing the row with a ``$documents`` stage. This keeps the helper free
+    of any dependency on ``$documents`` support while producing the same
+    single-row input the expression is evaluated against. Useful for testing
+    expressions with literal values; references to fields other than ``_id``
+    resolve to missing, just as they would against a ``$documents: [{}]`` row.
+
+    Note: the inserted document carries an auto-generated ``_id``, so the input
+    row is ``{_id: <ObjectId>}`` rather than the field-less row ``$documents:
+    [{}]`` produces. Literal expressions and references to any other (missing)
+    field are unaffected, and the output projection excludes ``_id``; but an
+    expression that reads ``$_id``, ``$$ROOT``, or ``$$CURRENT`` sees that id and
+    will diverge. Callers that need a truly field-less input (e.g. ``$$ROOT`` must
+    be ``{}``) must shape their own pipeline instead of using this helper. Callers
+    whose collection is already populated should use
+    ``execute_expression_single_row``, since this helper would emit one row per
+    document.
 
     Args:
         collection: MongoDB collection object
@@ -117,12 +148,49 @@ def execute_expression(collection, expression):
         >>> execute_expression(collection, {"$add": [1, 2]})
         # Returns result with {"result": 3} in firstBatch
     """
+    collection.insert_one({})
     return execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
+                {"$project": {"_id": 0, "result": expression}},
+            ],
+            "cursor": {},
+        },
+    )
+
+
+def execute_expression_single_row(collection, expression):
+    """
+    Execute an aggregation expression once over an already-populated collection.
+
+    Evaluates the expression against the first document of the collection
+    (``$limit: 1``), so the result has exactly one row however many documents
+    the collection holds. Unlike ``execute_expression``, this helper does not
+    insert anything, so no write lands between the caller's own steps and the
+    evaluation. The collection must already hold at least one document; an
+    empty collection yields no rows.
+
+    Args:
+        collection: MongoDB collection object holding at least one document
+        expression: The expression to evaluate (e.g., {"$add": [1, 2]})
+
+    Returns:
+        Result from execute_command with structure:
+        {"cursor": {"firstBatch": [{"result": <value>}]}}
+
+    Example:
+        >>> collection.insert_many([{"_id": 1}, {"_id": 2}])
+        >>> execute_expression_single_row(collection, {"$add": [1, 2]})
+        # Returns result with a single {"result": 3} in firstBatch
+    """
+    return execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [
+                {"$limit": 1},
                 {"$project": {"_id": 0, "result": expression}},
             ],
             "cursor": {},
