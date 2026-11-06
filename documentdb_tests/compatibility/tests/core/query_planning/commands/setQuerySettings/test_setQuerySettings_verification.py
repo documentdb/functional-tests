@@ -326,9 +326,12 @@ def test_setQuerySettings_hash_same(collection, test):
         for cmd in test.build_setup(ctx):
             r = execute_admin_command(collection, cmd)
             ctx.setup_results.append(r)
-            if "queryShapeHash" in r:
+            if isinstance(r, dict) and "queryShapeHash" in r:
                 setup_hash = r["queryShapeHash"]
         result = execute_admin_command(collection, test.build_command(ctx))
+        setup_failure = next((r for r in ctx.setup_results if isinstance(r, Exception)), None)
+        if setup_failure is not None:
+            result = setup_failure
         assertSuccessPartial(
             result,
             {"queryShapeHash": setup_hash},
@@ -352,14 +355,28 @@ def test_setQuerySettings_hash_different(collection, test):
         for cmd in test.build_setup(ctx):
             r = execute_admin_command(collection, cmd)
             ctx.setup_results.append(r)
-            if "queryShapeHash" in r:
+            if isinstance(r, dict) and "queryShapeHash" in r:
                 setup_hash = r["queryShapeHash"]
         result = execute_admin_command(collection, test.build_command(ctx))
-        hashes_differ = result["queryShapeHash"] != setup_hash
+        setup_failure = next((r for r in ctx.setup_results if isinstance(r, Exception)), None)
+        if setup_failure is not None:
+            actual = setup_failure
+            msg = test.msg
+        elif isinstance(result, Exception):
+            actual = result
+            msg = test.msg
+        else:
+            # A missing hash on either side is a failure, not a difference.
+            command_hash = result.get("queryShapeHash")
+            differ = (
+                setup_hash is not None and command_hash is not None and command_hash != setup_hash
+            )
+            actual = {"differ": differ}
+            msg = f"{test.msg}, setup hash: {setup_hash!r}, command hash: {command_hash!r}"
         assertSuccessPartial(
-            {"differ": hashes_differ},
+            actual,
             {"differ": True},
-            msg=test.msg,
+            msg=msg,
         )
     finally:
         for cmd in test.build_cleanup(ctx):
@@ -412,12 +429,17 @@ def test_setQuerySettings_hash_format(collection, test):
     ctx = CommandContext.from_collection(collection)
     try:
         result = execute_admin_command(collection, test.build_command(ctx))
-        h = result.get("queryShapeHash", "")
-        is_valid = bool(re.fullmatch(r"[0-9A-Fa-f]{64}", h))
+        if isinstance(result, Exception):
+            actual = result
+            msg = test.msg
+        else:
+            h = result.get("queryShapeHash", "")
+            actual = {"valid": bool(re.fullmatch(r"[0-9A-Fa-f]{64}", h))}
+            msg = f"{test.msg}, got: {h!r}"
         assertSuccessPartial(
-            {"valid": is_valid},
+            actual,
             {"valid": True},
-            msg=f"{test.msg}, got: {h!r}",
+            msg=msg,
         )
     finally:
         for cmd in test.build_cleanup(ctx):

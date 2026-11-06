@@ -133,11 +133,14 @@ def test_setQuerySettings_response(collection, test):
     try:
         result = execute_admin_command(collection, test.build_command(ctx))
         expected = test.build_expected(ctx)
-        # Also verify the dynamic fields are present
-        if test.id == "response_contains_hash":
-            expected["queryShapeHash"] = result.get("queryShapeHash")
-        elif test.id == "response_contains_representative_query":
-            expected["representativeQuery"] = result.get("representativeQuery")
+        # Also verify the dynamic fields are present. When the command failed,
+        # pass the exception through so the single assertion reports the engine
+        # error instead of crashing while reading fields off the exception.
+        if not isinstance(result, Exception):
+            if test.id == "response_contains_hash":
+                expected["queryShapeHash"] = result.get("queryShapeHash")
+            elif test.id == "response_contains_representative_query":
+                expected["representativeQuery"] = result.get("representativeQuery")
         assertSuccessPartial(result, expected, msg=test.msg)
     finally:
         for cmd in test.build_cleanup(ctx):
@@ -231,7 +234,14 @@ def test_setQuerySettings_remove(collection, test):
         for cmd in test.build_setup(ctx):
             r = execute_admin_command(collection, cmd)
             ctx.setup_results.append(r)
-        result = execute_admin_command(collection, test.build_command(ctx))
+        # If a setup command failed, its result is needed to build the command
+        # (e.g. removeQuerySettings by hash); forward the failure to the single
+        # assertion instead of indexing into the exception.
+        setup_failure = next((r for r in ctx.setup_results if isinstance(r, Exception)), None)
+        if setup_failure is not None:
+            result = setup_failure
+        else:
+            result = execute_admin_command(collection, test.build_command(ctx))
         assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
     finally:
         for cmd in test.build_cleanup(ctx):

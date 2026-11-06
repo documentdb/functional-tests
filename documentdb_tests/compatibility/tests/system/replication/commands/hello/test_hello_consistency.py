@@ -156,9 +156,10 @@ def test_hello_connectionId_stable(collection):
     """Test hello connectionId remains stable on same connection."""
     r1 = execute_command(collection, {"hello": 1})
     r2 = execute_command(collection, {"hello": 1})
+    reference = r1 if isinstance(r1, dict) else {}
     assertResult(
-        r2,
-        expected={"connectionId": Eq(r1["connectionId"])},
+        r1 if isinstance(r1, Exception) else r2,
+        expected={"connectionId": Eq(reference.get("connectionId"))},
         msg="hello should return stable connectionId on same connection",
         raw_res=True,
     )
@@ -170,17 +171,18 @@ def test_hello_legacy_isMaster_fields_match(collection):
     """Test hello and isMaster return same values for common fields."""
     r_hello = execute_command(collection, {"hello": 1})
     r_ismaster = execute_command(collection, {"isMaster": 1})
+    h = r_hello if isinstance(r_hello, dict) else {}
     assertResult(
-        r_ismaster,
+        r_hello if isinstance(r_hello, Exception) else r_ismaster,
         expected={
-            "maxBsonObjectSize": Eq(r_hello["maxBsonObjectSize"]),
-            "maxMessageSizeBytes": Eq(r_hello["maxMessageSizeBytes"]),
-            "maxWriteBatchSize": Eq(r_hello["maxWriteBatchSize"]),
-            "minWireVersion": Eq(r_hello["minWireVersion"]),
-            "maxWireVersion": Eq(r_hello["maxWireVersion"]),
-            "readOnly": Eq(r_hello["readOnly"]),
-            "connectionId": Eq(r_hello["connectionId"]),
-            "logicalSessionTimeoutMinutes": Eq(r_hello["logicalSessionTimeoutMinutes"]),
+            "maxBsonObjectSize": Eq(h.get("maxBsonObjectSize")),
+            "maxMessageSizeBytes": Eq(h.get("maxMessageSizeBytes")),
+            "maxWriteBatchSize": Eq(h.get("maxWriteBatchSize")),
+            "minWireVersion": Eq(h.get("minWireVersion")),
+            "maxWireVersion": Eq(h.get("maxWireVersion")),
+            "readOnly": Eq(h.get("readOnly")),
+            "connectionId": Eq(h.get("connectionId")),
+            "logicalSessionTimeoutMinutes": Eq(h.get("logicalSessionTimeoutMinutes")),
         },
         msg="hello should return matching fields with isMaster alias",
         raw_res=True,
