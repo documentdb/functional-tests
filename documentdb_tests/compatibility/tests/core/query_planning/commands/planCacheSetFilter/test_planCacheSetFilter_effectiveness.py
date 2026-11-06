@@ -55,7 +55,7 @@ def test_filter_forces_index(collection, filter_indexes, expected_index):
         node = node.get("inputStage")
 
     assertProperties(
-        {"indexFilterSet": qp["indexFilterSet"], "winningIndex": winning_index},
+        {"indexFilterSet": qp.get("indexFilterSet"), "winningIndex": winning_index},
         {"indexFilterSet": Eq(True), "winningIndex": Eq(expected_index)},
         msg=f"filter should force {expected_index} for query {{a: 1}}",
         raw_res=True,
@@ -98,7 +98,7 @@ def test_multiple_allowed_indexes(collection):
     allowed = ["a_1", "c_1"]
     assertProperties(
         {
-            "indexFilterSet": qp["indexFilterSet"],
+            "indexFilterSet": qp.get("indexFilterSet"),
             "inAllowedSet": winning_index in allowed if winning_index else False,
         },
         {"indexFilterSet": Eq(True), "inAllowedSet": Eq(True)},
@@ -157,7 +157,7 @@ def test_hint_overridden_by_filter(collection, filter_indexes, hint, expected_in
         node = node.get("inputStage")
 
     assertProperties(
-        {"indexFilterSet": qp["indexFilterSet"], "winningIndex": winning_index},
+        {"indexFilterSet": qp.get("indexFilterSet"), "winningIndex": winning_index},
         {"indexFilterSet": Eq(True), "winningIndex": Eq(expected_index)},
         msg=f"filter should override hint and force {expected_index}",
         raw_res=True,
@@ -190,7 +190,7 @@ def test_collscan_fallback(collection):
     qp = result["queryPlanner"]
     assertProperties(
         {
-            "indexFilterSet": qp["indexFilterSet"],
+            "indexFilterSet": qp.get("indexFilterSet"),
             "topStage": qp["winningPlan"].get("stage", ""),
         },
         {"indexFilterSet": Eq(True), "topStage": Eq("COLLSCAN")},
@@ -231,7 +231,7 @@ def test_filter_scoped_to_exact_shape(collection, query, expected_filter_set):
         },
     )
     assertProperties(
-        {"indexFilterSet": result["queryPlanner"]["indexFilterSet"]},
+        {"indexFilterSet": result["queryPlanner"].get("indexFilterSet")},
         {"indexFilterSet": Eq(expected_filter_set)},
         msg=f"indexFilterSet should be {expected_filter_set} for query {query}",
         raw_res=True,

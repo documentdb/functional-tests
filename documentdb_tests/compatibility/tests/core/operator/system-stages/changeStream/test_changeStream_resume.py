@@ -26,7 +26,9 @@ pytestmark = [pytest.mark.requires(change_streams=True), pytest.mark.aggregate]
 
 # Token capture helpers. A resume token must be captured from a real stream
 # before it can be used, so each helper opens a stream, optionally seeds events,
-# and returns a token from the response.
+# and returns a token from the response. When the capture fails (an engine error
+# or no matching event), the helpers return an exception instead of a token, so
+# the caller can forward it to the test's single assertion.
 
 
 def _open_stream(collection, spec=None):
@@ -38,24 +40,40 @@ def _open_stream(collection, spec=None):
 
 
 def _drain(collection, opened):
-    """Return the next batch of events from an already-open stream."""
+    """Return the next batch of events from an already-open stream, or the engine error."""
     result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+    if isinstance(result, Exception):
+        return result
     return result["cursor"]["nextBatch"]
 
 
 def _first_event_token(collection, seed, spec=None):
     """Open a stream, seed events, and return the first event's resume token."""
     opened = _open_stream(collection, spec)
+    if isinstance(opened, Exception):
+        return opened
     seed(collection)
-    return _drain(collection, opened)[0]["_id"]
+    batch = _drain(collection, opened)
+    if isinstance(batch, Exception):
+        return batch
+    if not batch:
+        return LookupError("token-capture stream returned no events")
+    return batch[0]["_id"]
 
 
 def _event_token_of_type(collection, operation_type, seed, spec=None):
     """Open a stream, seed events, and return the token of the first matching event."""
     opened = _open_stream(collection, spec)
+    if isinstance(opened, Exception):
+        return opened
     seed(collection)
     batch = _drain(collection, opened)
-    return next(e["_id"] for e in batch if e["operationType"] == operation_type)
+    if isinstance(batch, Exception):
+        return batch
+    token = next((e["_id"] for e in batch if e["operationType"] == operation_type), None)
+    if token is None:
+        return LookupError(f"token-capture stream returned no {operation_type} event: {batch!r}")
+    return token
 
 
 def _high_water_mark(collection):
@@ -80,10 +98,13 @@ def test_resume_after_event_token(collection):
         collection, lambda c: c.insert_many([{"_id": 1}, {"_id": 2}, {"_id": 3}])
     )
 
-    result = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"resumeAfter": token}}]),
-    )
+    if isinstance(token, Exception):
+        result = token
+    else:
+        result = execute_command(
+            collection,
+            change_stream_command(collection, pipeline=[{"$changeStream": {"resumeAfter": token}}]),
+        )
 
     assertResult(
         result,
@@ -104,10 +125,13 @@ def test_start_after_event_token(collection):
         collection, lambda c: c.insert_many([{"_id": 1}, {"_id": 2}, {"_id": 3}])
     )
 
-    result = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
-    )
+    if isinstance(token, Exception):
+        result = token
+    else:
+        result = execute_command(
+            collection,
+            change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
+        )
 
     assertResult(
         result,
@@ -131,10 +155,13 @@ def test_resume_after_drop_token(collection):
 
     token = _event_token_of_type(collection, "drop", seed)
 
-    result = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"resumeAfter": token}}]),
-    )
+    if isinstance(token, Exception):
+        result = token
+    else:
+        result = execute_command(
+            collection,
+            change_stream_command(collection, pipeline=[{"$changeStream": {"resumeAfter": token}}]),
+        )
 
     assertResult(
         result,
@@ -157,10 +184,13 @@ def test_start_after_drop_token(collection):
 
     token = _event_token_of_type(collection, "drop", seed)
 
-    result = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
-    )
+    if isinstance(token, Exception):
+        result = token
+    else:
+        result = execute_command(
+            collection,
+            change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
+        )
 
     assertResult(
         result,
@@ -180,13 +210,16 @@ def test_resume_regular_token_under_show_expanded_events(collection):
         collection, lambda c: c.insert_many([{"_id": 1}, {"_id": 2}, {"_id": 3}])
     )
 
-    result = execute_command(
-        collection,
-        change_stream_command(
+    if isinstance(token, Exception):
+        result = token
+    else:
+        result = execute_command(
             collection,
-            pipeline=[{"$changeStream": {"resumeAfter": token, "showExpandedEvents": True}}],
-        ),
-    )
+            change_stream_command(
+                collection,
+                pipeline=[{"$changeStream": {"resumeAfter": token, "showExpandedEvents": True}}],
+            ),
+        )
 
     assertResult(
         result,
@@ -250,10 +283,13 @@ def test_resume_after_invalidate_token(collection):
 
     token = _event_token_of_type(collection, "invalidate", seed)
 
-    result = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"resumeAfter": token}}]),
-    )
+    if isinstance(token, Exception):
+        result = token
+    else:
+        result = execute_command(
+            collection,
+            change_stream_command(collection, pipeline=[{"$changeStream": {"resumeAfter": token}}]),
+        )
 
     assertResult(
         result,
@@ -266,14 +302,18 @@ def test_resume_after_invalidate_token(collection):
 # Property [Resume After Two-Byte Truncated]: resumeAfter a two-byte-truncated token fails.
 def test_resume_after_two_byte_truncated_token(collection):
     """Test $changeStream resumeAfter from a two-byte-truncated token."""
-    token = dict(_first_event_token(collection, lambda c: c.insert_one({"_id": 1})))
-    # One byte is tolerated; two bytes leave the KeyString unable to decode.
-    token["_data"] = token["_data"][:-4]
-
-    result = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"resumeAfter": token}}]),
-    )
+    token = _first_event_token(collection, lambda c: c.insert_one({"_id": 1}))
+    if isinstance(token, Exception):
+        result = token
+    else:
+        # One byte is tolerated; two bytes leave the KeyString unable to decode.
+        truncated = {**token, "_data": token["_data"][:-4]}
+        result = execute_command(
+            collection,
+            change_stream_command(
+                collection, pipeline=[{"$changeStream": {"resumeAfter": truncated}}]
+            ),
+        )
 
     assertResult(
         result,
@@ -286,13 +326,17 @@ def test_resume_after_two_byte_truncated_token(collection):
 # Property [Start After Two-Byte Truncated]: startAfter a two-byte-truncated token fails.
 def test_start_after_two_byte_truncated_token(collection):
     """Test $changeStream startAfter from a two-byte-truncated token."""
-    token = dict(_first_event_token(collection, lambda c: c.insert_one({"_id": 1})))
-    token["_data"] = token["_data"][:-4]
-
-    result = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
-    )
+    token = _first_event_token(collection, lambda c: c.insert_one({"_id": 1}))
+    if isinstance(token, Exception):
+        result = token
+    else:
+        truncated = {**token, "_data": token["_data"][:-4]}
+        result = execute_command(
+            collection,
+            change_stream_command(
+                collection, pipeline=[{"$changeStream": {"startAfter": truncated}}]
+            ),
+        )
 
     assertResult(
         result,
@@ -312,12 +356,20 @@ def test_start_after_resumes_after_invalidate(collection):
 
     token = _event_token_of_type(collection, "invalidate", seed)
 
-    opened = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
-    )
-    collection.insert_one({"_id": 2})
-    result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+    if isinstance(token, Exception):
+        result = token
+    else:
+        opened = execute_command(
+            collection,
+            change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
+        )
+        if isinstance(opened, Exception):
+            result = opened
+        else:
+            collection.insert_one({"_id": 2})
+            result = execute_command(
+                collection, get_more_command(collection, opened["cursor"]["id"])
+            )
 
     assertResult(
         result,
@@ -343,15 +395,23 @@ def test_expanded_only_token_fails_on_advance(collection):
         collection, "createIndexes", seed, spec={"showExpandedEvents": True}
     )
 
-    opened = execute_command(
-        collection,
-        change_stream_command(
+    if isinstance(token, Exception):
+        result = token
+    else:
+        opened = execute_command(
             collection,
-            pipeline=[{"$changeStream": {"resumeAfter": token, "showExpandedEvents": False}}],
-        ),
-    )
-    collection.insert_one({"_id": 1})
-    result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+            change_stream_command(
+                collection,
+                pipeline=[{"$changeStream": {"resumeAfter": token, "showExpandedEvents": False}}],
+            ),
+        )
+        if isinstance(opened, Exception):
+            result = opened
+        else:
+            collection.insert_one({"_id": 1})
+            result = execute_command(
+                collection, get_more_command(collection, opened["cursor"]["id"])
+            )
 
     assertResult(
         result,
@@ -368,12 +428,20 @@ def test_resume_after_foreign_collection_token(collection, database_client):
     database_client.create_collection(other.name)
     token = _first_event_token(other, lambda c: c.insert_one({"_id": 1}))
 
-    opened = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"resumeAfter": token}}]),
-    )
-    collection.insert_one({"_id": 99})
-    result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+    if isinstance(token, Exception):
+        result = token
+    else:
+        opened = execute_command(
+            collection,
+            change_stream_command(collection, pipeline=[{"$changeStream": {"resumeAfter": token}}]),
+        )
+        if isinstance(opened, Exception):
+            result = opened
+        else:
+            collection.insert_one({"_id": 99})
+            result = execute_command(
+                collection, get_more_command(collection, opened["cursor"]["id"])
+            )
 
     assertResult(
         result,
@@ -390,12 +458,20 @@ def test_start_after_foreign_collection_token(collection, database_client):
     database_client.create_collection(other.name)
     token = _first_event_token(other, lambda c: c.insert_one({"_id": 1}))
 
-    opened = execute_command(
-        collection,
-        change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
-    )
-    collection.insert_one({"_id": 99})
-    result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+    if isinstance(token, Exception):
+        result = token
+    else:
+        opened = execute_command(
+            collection,
+            change_stream_command(collection, pipeline=[{"$changeStream": {"startAfter": token}}]),
+        )
+        if isinstance(opened, Exception):
+            result = opened
+        else:
+            collection.insert_one({"_id": 99})
+            result = execute_command(
+                collection, get_more_command(collection, opened["cursor"]["id"])
+            )
 
     assertResult(
         result,
@@ -412,12 +488,12 @@ def _resume_after_mutated(collection, mutate):
     interpreted position, so each resume should behave identically to resuming
     from the unmutated token.
     """
-    token = dict(
-        _first_event_token(
-            collection, lambda c: c.insert_many([{"_id": 1}, {"_id": 2}, {"_id": 3}])
-        )
+    token = _first_event_token(
+        collection, lambda c: c.insert_many([{"_id": 1}, {"_id": 2}, {"_id": 3}])
     )
-    mutated = mutate(token)
+    if isinstance(token, Exception):
+        return token
+    mutated = mutate(dict(token))
     return execute_command(
         collection,
         change_stream_command(collection, pipeline=[{"$changeStream": {"resumeAfter": mutated}}]),

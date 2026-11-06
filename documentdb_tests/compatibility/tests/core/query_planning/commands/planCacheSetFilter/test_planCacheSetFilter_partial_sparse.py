@@ -55,7 +55,7 @@ def test_partial_index_qualifying(collection):
         node = node.get("inputStage")
 
     assertProperties(
-        {"indexFilterSet": qp["indexFilterSet"], "winningIndex": winning_index},
+        {"indexFilterSet": qp.get("indexFilterSet"), "winningIndex": winning_index},
         {"indexFilterSet": Eq(True), "winningIndex": Eq("a_partial")},
         msg="qualifying query should use the partial index",
         raw_res=True,
@@ -95,7 +95,7 @@ def test_partial_index_non_qualifying(collection):
     qp = result["queryPlanner"]
     assertProperties(
         {
-            "indexFilterSet": qp["indexFilterSet"],
+            "indexFilterSet": qp.get("indexFilterSet"),
             "topStage": qp["winningPlan"].get("stage", ""),
         },
         {"indexFilterSet": Eq(True), "topStage": Eq("COLLSCAN")},
@@ -143,7 +143,7 @@ def test_sparse_index_qualifying(collection):
         node = node.get("inputStage")
 
     assertProperties(
-        {"indexFilterSet": qp["indexFilterSet"], "winningIndex": winning_index},
+        {"indexFilterSet": qp.get("indexFilterSet"), "winningIndex": winning_index},
         {"indexFilterSet": Eq(True), "winningIndex": Eq("a_sparse")},
         msg="$exists:true should use the sparse index",
         raw_res=True,
@@ -182,7 +182,7 @@ def test_sparse_index_non_qualifying(collection):
     qp = result["queryPlanner"]
     assertProperties(
         {
-            "indexFilterSet": qp["indexFilterSet"],
+            "indexFilterSet": qp.get("indexFilterSet"),
             "topStage": qp["winningPlan"].get("stage", ""),
         },
         {"indexFilterSet": Eq(True), "topStage": Eq("COLLSCAN")},

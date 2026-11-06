@@ -775,7 +775,14 @@ def test_setQuerySettings_update(collection, test):
         for cmd in test.build_setup(ctx):
             r = execute_admin_command(collection, cmd)
             ctx.setup_results.append(r)
-        result = execute_admin_command(collection, test.build_command(ctx))
+        # If a setup command failed, its result is needed to build the command
+        # (update via hash); forward the failure to the single assertion instead
+        # of indexing into the exception.
+        setup_failure = next((r for r in ctx.setup_results if isinstance(r, Exception)), None)
+        if setup_failure is not None:
+            result = setup_failure
+        else:
+            result = execute_admin_command(collection, test.build_command(ctx))
         assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
     finally:
         for cmd in test.build_cleanup(ctx):
