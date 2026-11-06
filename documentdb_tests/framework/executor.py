@@ -4,7 +4,7 @@ Unified execution and assertion utilities for tests.
 
 import time
 from datetime import timezone
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from bson.codec_options import CodecOptions
 
@@ -124,5 +124,43 @@ def execute_admin_with_retry_command(
         result = execute_admin_command(collection, command)
         should_retry = isinstance(result, Exception) and getattr(result, "code", None) == retry_code
         if not should_retry or time.monotonic() >= deadline:
+            return result
+        time.sleep(interval)
+
+
+def execute_command_until(
+    collection,
+    command: Dict,
+    done: Callable[[Dict], bool],
+    *,
+    timeout: float = 10.0,
+    interval: float = 0.1,
+) -> Any:
+    """
+    Run a command until ``done`` accepts its result, then return that result.
+
+    For state that some engines publish asynchronously, such as $indexStats
+    counters or a change-stream event that lands after the first getMore. On
+    an engine that reports the state at once, the first result is returned
+    and the command runs exactly once.
+
+    An error result is returned immediately without calling ``done``. On
+    timeout, the last result is returned as-is so the caller's assertion
+    reports it.
+
+    Args:
+        collection: DocumentDB collection
+        command: Command to execute via runCommand
+        done: Predicate on a successful result; True stops polling
+        timeout: Maximum seconds to keep polling
+        interval: Seconds to wait between attempts
+
+    Returns:
+        Result if successful, Exception if failed
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        result = execute_command(collection, command)
+        if isinstance(result, Exception) or done(result) or time.monotonic() >= deadline:
             return result
         time.sleep(interval)

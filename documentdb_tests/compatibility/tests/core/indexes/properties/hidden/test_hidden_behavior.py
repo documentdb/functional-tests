@@ -10,10 +10,14 @@ from documentdb_tests.compatibility.tests.core.indexes.commands.utils.index_test
     IndexTestCase,
 )
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.executor import execute_admin_command, execute_command
+from documentdb_tests.framework.executor import (
+    execute_admin_command,
+    execute_command,
+    execute_command_until,
+)
 from documentdb_tests.framework.parametrize import pytest_params
 
-from .utils.helpers import get_index_doc, get_index_ops
+from .utils.helpers import get_index_doc, get_index_ops, index_stats_command, index_used
 
 pytestmark = pytest.mark.index
 
@@ -91,6 +95,9 @@ def test_indexstats_counter(collection, test):
         execute_command(
             collection, {"find": collection.name, "filter": {"a": {"$gte": 0}}, "hint": "a_1"}
         )
+        # Wait until the pre-use access is counted, so the toggles below act
+        # on a non-zero counter even where accesses.ops is updated lazily.
+        execute_command_until(collection, index_stats_command(collection), index_used("a_1"))
     for hidden_value in test.input["toggle_sequence"]:
         execute_command(
             collection,
@@ -100,8 +107,12 @@ def test_indexstats_counter(collection, test):
         execute_command(
             collection, {"find": collection.name, "filter": {"a": {"$gte": 0}}, "hint": "a_1"}
         )
-    result = execute_command(
-        collection, {"aggregate": collection.name, "pipeline": [{"$indexStats": {}}], "cursor": {}}
+    # A case that expects a non-zero counter reads until the use is counted;
+    # a case that expects zero reads once, as before.
+    result = execute_command_until(
+        collection,
+        index_stats_command(collection),
+        index_used("a_1") if test.expected else lambda r: True,
     )
     assertSuccess(
         result,
@@ -349,9 +360,7 @@ def test_indexstats_nonhidden_accesses_increment_nonzero(collection):
     execute_command(
         collection, {"find": collection.name, "filter": {"a": {"$gte": 0}}, "hint": "a_1"}
     )
-    result = execute_command(
-        collection, {"aggregate": collection.name, "pipeline": [{"$indexStats": {}}], "cursor": {}}
-    )
+    result = execute_command_until(collection, index_stats_command(collection), index_used("a_1"))
     ops = get_index_ops(result, "a_1")
     assertSuccess(
         ops >= 1,
@@ -380,9 +389,7 @@ def test_indexstats_reset_only_affects_toggled_index_b_unchanged(collection):
     execute_command(
         collection, {"collMod": collection.name, "index": {"name": "a_1", "hidden": True}}
     )
-    result = execute_command(
-        collection, {"aggregate": collection.name, "pipeline": [{"$indexStats": {}}], "cursor": {}}
-    )
+    result = execute_command_until(collection, index_stats_command(collection), index_used("b_1"))
     b_ops = get_index_ops(result, "b_1")
     assertSuccess(
         b_ops >= 1,

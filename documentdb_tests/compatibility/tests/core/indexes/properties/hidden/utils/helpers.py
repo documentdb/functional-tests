@@ -1,6 +1,6 @@
 """Helpers for hidden index property tests."""
 
-from typing import Any, Iterator, List, Optional
+from typing import Any, Callable, Iterator, List, Optional
 
 
 def _walk(node: Any) -> Iterator[dict]:
@@ -106,3 +106,17 @@ def get_index_ops(result, index_name):
     if doc is None:
         return None
     return doc["accesses"]["ops"]
+
+
+def index_stats_command(collection) -> dict:
+    """Return the $indexStats aggregate command for a collection."""
+    return {"aggregate": collection.name, "pipeline": [{"$indexStats": {}}], "cursor": {}}
+
+
+def index_used(index_name: str) -> Callable[[dict], bool]:
+    """Return a predicate that is True once $indexStats reports a use of the index.
+
+    Used with execute_command_until: some engines update accesses.ops
+    asynchronously, so a single read right after a query can still show 0.
+    """
+    return lambda result: (get_index_ops(result, index_name) or 0) > 0
