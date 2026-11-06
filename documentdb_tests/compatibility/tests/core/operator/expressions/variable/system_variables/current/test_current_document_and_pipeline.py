@@ -166,12 +166,14 @@ def test_current_pipeline_rescoping(collection, test: StageTestCase):
 
 def test_current_returns_empty_object_for_empty_document(collection):
     """$$CURRENT resolves to an empty object when the current document has no fields."""
+    collection.insert_one({})
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
+                # Exclude the inserted document's _id so the row has no fields.
+                {"$project": {"_id": 0}},
                 {"$project": {"_id": 0, "doc": "$$CURRENT"}},
             ],
             "cursor": {},
