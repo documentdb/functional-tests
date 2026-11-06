@@ -10,6 +10,7 @@ from bson import Int64
 from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
     CursorCommandContext,
     CursorCommandTestCase,
+    label_cursor_ids,
     open_find_cursors,
 )
 from documentdb_tests.framework import fixtures
@@ -154,18 +155,23 @@ def test_killCursors_list_indexes_cursor(collection):
         {"listIndexes": collection.name, "cursor": {"batchSize": 1}},
     )
     cursor_id = None if isinstance(res, Exception) else res["cursor"]["id"]
+    # The reply is compared with the opened cursor ID replaced by "cursor_0",
+    # so the compared value does not embed this run's server-assigned ID.
     result = (
         res
         if isinstance(res, Exception)
-        else execute_command(
-            collection,
-            {"killCursors": collection.name, "cursors": [cursor_id]},
+        else label_cursor_ids(
+            execute_command(
+                collection,
+                {"killCursors": collection.name, "cursors": [cursor_id]},
+            ),
+            [cursor_id],
         )
     )
     assertResult(
         result,
         expected={
-            "cursorsKilled": [cursor_id],
+            "cursorsKilled": ["cursor_0"],
             "cursorsNotFound": [],
             "cursorsAlive": [],
             "cursorsUnknown": [],
