@@ -154,6 +154,17 @@ DOT_NOTATION_TESTS: list[UpdateTestCase] = [
         expected={"_id": 1, "a": {"b": 1}},
         msg="$inc should create missing nested field via dot notation",
     ),
+    UpdateTestCase(
+        "dotted_past_array_end_pads_with_nulls",
+        setup_docs=[{"_id": 1, "a": [10, 20]}],
+        query={"_id": 1},
+        update={"$inc": {"a.10": 5}},
+        expected={
+            "_id": 1,
+            "a": [10, 20, None, None, None, None, None, None, None, None, 5],
+        },
+        msg="$inc past the end of an array should pad with nulls and set the increment",
+    ),
 ]
 
 ALL_FIELD_TESTS = SIGN_TESTS + MISSING_FIELD_TESTS + ARGUMENT_TESTS + DOT_NOTATION_TESTS

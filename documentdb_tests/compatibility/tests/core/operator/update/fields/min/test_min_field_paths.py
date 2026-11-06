@@ -52,6 +52,17 @@ TESTS: list[UpdateTestCase] = [
         msg="$min on 'arr.0' should update array element at index 0",
     ),
     UpdateTestCase(
+        "dotted_past_array_end_pads_with_nulls",
+        setup_docs=[{"_id": 1, "a": [10, 20]}],
+        query={"_id": 1},
+        update={"$min": {"a.10": 5}},
+        expected={
+            "_id": 1,
+            "a": [10, 20, None, None, None, None, None, None, None, None, 5],
+        },
+        msg="$min past the end of an array should pad with nulls and set the value at the index",
+    ),
+    UpdateTestCase(
         "nonexistent_field_positive_number",
         setup_docs=[{"_id": 1, "other": "data"}],
         query={"_id": 1},
