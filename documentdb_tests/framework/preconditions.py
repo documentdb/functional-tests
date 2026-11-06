@@ -58,7 +58,7 @@ _CAPABILITY_DESCRIPTIONS: dict[str, str] = {
     "reindex": "reIndex is permitted",
     "local_rename": "renaming into the unreplicated local database is permitted",
     "search": "search and vector search surfaces are available",
-    "replication": "replication commands are available (applyOps, oplog access)",
+    "replication": "replication commands are available (applyOps)",
     "remote_target": "the server sees the connection as originating from a non-localhost address",
     "validate_repair": (
         "validate with repair/fixMultikey is permitted and background validation "
@@ -114,10 +114,9 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
         }
     ),
     # Amazon DocumentDB. A managed, replicated deployment: it presents the
-    # DocumentDB capability surface and, being backed by a replica set,
-    # additionally has the replication-dependent capabilities the reference
-    # server gates behind one (oplog access). Exposed as a single deployment
-    # form, so its one topology is named ``replica_set``.
+    # DocumentDB capability surface. It does not expose its replication log as
+    # local.oplog.rs, so it lacks the oplog capability. Exposed as a single
+    # deployment form, so its one topology is named ``replica_set``.
     ("amazon-documentdb", "replica_set"): frozenset(
         {
             "change_streams",
@@ -127,7 +126,6 @@ _CAPABILITIES_BY_PROFILE: dict[tuple[str, str], frozenset[str]] = {
             "cluster_time",
             "cluster_read_concern",
             "quorum_write_concern",
-            "oplog",
             "unforced_compact",
             "reindex",
             "replication",

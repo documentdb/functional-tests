@@ -294,7 +294,8 @@ COLLMOD_CAPPED_SIZE_TARGET_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"collMod": "oplog.rs", "cappedSize": 100_000},
         error_code=INVALID_OPTIONS_ERROR,
         msg="collMod should reject cappedSize on the oplog",
-        marks=(pytest.mark.requires(oplog=True),),
+        # Only the oplog.rs namespace is needed, not a readable oplog.
+        marks=(pytest.mark.requires(replication=True),),
     ),
 ]
 
