@@ -45,7 +45,7 @@ services:
     profiles: ["mongo-standalone", "all"]
     command: ["--wiredTigerCacheSizeGB", "1.5"]
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
       interval: 5s
@@ -67,7 +67,7 @@ services:
     profiles: ["mongo-standalone-8.3"]
     command: ["--wiredTigerCacheSizeGB", "1.5"]
     ports:
-      - "27019:27017"
+      - "127.0.0.1:27019:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
       interval: 5s
@@ -101,7 +101,7 @@ services:
       - "--setParameter"
       - "skipAuthenticationToSearchIndexManagementServer=true"
     ports:
-      - "27018:27017"
+      - "127.0.0.1:27018:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
       interval: 5s
