@@ -109,3 +109,23 @@ class TestMarkerReasonValidator:
 
     def test_unparseable_file_is_skipped(self, tmp_path):
         assert validate_marker_reasons(_write(tmp_path, "def (:\n")) == []
+
+
+@pytest.mark.unit
+class TestSpecGateValidation:
+    def test_known_spec_version_is_clean(self, tmp_path):
+        src = 'pytestmark = pytest.mark.requires(spec_since="8.3")\n'
+        assert validate_marker_reasons(_write(tmp_path, src)) == []
+
+    def test_unknown_spec_version_is_flagged(self, tmp_path):
+        src = '@pytest.mark.requires(spec_until="8.1")\ndef test_a():\n    pass\n'
+        errors = validate_marker_reasons(_write(tmp_path, src))
+        assert len(errors) == 1 and "spec_until" in errors[0]
+
+    def test_non_literal_spec_version_is_flagged(self, tmp_path):
+        src = "pytestmark = pytest.mark.requires(spec_since=VERSION)\n"
+        assert len(validate_marker_reasons(_write(tmp_path, src))) == 1
+
+    def test_capability_gate_is_not_checked_as_a_version(self, tmp_path):
+        src = "pytestmark = pytest.mark.requires(change_streams=True)\n"
+        assert validate_marker_reasons(_write(tmp_path, src)) == []

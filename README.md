@@ -288,6 +288,49 @@ When targets are discovered automatically (running `pytest` with no
 `--connection-string`), each test runs against every discovered target it
 applies to, so no manual selection is needed.
 
+### Spec Versions
+
+A run is measured against one version of the reference spec, chosen with
+`--spec-version` (`8.2` or `8.3`, default `8.2`). The spec version decides which
+tests are in scope. It is separate from the target, so you can run any target
+against the `8.3` spec and see where it differs.
+
+A test that covers behavior added in a later spec declares it with the same
+`requires` marker:
+
+```python
+@pytest.mark.requires(spec_since="8.3")   # in scope from spec 8.3 on
+@pytest.mark.requires(spec_until="8.2")   # behavior a later spec changed
+```
+
+A test with no spec gate belongs to spec `8.2` and runs under every spec
+version. Out-of-scope tests are deselected and listed, with the gate that
+excluded them, in the report's `.deselected.json` sidecar. The JSON report
+records the run's spec version and each target's server version under `run`.
+
+The gate works at three levels, and they combine (a folder gate and a test's
+own `requires(change_streams=True)` both apply; on the same key the closest
+level wins):
+
+- **Test or class:** decorate it with `@pytest.mark.requires(spec_since="8.3")`.
+- **File:** set `pytestmark = [pytest.mark.smoke, pytest.mark.requires(spec_since="8.3")]`.
+- **Folder:** for a feature whose whole folder is new in a spec, add a
+  `conftest.py` to that folder:
+
+  ```python
+  from documentdb_tests.framework.preconditions import spec_gate_folder
+
+  pytest_collection_modifyitems = spec_gate_folder(__file__, spec_since="8.3")
+  ```
+
+  Every test file under the folder, including subfolders, gets the gate.
+
+```bash
+# Run the 8.3 spec against the 8.3 dev server
+docker compose -f dev/compose.yaml --profile mongo-standalone-8.3 up -d --wait
+pytest --connection-string mongodb://localhost:27019 --engine-name mongodb --spec-version 8.3
+```
+
 ## Writing Tests
 
 ### Basic Test Structure
