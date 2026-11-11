@@ -10,6 +10,7 @@ from bson import Int64
 from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
     CursorCommandContext,
     CursorCommandTestCase,
+    label_cursor_ids,
     open_find_cursors,
 )
 from documentdb_tests.framework import fixtures
@@ -154,18 +155,23 @@ def test_killCursors_list_indexes_cursor(collection):
         {"listIndexes": collection.name, "cursor": {"batchSize": 1}},
     )
     cursor_id = None if isinstance(res, Exception) else res["cursor"]["id"]
+    # The reply is compared with the opened cursor ID replaced by "cursor_0",
+    # so the compared value does not embed this run's server-assigned ID.
     result = (
         res
         if isinstance(res, Exception)
-        else execute_command(
-            collection,
-            {"killCursors": collection.name, "cursors": [cursor_id]},
+        else label_cursor_ids(
+            execute_command(
+                collection,
+                {"killCursors": collection.name, "cursors": [cursor_id]},
+            ),
+            [cursor_id],
         )
     )
     assertResult(
         result,
         expected={
-            "cursorsKilled": [cursor_id],
+            "cursorsKilled": ["cursor_0"],
             "cursorsNotFound": [],
             "cursorsAlive": [],
             "cursorsUnknown": [],
@@ -212,28 +218,41 @@ def test_killCursors_view_cursor(database_client, collection):
 def test_killCursors_timeseries_cursor(database_client, collection):
     """Test killCursors kills a cursor opened against a time-series collection."""
     ts_name = collection.name + "_ts"
-    execute_command(
+    created = execute_command(
         collection,
         {"create": ts_name, "timeseries": {"timeField": "ts"}},
     )
-    ts = database_client[ts_name]
-    ts.insert_many(
-        [{"ts": datetime.datetime(2024, 1, 1) + datetime.timedelta(minutes=i)} for i in range(20)]
-    )
-    res = execute_command(ts, {"find": ts_name, "batchSize": 1})
-    cursor_id = None if isinstance(res, Exception) else res["cursor"]["id"]
-    result = (
-        res
-        if isinstance(res, Exception)
-        else execute_command(
-            ts,
-            {"killCursors": ts_name, "cursors": [cursor_id]},
+    # A rejected time-series create is the result: inserting anyway would
+    # create a regular collection and test a non-time-series cursor instead.
+    if isinstance(created, Exception):
+        result = created
+    else:
+        ts = database_client[ts_name]
+        ts.insert_many(
+            [
+                {"ts": datetime.datetime(2024, 1, 1) + datetime.timedelta(minutes=i)}
+                for i in range(20)
+            ]
         )
-    )
+        res = execute_command(ts, {"find": ts_name, "batchSize": 1})
+        cursor_id = None if isinstance(res, Exception) else res["cursor"]["id"]
+        # The reply is compared with the opened cursor ID replaced by "cursor_0",
+        # so the compared value does not embed this run's server-assigned ID.
+        result = (
+            res
+            if isinstance(res, Exception)
+            else label_cursor_ids(
+                execute_command(
+                    ts,
+                    {"killCursors": ts_name, "cursors": [cursor_id]},
+                ),
+                [cursor_id],
+            )
+        )
     assertResult(
         result,
         expected={
-            "cursorsKilled": [cursor_id],
+            "cursorsKilled": ["cursor_0"],
             "cursorsNotFound": [],
             "cursorsAlive": [],
             "cursorsUnknown": [],

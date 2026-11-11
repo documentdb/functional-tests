@@ -6,6 +6,9 @@ Covers batchSize behavior, getMore iteration, killCursors, and collections with 
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
+    label_cursor_ids,
+)
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
@@ -121,17 +124,24 @@ def test_listIndexes_killCursors_succeeds(collection_with_3_indexes):
         collection_with_3_indexes,
         {"listIndexes": collection_with_3_indexes.name, "cursor": {"batchSize": 1}},
     )
-    cursor_id = result["cursor"]["id"]
-
-    kill_result = execute_command(
-        collection_with_3_indexes,
-        {"killCursors": collection_with_3_indexes.name, "cursors": [cursor_id]},
-    )
+    if isinstance(result, Exception):
+        kill_result = result
+    else:
+        cursor_id = result.get("cursor", {}).get("id")
+        # The reply is compared with the opened cursor ID replaced by "cursor_0",
+        # so the compared value does not embed this run's server-assigned ID.
+        kill_result = label_cursor_ids(
+            execute_command(
+                collection_with_3_indexes,
+                {"killCursors": collection_with_3_indexes.name, "cursors": [cursor_id]},
+            ),
+            [cursor_id],
+        )
 
     assertSuccess(
         kill_result,
         {
-            "cursorsKilled": [cursor_id],
+            "cursorsKilled": ["cursor_0"],
             "cursorsNotFound": [],
             "cursorsAlive": [],
             "cursorsUnknown": [],

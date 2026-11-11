@@ -278,6 +278,11 @@ def test_accumulator_mergeObjects_null_missing(collection, test_case: Accumulato
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
+    # An error reply fails in assertSuccess, unless an override provider
+    # handled the call and it returned. Stop then, so the key-order check
+    # below only reads firstBatch from a successful result.
+    if isinstance(result, Exception):
+        return
     actual_docs = result["cursor"]["firstBatch"]
     for actual, exp in zip(actual_docs, test_case.expected):
         if "result" in exp and isinstance(exp["result"], dict):

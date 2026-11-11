@@ -170,7 +170,7 @@ DROP_INDEX_SPECIFICATION_CASES: list[DropIndexSpecificationTestCase] = [
 def test_dropIndexes_event_preserves_specification(collection, test):
     """Compare the dropped index definition with listIndexes before deletion."""
     collection.insert_one(test.document)
-    execute_command(
+    create_result = execute_command(
         collection,
         {
             "createIndexes": collection.name,
@@ -183,27 +183,38 @@ def test_dropIndexes_event_preserves_specification(collection, test):
             ],
         },
     )
-    expected_specification = index_specification(collection, test.index_name)
+    observed: Any
+    try:
+        expected_specification = index_specification(collection, test.index_name)
+    except LookupError as missing:
+        # listIndexes did not return the index, so there is no specification
+        # to compare against. Pass the createIndexes error, or the missing
+        # index if createIndexes reported success, to the assertion below.
+        observed = create_result if isinstance(create_result, Exception) else missing
+        expected_specification = None
 
-    with open_change_stream(collection, scope="database") as stream:
-        drop_result = execute_command(
-            collection,
-            {
-                "dropIndexes": collection.name,
-                "index": test.index_name,
-            },
+    if expected_specification is not None:
+        with open_change_stream(collection, scope="database") as stream:
+            drop_result = execute_command(
+                collection,
+                {
+                    "dropIndexes": collection.name,
+                    "index": test.index_name,
+                },
+            )
+            events = collect_until_marker(stream, collection)
+
+        matching_events = drop_index_events(
+            events,
+            collection.database.name,
+            collection.name,
         )
-        events = collect_until_marker(stream, collection)
-
-    matching_events = drop_index_events(
-        events,
-        collection.database.name,
-        collection.name,
-    )
-    observed = {
-        "dropSucceeded": (not isinstance(drop_result, Exception) and drop_result.get("ok") == 1),
-        "dropEvents": matching_events,
-    }
+        observed = {
+            "dropSucceeded": (
+                not isinstance(drop_result, Exception) and drop_result.get("ok") == 1
+            ),
+            "dropEvents": matching_events,
+        }
     expected = {
         "dropSucceeded": Eq(True),
         "dropEvents": Len(1),

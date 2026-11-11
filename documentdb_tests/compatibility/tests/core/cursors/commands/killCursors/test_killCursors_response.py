@@ -8,6 +8,7 @@ from bson import Int64
 from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
     CursorCommandContext,
     CursorCommandTestCase,
+    label_cursor_ids,
     open_find_cursors,
 )
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
@@ -179,8 +180,10 @@ def test_killCursors_response_cursor(database_client, collection, test):
         result, expected = cursors, None
     else:
         ctx = CursorCommandContext.from_collection(collection, cursors=cursors)
-        result = execute_command(collection, test.build_command(ctx))
-        expected = test.build_expected(ctx)
+        # Compare with each opened cursor ID replaced by its position label, so
+        # the compared value does not embed this run's server-assigned IDs.
+        result = label_cursor_ids(execute_command(collection, test.build_command(ctx)), cursors)
+        expected = label_cursor_ids(test.build_expected(ctx), cursors)
     assertResult(
         result,
         expected=expected,
