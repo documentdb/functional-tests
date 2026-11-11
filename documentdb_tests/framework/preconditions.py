@@ -26,10 +26,26 @@ uniformly to all engines (a compatible engine is measured against it, never
 defining its own). Adding an engine or a new topology (e.g. a search-backed
 deployment) is a new row in ``_CAPABILITIES_BY_PROFILE`` plus teaching
 ``_detect_topology`` to recognize it.
+
+The same marker also scopes a test to versions of the reference spec. A run
+picks one spec version (``--spec-version``), which decides which tests are in
+scope; it is independent of the target, so any target can be measured against
+any spec version::
+
+    @pytest.mark.requires(spec_since="8.3")   # behavior added in spec 8.3
+    @pytest.mark.requires(spec_until="8.2")   # behavior a later spec changed
+
+A test with no spec gate belongs to the oldest spec and runs under every spec
+version. A whole folder is gated from its ``conftest.py`` with
+``spec_gate_folder``.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any, Callable, Iterable
+
+import pytest
 from pymongo import MongoClient
 
 # The capabilities the harness knows about, each mapped to a human-readable
@@ -142,6 +158,16 @@ REQUIRES_MARKER = "requires"
 # Every known capability name, for validation of requires(...) kwargs.
 CAPABILITIES = frozenset(_CAPABILITY_DESCRIPTIONS)
 
+# The reference spec versions a run can be scoped to, oldest first. A test with
+# no spec gate belongs to the oldest one.
+SPEC_VERSIONS: tuple[str, ...] = ("8.2", "8.3")
+DEFAULT_SPEC_VERSION = "8.2"
+
+# requires(...) keys that gate on the run's spec version rather than on a
+# target capability. spec_since: in scope from this version on. spec_until: in
+# scope up to and including this version.
+SPEC_KEYS = frozenset({"spec_since", "spec_until"})
+
 
 def _check_consistency() -> None:
     """Fail at import if the descriptions and the profile table diverge.
@@ -207,7 +233,8 @@ def marker_spec() -> str:
     """Return the pytest marker definition line for the ``requires`` marker."""
     return (
         "requires(**capabilities): gate a test on capabilities the target must have "
-        "(name=True) or lack (name=False); known names: " + ", ".join(sorted(CAPABILITIES))
+        "(name=True) or lack (name=False), or on the run's spec version "
+        "(spec_since=/spec_until=<version>); known names: " + ", ".join(sorted(CAPABILITIES))
     )
 
 
@@ -255,10 +282,90 @@ def unmet_requirements(required: dict[str, bool], capabilities: frozenset[str]) 
     (True) or absent (False). A requirement is unmet when the capability's
     presence does not match. Unknown capability names raise, so a typo in a
     ``requires(...)`` marker fails loudly rather than silently never gating.
+    Spec-version keys are not capabilities and are ignored here (see
+    ``unmet_spec``).
     """
-    unknown = set(required) - CAPABILITIES
+    unknown = set(required) - CAPABILITIES - SPEC_KEYS
     if unknown:
         raise RuntimeError(f"requires(...) names unknown capabilities: {sorted(unknown)}")
     return {
-        name: expected for name, expected in required.items() if (name in capabilities) != expected
+        name: expected
+        for name, expected in required.items()
+        if name not in SPEC_KEYS and (name in capabilities) != expected
     }
+
+
+def _check_spec_gate(gate: dict[str, Any]) -> None:
+    """Raise if a spec gate names an unknown key or version."""
+    unknown = set(gate) - SPEC_KEYS
+    if unknown:
+        raise RuntimeError(f"unknown spec gate keys: {sorted(unknown)}")
+    for key, version in gate.items():
+        if version not in SPEC_VERSIONS:
+            raise RuntimeError(
+                f"requires({key}={version!r}) names an unknown spec version; "
+                f"known versions: {', '.join(SPEC_VERSIONS)}"
+            )
+
+
+def unmet_spec(required: dict[str, Any], spec_version: str) -> dict[str, str]:
+    """Return the spec gates in ``required`` that put a test out of scope.
+
+    A test is out of scope when the run's spec version is older than its
+    ``spec_since`` or newer than its ``spec_until``. An unknown version raises,
+    so a typo fails loudly rather than silently never running the test.
+    """
+    gate = {key: value for key, value in required.items() if key in SPEC_KEYS}
+    _check_spec_gate(gate)
+    run = SPEC_VERSIONS.index(spec_version)
+    unmet = {}
+    since = gate.get("spec_since")
+    if since is not None and run < SPEC_VERSIONS.index(since):
+        unmet["spec_since"] = since
+    until = gate.get("spec_until")
+    if until is not None and run > SPEC_VERSIONS.index(until):
+        unmet["spec_until"] = until
+    return unmet
+
+
+def merged_requirements(markers: Iterable[Any]) -> dict[str, Any]:
+    """Combine every ``requires`` marker on a test into one mapping.
+
+    Markers are given closest first (as ``item.iter_markers`` yields them), so
+    a folder or module gate and a test's own capability gate both apply, and on
+    a key set at two levels the closest one wins.
+    """
+    merged: dict[str, Any] = {}
+    for marker in markers:
+        for key, value in marker.kwargs.items():
+            merged.setdefault(key, value)
+    return merged
+
+
+def spec_gate_folder(conftest_file: str, **gate: str) -> Callable[..., None]:
+    """Return a collection hook that spec-gates every test under a folder.
+
+    Use it from the folder's ``conftest.py``::
+
+        pytest_collection_modifyitems = spec_gate_folder(__file__, spec_since="8.3")
+
+    The gate is added to each test module under the folder, after the module's
+    own marks, so a file or test gate still wins on the same key and capability
+    gates combine with it.
+    """
+    _check_spec_gate(gate)
+    folder = Path(conftest_file).resolve().parent
+    mark = getattr(pytest.mark, REQUIRES_MARKER)(**gate)
+
+    @pytest.hookimpl(tryfirst=True)
+    def pytest_collection_modifyitems(items: list) -> None:
+        checked: set[int] = set()
+        for item in items:
+            module = item.getparent(pytest.Module)
+            if module is None or id(module) in checked:
+                continue
+            checked.add(id(module))
+            if folder in Path(module.path).resolve().parents:
+                module.add_marker(mark)
+
+    return pytest_collection_modifyitems

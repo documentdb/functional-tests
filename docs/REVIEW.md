@@ -60,6 +60,7 @@ Follow every rule in [`FOLDER_STRUCTURE.md`](testing/FOLDER_STRUCTURE.md). Addit
 - [ ] Type annotations on helper functions
 - [ ] Order-independent output uses `ignore_doc_order=True`
 - [ ] Tests that depend on an environment capability are gated with `@pytest.mark.requires(<capability>=<bool>)` (e.g. `requires(change_streams=True)`), not a topology marker
+- [ ] Tests for behavior added in a later spec are gated with `requires(spec_since="<version>")` at the test, file or folder level (see README "Spec Versions"), not with an `engine_xfail` for the reference server
 - [ ] Tests that cannot run in parallel are tagged `@pytest.mark.no_parallel`
 - [ ] Tests where MongoDB itself fails are tagged with `engine_xfail` (not skipped)
 - [ ] Tests with non-deterministic output (e.g. `$rand`, `$sample`, server timestamps) assert structure/bounds, not exact values

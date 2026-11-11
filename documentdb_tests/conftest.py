@@ -34,11 +34,15 @@ from documentdb_tests.framework.marker_reason_validator import (  # noqa: E402
     validate_marker_reasons,
 )
 from documentdb_tests.framework.preconditions import (  # noqa: E402
+    DEFAULT_SPEC_VERSION,
     REQUIRES_MARKER,
+    SPEC_VERSIONS,
     detect_capabilities,
     known_engines,
     marker_spec,
+    merged_requirements,
     unmet_requirements,
+    unmet_spec,
 )
 from documentdb_tests.framework.test_format_validator import validate_test_format  # noqa: E402
 from documentdb_tests.framework.test_structure_validator import (  # noqa: E402
@@ -68,6 +72,15 @@ def pytest_addoption(parser):
         help="Run tests marked engine_xcrash against the engine they crash. They "
         "are skipped by default because they kill the server; enable this only "
         "in an isolated job that can tolerate (and expects) a server crash.",
+    )
+    parser.addoption(
+        "--spec-version",
+        action="store",
+        default=DEFAULT_SPEC_VERSION,
+        choices=SPEC_VERSIONS,
+        help="Reference spec version that decides which tests are in scope. "
+        "Independent of the target, so an engine can be measured against a "
+        f"newer spec. Default: {DEFAULT_SPEC_VERSION}.",
     )
 
 
@@ -124,6 +137,11 @@ def pytest_configure(config):
     # Register the requires marker from its single source of truth so it need
     # not be duplicated in the pytest configuration file.
     config.addinivalue_line("markers", marker_spec())
+
+    # Only the process that writes the JSON report (not an xdist worker) needs
+    # the run header.
+    if not hasattr(config, "workerinput"):
+        config.pluginmanager.register(_RunHeaderPlugin(config), "run-header")
 
 
 def pytest_generate_tests(metafunc):
@@ -207,6 +225,58 @@ def pytest_json_runtest_metadata(item, call):
         return {}
     reason = marker.kwargs.get("reason")
     return {"xfail_reason": reason} if reason else {}
+
+
+def _server_version(connection_string: str) -> str | None:
+    """Return a target's buildInfo version, or None when it cannot be read."""
+    from pymongo import MongoClient
+
+    try:
+        client: MongoClient = MongoClient(connection_string, serverSelectionTimeoutMS=5000)
+    except Exception:
+        return None
+    try:
+        return client.admin.command("buildInfo").get("version")
+    except Exception:
+        return None
+    finally:
+        client.close()
+
+
+def _run_header(config) -> dict:
+    """Describe what a run measured: the spec version and each target's version.
+
+    Target versions are not probed when only collecting, which must work
+    without a live server.
+    """
+    collect_only = config.option.collectonly
+    return {
+        "spec_version": config.getoption("--spec-version"),
+        "targets": [
+            {
+                "name": target.name,
+                "engine": target.engine,
+                "version": None if collect_only else _server_version(target.connection_string),
+            }
+            for target in getattr(config, "test_targets", [])
+        ],
+    }
+
+
+class _RunHeaderPlugin:
+    """Record the run's spec version and target versions in the JSON report.
+
+    A run is scoped by ``--spec-version`` rather than by the target, so the
+    report states both to make a result readable on its own. Registered as a
+    plugin because the report hook is not given the config.
+    """
+
+    def __init__(self, config):
+        self._config = config
+
+    @pytest.hookimpl(optionalhook=True)
+    def pytest_json_modifyreport(self, json_report):
+        json_report["run"] = _run_header(self._config)
 
 
 @pytest.fixture(scope="session")
@@ -435,21 +505,29 @@ def pytest_collection_modifyitems(session, config, items):
     capabilities do not match what the test requires, so they do not run against
     a target they do not apply to (rather than appearing as skips). A target's
     capabilities are determined by its engine, topology, and connection source,
-    resolved per target at runtime (see ``framework.preconditions``).
+    resolved per target at runtime (see ``framework.preconditions``). Tests whose
+    spec gate excludes the run's ``--spec-version`` are deselected the same way.
 
     """
-    # Deselect a capability-gated test when its target's capabilities do not
-    # match its requires(...) marker. Each item is parametrized over a target;
-    # probe each distinct target once.
+    # Deselect a gated test when the run's spec version is out of its scope, or
+    # when its target's capabilities do not match its requires(...) markers.
+    # Markers from the folder, module, class and test all apply. Each item is
+    # parametrized over a target; probe each distinct target once.
+    spec_version = config.getoption("--spec-version")
     capabilities_by_target: dict[str, frozenset[str]] = {}
     kept: list = []
     requires_deselected: list = []
-    # nodeid -> the requirements the target did not meet, for the report sidecar.
+    # nodeid -> the requirements the run did not meet, for the report sidecar.
     deselected_reasons: dict[str, dict] = {}
     for item in items:
-        marker = item.get_closest_marker(REQUIRES_MARKER)
-        if marker is None or not marker.kwargs:
+        required = merged_requirements(item.iter_markers(REQUIRES_MARKER))
+        if not required:
             kept.append(item)
+            continue
+        out_of_spec = unmet_spec(required, spec_version)
+        if out_of_spec:
+            requires_deselected.append(item)
+            deselected_reasons[item.nodeid] = out_of_spec
             continue
         target = _item_target(item)
         if target is None:
@@ -459,9 +537,10 @@ def pytest_collection_modifyitems(session, config, items):
         if capabilities is None:
             capabilities = detect_capabilities(target.engine, target.connection_string)
             capabilities_by_target[target.connection_string] = capabilities
-        if unmet_requirements(marker.kwargs, capabilities):
+        unmet = unmet_requirements(required, capabilities)
+        if unmet:
             requires_deselected.append(item)
-            deselected_reasons[item.nodeid] = unmet_requirements(marker.kwargs, capabilities)
+            deselected_reasons[item.nodeid] = unmet
         else:
             kept.append(item)
     if requires_deselected:
@@ -555,7 +634,8 @@ def pytest_collection_modifyitems(session, config, items):
                 "\nMarkers that skip or reclassify a test (skip/skipif/xfail/"
                 "engine_xfail/engine_xcrash) must carry a reason=, and runtime "
                 "pytest.skip()/fail()/xfail() calls must pass a message, so the "
-                "outcome is never unexplained. See docs/testing/TEST_FORMAT.md "
+                "outcome is never unexplained. A requires(spec_since=/spec_until=) "
+                "gate must name a known spec version. See docs/testing/TEST_FORMAT.md "
                 "for rules.\n",
                 file=sys.stderr,
             )
@@ -667,6 +747,7 @@ def pytest_sessionfinish(session, exitstatus):
     if override_conn:
         cmd.extend(["--connection-string", override_conn])
         cmd.extend(["--engine-name", config.getoption("--engine-name")])
+    cmd.extend(["--spec-version", config.getoption("--spec-version")])
 
     # Detect Phase 1 report paths and set up Phase 2 temp report files
     phase1_json = getattr(config.option, "json_report_file", None)
