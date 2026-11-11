@@ -7,7 +7,7 @@ Tests basic dropIndexes change stream event functionality.
 import pytest
 
 from documentdb_tests.framework.assertions import assertChangeStreamEvent
-from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.executor import execute_command, execute_command_until
 
 pytestmark = pytest.mark.smoke
 
@@ -36,7 +36,13 @@ def test_smoke_changeStream_dropIndexes(collection):
 
     execute_command(collection, {"dropIndexes": collection.name, "index": "x_1"})
 
-    result = execute_command(collection, {"getMore": cursor_id, "collection": collection.name})
+    # Some engines publish the DDL event after the first getMore returns, so
+    # read until a batch is non-empty or the timeout passes.
+    result = execute_command_until(
+        collection,
+        {"getMore": cursor_id, "collection": collection.name},
+        lambda r: bool(r.get("cursor", {}).get("nextBatch")),
+    )
 
     # An empty batch means the expanded dropIndexes event was not emitted; fail
     # with a clear message instead of an IndexError when indexing nextBatch[0].
