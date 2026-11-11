@@ -54,6 +54,26 @@ services:
     x-test-target:
       engine: mongodb
 
+  # mongo-standalone-8.3: a standalone server on the 8.3 release, for runs
+  # scoped to the 8.3 spec (--spec-version 8.3). It has no x-test-target, so
+  # it is not auto-discovered and not part of the CI matrix; point pytest at it
+  # explicitly:
+  #
+  #   docker compose -f dev/compose.yaml --profile mongo-standalone-8.3 up -d --wait
+  #   pytest --connection-string mongodb://localhost:27019 --engine-name mongodb \
+  #     --spec-version 8.3
+  mongo-standalone-8.3:
+    image: mongo:8.3.13
+    profiles: ["mongo-standalone-8.3"]
+    command: ["--wiredTigerCacheSizeGB", "1.5"]
+    ports:
+      - "27019:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # mongo-replset: a single-node replica set. Provides capabilities the
   # reference server gates behind a replica set (change streams, transactions,
   # queryable encryption, cluster-wide admin). Connect with directConnection=true.
