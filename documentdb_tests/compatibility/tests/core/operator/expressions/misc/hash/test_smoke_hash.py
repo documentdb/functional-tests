@@ -8,11 +8,6 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.engine_xfail(
-    engine="mongodb",
-    reason="$hash requires MongoDB 8.3; the CI reference server is 8.2.4",
-    raises=AssertionError,
-)
 def test_smoke_hash(collection):
     """Test the engine accepts the $hash expression."""
     collection.insert_one({"_id": 1, "s": "abc"})

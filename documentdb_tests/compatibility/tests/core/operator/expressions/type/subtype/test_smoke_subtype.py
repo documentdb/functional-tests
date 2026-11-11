@@ -9,11 +9,6 @@ from documentdb_tests.framework.executor import execute_command
 pytestmark = pytest.mark.smoke
 
 
-@pytest.mark.engine_xfail(
-    engine="mongodb",
-    reason="$subtype requires MongoDB 8.3; the CI reference server is 8.2.4",
-    raises=AssertionError,
-)
 def test_smoke_subtype(collection):
     """Test the engine accepts the $subtype expression."""
     collection.insert_one({"_id": 1, "b": Binary(b"\x01\x02", 0)})
