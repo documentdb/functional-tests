@@ -121,6 +121,23 @@ Keep helpers in `utils/` at each test level. Helpers should reduce meaningful bo
 
 Minimize helper scope — one helper should do one thing. If a helper has many if/else branches handling different cases, split it into separate helpers at a lower folder level.
 
+### Polling for Asynchronously Published State
+
+Use `execute_command_until()` only for state the server may publish asynchronously, such as `$indexStats` counters or a change-stream event that lands after the first `getMore`. It is not a generic retry:
+
+- The predicate checks that the state is present (for example, the counter is non-zero), not the value the test asserts. The assertion still judges the result.
+- Errors are never retried. An error result is returned at once.
+- On timeout, the last result is returned so the assertion reports it.
+
+```python
+# ✅ Good: wait until the counter is published, then assert on it
+result = execute_command_until(collection, index_stats_cmd, done=index_used("a_1"))
+assertResult(result, expected={"accesses.ops": Gte(1)})
+
+# ❌ Bad: the predicate repeats the assertion, so a wrong value is polled for the full timeout
+# result = execute_command_until(collection, cmd, done=lambda r: r == expected)
+```
+
 ## Parametrized Tests
 
 Use `@pytest.mark.parametrize` with dataclasses for operators with many test cases. Dataclasses give named fields instead of anonymous tuples, so `test.dividend` is readable where `test[0]` is not. They also provide automatic `__repr__` for clear test IDs in output, and `frozen=True` prevents accidental mutation between test runs:
