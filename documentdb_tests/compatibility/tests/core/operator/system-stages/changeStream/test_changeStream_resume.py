@@ -18,7 +18,7 @@ from documentdb_tests.framework.error_codes import (
     INVALID_RESUME_TOKEN_ERROR,
     OVERFLOW_ERROR,
 )
-from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.executor import execute_command, execute_command_until
 from documentdb_tests.framework.property_checks import Eq, Len
 
 pytestmark = [pytest.mark.requires(change_streams=True), pytest.mark.aggregate]
@@ -62,15 +62,29 @@ def _first_event_token(collection, seed, spec=None):
 
 
 def _event_token_of_type(collection, operation_type, seed, spec=None):
-    """Open a stream, seed events, and return the token of the first matching event."""
+    """Open a stream, seed events, and return the token of the first matching event.
+
+    Some engines publish an event (for example a DDL event) after the first
+    getMore returns, so the stream is read until a batch holds an event of
+    ``operation_type`` or the timeout passes. On an engine that delivers the
+    event in the first batch, getMore runs exactly once.
+    """
     opened = _open_stream(collection, spec)
     if isinstance(opened, Exception):
         return opened
     seed(collection)
-    batch = _drain(collection, opened)
-    if isinstance(batch, Exception):
-        return batch
-    token = next((e["_id"] for e in batch if e["operationType"] == operation_type), None)
+    result = execute_command_until(
+        collection,
+        get_more_command(collection, opened["cursor"]["id"]),
+        lambda r: any(
+            e.get("operationType") == operation_type
+            for e in r.get("cursor", {}).get("nextBatch", [])
+        ),
+    )
+    if isinstance(result, Exception):
+        return result
+    batch = result.get("cursor", {}).get("nextBatch", [])
+    token = next((e["_id"] for e in batch if e.get("operationType") == operation_type), None)
     if token is None:
         return LookupError(f"token-capture stream returned no {operation_type} event: {batch!r}")
     return token

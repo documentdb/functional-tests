@@ -34,6 +34,7 @@ def validate_test_format(file_path: str) -> list[str]:
             "execute_expression_single_row",
             "execute_expression_with_insert",
             "execute_admin_with_retry_command",
+            "execute_command_until",
             "run_window_operator",
         ]
     )
