@@ -127,7 +127,7 @@ Use `execute_command_until()` only for state the server may publish asynchronous
 
 - The predicate checks that the state is present (for example, the counter is non-zero), not the value the test asserts. The assertion still judges the result.
 - Errors are never retried. An error result is returned at once.
-- On timeout (15 seconds by default), the last result is returned so the assertion reports it.
+- On timeout (20 seconds by default), the last result is returned so the assertion reports it.
 
 ```python
 # ✅ Good: wait until the counter is published, then assert on it
