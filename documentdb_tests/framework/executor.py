@@ -133,7 +133,7 @@ def execute_command_until(
     command: Dict,
     done: Callable[[Dict], bool],
     *,
-    timeout: float = 20.0,
+    timeout: float = 15.0,
     interval: float = 0.1,
 ) -> Any:
     """
@@ -148,10 +148,11 @@ def execute_command_until(
     timeout, the last result is returned as-is so the caller's assertion
     reports it.
 
-    The 20-second default is twice the roughly 10-second cycle on which some
-    engines publish usage counters, so a busy server still reports them
-    before the deadline. Polling ends as soon as ``done`` accepts a
-    result, so the timeout only costs time when the state never appears.
+    The 15-second default leaves about 5 seconds over the roughly 10-second
+    cycle on which some engines publish usage counters, so a busy server
+    still reports them before the deadline. Polling ends as soon as ``done``
+    accepts a result, so the timeout only costs time when the state never
+    appears.
 
     Args:
         collection: DocumentDB collection
