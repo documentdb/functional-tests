@@ -185,8 +185,14 @@ def test_bulkWrite_getMore_drains_remaining_results(collection):
             "cursor": {"batchSize": 1},
         },
     )
-    cursor_id = result["cursor"]["id"]
-    more = execute_admin_command(collection, {"getMore": cursor_id, "collection": "$cmd.bulkWrite"})
+    cursor_id = None if isinstance(result, Exception) else result["cursor"]["id"]
+    more = (
+        result
+        if isinstance(result, Exception)
+        else execute_admin_command(
+            collection, {"getMore": cursor_id, "collection": "$cmd.bulkWrite"}
+        )
+    )
     assertResult(
         more,
         expected={

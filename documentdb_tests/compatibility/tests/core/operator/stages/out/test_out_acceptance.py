@@ -236,23 +236,31 @@ def test_out_acceptance(collection, test_case: OutTestCase):
     populate_collection(collection, test_case)
     target = target_name(collection, test_case)
     out_stage = test_case.build_out_stage(collection)
-    execute_command(
+    out_result = execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
-    result = execute_command(
-        collection,
-        {"listCollections": 1, "filter": {"name": target}},
-    )
-    raw_doc = cast(dict, result)["cursor"]["firstBatch"][0]
-    expected_info: dict[str, Any] = {
-        "name": target,
-        "type": test_case.expected_type,
-        "options": test_case.expected_options,
-        "info": raw_doc["info"],
-    }
-    if "idIndex" in raw_doc:
-        expected_info["idIndex"] = raw_doc["idIndex"]
+    result: Any
+    expected_info: Any
+    if isinstance(out_result, Exception):
+        # The $out command itself failed; surface that error through the
+        # assertion rather than crashing on an empty listCollections batch.
+        result = out_result
+        expected_info = []
+    else:
+        result = execute_command(
+            collection,
+            {"listCollections": 1, "filter": {"name": target}},
+        )
+        raw_doc = cast(dict, result)["cursor"]["firstBatch"][0]
+        expected_info = {
+            "name": target,
+            "type": test_case.expected_type,
+            "options": test_case.expected_options,
+            "info": raw_doc["info"],
+        }
+        if "idIndex" in raw_doc:
+            expected_info["idIndex"] = raw_doc["idIndex"]
     assertSuccess(result, [expected_info], msg=test_case.msg)
 
 

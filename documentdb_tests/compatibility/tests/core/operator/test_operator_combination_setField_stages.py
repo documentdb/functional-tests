@@ -11,12 +11,12 @@ from documentdb_tests.framework.executor import execute_command
 
 def test_setField_dotted_remove(collection):
     """Test removing a dotted field name."""
+    collection.insert_one({})
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {
                     "$replaceWith": {
                         "$setField": {
@@ -35,12 +35,12 @@ def test_setField_dotted_remove(collection):
 
 def test_setField_dollar_remove(collection):
     """Test removing a dollar-prefixed field name."""
+    collection.insert_one({})
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {
                     "$replaceWith": {
                         "$setField": {

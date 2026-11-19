@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 from bson import Binary, Code, DBRef, Int64, MaxKey, MinKey, ObjectId, Timestamp
+from pymongo.errors import PyMongoError
 from utils.changeStream_common import change_stream_command, get_more_command
 
 from documentdb_tests.framework.assertions import assertProperties
@@ -425,16 +426,23 @@ CHANGESTREAM_EVENT_STRUCTURE_TESTS = (
 )
 
 
-def _emit_event(collection, test_case: ChangeStreamEventTestCase) -> dict[str, Any]:
+def _emit_event(collection, test_case: ChangeStreamEventTestCase) -> dict[str, Any] | Exception:
     """Open a stream, perform the test case mutation, and return the matching event.
 
     The mutation happens after the stream is open, so its event is delivered by
-    the first getMore.
+    the first getMore. If seeding, opening the stream, performing the mutation
+    or reading the batch fails, the engine's exception is returned so the
+    test's single assertion surfaces it. If the batch has no event of the
+    expected type, the getMore reply is returned instead, so the assertion
+    reports what the stream delivered.
     """
     mutation = test_case.mutation
     assert mutation is not None  # guaranteed by __post_init__
     if mutation.seed is not None:
-        collection.insert_one(dict(mutation.seed))
+        try:
+            collection.insert_one(dict(mutation.seed))
+        except PyMongoError as error:
+            return error
     if test_case.pre_and_post_images:
         execute_command(
             collection,
@@ -443,14 +451,24 @@ def _emit_event(collection, test_case: ChangeStreamEventTestCase) -> dict[str, A
     opened = execute_command(
         collection, change_stream_command(collection, pipeline=test_case.pipeline)
     )
-    mutation.apply(collection)
-    if test_case.post_mutation is not None:
-        test_case.post_mutation(collection)
-    batch = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))[
-        "cursor"
-    ]["nextBatch"]
+    if isinstance(opened, Exception):
+        return opened
+    # The mutation's own write can be rejected (for example an _id type an
+    # engine does not accept); that error is the result, not a crash.
+    try:
+        mutation.apply(collection)
+        if test_case.post_mutation is not None:
+            test_case.post_mutation(collection)
+    except PyMongoError as error:
+        return error
+    batch_result = execute_command(collection, get_more_command(collection, opened["cursor"]["id"]))
+    if isinstance(batch_result, Exception):
+        return batch_result
+    batch = batch_result["cursor"]["nextBatch"]
     matching = [e for e in batch if e["operationType"] == mutation.operation_type]
-    assert matching, f"no {mutation.operation_type} event in batch: {batch!r}"
+    if not matching:
+        reply: dict[str, Any] = batch_result
+        return reply
     event: dict[str, Any] = matching[0]
     return event
 

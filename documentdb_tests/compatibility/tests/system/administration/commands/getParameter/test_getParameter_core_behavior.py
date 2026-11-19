@@ -149,12 +149,17 @@ def test_getParameter_star_and_allParameters_consistent(collection):
     """Test all parameters returned by '*' are also returned by {allParameters: true}."""
     star_result = execute_admin_command(collection, {"getParameter": "*"})
     all_result = execute_admin_command(collection, {"getParameter": {"allParameters": True}})
-    star_keys = set(star_result.keys()) - {"ok"}
-    all_keys = set(all_result.keys()) - {"ok"}
-    missing = star_keys - all_keys
+    failure = next((r for r in (star_result, all_result) if isinstance(r, Exception)), None)
+    if failure is None:
+        missing = (set(star_result.keys()) - {"ok"}) - (set(all_result.keys()) - {"ok"})
+        actual = {"ok": 1.0, "missing": []}
+        expected = {"ok": 1.0, "missing": list(missing)}
+    else:
+        actual = failure
+        expected = {"ok": 1.0, "missing": []}
     assertSuccess(
-        {"ok": 1.0, "missing": []},
-        {"ok": 1.0, "missing": list(missing)},
+        actual,
+        expected,
         raw_res=True,
         msg="Keys from '*' should all appear in allParameters",
     )
@@ -195,9 +200,13 @@ def test_getParameter_setAt_without_allParameters_succeeds(collection):
 def test_getParameter_star_response_has_multiple_params(collection):
     """Test '*' response contains multiple parameter fields."""
     result = execute_admin_command(collection, {"getParameter": "*"})
-    param_keys = set(result.keys()) - {"ok"}
+    param_keys = set() if isinstance(result, Exception) else set(result.keys()) - {"ok"}
     assertSuccess(
-        {"ok": 1.0, "has_logLevel": True, "has_multiple_params": True},
+        (
+            result
+            if isinstance(result, Exception)
+            else {"ok": 1.0, "has_logLevel": True, "has_multiple_params": True}
+        ),
         {
             "ok": 1.0,
             "has_logLevel": "logLevel" in param_keys,
@@ -212,9 +221,10 @@ def test_getParameter_single_matches_star(collection):
     """Test parameter value from single retrieval matches value in '*' response."""
     single = execute_admin_command(collection, {"getParameter": 1, "logLevel": 1})
     star = execute_admin_command(collection, {"getParameter": "*"})
+    failure = next((r for r in (single, star) if isinstance(r, Exception)), None)
     assertSuccess(
-        {"ok": 1.0, "logLevel": single["logLevel"]},
-        {"ok": 1.0, "logLevel": star["logLevel"]},
+        failure if failure is not None else {"ok": 1.0, "logLevel": single["logLevel"]},
+        {"ok": 1.0, "logLevel": None if failure is not None else star["logLevel"]},
         raw_res=True,
         msg="Single retrieval should match star value",
     )
@@ -267,25 +277,31 @@ def test_getParameter_fully_immutable_param(collection):
 
 def test_getParameter_setAt_filters_result_count(collection):
     """Test setAt actually narrows the result set."""
-    all_keys = set(execute_admin_command(collection, {"getParameter": {"allParameters": True}}))
-    runtime_keys = set(
-        execute_admin_command(
-            collection, {"getParameter": {"allParameters": True, "setAt": "runtime"}}
-        )
+    all_result = execute_admin_command(collection, {"getParameter": {"allParameters": True}})
+    runtime_result = execute_admin_command(
+        collection, {"getParameter": {"allParameters": True, "setAt": "runtime"}}
     )
-    startup_keys = set(
-        execute_admin_command(
-            collection, {"getParameter": {"allParameters": True, "setAt": "startup"}}
-        )
+    startup_result = execute_admin_command(
+        collection, {"getParameter": {"allParameters": True, "setAt": "startup"}}
     )
-    n_all = len(all_keys - {"ok"})
-    assertSuccess(
-        {"ok": 1.0, "runtime_filtered": True, "startup_filtered": True},
-        {
+    failure = next(
+        (r for r in (all_result, runtime_result, startup_result) if isinstance(r, Exception)),
+        None,
+    )
+    if failure is None:
+        n_all = len(set(all_result) - {"ok"})
+        actual = {"ok": 1.0, "runtime_filtered": True, "startup_filtered": True}
+        expected = {
             "ok": 1.0,
-            "runtime_filtered": len(runtime_keys - {"ok"}) < n_all,
-            "startup_filtered": len(startup_keys - {"ok"}) < n_all,
-        },
+            "runtime_filtered": len(set(runtime_result) - {"ok"}) < n_all,
+            "startup_filtered": len(set(startup_result) - {"ok"}) < n_all,
+        }
+    else:
+        actual = failure
+        expected = {"ok": 1.0, "runtime_filtered": True, "startup_filtered": True}
+    assertSuccess(
+        actual,
+        expected,
         raw_res=True,
         msg="setAt:'runtime' and setAt:'startup' should each return fewer params than unfiltered",
     )
@@ -293,23 +309,26 @@ def test_getParameter_setAt_filters_result_count(collection):
 
 def test_getParameter_setAt_buckets_startup_only_param(collection):
     """Test setAt routes a startup-only param to the correct bucket."""
-    runtime_keys = set(
-        execute_admin_command(
-            collection, {"getParameter": {"allParameters": True, "setAt": "runtime"}}
-        )
+    runtime_result = execute_admin_command(
+        collection, {"getParameter": {"allParameters": True, "setAt": "runtime"}}
     )
-    startup_keys = set(
-        execute_admin_command(
-            collection, {"getParameter": {"allParameters": True, "setAt": "startup"}}
-        )
+    startup_result = execute_admin_command(
+        collection, {"getParameter": {"allParameters": True, "setAt": "startup"}}
     )
-    assertSuccess(
-        {"ok": 1.0, "in_runtime": False, "in_startup": True},
-        {
+    failure = next((r for r in (runtime_result, startup_result) if isinstance(r, Exception)), None)
+    if failure is None:
+        actual = {"ok": 1.0, "in_runtime": False, "in_startup": True}
+        expected = {
             "ok": 1.0,
-            "in_runtime": "KeysRotationIntervalSec" in runtime_keys,
-            "in_startup": "KeysRotationIntervalSec" in startup_keys,
-        },
+            "in_runtime": "KeysRotationIntervalSec" in set(runtime_result),
+            "in_startup": "KeysRotationIntervalSec" in set(startup_result),
+        }
+    else:
+        actual = failure
+        expected = {"ok": 1.0, "in_runtime": False, "in_startup": True}
+    assertSuccess(
+        actual,
+        expected,
         raw_res=True,
         msg="Startup-only param should appear only under setAt:'startup'",
     )
@@ -321,11 +340,17 @@ def test_getParameter_allParameters_with_named_param_returns_all(collection):
     with_named = execute_admin_command(
         collection, {"getParameter": {"allParameters": True}, "logLevel": 1}
     )
-    all_only_keys = set(all_only.keys()) - {"ok"}
-    with_named_keys = set(with_named.keys()) - {"ok"}
+    failure = next((r for r in (all_only, with_named) if isinstance(r, Exception)), None)
+    if failure is None:
+        key_diff = sorted((set(all_only.keys()) - {"ok"}) ^ (set(with_named.keys()) - {"ok"}))
+        actual = {"key_diff": []}
+        expected = {"key_diff": key_diff}
+    else:
+        actual = failure
+        expected = {"key_diff": []}
     assertSuccess(
-        {"key_diff": []},
-        {"key_diff": sorted(all_only_keys ^ with_named_keys)},
+        actual,
+        expected,
         raw_res=True,
         msg="allParameters with a named param should return the same keys as allParameters alone",
     )
@@ -336,9 +361,13 @@ def test_getParameter_allParameters_with_named_param_not_filtered(collection):
     result = execute_admin_command(
         collection, {"getParameter": {"allParameters": True}, "logLevel": 1}
     )
-    param_keys = set(result.keys()) - {"ok"}
+    param_keys = set() if isinstance(result, Exception) else set(result.keys()) - {"ok"}
     assertSuccess(
-        {"has_logLevel": True, "has_other_params": True},
+        (
+            result
+            if isinstance(result, Exception)
+            else {"has_logLevel": True, "has_other_params": True}
+        ),
         {
             "has_logLevel": "logLevel" in param_keys,
             "has_other_params": len(param_keys) > 1,

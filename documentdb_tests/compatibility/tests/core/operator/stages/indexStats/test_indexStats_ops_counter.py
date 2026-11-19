@@ -11,9 +11,18 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
     populate_collection,
 )
 from documentdb_tests.framework.assertions import assertResult
-from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.executor import execute_command_until
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Gte
+
+
+def _index_used(result: dict) -> bool:
+    """Return True once any returned $indexStats document has accesses.ops >= 1."""
+    return any(
+        doc.get("accesses", {}).get("ops", 0) >= 1
+        for doc in result.get("cursor", {}).get("firstBatch", [])
+    )
+
 
 # Property [Ops Increment]: accesses.ops increments after index usage.
 OPS_INCREMENT_TESTS: list[StageTestCase] = [
@@ -36,13 +45,16 @@ def test_indexStats_ops_counter(collection: Collection, test_case: StageTestCase
     coll = populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(coll)
-    result = execute_command(
+    # Some engines update accesses.ops asynchronously after the query, so
+    # read until a matching index reports a use or the timeout passes.
+    result = execute_command_until(
         coll,
         {
             "aggregate": coll.name,
             "pipeline": test_case.pipeline,
             "cursor": {},
         },
+        _index_used,
     )
     assertResult(
         result,

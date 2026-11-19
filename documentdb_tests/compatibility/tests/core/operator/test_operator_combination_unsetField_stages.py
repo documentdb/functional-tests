@@ -73,12 +73,12 @@ def test_unsetField_original_not_modified(collection):
 
 def test_unsetField_equivalence_dotted(collection):
     """Test $unsetField and $setField+$$REMOVE equivalence for dotted field."""
+    collection.insert_one({})
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {
                     "$replaceWith": {
                         "$unsetField": {
@@ -96,12 +96,12 @@ def test_unsetField_equivalence_dotted(collection):
 
 def test_unsetField_equivalence_dollar(collection):
     """Test $unsetField and $setField+$$REMOVE equivalence for dollar field."""
+    collection.insert_one({})
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {
                     "$replaceWith": {
                         "$unsetField": {

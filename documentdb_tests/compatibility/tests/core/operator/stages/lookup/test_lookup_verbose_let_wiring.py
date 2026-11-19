@@ -250,13 +250,11 @@ LOOKUP_VERBOSE_LET_WIRING_TESTS: list[LookupTestCase] = [
                     "pipeline": [
                         {
                             "$unionWith": {
-                                "pipeline": [
-                                    {"$documents": [{"src": "union"}]},
-                                    {"$addFields": {"lv": "$$v"}},
-                                ]
+                                "coll": FOREIGN,
+                                "pipeline": [{"$addFields": {"lv": "$$v"}}],
                             }
                         },
-                        {"$project": {"_id": 0, "type": 1, "src": 1, "lv": 1}},
+                        {"$project": {"_id": 0, "type": 1, "lv": 1}},
                     ],
                     "as": "joined",
                 }
@@ -266,7 +264,7 @@ LOOKUP_VERBOSE_LET_WIRING_TESTS: list[LookupTestCase] = [
             {
                 "_id": 1,
                 "cat": "A",
-                "joined": [{"type": "A"}, {"src": "union", "lv": "A"}],
+                "joined": [{"type": "A"}, {"type": "A", "lv": "A"}],
             }
         ],
         msg="$lookup sub-pipeline $unionWith should resolve an outer let variable in "

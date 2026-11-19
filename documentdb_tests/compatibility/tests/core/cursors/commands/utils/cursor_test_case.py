@@ -68,6 +68,30 @@ def open_cursor(collection: Collection, find_options: dict[str, Any]) -> Any:
     return res["cursor"]["id"]
 
 
+KILL_CURSORS_ID_FIELDS = ("cursorsKilled", "cursorsNotFound", "cursorsAlive", "cursorsUnknown")
+
+
+def label_cursor_ids(reply: Any, cursor_ids: tuple[Any, ...] | list[Any]) -> Any:
+    """Replace each opened cursor ID in a killCursors reply with a stable label.
+
+    Cursor IDs are assigned by the server and differ on every run, so a reply
+    that embeds them cannot be compared against a recorded result. The ID at
+    position ``i`` of ``cursor_ids`` becomes ``"cursor_<i>"`` wherever it
+    appears in the four killCursors ID lists; any other ID is kept as-is.
+    Field names, list lengths, order and every other field are unchanged, so
+    the comparison still proves which opened cursor landed in which list.
+    A non-dict reply (an engine error) is returned unchanged.
+    """
+    if not isinstance(reply, dict):
+        return reply
+    labels = {cursor_id: f"cursor_{i}" for i, cursor_id in enumerate(cursor_ids)}
+    labelled = dict(reply)
+    for field in KILL_CURSORS_ID_FIELDS:
+        if isinstance(reply.get(field), list):
+            labelled[field] = [labels.get(cursor_id, cursor_id) for cursor_id in reply[field]]
+    return labelled
+
+
 @dataclass(frozen=True)
 class CursorCommandTestCase(CommandTestCase):
     """CommandTestCase that opens N find cursors before executing.

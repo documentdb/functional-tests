@@ -59,7 +59,7 @@ def _substitute_foreign(
     pipeline: list[dict[str, Any]],
     foreign_name: str,
 ) -> list[dict[str, Any]]:
-    """Replace the FOREIGN sentinel in $lookup and $graphLookup 'from' fields.
+    """Replace the FOREIGN sentinel in $lookup/$graphLookup 'from' and $unionWith 'coll'.
 
     Recurses into nested $lookup sub-pipelines.
     """
@@ -87,6 +87,12 @@ def _substitute_foreign(
                 spec = dict(spec)
                 spec["from"] = foreign_name
                 result[i] = {"$graphLookup": spec}
+        elif "$unionWith" in stage:
+            spec = stage["$unionWith"]
+            if isinstance(spec, dict) and spec.get("coll") is FOREIGN:
+                spec = dict(spec)
+                spec["coll"] = foreign_name
+                result[i] = {"$unionWith": spec}
     return result
 
 

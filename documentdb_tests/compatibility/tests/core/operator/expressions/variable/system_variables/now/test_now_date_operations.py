@@ -204,12 +204,12 @@ def test_now_elapsed_milliseconds_from_stored_date(collection):
 
 def test_now_decodes_as_timezone_aware_utc(collection):
     """Test a $$NOW-derived date decodes as a timezone-aware UTC datetime."""
+    collection.insert_one({})
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {"$project": {"_id": 0, "t": "$$NOW"}},
             ],
             "cursor": {},

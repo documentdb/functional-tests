@@ -6,6 +6,9 @@ Covers batchSize behavior, getMore iteration, killCursors, and collections with 
 
 import pytest
 
+from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
+    label_cursor_ids,
+)
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
@@ -96,15 +99,21 @@ def test_listIndexes_getMore_retrieves_remaining(collection_with_3_indexes):
         collection_with_3_indexes,
         {"listIndexes": collection_with_3_indexes.name, "cursor": {"batchSize": 1}},
     )
-    cursor_id = result["cursor"]["id"]
-
-    get_more_result = execute_command(
-        collection_with_3_indexes,
-        {"getMore": cursor_id, "collection": collection_with_3_indexes.name},
-    )
+    if isinstance(result, Exception):
+        outcome = result
+    else:
+        get_more_result = execute_command(
+            collection_with_3_indexes,
+            {"getMore": result["cursor"]["id"], "collection": collection_with_3_indexes.name},
+        )
+        outcome = (
+            get_more_result
+            if isinstance(get_more_result, Exception)
+            else {"cursor": {"firstBatch": get_more_result["cursor"]["nextBatch"]}, "ok": 1.0}
+        )
 
     assertSuccess(
-        {"cursor": {"firstBatch": get_more_result["cursor"]["nextBatch"]}, "ok": 1.0},
+        outcome,
         [{"v": 2, "key": {"a": 1}, "name": "a_1"}, {"v": 2, "key": {"b": 1}, "name": "b_1"}],
     )
 
@@ -115,17 +124,24 @@ def test_listIndexes_killCursors_succeeds(collection_with_3_indexes):
         collection_with_3_indexes,
         {"listIndexes": collection_with_3_indexes.name, "cursor": {"batchSize": 1}},
     )
-    cursor_id = result["cursor"]["id"]
-
-    kill_result = execute_command(
-        collection_with_3_indexes,
-        {"killCursors": collection_with_3_indexes.name, "cursors": [cursor_id]},
-    )
+    if isinstance(result, Exception):
+        kill_result = result
+    else:
+        cursor_id = result.get("cursor", {}).get("id")
+        # The reply is compared with the opened cursor ID replaced by "cursor_0",
+        # so the compared value does not embed this run's server-assigned ID.
+        kill_result = label_cursor_ids(
+            execute_command(
+                collection_with_3_indexes,
+                {"killCursors": collection_with_3_indexes.name, "cursors": [cursor_id]},
+            ),
+            [cursor_id],
+        )
 
     assertSuccess(
         kill_result,
         {
-            "cursorsKilled": [cursor_id],
+            "cursorsKilled": ["cursor_0"],
             "cursorsNotFound": [],
             "cursorsAlive": [],
             "cursorsUnknown": [],
@@ -141,19 +157,33 @@ def test_listIndexes_batchSize_1_iterate_all(collection_with_3_indexes):
         collection_with_3_indexes,
         {"listIndexes": collection_with_3_indexes.name, "cursor": {"batchSize": 1}},
     )
-    all_indexes = list(result["cursor"]["firstBatch"])
-    cursor_id = result["cursor"]["id"]
+    if isinstance(result, Exception):
+        outcome = result
+    else:
+        all_indexes = list(result["cursor"]["firstBatch"])
+        cursor_id = result["cursor"]["id"]
 
-    while cursor_id != 0:
-        get_more_result = execute_command(
-            collection_with_3_indexes,
-            {"getMore": cursor_id, "collection": collection_with_3_indexes.name, "batchSize": 1},
+        failure = None
+        while cursor_id != 0:
+            get_more_result = execute_command(
+                collection_with_3_indexes,
+                {
+                    "getMore": cursor_id,
+                    "collection": collection_with_3_indexes.name,
+                    "batchSize": 1,
+                },
+            )
+            if isinstance(get_more_result, Exception):
+                failure = get_more_result
+                break
+            all_indexes.extend(get_more_result["cursor"]["nextBatch"])
+            cursor_id = get_more_result["cursor"]["id"]
+        outcome = (
+            failure if failure is not None else {"cursor": {"firstBatch": all_indexes}, "ok": 1.0}
         )
-        all_indexes.extend(get_more_result["cursor"]["nextBatch"])
-        cursor_id = get_more_result["cursor"]["id"]
 
     assertSuccess(
-        {"cursor": {"firstBatch": all_indexes}, "ok": 1.0},
+        outcome,
         [
             {"v": 2, "key": {"_id": 1}, "name": "_id_"},
             {"v": 2, "key": {"a": 1}, "name": "a_1"},
@@ -180,22 +210,36 @@ def test_listIndexes_batchSize_10_with_64_indexes(collection_with_64_indexes):
         collection_with_64_indexes,
         {"listIndexes": collection_with_64_indexes.name, "cursor": {"batchSize": 10}},
     )
-    all_indexes = list(result["cursor"]["firstBatch"])
-    cursor_id = result["cursor"]["id"]
+    if isinstance(result, Exception):
+        outcome = result
+    else:
+        all_indexes = list(result["cursor"]["firstBatch"])
+        cursor_id = result["cursor"]["id"]
 
-    while cursor_id != 0:
-        get_more_result = execute_command(
-            collection_with_64_indexes,
-            {"getMore": cursor_id, "collection": collection_with_64_indexes.name, "batchSize": 10},
+        failure = None
+        while cursor_id != 0:
+            get_more_result = execute_command(
+                collection_with_64_indexes,
+                {
+                    "getMore": cursor_id,
+                    "collection": collection_with_64_indexes.name,
+                    "batchSize": 10,
+                },
+            )
+            if isinstance(get_more_result, Exception):
+                failure = get_more_result
+                break
+            all_indexes.extend(get_more_result["cursor"]["nextBatch"])
+            cursor_id = get_more_result["cursor"]["id"]
+        outcome = (
+            failure if failure is not None else {"cursor": {"firstBatch": all_indexes}, "ok": 1.0}
         )
-        all_indexes.extend(get_more_result["cursor"]["nextBatch"])
-        cursor_id = get_more_result["cursor"]["id"]
 
     expected = [{"v": 2, "key": {"_id": 1}, "name": "_id_"}]
     for i in range(63):
         expected.append({"v": 2, "key": {f"f{i}": 1}, "name": f"f{i}_1"})
     assertSuccess(
-        {"cursor": {"firstBatch": all_indexes}, "ok": 1.0},
+        outcome,
         expected,
         msg="Total indexes across all batches should equal 64",
     )

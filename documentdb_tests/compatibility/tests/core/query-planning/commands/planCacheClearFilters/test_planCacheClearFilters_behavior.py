@@ -7,57 +7,58 @@ planCacheListFilters to observe filter state before and after clearing.
 
 from __future__ import annotations
 
+from typing import Any
+
 from pymongo.collection import Collection
 
-from documentdb_tests.framework.assertions import assertNotError, assertSuccess
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
 
-def _set_filters(collection: Collection) -> None:
+def _set_filters(collection: Collection) -> Any:
     """Set two distinct index filters on the collection.
 
-    Raises AssertionError if the filters are not visible via
-    planCacheListFilters after being set.
+    Returns the engine error if a setup command fails, so the caller can
+    forward it to the test's single assertion, or None on success. Raises
+    AssertionError if the commands succeed but the filters are not visible
+    via planCacheListFilters, since the test would then prove nothing.
     """
     collection.insert_many([{"_id": i, "a": i, "b": i % 5} for i in range(10)])
     collection.create_index("a")
     collection.create_index("b")
 
-    db = collection.database
-    db.command(
-        {
-            "planCacheSetFilter": collection.name,
-            "query": {"a": 1},
-            "indexes": [{"a": 1}],
-        }
-    )
-    db.command(
-        {
-            "planCacheSetFilter": collection.name,
-            "query": {"b": 1},
-            "indexes": [{"b": 1}],
-        }
-    )
+    for field in ("a", "b"):
+        set_result = execute_command(
+            collection,
+            {
+                "planCacheSetFilter": collection.name,
+                "query": {field: 1},
+                "indexes": [{field: 1}],
+            },
+        )
+        if isinstance(set_result, Exception):
+            return set_result
 
     list_result = execute_command(collection, {"planCacheListFilters": collection.name})
-    assertNotError(list_result, msg="planCacheListFilters precondition check")
+    if isinstance(list_result, Exception):
+        return list_result
     filters = list_result.get("filters", [])
     if len(filters) < 2:
         raise AssertionError(
             f"Precondition failed: expected at least 2 index filters "
             f"after setup, got {len(filters)}"
         )
+    return None
 
 
 # Property [Clear All Filters]: planCacheClearFilters without query shape
 # parameters removes all index filters for the collection.
 def test_planCacheClearFilters_clears_all_filters(collection: Collection):
     """Test planCacheClearFilters removes all index filters."""
-    _set_filters(collection)
-
-    execute_command(collection, {"planCacheClearFilters": collection.name})
-
-    result = execute_command(collection, {"planCacheListFilters": collection.name})
+    result = _set_filters(collection)
+    if result is None:
+        execute_command(collection, {"planCacheClearFilters": collection.name})
+        result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertSuccess(
         result,
         {"filters": [], "ok": 1.0},
@@ -70,14 +71,13 @@ def test_planCacheClearFilters_clears_all_filters(collection: Collection):
 # only the matching filter and leaves other filters intact.
 def test_planCacheClearFilters_targeted_preserves_other_filters(collection: Collection):
     """Test planCacheClearFilters with query shape leaves non-targeted filters."""
-    _set_filters(collection)
-
-    execute_command(
-        collection,
-        {"planCacheClearFilters": collection.name, "query": {"a": 1}},
-    )
-
-    result = execute_command(collection, {"planCacheListFilters": collection.name})
+    result = _set_filters(collection)
+    if result is None:
+        execute_command(
+            collection,
+            {"planCacheClearFilters": collection.name, "query": {"a": 1}},
+        )
+        result = execute_command(collection, {"planCacheListFilters": collection.name})
     assertSuccess(
         result,
         {
