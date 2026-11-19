@@ -151,12 +151,12 @@ def test_now_identical_within_one_pipeline_execution(collection):
 def test_now_usable_as_date_expression_operand(collection):
     """$$NOW is usable as the date operand wherever one is accepted: a unary argument
     ($dateToParts), a named field ($dateTrunc), and a pair of arguments ($dateDiff)."""
+    collection.insert_one({})
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{}]},
                 {
                     "$project": {
                         "_id": 0,

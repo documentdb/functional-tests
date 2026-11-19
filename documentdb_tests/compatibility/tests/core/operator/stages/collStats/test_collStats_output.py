@@ -8,7 +8,7 @@ from bson import Int64
 from documentdb_tests.compatibility.tests.core.operator.stages.collStats.utils.collStats_helpers import (  # noqa: E501
     CollStatsTestCase,
 )
-from documentdb_tests.framework.assertions import assertProperties
+from documentdb_tests.framework.assertions import assertProperties, assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq, Exists, IsType, NotExists
@@ -238,7 +238,15 @@ def test_collStats_output_histogram_structure(collection):
     )
 
     if isinstance(result, Exception):
-        raise AssertionError(f"unexpected error: {result}")
+        # Route the engine error through the assertion helper so it fails
+        # overridably with the real result instead of raising outside it. An
+        # override provider may handle the call and return, so stop here.
+        assertResult(
+            result,
+            not_error=True,
+            msg="$collStats latencyStats histograms should succeed",
+        )
+        return
     doc = result["cursor"]["firstBatch"][0]
     errors: list[str] = []
     for name in ["reads", "writes", "commands", "transactions"]:

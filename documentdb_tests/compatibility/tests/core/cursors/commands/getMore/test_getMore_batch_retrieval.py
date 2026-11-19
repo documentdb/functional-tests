@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from documentdb_tests.compatibility.tests.core.cursors.commands.utils.cursor_test_case import (
     open_cursor,
     open_find_cursors,
@@ -17,11 +19,15 @@ from documentdb_tests.framework.test_constants import INT64_ZERO
 def test_getMore_batch_from_find(collection):
     """Test getMore returns subsequent batches from a find cursor."""
     collection.insert_many([{"_id": i, "v": i} for i in range(10)])
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=3)
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name, "batchSize": 4},
-    )
+    cursors = open_find_cursors(collection, 1, batch_size=3)
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        (cursor_id,) = cursors
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name, "batchSize": 4},
+        )
     assertResult(
         result,
         expected={
@@ -39,11 +45,15 @@ def test_getMore_batch_size_zero_tailable_keeps_open(collection):
     """Test getMore with batchSize=0 on tailable cursor keeps it open."""
     capped = CappedCollection().resolve(collection.database, collection)
     capped.insert_many([{"_id": i} for i in range(5)])
-    cursor_id = open_cursor(capped, {"tailable": True, "batchSize": 2})
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": capped.name, "batchSize": 0},
-    )
+    opened = open_cursor(capped, {"tailable": True, "batchSize": 2})
+    if isinstance(opened, Exception):
+        result = opened
+    else:
+        cursor_id = opened
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": capped.name, "batchSize": 0},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(3), "id": Gte(1)}},
@@ -58,16 +68,22 @@ def test_getMore_batch_size_independent(collection):
     """Test each getMore call sets its own batchSize independently."""
     docs = [{"_id": i, "v": i} for i in range(10)]
     collection.insert_many(docs)
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=2)
-    result1 = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name, "batchSize": 3},
-    )
-    cursor_id = result1["cursor"]["id"]
-    result2 = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name, "batchSize": 5},
-    )
+    cursors = open_find_cursors(collection, 1, batch_size=2)
+    if isinstance(cursors, Exception):
+        result2 = cursors
+    else:
+        (cursor_id,) = cursors
+        result1 = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name, "batchSize": 3},
+        )
+        if isinstance(result1, Exception):
+            result2 = result1
+        else:
+            result2 = execute_command(
+                collection,
+                {"getMore": result1["cursor"]["id"], "collection": collection.name, "batchSize": 5},
+            )
     assertResult(
         result2,
         expected={
@@ -86,11 +102,14 @@ def test_getMore_find_limit_caps_total(collection):
     docs = [{"_id": i, "v": i} for i in range(10)]
     collection.insert_many(docs)
     find_result = execute_command(collection, {"find": collection.name, "batchSize": 2, "limit": 5})
-    cursor_id = find_result["cursor"]["id"]
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name, "batchSize": 10},
-    )
+    if isinstance(find_result, Exception):
+        result = find_result
+    else:
+        cursor_id = find_result["cursor"]["id"]
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name, "batchSize": 10},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(3), "id": Eq(INT64_ZERO)}},
@@ -105,21 +124,34 @@ def test_getMore_independent_cursors(collection):
     """Test two cursors on the same collection maintain independent positions."""
     docs = [{"_id": i, "v": i} for i in range(10)]
     collection.insert_many(docs)
-    (cursor_a,) = open_find_cursors(collection, 1, batch_size=3)
-    (cursor_b,) = open_find_cursors(collection, 1, batch_size=5)
-    result_a = execute_command(
-        collection,
-        {"getMore": cursor_a, "collection": collection.name, "batchSize": 2},
-    )
-    result_b = execute_command(
-        collection,
-        {"getMore": cursor_b, "collection": collection.name, "batchSize": 2},
-    )
-    # Cursor A started at position 3, cursor B started at position 5.
-    combined = {
-        "a": result_a["cursor"]["nextBatch"],
-        "b": result_b["cursor"]["nextBatch"],
-    }
+    cursors_a = open_find_cursors(collection, 1, batch_size=3)
+    cursors_b = open_find_cursors(collection, 1, batch_size=5)
+    combined: Any
+    if isinstance(cursors_a, Exception):
+        combined = cursors_a
+    elif isinstance(cursors_b, Exception):
+        combined = cursors_b
+    else:
+        (cursor_a,) = cursors_a
+        (cursor_b,) = cursors_b
+        result_a = execute_command(
+            collection,
+            {"getMore": cursor_a, "collection": collection.name, "batchSize": 2},
+        )
+        result_b = execute_command(
+            collection,
+            {"getMore": cursor_b, "collection": collection.name, "batchSize": 2},
+        )
+        if isinstance(result_a, Exception):
+            combined = result_a
+        elif isinstance(result_b, Exception):
+            combined = result_b
+        else:
+            # Cursor A started at position 3, cursor B started at position 5.
+            combined = {
+                "a": result_a["cursor"]["nextBatch"],
+                "b": result_b["cursor"]["nextBatch"],
+            }
     assertResult(
         combined,
         expected={

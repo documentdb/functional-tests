@@ -393,8 +393,11 @@ def test_getMore_field_value_errors(collection, test_case: CursorCommandTestCase
     cursors = open_find_cursors(
         collection, test_case.cursor_count, batch_size=test_case.find_batch_size
     )
-    ctx = CursorCommandContext.from_collection(collection, cursors=cursors)
-    result = execute_command(collection, test_case.build_command(ctx))
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        ctx = CursorCommandContext.from_collection(collection, cursors=cursors)
+        result = execute_command(collection, test_case.build_command(ctx))
     assertResult(
         result,
         expected=test_case.expected,

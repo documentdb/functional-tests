@@ -72,7 +72,8 @@ CREATE_VALIDATOR_TYPE_ERROR_TESTS: list[CommandTestCase] = [
         ("int64", Int64(42)),
         ("decimal128", Decimal128("1")),
         ("binary", Binary(b"hello")),
-        ("objectid", ObjectId()),
+        # A fixed value keeps the command identical on every run.
+        ("objectid", ObjectId("507f1f77bcf86cd799439011")),
         ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
         ("regex", Regex("test")),
         ("code", Code("function(){}")),

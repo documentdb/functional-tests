@@ -53,14 +53,17 @@ def test_changeStream_resume_option_mutual_exclusivity(collection, test_case):
     opened = execute_command(
         collection, change_stream_command(collection, pipeline=[{"$changeStream": {}}])
     )
-    token = opened["cursor"]["postBatchResumeToken"]
-    operation_time = opened["operationTime"]
-    substitutions = {id(RESUME_TOKEN): token, id(OPERATION_TIME): operation_time}
-    spec = {
-        key: substitutions.get(id(value), value)
-        for key, value in test_case.pipeline[0]["$changeStream"].items()
-    }
-    result = execute_command(
-        collection, change_stream_command(collection, pipeline=[{"$changeStream": spec}])
-    )
+    if isinstance(opened, Exception):
+        result = opened
+    else:
+        token = opened["cursor"]["postBatchResumeToken"]
+        operation_time = opened["operationTime"]
+        substitutions = {id(RESUME_TOKEN): token, id(OPERATION_TIME): operation_time}
+        spec = {
+            key: substitutions.get(id(value), value)
+            for key, value in test_case.pipeline[0]["$changeStream"].items()
+        }
+        result = execute_command(
+            collection, change_stream_command(collection, pipeline=[{"$changeStream": spec}])
+        )
     assertResult(result, error_code=test_case.error_code, msg=test_case.msg)

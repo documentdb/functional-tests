@@ -213,12 +213,15 @@ def test_changeStream_null_resume_option_non_conflict(collection, present_field,
     opened = execute_command(
         collection, change_stream_command(collection, pipeline=[{"$changeStream": {}}])
     )
-    token = opened["cursor"]["postBatchResumeToken"]
+    if isinstance(opened, Exception):
+        result = opened
+    else:
+        token = opened["cursor"]["postBatchResumeToken"]
 
-    spec = {present_field: token, null_field: None}
-    result = execute_command(
-        collection, change_stream_command(collection, pipeline=[{"$changeStream": spec}])
-    )
+        spec = {present_field: token, null_field: None}
+        result = execute_command(
+            collection, change_stream_command(collection, pipeline=[{"$changeStream": spec}])
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0)},

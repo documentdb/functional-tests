@@ -4,13 +4,56 @@ Unified execution and assertion utilities for tests.
 
 import time
 from datetime import timezone
-from typing import Any, Dict
+from typing import Any, Callable, Dict, List, Tuple
 
 from bson.codec_options import CodecOptions
 
 from documentdb_tests.framework.lazy_payload import materialize
 
 TZ_AWARE_CODEC: CodecOptions = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
+
+# Server cursors opened through execute_command/execute_admin_command.
+#
+# A raw command such as {"find": ..., "batchSize": 2} or an aggregate with
+# $changeStream returns a cursor id that no driver object owns, so nothing
+# closes it when the test ends. The server keeps it until its idle timeout,
+# and engines that cap open cursors per instance then reject the next test's
+# find/aggregate with "too many cursors". Each entry is (client, namespace,
+# cursor id); close_tracked_cursors() kills them at test teardown.
+_tracked_cursors: List[Tuple[Any, str, int]] = []
+
+
+def _track_cursor(client, result: Any) -> None:
+    """Remember the server cursor a command result left open, if any."""
+    if not isinstance(result, dict):
+        return
+    cursor = result.get("cursor")
+    if not isinstance(cursor, dict):
+        return
+    cursor_id = cursor.get("id")
+    ns = cursor.get("ns")
+    if cursor_id and isinstance(ns, str) and "." in ns:
+        _tracked_cursors.append((client, ns, cursor_id))
+
+
+def close_tracked_cursors() -> None:
+    """Kill every server cursor tracked since the last call, best effort.
+
+    Cursors that are already exhausted or killed are reported by the server
+    in cursorsNotFound, which is not an error. Any failure is ignored: this is
+    cleanup, and it must never change a test's outcome.
+    """
+    by_namespace: Dict[Tuple[int, str], Tuple[Any, List[int]]] = {}
+    for client, ns, cursor_id in _tracked_cursors:
+        _, ids = by_namespace.setdefault((id(client), ns), (client, []))
+        ids.append(cursor_id)
+    _tracked_cursors.clear()
+    for (_, ns), (client, ids) in by_namespace.items():
+        db_name, coll_name = ns.split(".", 1)
+        try:
+            client[db_name].command({"killCursors": coll_name, "cursors": ids})
+        except Exception:
+            pass
 
 
 def execute_command(collection, command: Dict, codec_options=TZ_AWARE_CODEC, session=None) -> Any:
@@ -30,6 +73,7 @@ def execute_command(collection, command: Dict, codec_options=TZ_AWARE_CODEC, ses
     try:
         db = collection.database
         result = db.command(materialize(command), codec_options=codec_options, session=session)
+        _track_cursor(db.client, result)
         return result
     except Exception as e:
         return e
@@ -50,6 +94,7 @@ def execute_admin_command(collection, command: Dict, session=None) -> Any:
     try:
         db = collection.database.client.admin
         result = db.command(materialize(command), session=session)
+        _track_cursor(db.client, result)
         return result
     except Exception as e:
         return e
@@ -79,5 +124,48 @@ def execute_admin_with_retry_command(
         result = execute_admin_command(collection, command)
         should_retry = isinstance(result, Exception) and getattr(result, "code", None) == retry_code
         if not should_retry or time.monotonic() >= deadline:
+            return result
+        time.sleep(interval)
+
+
+def execute_command_until(
+    collection,
+    command: Dict,
+    done: Callable[[Dict], bool],
+    *,
+    timeout: float = 20.0,
+    interval: float = 0.1,
+) -> Any:
+    """
+    Run a command until ``done`` accepts its result, then return that result.
+
+    For state that some engines publish asynchronously, such as $indexStats
+    counters or a change-stream event that lands after the first getMore. On
+    an engine that reports the state at once, the first result is returned
+    and the command runs exactly once.
+
+    An error result is returned immediately without calling ``done``. On
+    timeout, the last result is returned as-is so the caller's assertion
+    reports it.
+
+    The 20-second default is twice the roughly 10-second cycle on which some
+    engines publish usage counters, so a busy server still reports them
+    before the deadline. Polling ends as soon as ``done`` accepts a
+    result, so the timeout only costs time when the state never appears.
+
+    Args:
+        collection: DocumentDB collection
+        command: Command to execute via runCommand
+        done: Predicate on a successful result; True stops polling
+        timeout: Maximum seconds to keep polling
+        interval: Seconds to wait between attempts
+
+    Returns:
+        Result if successful, Exception if failed
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        result = execute_command(collection, command)
+        if isinstance(result, Exception) or done(result) or time.monotonic() >= deadline:
             return result
         time.sleep(interval)

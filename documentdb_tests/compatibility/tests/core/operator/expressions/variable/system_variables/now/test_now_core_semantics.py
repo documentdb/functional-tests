@@ -14,6 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.expres
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
     execute_expression,
+    execute_expression_single_row,
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
@@ -81,19 +82,13 @@ def test_now_type_and_semantics(collection, test: ExpressionTestCase):
 
 def test_now_has_millisecond_resolution(collection):
     """Test $$NOW carries a non-zero millisecond component, proving sub-second granularity."""
+    collection.insert_one({})
     samples = []
     for _ in range(MILLISECOND_SAMPLE_COUNT):
-        sample = execute_command(
-            collection,
-            {
-                "aggregate": 1,
-                "pipeline": [{"$documents": [{}]}, {"$project": {"_id": 0, "t": "$$NOW"}}],
-                "cursor": {},
-            },
-        )
-        samples.append(sample["cursor"]["firstBatch"][0]["t"])
+        sample = execute_expression_single_row(collection, "$$NOW")
+        samples.append(sample["cursor"]["firstBatch"][0]["result"])
 
-    result = execute_expression(
+    result = execute_expression_single_row(
         collection,
         {
             "$gt": [
@@ -198,7 +193,7 @@ def test_now_identical_across_getmore_batches(collection):
         seen.extend(doc["t"] for doc in batch["cursor"]["nextBatch"])
         cursor_id = batch["cursor"]["id"]
 
-    result = execute_expression(collection, {"$size": {"$setUnion": [seen]}})
+    result = execute_expression_single_row(collection, {"$size": {"$setUnion": [seen]}})
     assert_expression_result(
         result,
         expected=1,
@@ -208,17 +203,11 @@ def test_now_identical_across_getmore_batches(collection):
 
 def test_now_advances_across_executions(collection):
     """Test $$NOW advances after a delay between two separate executions."""
-    first = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [{"$documents": [{}]}, {"$project": {"_id": 0, "t": "$$NOW"}}],
-            "cursor": {},
-        },
-    )
-    earlier = first["cursor"]["firstBatch"][0]["t"]
+    collection.insert_one({})
+    first = execute_expression_single_row(collection, "$$NOW")
+    earlier = first["cursor"]["firstBatch"][0]["result"]
     time.sleep(0.05)
-    result = execute_expression(collection, {"$gt": ["$$NOW", earlier]})
+    result = execute_expression_single_row(collection, {"$gt": ["$$NOW", earlier]})
     assert_expression_result(
         result,
         expected=True,

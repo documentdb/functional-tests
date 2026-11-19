@@ -54,6 +54,37 @@ assertSuccess(result, expected, ignore_doc_order=True)
 assertFailureCode(result, 14)
 ```
 
+### `assertResult` selectors and modifiers
+
+`assertResult` is the single entry point the other helpers wrap. Give it
+**exactly one** expectation per call — passing more than one raises
+`TestSetupError` rather than silently honoring one by precedence:
+
+| Expectation | Meaning |
+|---|---|
+| `expected=<value>` | success; compare the result (or `cursor.firstBatch`) to the value |
+| `expected=<checks>` / `properties=True` | success; apply `property_checks` by dotted path |
+| `error={"code": c, "msg": m}` | failure; exact code **and** message |
+| `error_code=<int>` | failure; check the code only |
+| `exception_type=<cls>` | client-side exception of that type (e.g. `InvalidBSON`) |
+| `not_error=True` | only assert the result is not an error |
+
+The remaining keywords shape **how** the chosen expectation is compared; they are
+not expectation selectors and may be combined with one:
+
+| Modifier | Effect |
+|---|---|
+| `raw_res=True` | compare the raw command result instead of `cursor.firstBatch` |
+| `partial=True` | compare only the fields present in `expected` (implies `raw_res`) |
+| `nan=True` | treat `NaN == NaN` as equal |
+| `transform=<fn>` | transform the actual value before comparison |
+| `ignore_order_in=[...]` | sort the named fields' list values before comparing |
+| `ignore_doc_order=True` | compare top-level lists ignoring order |
+| `msg=<str>` | prefix for the failure message |
+
+`partial` cannot be combined with `nan` or `transform`, and `nan` cannot be
+combined with `transform`; those also raise `TestSetupError`.
+
 **One assertion per test function.** Split multiple assertions into separate tests.
 
 ## Fixtures
@@ -89,6 +120,23 @@ result = execute_expression(collection, {"$add": [1, 2]})
 Keep helpers in `utils/` at each test level. Helpers should reduce meaningful boilerplate (e.g., building an aggregate pipeline), not just shorten a single line.
 
 Minimize helper scope — one helper should do one thing. If a helper has many if/else branches handling different cases, split it into separate helpers at a lower folder level.
+
+### Polling for Asynchronously Published State
+
+Use `execute_command_until()` only for state the server may publish asynchronously, such as `$indexStats` counters or a change-stream event that lands after the first `getMore`. It is not a generic retry:
+
+- The predicate checks that the state is present (for example, the counter is non-zero), not the value the test asserts. The assertion still judges the result.
+- Errors are never retried. An error result is returned at once.
+- On timeout (20 seconds by default), the last result is returned so the assertion reports it.
+
+```python
+# ✅ Good: wait until the counter is published, then assert on it
+result = execute_command_until(collection, index_stats_cmd, done=index_used("a_1"))
+assertResult(result, expected={"accesses.ops": Gte(1)})
+
+# ❌ Bad: the predicate repeats the assertion, so a wrong value is polled for the full timeout
+# result = execute_command_until(collection, cmd, done=lambda r: r == expected)
+```
 
 ## Parametrized Tests
 

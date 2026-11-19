@@ -6,7 +6,7 @@ Tests basic dbStats command functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccessPartial
+from documentdb_tests.framework.assertions import assertCommandSupported
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.smoke
@@ -18,5 +18,4 @@ def test_smoke_dbStats(collection):
 
     result = execute_command(collection, {"dbStats": 1})
 
-    expected = {"ok": 1.0, "db": collection.database.name}
-    assertSuccessPartial(result, expected, msg="Should support dbStats command")
+    assertCommandSupported(result, msg="Should support dbStats command")

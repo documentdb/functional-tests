@@ -147,7 +147,10 @@ _BSON_TYPE_PARAMS = [pytest.param(doc["_id"], id=doc["_id"]) for doc in _BSON_TY
 @pytest.mark.parametrize("type_id", _BSON_TYPE_PARAMS)
 def test_delete_document_with_bson_type(collection, type_id):
     """Test delete can remove documents containing each BSON type."""
-    collection.insert_many(_BSON_TYPE_DOCS)
+    # Only the javascript case inserts the JavaScript document: engines without
+    # that BSON type reject the whole insert, which would block every other case.
+    docs = [d for d in _BSON_TYPE_DOCS if d["_id"] == type_id or not isinstance(d["val"], Code)]
+    collection.insert_many(docs)
     result = execute_command(
         collection,
         {"delete": collection.name, "deletes": [{"q": {"_id": type_id}, "limit": 1}]},

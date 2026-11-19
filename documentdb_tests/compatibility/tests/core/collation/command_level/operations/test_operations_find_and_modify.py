@@ -308,7 +308,7 @@ def test_collation_find_and_modify(database_client, collection, test):
         result = {"cursor": {"firstBatch": [result.get("value")]}}
     assertResult(
         result,
-        expected=[test.build_expected(ctx)],
+        expected=[test.build_expected(ctx)] if test.error_code is None else None,
         error_code=test.error_code,
         msg=test.msg,
     )

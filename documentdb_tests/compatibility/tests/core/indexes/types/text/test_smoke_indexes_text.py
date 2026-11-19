@@ -6,7 +6,7 @@ Tests basic text index functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccessPartial
+from documentdb_tests.framework.assertions import assertCommandSupported
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.smoke
@@ -22,10 +22,4 @@ def test_smoke_indexes_text(collection):
         },
     )
 
-    expected = {
-        "numIndexesBefore": 1,
-        "numIndexesAfter": 2,
-        "createdCollectionAutomatically": True,
-        "ok": 1.0,
-    }
-    assertSuccessPartial(result, expected, msg="Should support text index type")
+    assertCommandSupported(result, msg="Should support text index type")

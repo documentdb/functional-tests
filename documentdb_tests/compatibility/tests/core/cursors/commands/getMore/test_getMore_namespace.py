@@ -16,11 +16,15 @@ from documentdb_tests.framework.property_checks import Eq, Len
 def test_getMore_namespace_match_find(collection):
     """Test getMore succeeds with exact collection name match for find cursor."""
     collection.insert_many([{"_id": i} for i in range(5)])
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=2)
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name},
-    )
+    cursors = open_find_cursors(collection, 1, batch_size=2)
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        (cursor_id,) = cursors
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name},
+        )
     assertResult(
         result,
         expected={"ok": Eq(1.0), "cursor": {"nextBatch": Len(3)}},
@@ -34,11 +38,15 @@ def test_getMore_namespace_match_find(collection):
 def test_getMore_namespace_case_sensitive(collection):
     """Test getMore requires exact case-sensitive match for collection name."""
     collection.insert_many([{"_id": i} for i in range(5)])
-    (cursor_id,) = open_find_cursors(collection, 1, batch_size=2)
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name.upper()},
-    )
+    cursors = open_find_cursors(collection, 1, batch_size=2)
+    if isinstance(cursors, Exception):
+        result = cursors
+    else:
+        (cursor_id,) = cursors
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name.upper()},
+        )
     assertResult(
         result,
         error_code=UNAUTHORIZED_ERROR,
@@ -55,11 +63,14 @@ def test_getMore_namespace_view_bound_to_view_name(collection):
     view_name = f"{collection.name}_view"
     execute_command(collection, {"create": view_name, "viewOn": collection.name, "pipeline": []})
     find_result = execute_command(collection, {"find": view_name, "batchSize": 2})
-    cursor_id = find_result["cursor"]["id"]
-    result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name},
-    )
+    if isinstance(find_result, Exception):
+        result = find_result
+    else:
+        cursor_id = find_result["cursor"]["id"]
+        result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name},
+        )
     assertResult(
         result,
         error_code=UNAUTHORIZED_ERROR,

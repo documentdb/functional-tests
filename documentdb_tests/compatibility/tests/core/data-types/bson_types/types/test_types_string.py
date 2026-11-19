@@ -167,13 +167,15 @@ def test_string_round_trip(collection, test):
 def test_string_max_length(collection):
     """Test max-length string passes through the engine unchanged."""
     max_str = "a" * (STRING_SIZE_LIMIT_BYTES - 1)
+    # A document holding the string would exceed the maximum document size, so
+    # it cannot be inserted; the string enters the pipeline as a literal instead.
+    collection.insert_one({})
     result = execute_command(
         collection,
         {
-            "aggregate": 1,
+            "aggregate": collection.name,
             "pipeline": [
-                {"$documents": [{"v": max_str}]},
-                {"$project": {"_id": 0, "v": 1}},
+                {"$project": {"_id": 0, "v": {"$literal": max_str}}},
             ],
             "cursor": {},
         },

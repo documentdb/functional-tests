@@ -225,6 +225,57 @@ BUCKET_AUTO_OUTPUT_FIELD_NAME_TESTS: list[StageTestCase] = [
     ),
 ]
 
+# Property [_id Output Override]: unlike $bucket (which reserves _id), $bucketAuto
+# permits _id in the output specification; an _id accumulator replaces the default
+# {min, max} boundary document with the accumulated value.
+BUCKET_AUTO_ID_OVERRIDE_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "id_override_replaces_boundary",
+        docs=[{"_id": 1, "x": 1, "v": 10}, {"_id": 2, "x": 5, "v": 20}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": "$x",
+                    "buckets": 1,
+                    "output": {"_id": {"$sum": "$v"}},
+                }
+            }
+        ],
+        expected=[{"_id": 30}],
+        msg="$bucketAuto output _id accumulator should replace the default {min, max} boundary _id",
+    ),
+    StageTestCase(
+        "id_override_with_other_output_fields",
+        docs=[{"_id": 1, "x": 1, "v": 10}, {"_id": 2, "x": 5, "v": 20}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": "$x",
+                    "buckets": 1,
+                    "output": {"_id": {"$max": "$v"}, "count": {"$sum": 1}},
+                }
+            }
+        ],
+        expected=[{"_id": 20, "count": 2}],
+        msg="$bucketAuto output _id override should coexist with other output fields",
+    ),
+    StageTestCase(
+        "id_override_applies_per_bucket",
+        docs=[{"_id": 1, "x": 1, "v": 10}, {"_id": 2, "x": 5, "v": 20}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": "$x",
+                    "buckets": 2,
+                    "output": {"_id": {"$sum": "$v"}},
+                }
+            }
+        ],
+        expected=[{"_id": 10}, {"_id": 20}],
+        msg="$bucketAuto output _id override should be computed independently per bucket",
+    ),
+]
+
 # Property [Duplicate Output Field Names]: duplicate output field names resolve
 # to the last definition.
 BUCKET_AUTO_DUPLICATE_FIELD_NAME_TESTS: list[StageTestCase] = [
@@ -257,6 +308,7 @@ BUCKET_AUTO_OUTPUT_TESTS = (
     + BUCKET_AUTO_NESTED_EXPR_TESTS
     + BUCKET_AUTO_PUSH_SYSTEM_VAR_TESTS
     + BUCKET_AUTO_OUTPUT_FIELD_NAME_TESTS
+    + BUCKET_AUTO_ID_OVERRIDE_TESTS
     + BUCKET_AUTO_DUPLICATE_FIELD_NAME_TESTS
 )
 

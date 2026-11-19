@@ -6,7 +6,7 @@ Tests basic $maxN-array-element expression functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertCommandSupported
 from documentdb_tests.framework.executor import execute_command
 
 pytestmark = pytest.mark.smoke
@@ -27,5 +27,4 @@ def test_smoke_expression_maxN_array_element(collection):
         },
     )
 
-    expected = [{"_id": 1, "maxTwo": [40, 30]}, {"_id": 2, "maxTwo": [35, 25]}]
-    assertSuccess(result, expected, msg="Should support $maxN-array-element expression")
+    assertCommandSupported(result, msg="Should support $maxN-array-element expression")

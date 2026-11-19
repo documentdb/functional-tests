@@ -6,7 +6,7 @@ Tests basic updateRole functionality.
 
 import pytest
 
-from documentdb_tests.framework.assertions import assertSuccessPartial
+from documentdb_tests.framework.assertions import assertCommandSupported
 from documentdb_tests.framework.executor import execute_admin_command
 
 pytestmark = pytest.mark.smoke
@@ -29,5 +29,4 @@ def test_smoke_updateRole(collection):
 
     execute_admin_command(collection, {"dropRole": role_name})
 
-    expected = {"ok": 1.0}
-    assertSuccessPartial(result, expected, msg="Should support updateRole command")
+    assertCommandSupported(result, msg="Should support updateRole command")

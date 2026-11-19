@@ -14,6 +14,10 @@ from typing import Any, Optional, cast
 import pytest
 from bson import Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
+    assert_expression_result,
+    execute_expression_single_row,
+)
 from documentdb_tests.framework.assertions import assertSuccess, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -646,21 +650,11 @@ def test_repeated_pipeline_shape_is_not_constant_folded(collection):
         collection, {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}}
     )["cursor"]["firstBatch"][0]["t"]
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [
-                {"$documents": [{}]},
-                {"$project": {"_id": 0, "advanced": {"$lt": [first, second]}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$lt": [first, second]})
 
-    assertSuccess(
+    assert_expression_result(
         result,
-        [{"advanced": True}],
+        expected=True,
         msg="The same pipeline shape should not fold $$CLUSTER_TIME into a cached plan",
     )
 
@@ -685,21 +679,11 @@ def test_explain_does_not_freeze_the_value_for_later_executions(collection):
         collection, {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}}
     )["cursor"]["firstBatch"][0]["t"]
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [
-                {"$documents": [{}]},
-                {"$project": {"_id": 0, "advanced": {"$lt": [first, second]}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$lt": [first, second]})
 
-    assertSuccess(
+    assert_expression_result(
         result,
-        [{"advanced": True}],
+        expected=True,
         msg="An explain should not bake a resolved timestamp into later executions",
     )
 
@@ -797,21 +781,11 @@ def test_view_value_is_not_frozen_at_creation_time(collection):
     collection.insert_one({"_id": 2})
     second = _view_value(collection, f"{collection.name}_view")
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [
-                {"$documents": [{}]},
-                {"$project": {"_id": 0, "advanced": {"$lt": [first, second]}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$lt": [first, second]})
 
-    assertSuccess(
+    assert_expression_result(
         result,
-        [{"advanced": True}],
+        expected=True,
         msg="A stored view definition must not freeze $$CLUSTER_TIME at creation time",
     )
 
@@ -839,21 +813,11 @@ def test_view_on_view_value_is_not_frozen_at_creation_time(collection):
     collection.insert_one({"_id": 2})
     second = _view_value(collection, f"{collection.name}_outer_view")
 
-    result = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [
-                {"$documents": [{}]},
-                {"$project": {"_id": 0, "advanced": {"$lt": [first, second]}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = execute_expression_single_row(collection, {"$lt": [first, second]})
 
-    assertSuccess(
+    assert_expression_result(
         result,
-        [{"advanced": True}],
+        expected=True,
         msg="A view nested on a view must not freeze $$CLUSTER_TIME either",
     )
 
