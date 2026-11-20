@@ -1,14 +1,16 @@
 """Tests for $sample stage statistical properties.
 
 These tests verify statistical properties (randomness, distribution) of
-$sample, which require repeated execution and custom assertions rather
-than the deterministic StageTestCase/assertResult pattern.
+$sample, which require repeated execution rather than the single-command
+StageTestCase pattern. Each test computes its statistic over the repeated
+runs and checks it with assertSuccess.
 """
 
 from __future__ import annotations
 
 import pytest
 
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 
 
@@ -29,6 +31,7 @@ def test_sample_statistical_randomness(collection):
     all_ids = set(range(n_docs))
     collection.insert_many([{"_id": i} for i in all_ids])
     seen: set[int] = set()
+    result = None
     for _ in range(max_iterations):
         result = execute_command(
             collection,
@@ -39,14 +42,19 @@ def test_sample_statistical_randomness(collection):
             },
         )
         if isinstance(result, Exception):
-            raise AssertionError(f"$sample should succeed but got error: {result}")
-        docs = result["cursor"]["firstBatch"]
-        seen.add(docs[0]["_id"])
+            break
+        seen.add(result["cursor"]["firstBatch"][0]["_id"])
         if seen == all_ids:
-            return
-    raise AssertionError(
-        f"$sample failed to reach all documents after {max_iterations} iterations: "
-        f"missing {all_ids - seen}"
+            break
+
+    # An error from any run is reported as is; otherwise check which documents
+    # were never returned.
+    summary = result if isinstance(result, Exception) else {"unreached": sorted(all_ids - seen)}
+    assertSuccess(
+        summary,
+        {"unreached": []},
+        raw_res=True,
+        msg=f"$sample should reach every document within {max_iterations} iterations",
     )
 
 
@@ -67,6 +75,7 @@ def test_sample_statistical_uniformity(collection):
 
     collection.insert_many([{"_id": i} for i in range(n_docs)])
     counts: dict[int, int] = dict.fromkeys(range(n_docs), 0)
+    result = None
     for _ in range(n_samples):
         result = execute_command(
             collection,
@@ -77,12 +86,21 @@ def test_sample_statistical_uniformity(collection):
             },
         )
         if isinstance(result, Exception):
-            raise AssertionError(f"$sample should succeed but got error: {result}")
-        docs = result["cursor"]["firstBatch"]
-        counts[docs[0]["_id"]] += 1
-    underfilled = {k: v for k, v in counts.items() if v < min_count}
-    if underfilled:
-        raise AssertionError(
-            f"$sample appears biased: documents {underfilled} were selected fewer "
-            f"than {min_count} times out of {n_samples} (expected ~{n_samples // n_docs})"
-        )
+            break
+        counts[result["cursor"]["firstBatch"][0]["_id"]] += 1
+
+    # An error from any run is reported as is; otherwise check which documents
+    # were selected fewer than min_count times.
+    if isinstance(result, Exception):
+        summary = result
+    else:
+        summary = {"underfilled": sorted(k for k, v in counts.items() if v < min_count)}
+    assertSuccess(
+        summary,
+        {"underfilled": []},
+        raw_res=True,
+        msg=(
+            f"$sample should select every document at least {min_count} times out of "
+            f"{n_samples} (expected ~{n_samples // n_docs})"
+        ),
+    )
