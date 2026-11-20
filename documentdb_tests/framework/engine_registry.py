@@ -51,8 +51,9 @@ def _host_port(service: dict) -> str | None:
     ports = service.get("ports") or []
     if not ports:
         return None
-    # Entries look like "27017:27017"; the host port is the left side.
-    return str(ports[0]).split(":")[0]
+    # Entries look like "127.0.0.1:27017:27017" or "27017:27017"; the host port
+    # is the second-to-last field.
+    return str(ports[0]).split(":")[-2]
 
 
 def load_targets(compose_path: Path = COMPOSE_PATH) -> list[Target]:

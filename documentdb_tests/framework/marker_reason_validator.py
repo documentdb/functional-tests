@@ -11,11 +11,17 @@ Covers two forms:
   ``engine_xfail`` / ``engine_xcrash`` variants, via their ``reason=``.
 - **Runtime calls** — ``pytest.skip(...)`` / ``fail(...)`` / ``xfail(...)``, via
   their positional message or ``reason=`` / ``msg=``.
+
+It also checks that a ``requires(spec_since=...)`` / ``requires(spec_until=...)``
+spec gate names a known spec version, since a bad version would scope the test
+out of every run.
 """
 
 from __future__ import annotations
 
 import ast
+
+from documentdb_tests.framework.preconditions import REQUIRES_MARKER, SPEC_KEYS, SPEC_VERSIONS
 
 # Markers that must justify why they suppress or reclassify an outcome.
 MARKERS_REQUIRING_REASON = frozenset({"skip", "skipif", "xfail", "engine_xfail", "engine_xcrash"})
@@ -92,6 +98,21 @@ def _runtime_call_has_message(call: ast.Call) -> bool:
     return False
 
 
+def _spec_gate_errors(call: ast.Call) -> list[str]:
+    """A ``requires`` spec gate must name a known spec version as a literal."""
+    errors = []
+    for keyword in call.keywords:
+        if keyword.arg not in SPEC_KEYS:
+            continue
+        value = keyword.value
+        if not (isinstance(value, ast.Constant) and value.value in SPEC_VERSIONS):
+            errors.append(
+                f"  Line {call.lineno}: requires({keyword.arg}=...) must be one of "
+                f"{', '.join(repr(v) for v in SPEC_VERSIONS)}."
+            )
+    return errors
+
+
 def validate_marker_reasons(file_path: str) -> list[str]:
     """
     Validate that outcome-suppressing markers carry a reason.
@@ -125,6 +146,9 @@ def validate_marker_reasons(file_path: str) -> list[str]:
                 f"  Line {node.lineno}: pytest.{runtime_name}() must be called with "
                 f"a non-empty message explaining why."
             )
+        # Spec gates: requires(spec_since=...) / requires(spec_until=...).
+        if name == REQUIRES_MARKER:
+            errors.extend(_spec_gate_errors(node))
 
     # Bare decorator form: @pytest.mark.skip / @pytest.mark.xfail (no reason at all).
     for node in ast.walk(tree):

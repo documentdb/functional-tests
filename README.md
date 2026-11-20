@@ -288,6 +288,51 @@ When targets are discovered automatically (running `pytest` with no
 `--connection-string`), each test runs against every discovered target it
 applies to, so no manual selection is needed.
 
+### Reference Version and Spec Versions
+
+Expected results are pinned to MongoDB 8.2.4, the version CI runs against.
+Every test except smoke tests always runs and expects the 8.2.4 answer,
+whatever `--spec-version` is set to.
+
+Only smoke tests (`pytest.mark.smoke`) can select a target minor version,
+with `--spec-version` (`8.0`, `8.2` or `8.3`, default `8.2`). A smoke test for
+a feature added in a later version declares it with the `requires` marker:
+
+```python
+pytestmark = [pytest.mark.smoke, pytest.mark.requires(spec_since="8.3")]
+```
+
+`spec_until` works the same way for a feature a later version removed. A smoke
+test with no spec gate runs under every spec version. There is no `8.1` spec
+version: a feature added in 8.1 uses `spec_since="8.2"`. A spec gate on a test
+that is not a smoke test is a collection error.
+
+Out-of-scope smoke tests are deselected and listed, with the gate that excluded
+them, in the report's `.deselected.json` sidecar. The JSON report records the
+run's spec version and each target's server version under `run`.
+
+The gate can be set on a smoke test, a smoke test file (`pytestmark`, as above)
+or a folder that holds only smoke tests, from the folder's `conftest.py`:
+
+```python
+from documentdb_tests.framework.preconditions import spec_gate_folder
+
+pytest_collection_modifyitems = spec_gate_folder(__file__, spec_since="8.3")
+```
+
+Gates combine with capability gates such as `requires(change_streams=True)`;
+on the same key the closest level wins.
+
+```bash
+# Run the smoke tests for spec 8.3 against the 8.3 dev server
+docker compose -f dev/compose.yaml --profile mongo-standalone-8.3 up -d --wait
+pytest -m smoke --connection-string mongodb://localhost:27019 --engine-name mongodb --spec-version 8.3
+
+# Run the smoke tests for spec 8.0 against the 8.0 dev server
+docker compose -f dev/compose.yaml --profile mongo-standalone-8.0 up -d --wait
+pytest -m smoke --connection-string mongodb://localhost:27020 --engine-name mongodb --spec-version 8.0
+```
+
 ## Writing Tests
 
 ### Basic Test Structure
