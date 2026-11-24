@@ -7,7 +7,7 @@ Tests basic modify change stream event functionality.
 import pytest
 
 from documentdb_tests.framework.assertions import assertChangeStreamEvent
-from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.executor import execute_command, execute_command_until
 
 pytestmark = pytest.mark.smoke
 
@@ -33,10 +33,22 @@ def test_smoke_changeStream_modify(collection):
     # cleanly instead of a TypeError from subscripting an exception object.
     cursor_id = result.get("cursor", {}).get("id", 0) if isinstance(result, dict) else 0
 
-    execute_command(collection, {"collMod": collection.name, "validator": {"x": {"$type": "int"}}})
+    # A $jsonSchema validator is the most widely supported validator form, so the
+    # probe tests the modify event rather than which query operators a validator
+    # may use.
+    execute_command(
+        collection,
+        {"collMod": collection.name, "validator": {"$jsonSchema": {"required": ["x"]}}},
+    )
 
-    result = execute_command(collection, {"getMore": cursor_id, "collection": collection.name})
+    # Some engines publish the DDL event after the first getMore returns, so
+    # read until a batch is non-empty or the timeout passes.
+    result = execute_command_until(
+        collection,
+        {"getMore": cursor_id, "collection": collection.name},
+        lambda r: bool(r.get("cursor", {}).get("nextBatch")),
+    )
 
-    # An empty batch means the expanded modify event was not emitted; fail with a
-    # clear message instead of an IndexError when indexing nextBatch[0].
+    # An empty batch means the modify event was not emitted; fail with a clear
+    # message instead of an IndexError when indexing nextBatch[0].
     assertChangeStreamEvent(result, msg="Should support modify change stream event")
