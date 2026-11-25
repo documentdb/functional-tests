@@ -7,6 +7,11 @@ behavior, $match with $expr after other pipeline stages, and $$ROOT
 inside $expr.
 """
 
+import pytest
+from bson import Int64, Timestamp
+
+pytestmark = pytest.mark.aggregate
+
 from documentdb_tests.framework.assertions import (
     assertFailureCode,
     assertSuccess,
@@ -198,6 +203,25 @@ def test_expr_match_with_aggregate_let(collection):
     assertSuccess(result, [{"_id": 1, "a": 5, "b": 3}])
 
 
+@pytest.mark.aggregate
+def test_tsIncrement_in_match_expr(collection):
+    """$tsIncrement works inside $match with $expr to filter documents by ordinal."""
+    collection.insert_many(
+        [
+            {"_id": 1, "ts": Timestamp(100, 5)},
+            {"_id": 2, "ts": Timestamp(200, 10)},
+        ]
+    )
+    collection.insert_many(BASIC_DOCS)
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+                "pipeline": [{"$match": {"$expr": {"$gt": [{"$tsIncrement": "$ts"}, Int64(6)]}}}],
+            "cursor": {},
+        },
+    )
+    assertSuccess(result, [{"_id": 2, "ts": Timestamp(200, 10)}])
 def test_expr_match_with_root(collection):
     """Test $$ROOT inside $match $expr — wiring sample only.
 
